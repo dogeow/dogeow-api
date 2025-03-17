@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use Spatie\QueryBuilder\QueryBuilder;
+use Spatie\QueryBuilder\AllowedFilter;
 
 class ItemController extends Controller
 {
@@ -21,79 +23,73 @@ class ItemController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Item::with(['user', 'images', 'category', 'spot.room.area']);
+        $baseQuery = Item::with(['user', 'images', 'category', 'spot.room.area',]);
         
         // 如果用户已登录，显示公开物品和自己的物品
         if (Auth::check()) {
-            $query->where(function($q) {
+            $baseQuery->where(function($q) {
                 $q->where('is_public', true)
                   ->orWhere('user_id', Auth::id());
             });
         } else {
             // 未登录用户只能看到公开物品
-            $query->where('is_public', true);
+            $baseQuery->where('is_public', true);
         }
         
-        // 搜索关键词
-        if ($request->filled('search')) {
-            $search = $request->get('search');
-            $query->where('name', 'like', "%{$search}%");
-        }
-
-        // 分类筛选
-        if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id);
-        }
-
-        // 购买时间范围筛选
-        if ($request->filled('purchase_date_from')) {
-            $query->whereDate('purchase_date', '>=', $request->purchase_date_from);
-        }
-        if ($request->filled('purchase_date_to')) {
-            $query->whereDate('purchase_date', '<=', $request->purchase_date_to);
-        }
-
-        // 过期时间范围筛选
-        if ($request->filled('expiry_date_from')) {
-            $query->whereDate('expiry_date', '>=', $request->expiry_date_from);
-        }
-        if ($request->filled('expiry_date_to')) {
-            $query->whereDate('expiry_date', '<=', $request->expiry_date_to);
-        }
-
-        // 购买价格范围筛选
-        if ($request->filled('price_from')) {
-            $query->where('purchase_price', '>=', $request->price_from);
-        }
-        if ($request->filled('price_to')) {
-            $query->where('purchase_price', '<=', $request->price_to);
-        }
-
-        // 存放地点筛选
-        if ($request->filled('area_id') || $request->filled('room_id') || $request->filled('spot_id')) {
-            $query->whereHas('spot.room.area', function($q) use ($request) {
-                // 区域筛选
-                if ($request->filled('area_id')) {
-                    $q->where('areas.id', $request->area_id);
-                }
-                
-                // 房间筛选
-                if ($request->filled('room_id')) {
-                    $q->whereHas('rooms', function($q) use ($request) {
-                        $q->where('rooms.id', $request->room_id);
+        $query = QueryBuilder::for($baseQuery)
+            ->allowedFilters([
+                AllowedFilter::callback('category_id', function ($query, $value) {
+                    $query->where('category_id', $value);
+                }),
+                // 搜索关键词
+                AllowedFilter::callback('search', function ($query, $value) {
+                    $query->search($value);
+                }),
+                // 购买时间范围筛选
+                AllowedFilter::callback('purchase_date_from', function ($query, $value) {
+                    $query->whereDate('purchase_date', '>=', $value);
+                }),
+                AllowedFilter::callback('purchase_date_to', function ($query, $value) {
+                    $query->whereDate('purchase_date', '<=', $value);
+                }),
+                // 过期时间范围筛选
+                AllowedFilter::callback('expiry_date_from', function ($query, $value) {
+                    $query->whereDate('expiry_date', '>=', $value);
+                }),
+                AllowedFilter::callback('expiry_date_to', function ($query, $value) {
+                    $query->whereDate('expiry_date', '<=', $value);
+                }),
+                // 购买价格范围筛选
+                AllowedFilter::callback('price_from', function ($query, $value) {
+                    $query->where('purchase_price', '>=', $value);
+                }),
+                AllowedFilter::callback('price_to', function ($query, $value) {
+                    $query->where('purchase_price', '<=', $value);
+                }),
+                // 存放地点筛选
+                AllowedFilter::callback('area_id', function ($query, $value) {
+                    $query->whereHas('spot.room.area', function($q) use ($value) {
+                        $q->where('areas.id', $value);
                     });
-                }
-                
-                // 具体位置筛选
-                if ($request->filled('spot_id')) {
-                    $q->whereHas('rooms.spots', function($q) use ($request) {
-                        $q->where('spots.id', $request->spot_id);
+                }),
+                AllowedFilter::callback('room_id', function ($query, $value) {
+                    $query->whereHas('spot.room.area', function($q) use ($value) {
+                        $q->whereHas('rooms', function($q) use ($value) {
+                            $q->where('rooms.id', $value);
+                        });
                     });
-                }
-            });
-        }
+                }),
+                AllowedFilter::callback('spot_id', function ($query, $value) {
+                    $query->whereHas('spot.room.area', function($q) use ($value) {
+                        $q->whereHas('rooms.spots', function($q) use ($value) {
+                            $q->where('spots.id', $value);
+                        });
+                    });
+                }),
+            ])
+            ->defaultSort('-created_at');
 
-        $items = $query->latest()->paginate(10);
+        $items = $query->paginate(10);
 
         return response()->json($items);
     }

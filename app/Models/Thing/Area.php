@@ -10,6 +10,8 @@ class Area extends Model
 {
     use HasFactory;
 
+    protected $table = 'thing_areas';
+
     protected $fillable = [
         'name',
         'user_id',

@@ -9,6 +9,8 @@ class ItemImage extends Model
 {
     use HasFactory;
 
+    protected $table = 'thing_item_images';
+
     protected $fillable = [
         'item_id',
         'path',

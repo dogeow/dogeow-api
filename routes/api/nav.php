@@ -1,7 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\Thing\NavController;
 use Illuminate\Support\Facades\Route;
 
 // 导航
-Route::apiResource('navs', 'App\Http\Controllers\Api\NavController');
-Route::get('nav-categories', 'App\Http\Controllers\Api\NavController@categories'); 
+Route::apiResource('navs', NavController::class);
+Route::get('nav-categories', [NavController::class, 'categories']); 

@@ -29,7 +29,7 @@ class ItemRequest extends FormRequest
             'expiry_date' => 'nullable|date',
             'purchase_date' => 'nullable|date',
             'purchase_price' => 'nullable|numeric|min:0',
-            'category_id' => 'nullable|exists:item_categories,id',
+            'category_id' => 'nullable|exists:thing_item_categories,id',
             'spot_id' => 'nullable|exists:spots,id',
             'is_public' => 'boolean',
             'images' => 'nullable|array',

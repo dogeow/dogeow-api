@@ -9,6 +9,8 @@ class Spot extends Model
 {
     use HasFactory;
 
+    protected $table = 'thing_spots';
+
     protected $fillable = [
         'name',
         'room_id',

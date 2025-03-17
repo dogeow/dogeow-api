@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Thing;
 
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -27,11 +27,11 @@ class LocationRequest extends FormRequest
 
         // 根据请求路径添加不同的验证规则
         if ($this->is('*/rooms') || $this->is('*/rooms/*')) {
-            $rules['area_id'] = 'required|exists:areas,id';
+            $rules['area_id'] = 'required|exists:thing_areas,id';
         }
 
         if ($this->is('*/spots') || $this->is('*/spots/*')) {
-            $rules['room_id'] = 'required|exists:rooms,id';
+            $rules['room_id'] = 'required|exists:thing_rooms,id';
         }
 
         return $rules;

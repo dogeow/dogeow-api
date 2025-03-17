@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Thing;
 
 use App\Http\Controllers\Controller;
 use App\Models\Thing\Item;
@@ -9,6 +9,7 @@ use App\Models\Thing\Spot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class StatsController extends Controller
 {
@@ -22,22 +23,87 @@ class StatsController extends Controller
         
         // 物品总价值
         $totalValue = Item::where('user_id', Auth::id())
-            ->sum(DB::raw('purchase_price * quantity'));
+            ->sum(DB::raw('COALESCE(purchase_price, 0) * quantity'));
         
         // 按分类统计
-        $categoryStats = ItemCategory::where('user_id', Auth::id())
+        $byCategory = ItemCategory::where('user_id', Auth::id())
             ->withCount('items')
-            ->withSum('items', 'quantity')
-            ->withSum(DB::raw('items'), DB::raw('purchase_price * quantity'))
-            ->get();
+            ->with('items')
+            ->get()
+            ->map(function ($category) {
+                $value = $category->items->sum(function ($item) {
+                    return ($item->purchase_price ?? 0) * $item->quantity;
+                });
+                
+                return [
+                    'name' => $category->name,
+                    'count' => $category->items_count,
+                    'value' => $value
+                ];
+            });
+        
+        // 按状态统计
+        $byStatus = [
+            [
+                'status' => 'active',
+                'count' => Item::where('user_id', Auth::id())
+                    ->where('status', 'active')
+                    ->count(),
+                'value' => Item::where('user_id', Auth::id())
+                    ->where('status', 'active')
+                    ->sum(DB::raw('COALESCE(purchase_price, 0) * quantity'))
+            ],
+            [
+                'status' => 'inactive',
+                'count' => Item::where('user_id', Auth::id())
+                    ->where('status', 'inactive')
+                    ->count(),
+                'value' => Item::where('user_id', Auth::id())
+                    ->where('status', 'inactive')
+                    ->sum(DB::raw('COALESCE(purchase_price, 0) * quantity'))
+            ],
+            [
+                'status' => 'expired',
+                'count' => Item::where('user_id', Auth::id())
+                    ->where('status', 'expired')
+                    ->count(),
+                'value' => Item::where('user_id', Auth::id())
+                    ->where('status', 'expired')
+                    ->sum(DB::raw('COALESCE(purchase_price, 0) * quantity'))
+            ]
+        ];
         
         // 按位置统计
-        $spotStats = Spot::where('user_id', Auth::id())
+        $byLocation = Spot::where('user_id', Auth::id())
             ->withCount('items')
-            ->withSum('items', 'quantity')
-            ->withSum(DB::raw('items'), DB::raw('purchase_price * quantity'))
-            ->with('room.area')
-            ->get();
+            ->with(['items', 'room.area'])
+            ->get()
+            ->map(function ($spot) {
+                $value = $spot->items->sum(function ($item) {
+                    return ($item->purchase_price ?? 0) * $item->quantity;
+                });
+                
+                $locationName = '';
+                if ($spot->room && $spot->room->area) {
+                    $locationName = $spot->room->area->name . ' > ' . $spot->room->name . ' > ' . $spot->name;
+                } elseif ($spot->room) {
+                    $locationName = $spot->room->name . ' > ' . $spot->name;
+                } else {
+                    $locationName = $spot->name;
+                }
+                
+                return [
+                    'name' => $locationName,
+                    'count' => $spot->items_count,
+                    'value' => $value
+                ];
+            });
+        
+        // 最近添加的物品
+        $recentItems = Item::where('user_id', Auth::id())
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get(['id', 'name', 'created_at']);
         
         // 即将过期的物品
         $expiringItems = Item::where('user_id', Auth::id())
@@ -45,24 +111,17 @@ class StatsController extends Controller
             ->where('expiry_date', '>=', now())
             ->where('expiry_date', '<=', now()->addDays(30))
             ->orderBy('expiry_date')
-            ->with(['category', 'spot.room.area'])
-            ->get();
-        
-        // 已过期的物品
-        $expiredItems = Item::where('user_id', Auth::id())
-            ->whereNotNull('expiry_date')
-            ->where('expiry_date', '<', now())
-            ->orderBy('expiry_date', 'desc')
-            ->with(['category', 'spot.room.area'])
-            ->get();
+            ->limit(5)
+            ->get(['id', 'name', 'expiry_date']);
         
         return response()->json([
-            'total_items' => $totalItems,
-            'total_value' => $totalValue,
-            'category_stats' => $categoryStats,
-            'spot_stats' => $spotStats,
-            'expiring_items' => $expiringItems,
-            'expired_items' => $expiredItems,
+            'totalItems' => $totalItems,
+            'totalValue' => (float) $totalValue,
+            'byCategory' => $byCategory,
+            'byStatus' => $byStatus,
+            'byLocation' => $byLocation,
+            'recentItems' => $recentItems,
+            'expiringItems' => $expiringItems,
         ]);
     }
 

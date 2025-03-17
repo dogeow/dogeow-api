@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Thing;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\LocationRequest;
+use App\Http\Requests\Thing\LocationRequest;
 use App\Models\Thing\Area;
 use App\Models\Thing\Room;
 use App\Models\Thing\Spot;
@@ -96,6 +96,7 @@ class LocationController extends Controller
     public function roomIndex(Request $request)
     {
         $query = Room::where('user_id', Auth::id())
+            ->with('area')
             ->withCount('spots');
         
         // 如果指定了区域ID，则只获取该区域下的房间
@@ -194,6 +195,7 @@ class LocationController extends Controller
     public function spotIndex(Request $request)
     {
         $query = Spot::where('user_id', Auth::id())
+            ->with('room.area')
             ->withCount('items');
         
         // 如果指定了房间ID，则只获取该房间下的具体位置
@@ -284,5 +286,118 @@ class LocationController extends Controller
         $spot->delete();
         
         return response()->json(['message' => '具体位置删除成功']);
+    }
+
+    /**
+     * 获取指定区域下的房间列表
+     */
+    public function areaRooms(Area $area)
+    {
+        // 检查权限：只有区域所有者可以查看
+        if ($area->user_id !== Auth::id()) {
+            return response()->json(['message' => '无权查看此区域的房间'], 403);
+        }
+        
+        $rooms = Room::where('area_id', $area->id)
+            ->where('user_id', Auth::id())
+            ->with('area')
+            ->withCount('spots')
+            ->get();
+        
+        return response()->json($rooms);
+    }
+
+    /**
+     * 获取指定房间下的位置列表
+     */
+    public function roomSpots(Room $room)
+    {
+        // 检查权限：只有房间所有者可以查看
+        if ($room->user_id !== Auth::id()) {
+            return response()->json(['message' => '无权查看此房间的位置'], 403);
+        }
+        
+        $spots = Spot::where('room_id', $room->id)
+            ->where('user_id', Auth::id())
+            ->with('room.area')
+            ->withCount('items')
+            ->get();
+        
+        return response()->json($spots);
+    }
+
+    /**
+     * 获取树形结构的位置数据
+     */
+    public function locationTree()
+    {
+        // 获取当前用户的所有区域
+        $areas = Area::where('user_id', Auth::id())
+            ->withCount('rooms')
+            ->get();
+        
+        // 获取当前用户的所有房间
+        $rooms = Room::where('user_id', Auth::id())
+            ->with('area')
+            ->withCount('spots')
+            ->get();
+        
+        // 获取当前用户的所有具体位置
+        $spots = Spot::where('user_id', Auth::id())
+            ->with('room')
+            ->withCount('items')
+            ->get();
+        
+        // 构建树形结构
+        $tree = [];
+        
+        foreach ($areas as $area) {
+            $areaNode = [
+                'id' => 'area_' . $area->id,
+                'name' => $area->name,
+                'type' => 'area',
+                'original_id' => $area->id,
+                'children' => []
+            ];
+            
+            // 添加该区域下的房间
+            $areaRooms = $rooms->where('area_id', $area->id);
+            foreach ($areaRooms as $room) {
+                $roomNode = [
+                    'id' => 'room_' . $room->id,
+                    'name' => $room->name,
+                    'type' => 'room',
+                    'original_id' => $room->id,
+                    'parent_id' => $area->id,
+                    'children' => []
+                ];
+                
+                // 添加该房间下的具体位置
+                $roomSpots = $spots->where('room_id', $room->id);
+                foreach ($roomSpots as $spot) {
+                    $spotNode = [
+                        'id' => 'spot_' . $spot->id,
+                        'name' => $spot->name,
+                        'type' => 'spot',
+                        'original_id' => $spot->id,
+                        'parent_id' => $room->id,
+                        'items_count' => $spot->items_count
+                    ];
+                    
+                    $roomNode['children'][] = $spotNode;
+                }
+                
+                $areaNode['children'][] = $roomNode;
+            }
+            
+            $tree[] = $areaNode;
+        }
+        
+        return response()->json([
+            'tree' => $tree,
+            'areas' => $areas,
+            'rooms' => $rooms,
+            'spots' => $spots
+        ]);
     }
 }

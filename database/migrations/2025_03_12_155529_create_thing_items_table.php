@@ -18,7 +18,7 @@ return new class extends Migration
      * - description: 物品描述
      * - user_id: 所属用户ID
      * - quantity: 数量，默认1
-     * - status: 状态，默认active
+     * - status: 状态，可选值：active(活跃)、inactive(不活跃)、expired(已过期)，默认active
      * - expiry_date: 过期时间
      * - purchase_date: 购买时间
      * - purchase_price: 购买价格
@@ -34,7 +34,7 @@ return new class extends Migration
             $table->string('name');
             $table->text('description')->nullable();
             $table->integer('quantity')->default(1);
-            $table->string('status')->default('active');
+            $table->enum('status', ['active', 'inactive', 'expired'])->default('active')->comment('活跃、不活跃、已过期');
             $table->date('purchase_date')->nullable();
             $table->date('expiry_date')->nullable();
             $table->decimal('purchase_price', 10, 2)->nullable();
