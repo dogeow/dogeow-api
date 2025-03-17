@@ -10,6 +10,7 @@ use App\Models\Thing\ItemImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
@@ -36,11 +37,13 @@ class ItemController extends Controller
             $baseQuery->where('is_public', true);
         }
         
+        // 直接处理category_id参数
+        if ($request->has('category_id')) {
+            $baseQuery->where('category_id', $request->category_id);
+        }
+        
         $query = QueryBuilder::for($baseQuery)
             ->allowedFilters([
-                AllowedFilter::callback('category_id', function ($query, $value) {
-                    $query->where('category_id', $value);
-                }),
                 // 搜索关键词
                 AllowedFilter::callback('search', function ($query, $value) {
                     $query->search($value);
