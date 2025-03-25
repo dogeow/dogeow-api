@@ -23,6 +23,8 @@ class Item extends Model
         'purchase_date',
         'purchase_price',
         'category_id',
+        'area_id',
+        'room_id',
         'spot_id',
         'is_public',
     ];

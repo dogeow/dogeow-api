@@ -1,0 +1,14 @@
+# Role
+
+
+# Goal
+
+Laravel 项目，尽量使用 Laravel 官方的包: https://laravel.com/docs, 比如使用 Sanctum 而非其他的 jwt 包。 
+你可以改进注释，但不要删除我的注释。
+数据库不要使用外键关联。
+代码不要超过600行，超过的话，要拆分组件。
+React 的项目，不要用 css 文件，直接在 React 组件里面写。
+我现在的偏好是使用 Laravel 12 和 Next.js 15，UI 使用 shadcn，React 状态管理使用 Zuntand。
+可以单独一个文件就单独，比如 Laravel 的 Policy、Request Validation 等。
+我修改过的东西，你下一次帮我修改的时候，不要又给我恢复了。
+界面尽量简洁，功能简单的话，不要写一些功能介绍。

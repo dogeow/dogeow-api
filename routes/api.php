@@ -3,10 +3,13 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Api\Thing\ItemController;
+use App\Http\Controllers\Api\Nav\CategoryController;
+use App\Http\Controllers\Api\Nav\ItemController as NavItemController;
 use App\Models\Thing\Item;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -20,11 +23,58 @@ Route::middleware('auth:sanctum')->group(function () {
     require base_path('routes/api/stats.php');
     require base_path('routes/api/todo.php');
     require base_path('routes/api/game.php');
-    require base_path('routes/api/nav.php');
+    // 导航管理相关路由需要认证
+    Route::prefix('nav')->group(function () {
+        Route::post('/categories', [CategoryController::class, 'store']);
+        Route::put('/categories/{category}', [CategoryController::class, 'update']);
+        Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
+        Route::get('/admin/categories', [CategoryController::class, 'all']);
+        
+        Route::post('/items', [NavItemController::class, 'store']);
+        Route::put('/items/{item}', [NavItemController::class, 'update']);
+        Route::delete('/items/{item}', [NavItemController::class, 'destroy']);
+    });
 });
 
 // 公开路由
 Route::get('public-items', [App\Http\Controllers\Api\Thing\ItemController::class, 'index']);
+
+// 导航查询相关公开路由
+Route::prefix('nav')->group(function () {
+    Route::get('/categories', [CategoryController::class, 'index']);
+    Route::get('/categories/{category}', [CategoryController::class, 'show']);
+    Route::get('/items', [NavItemController::class, 'index']);
+    Route::get('/items/{item}', [NavItemController::class, 'show']);
+    Route::post('/items/{item}/click', [NavItemController::class, 'recordClick']);
+});
+
+// 引入单词相关路由
+require base_path('routes/api/word.php');
+
+// 添加测试路由
+Route::get('/test-word-categories', function() {
+    $tableName = 'word_categories';
+    
+    // 尝试直接从数据库查询
+    $categories = DB::table($tableName)->get();
+    
+    // 检查表是否存在
+    $tableExists = Schema::hasTable($tableName);
+    
+    // 查看表结构
+    $columns = [];
+    if ($tableExists) {
+        $columns = DB::getSchemaBuilder()->getColumnListing($tableName);
+    }
+    
+    return [
+        'table_exists' => $tableExists,
+        'table_name' => $tableName,
+        'columns' => $columns,
+        'count' => $categories->count(),
+        'data' => $categories
+    ];
+});
 
 // 物品搜索路由 - 使用控制器方法
 Route::get('/things', [App\Http\Controllers\Api\Thing\ItemController::class, 'index']);
