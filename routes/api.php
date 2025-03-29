@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use App\Http\Controllers\Api\Cloud\FileController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -35,6 +36,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/items/{item}', [NavItemController::class, 'destroy']);
     });
 });
+
+// Cloud Files - 云存储文件路由（公开路由）
+Route::get('/cloud/files', [FileController::class, 'index']);
+Route::get('/cloud/files/{id}', [FileController::class, 'show']);
+Route::post('/cloud/folders', [FileController::class, 'createFolder']);
+Route::post('/cloud/files', [FileController::class, 'upload']);
+Route::get('/cloud/files/{id}/download', [FileController::class, 'download'])->name('cloud.files.download');
+Route::get('/cloud/files/{id}/preview', [FileController::class, 'preview']);
+Route::delete('/cloud/files/{id}', [FileController::class, 'destroy']);
+Route::put('/cloud/files/{id}', [FileController::class, 'update']);
+Route::post('/cloud/files/move', [FileController::class, 'move']);
+Route::get('/cloud/tree', [FileController::class, 'tree']);
+Route::get('/cloud/statistics', [FileController::class, 'statistics']);
 
 // 公开路由
 Route::get('public-items', [App\Http\Controllers\Api\Thing\ItemController::class, 'index']);
