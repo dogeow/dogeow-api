@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Cloud\File;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Intervention\Image\Drivers\Gd\Driver;
@@ -127,14 +128,28 @@ class FileController extends Controller
         $mimeType = $uploadedFile->getMimeType();
         $size = $uploadedFile->getSize();
         
+        // 记录文件信息
+        Log::info("上传文件: 原始名称={$originalName}, 扩展名={$extension}, MIME类型={$mimeType}, 大小={$size}");
+        
         // 获取用户ID，如果用户未登录，使用默认用户ID(1)
         $userId = Auth::check() ? Auth::id() : 1;
         
         // 生成唯一文件路径
-        $path = 'cloud/' . $userId . '/' . date('Y/m/d') . '/' . Str::uuid() . '.' . $extension;
+        $fileName = Str::uuid() . '.' . $extension;
+        $path = 'cloud/' . $userId . '/' . date('Y/m/d') . '/' . $fileName;
+        
+        Log::info("存储路径: {$path}");
         
         // 保存文件
         Storage::disk('public')->put($path, file_get_contents($uploadedFile));
+
+        // 检查文件是否已保存
+        if (!Storage::disk('public')->exists($path)) {
+            Log::error("文件保存失败: {$path}");
+            return response()->json(['error' => '文件保存失败'], 500);
+        }
+        
+        Log::info("文件已保存到: {$path}");
 
         // 创建数据库记录
         $file = new File();
@@ -147,7 +162,11 @@ class FileController extends Controller
         $file->parent_id = $request->parent_id;
         $file->user_id = $userId; // 使用获取的用户ID
         $file->description = $request->description;
+        
+        // 保存记录
         $file->save();
+        
+        Log::info("文件记录已创建: ID={$file->id}, 类型={$file->type}");
 
         return response()->json($file, 201);
     }
@@ -408,8 +427,19 @@ class FileController extends Controller
     /**
      * 预览文件
      */
-    public function preview($id)
+    public function preview($id, Request $request)
     {
+        // 添加CORS头
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: GET, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
+        
+        // 如果是预检请求，直接返回
+        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+            http_response_code(200);
+            exit();
+        }
+        
         // 获取用户ID，如果用户未登录，使用默认用户ID(1)
         $userId = Auth::check() ? Auth::id() : 1;
         
@@ -420,17 +450,27 @@ class FileController extends Controller
         }
 
         if (!Storage::disk('public')->exists($file->path)) {
+            Log::error("文件不存在: {$file->path}");
             return response()->json(['error' => '文件不存在'], 404);
         }
         
         $extension = strtolower($file->extension);
         $mimeType = $file->mime_type;
         
-        // 图片类文件直接返回URL
+        // 如果是图片类文件
         if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'])) {
+            // 检查是否请求了缩略图
+            $isThumb = $request->has('thumb') && $request->thumb === 'true';
+            Log::info("图片预览请求: ID={$id}, 是否缩略图={$isThumb}, 扩展名={$extension}, 文件路径={$file->path}");
+            
+            // 直接返回原图URL，不再生成缩略图（简化处理）
+            $publicUrl = url('storage/' . $file->path);
+            Log::info("返回图片URL: {$publicUrl}");
+            
+            // 返回图片URL
             return response()->json([
                 'type' => 'image',
-                'url' => url('storage/' . $file->path),
+                'url' => $publicUrl,
             ]);
         }
         

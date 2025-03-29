@@ -33,6 +33,8 @@ class File extends Model
         'updated_at' => 'datetime',
     ];
 
+    protected $appends = ['type'];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
