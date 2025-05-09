@@ -96,7 +96,10 @@ class MusicController extends Controller
         $headers = [
             'Content-Type' => $mimeType,
             'Content-Length' => $length,
-            'Accept-Ranges' => 'bytes'
+            'Accept-Ranges' => 'bytes',
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+            'Access-Control-Allow-Headers' => 'Origin, Content-Type, Accept, Range'
         ];
         
         // 如果是范围请求，添加Content-Range头
