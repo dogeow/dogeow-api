@@ -160,4 +160,10 @@ Route::get('/search', function (Request $request) {
         'final_count' => $results->count(),
         'final_results' => $results
     ]);
+});
+
+// 音乐相关路由
+Route::prefix('music')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\MusicController::class, 'index']);
+    Route::get('/stream/{filename}', [App\Http\Controllers\Api\MusicController::class, 'stream'])->where('filename', '.*');
 }); 
