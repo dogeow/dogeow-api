@@ -35,6 +35,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/items/{item}', [NavItemController::class, 'update']);
         Route::delete('/items/{item}', [NavItemController::class, 'destroy']);
     });
+
+    // 笔记相关路由
+    Route::apiResource('notes', \App\Http\Controllers\Api\NoteController::class);
+    Route::apiResource('note-tags', \App\Http\Controllers\Api\NoteTagController::class);
+    Route::apiResource('note-categories', \App\Http\Controllers\Api\NoteCategoryController::class);
 });
 
 // Cloud Files - 云存储文件路由（公开路由）

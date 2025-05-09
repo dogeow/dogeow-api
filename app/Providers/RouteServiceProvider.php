@@ -29,9 +29,8 @@ class RouteServiceProvider extends ServiceProvider
         });
 
         $this->routes(function () {
-            // 加载主要的API路由文件
+            // 加载主要的API路由文件，修改为无前缀
             Route::middleware('api')
-                ->prefix('api')
                 ->group(base_path('routes/api.php'));
 
             // 加载web路由
