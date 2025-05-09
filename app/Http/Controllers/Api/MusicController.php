@@ -45,6 +45,8 @@ class MusicController extends Controller
     public function stream($filename)
     {
         $path = public_path('musics/' . $filename);
+
+        Log::info('stream', ['path' => $path]);
         
         if (!File::exists($path)) {
             return response()->json(['error' => '文件不存在'], 404);
