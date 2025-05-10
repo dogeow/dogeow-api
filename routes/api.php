@@ -166,4 +166,11 @@ Route::get('/search', function (Request $request) {
 Route::prefix('music')->group(function () {
     Route::get('/', [App\Http\Controllers\Api\MusicController::class, 'index']);
     Route::get('/stream/{filename}', [App\Http\Controllers\Api\MusicController::class, 'stream'])->where('filename', '.*');
+
+    // HLS 音乐路由
+    Route::prefix('hls')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\HLSMusicController::class, 'index']);
+        Route::get('/stream/{path}', [App\Http\Controllers\Api\HLSMusicController::class, 'stream'])->where('path', '.*');
+        Route::post('/generate', [App\Http\Controllers\Api\HLSMusicController::class, 'generateHLS']);
+    });
 }); 
