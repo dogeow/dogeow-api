@@ -46,14 +46,15 @@ class MusicController extends Controller
     {
         $path = public_path('musics/' . $filename);
 
-        Log::info('stream', ['path' => $path]);
+        Log::info('Stream request', ['path' => $path, 'exists' => File::exists($path)]);
         
         if (!File::exists($path)) {
+            Log::error('音乐文件不存在', ['path' => $path]);
             return response()->json(['error' => '文件不存在'], 404);
         }
         
         $fileSize = File::size($path);
-        $mimeType = File::mimeType($path) ?: 'audio/mpeg';
+        $mimeType = $this->getMimeType($path);
         
         // 处理范围请求
         $start = 0;
@@ -62,6 +63,7 @@ class MusicController extends Controller
         
         // 获取请求头中的Range
         $range = request()->header('Range');
+        Log::info('Range header', ['range' => $range]);
         
         if ($range) {
             // 解析范围请求
@@ -99,13 +101,23 @@ class MusicController extends Controller
             'Accept-Ranges' => 'bytes',
             'Access-Control-Allow-Origin' => '*',
             'Access-Control-Allow-Methods' => 'GET, OPTIONS',
-            'Access-Control-Allow-Headers' => 'Origin, Content-Type, Accept, Range'
+            'Access-Control-Allow-Headers' => 'Origin, Content-Type, Accept, Range',
+            'Cache-Control' => 'public, max-age=31536000' // 缓存一年
         ];
         
         // 如果是范围请求，添加Content-Range头
         if ($statusCode === 206) {
             $headers['Content-Range'] = "bytes $start-$end/$fileSize";
         }
+        
+        Log::info('Stream response', [
+            'statusCode' => $statusCode,
+            'mimeType' => $mimeType,
+            'length' => $length,
+            'start' => $start,
+            'end' => $end,
+            'fileSize' => $fileSize
+        ]);
         
         // 流式返回文件内容
         return new StreamedResponse(function () use ($path, $start, $length) {
@@ -125,5 +137,25 @@ class MusicController extends Controller
             
             fclose($handle);
         }, $statusCode, $headers);
+    }
+    
+    /**
+     * 获取文件的MIME类型，确保返回正确的音频类型
+     */
+    private function getMimeType($path)
+    {
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $defaultType = 'application/octet-stream';
+        
+        $mimeTypes = [
+            'mp3' => 'audio/mpeg',
+            'ogg' => 'audio/ogg',
+            'wav' => 'audio/wav',
+            'flac' => 'audio/flac',
+            'm4a' => 'audio/mp4',
+            'aac' => 'audio/aac'
+        ];
+        
+        return $mimeTypes[$extension] ?? $defaultType;
     }
 } 
