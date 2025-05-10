@@ -102,6 +102,7 @@ class MusicController extends Controller
             'Access-Control-Allow-Origin' => '*',
             'Access-Control-Allow-Methods' => 'GET, OPTIONS',
             'Access-Control-Allow-Headers' => 'Origin, Content-Type, Accept, Range',
+            'Cross-Origin-Resource-Policy' => 'cross-origin', // 允许跨域资源共享
             'Cache-Control' => 'public, max-age=31536000' // 缓存一年
         ];
         
