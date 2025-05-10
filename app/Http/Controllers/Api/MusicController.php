@@ -100,7 +100,7 @@ class MusicController extends Controller
             'Content-Length' => $length,
             'Accept-Ranges' => 'bytes',
             'Access-Control-Allow-Origin' => '*',
-            'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+            'Access-Control-Allow-Methods' => 'GET, OPTIONS, HEAD',
             'Access-Control-Allow-Headers' => 'Origin, Content-Type, Accept, Range',
             'Cross-Origin-Resource-Policy' => 'cross-origin', // 允许跨域资源共享
             'Cache-Control' => 'public, max-age=31536000' // 缓存一年
@@ -125,18 +125,40 @@ class MusicController extends Controller
             $handle = fopen($path, 'rb');
             fseek($handle, $start);
             
+            // 如果是MP3文件的开头部分，可能需要特殊处理
+            $isFirstChunk = ($start === 0);
+            
             // 每次发送 8KB
             $chunkSize = 8 * 1024;
             $bytesLeft = $length;
+            $bytesRead = 0;
             
             while (!feof($handle) && $bytesLeft > 0) {
                 $bytesToSend = min($chunkSize, $bytesLeft);
-                echo fread($handle, $bytesToSend);
-                $bytesLeft -= $bytesToSend;
+                $data = fread($handle, $bytesToSend);
+                echo $data;
+                
+                $bytesRead += strlen($data);
+                $bytesLeft -= strlen($data);
+                
+                // 确保内容全部发送到客户端
                 flush();
+                
+                // 为了避免服务器过载，可以考虑小延迟
+                if ($bytesLeft > 0) {
+                    usleep(1000); // 1ms延迟，通常不会被感知
+                }
             }
             
+            // 确保文件句柄被关闭
             fclose($handle);
+            
+            // 记录实际发送的字节数
+            Log::info('Stream completed', [
+                'bytesRead' => $bytesRead,
+                'expectedLength' => $length,
+                'difference' => $bytesRead - $length
+            ]);
         }, $statusCode, $headers);
     }
     
