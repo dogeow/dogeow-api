@@ -406,18 +406,89 @@ class ItemController extends Controller
                 'size' => $image->getSize(),
                 'mime' => $image->getMimeType() ?: 'unknown',
                 'extension' => $image->getClientOriginalExtension() ?: 'jpg',
-                'user_id' => $userId
+                'user_id' => $userId,
+                'is_valid' => $image->isValid(),
+                'error' => $image->getError()
             ]);
             
-            // 生成文件名
-            $filename = uniqid() . '.' . ($image->getClientOriginalExtension() ?: 'jpg');
+            // 检查文件有效性
+            if (!$image->isValid()) {
+                Log::error('上传的图片无效', [
+                    'error' => $image->getError(),
+                    'errorMessage' => $this->getUploadErrorMessage($image->getError())
+                ]);
+                
+                return response()->json([
+                    'message' => '图片上传失败: ' . $this->getUploadErrorMessage($image->getError())
+                ], 422);
+            }
+            
+            // 检查文件MIME类型
+            $mime = $image->getMimeType();
+            if (!$mime || !str_starts_with($mime, 'image/')) {
+                $detectedMime = mime_content_type($image->getRealPath());
+                Log::warning('图片MIME类型可疑', [
+                    'reported_mime' => $mime,
+                    'detected_mime' => $detectedMime
+                ]);
+                
+                if ($detectedMime && str_starts_with($detectedMime, 'image/')) {
+                    // 使用检测到的MIME类型
+                    $mime = $detectedMime;
+                } else {
+                    // 仍然无法确认为图片，使用默认JPEG类型
+                    $mime = 'image/jpeg';
+                    Log::warning('无法确认MIME类型，使用默认image/jpeg');
+                }
+            }
+            
+            // 生成文件名，确保有扩展名
+            $extension = $image->getClientOriginalExtension();
+            if (empty($extension)) {
+                // 根据MIME类型决定扩展名
+                $extension = match($mime) {
+                    'image/jpeg', 'image/jpg' => 'jpg',
+                    'image/png' => 'png',
+                    'image/gif' => 'gif',
+                    'image/webp' => 'webp',
+                    'image/bmp' => 'bmp',
+                    'image/heic' => 'heic',
+                    default => 'jpg' // 默认使用jpg
+                };
+            }
+            
+            $filename = uniqid() . '.' . $extension;
             $relativePath = 'temp/' . $userId . '/' . $filename;
+            $fullPath = $dirPath . '/' . $filename;
             
             // 移动文件
-            if ($image->move($dirPath, $filename)) {
-                $fullPath = $dirPath . '/' . $filename;
+            try {
+                // 尝试直接移动文件
+                if ($image->move($dirPath, $filename)) {
+                    Log::info('图片文件成功保存', ['path' => $fullPath]);
+                } else {
+                    throw new \Exception('无法移动上传文件');
+                }
+            } catch (\Exception $e) {
+                Log::error('移动图片文件失败，尝试替代方法', [
+                    'error' => $e->getMessage()
+                ]);
                 
-                // 创建缩略图
+                // 尝试用替代方法保存文件
+                $content = file_get_contents($image->getRealPath());
+                if ($content === false) {
+                    throw new \Exception('无法读取上传文件内容');
+                }
+                
+                if (file_put_contents($fullPath, $content) === false) {
+                    throw new \Exception('无法写入图片文件');
+                }
+                
+                Log::info('使用替代方法成功保存图片', ['path' => $fullPath]);
+            }
+            
+            // 创建缩略图
+            try {
                 $manager = new ImageManager(new Driver());
                 $thumbnail = $manager->read(file_get_contents($fullPath));
                 $thumbnail->cover(200, 200);
@@ -429,21 +500,29 @@ class ItemController extends Controller
                 // 保存缩略图
                 file_put_contents($thumbnailPath, (string) $thumbnail->encode());
                 
-                // 构建URL
-                $baseUrl = config('app.url');
-                $url = $baseUrl . '/storage/' . $relativePath;
-                $thumbnailUrl = $baseUrl . '/storage/' . $relativeThumbPath;
-                
-                return response()->json([
-                    'message' => '图片上传成功',
-                    'path' => $relativePath,
-                    'thumbnail_path' => $relativeThumbPath,
-                    'url' => $url,
-                    'thumbnail_url' => $thumbnailUrl,
+                Log::info('缩略图创建成功', ['path' => $thumbnailPath]);
+            } catch (\Exception $e) {
+                Log::error('创建缩略图失败: ' . $e->getMessage(), [
+                    'file' => $fullPath,
+                    'trace' => $e->getTraceAsString()
                 ]);
-            } else {
-                return response()->json(['message' => '图片上传失败'], 500);
+                
+                // 缩略图创建失败，使用原图路径
+                $relativeThumbPath = $relativePath;
             }
+            
+            // 构建URL
+            $baseUrl = config('app.url');
+            $url = $baseUrl . '/storage/' . $relativePath;
+            $thumbnailUrl = $baseUrl . '/storage/' . $relativeThumbPath;
+            
+            return response()->json([
+                'message' => '图片上传成功',
+                'path' => $relativePath,
+                'thumbnail_path' => $relativeThumbPath,
+                'url' => $url,
+                'thumbnail_url' => $thumbnailUrl,
+            ]);
         } catch (\Exception $e) {
             Log::error('临时图片上传失败: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
@@ -453,6 +532,23 @@ class ItemController extends Controller
                 'message' => '图片上传失败: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * 获取上传错误信息
+     */
+    private function getUploadErrorMessage($errorCode)
+    {
+        return match($errorCode) {
+            UPLOAD_ERR_INI_SIZE => '上传的文件超过了 php.ini 中 upload_max_filesize 选项限制的值',
+            UPLOAD_ERR_FORM_SIZE => '上传文件的大小超过了 HTML 表单中 MAX_FILE_SIZE 选项指定的值',
+            UPLOAD_ERR_PARTIAL => '文件只有部分被上传',
+            UPLOAD_ERR_NO_FILE => '没有文件被上传',
+            UPLOAD_ERR_NO_TMP_DIR => '找不到临时文件夹',
+            UPLOAD_ERR_CANT_WRITE => '文件写入失败',
+            UPLOAD_ERR_EXTENSION => '文件上传因扩展程序而停止',
+            default => '未知上传错误'
+        };
     }
 
     /**
