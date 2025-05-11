@@ -109,8 +109,11 @@ class HLSMusicController extends Controller
             'Accept-Ranges' => 'bytes',
             'X-Pad' => 'avoid browser bug',
             'Access-Control-Allow-Origin' => '*',
-            'Access-Control-Allow-Methods' => 'GET, OPTIONS',
-            'Access-Control-Allow-Headers' => 'Content-Type, X-Requested-With',
+            'Access-Control-Allow-Methods' => 'GET, OPTIONS, HEAD',
+            'Access-Control-Allow-Headers' => 'Content-Type, X-Requested-With, Range, Origin, Accept, Authorization',
+            'Access-Control-Max-Age' => '3600',
+            'Access-Control-Expose-Headers' => 'Content-Length, Content-Range, Content-Disposition',
+            'Cross-Origin-Resource-Policy' => 'cross-origin',
             'Content-Disposition' => 'inline',
             'Cache-Control' => 'public, max-age=86400',
         ];
