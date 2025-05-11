@@ -253,14 +253,18 @@ class ItemController extends Controller
                     'filename' => $image->getClientOriginalName(),
                     'size' => $image->getSize(),
                     'mime' => $image->getMimeType(),
+                    'extension' => $image->getClientOriginalExtension(),
                     'item_id' => $item->id
                 ]);
                 
+                // 确保有有效的MIME类型
+                $mimeType = $image->getMimeType() ?: 'application/octet-stream';
+                
                 // 验证文件是否为有效图片
-                if (!str_starts_with($image->getMimeType(), 'image/')) {
+                if (!str_starts_with($mimeType, 'image/')) {
                     Log::error('上传文件不是有效的图片类型', [
                         'filename' => $image->getClientOriginalName(), 
-                        'mime' => $image->getMimeType()
+                        'mime' => $mimeType
                     ]);
                     $errorCount++;
                     continue;
@@ -268,10 +272,50 @@ class ItemController extends Controller
                 
                 // 存储原始图片
                 $sortOrder++;
-                $path = $image->store('items/' . $item->id, 'public');
                 
-                if (!$path) {
-                    Log::error('图片存储失败', [
+                // 尝试直接保存文件，而不是使用store方法
+                try {
+                    $extension = $image->getClientOriginalExtension() ?: 'jpg';
+                    $filename = uniqid() . '.' . $extension;
+                    $path = 'items/' . $item->id . '/' . $filename;
+                    
+                    // 先确保目录存在
+                    $directory = 'public/items/' . $item->id;
+                    if (!file_exists(storage_path('app/' . $directory))) {
+                        mkdir(storage_path('app/' . $directory), 0755, true);
+                    }
+                    
+                    // 尝试直接保存文件
+                    if ($image->move(storage_path('app/public/items/' . $item->id), $filename)) {
+                        Log::info('图片直接保存成功', ['path' => $path]);
+                    } else {
+                        // 如果直接保存失败，尝试使用store方法
+                        $path = $image->store('items/' . $item->id, 'public');
+                        if (!$path) {
+                            throw new \Exception('无法保存图片');
+                        }
+                        Log::info('图片使用store方法保存成功', ['path' => $path]);
+                    }
+                } catch (\Exception $storeException) {
+                    Log::error('保存图片失败: ' . $storeException->getMessage(), [
+                        'filename' => $image->getClientOriginalName()
+                    ]);
+                    
+                    // 最后尝试
+                    $path = $image->store('items/' . $item->id, 'public');
+                    if (!$path) {
+                        Log::error('图片存储失败 - 最终尝试也失败', [
+                            'filename' => $image->getClientOriginalName()
+                        ]);
+                        $errorCount++;
+                        continue;
+                    }
+                }
+                
+                // 检查文件是否真的存在
+                if (!Storage::disk('public')->exists($path)) {
+                    Log::error('图片存储成功但文件不存在', [
+                        'path' => $path,
                         'filename' => $image->getClientOriginalName()
                     ]);
                     $errorCount++;
@@ -280,7 +324,14 @@ class ItemController extends Controller
                 
                 // 创建缩略图
                 try {
-                    $thumbnail = $manager->read(Storage::disk('public')->get($path));
+                    $fileContent = Storage::disk('public')->get($path);
+                    
+                    if (empty($fileContent)) {
+                        Log::error('获取图片内容为空', ['path' => $path]);
+                        throw new \Exception('图片内容为空');
+                    }
+                    
+                    $thumbnail = $manager->read($fileContent);
                     $thumbnail->cover(200, 200);
                     $thumbnailPath = 'items/' . $item->id . '/thumb_' . basename($path);
                     Storage::disk('public')->put($thumbnailPath, (string) $thumbnail->encode());
@@ -322,7 +373,8 @@ class ItemController extends Controller
             } catch (\Exception $e) {
                 Log::error('图片处理异常: ' . $e->getMessage(), [
                     'filename' => $image->getClientOriginalName() ?? 'unknown',
-                    'item_id' => $item->id
+                    'item_id' => $item->id,
+                    'trace' => $e->getTraceAsString()
                 ]);
                 $errorCount++;
             }
