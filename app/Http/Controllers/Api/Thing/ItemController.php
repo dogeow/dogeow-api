@@ -246,137 +246,91 @@ class ItemController extends Controller
         $successCount = 0;
         $errorCount = 0;
         
+        // 确保存储目录存在
+        $dirPath = storage_path('app/public/items/' . $item->id);
+        if (!file_exists($dirPath)) {
+            mkdir($dirPath, 0755, true);
+        }
+        
         foreach ($images as $image) {
             try {
                 // 记录上传信息
                 Log::info('开始处理图片上传', [
                     'filename' => $image->getClientOriginalName(),
                     'size' => $image->getSize(),
-                    'mime' => $image->getMimeType(),
-                    'extension' => $image->getClientOriginalExtension(),
+                    'mime' => $image->getMimeType() ?: 'unknown',
+                    'extension' => $image->getClientOriginalExtension() ?: 'jpg',
                     'item_id' => $item->id
                 ]);
                 
-                // 确保有有效的MIME类型
-                $mimeType = $image->getMimeType() ?: 'application/octet-stream';
-                
-                // 验证文件是否为有效图片
-                if (!str_starts_with($mimeType, 'image/')) {
-                    Log::error('上传文件不是有效的图片类型', [
-                        'filename' => $image->getClientOriginalName(), 
-                        'mime' => $mimeType
-                    ]);
-                    $errorCount++;
-                    continue;
-                }
-                
-                // 存储原始图片
+                // 简化存储逻辑，直接使用move方法
                 $sortOrder++;
+                $filename = uniqid() . '.' . ($image->getClientOriginalExtension() ?: 'jpg');
+                $relativePath = 'items/' . $item->id . '/' . $filename;
                 
-                // 尝试直接保存文件，而不是使用store方法
-                try {
-                    $extension = $image->getClientOriginalExtension() ?: 'jpg';
-                    $filename = uniqid() . '.' . $extension;
-                    $path = 'items/' . $item->id . '/' . $filename;
+                // 直接将文件移动到public目录
+                if ($image->move($dirPath, $filename)) {
+                    Log::info('图片成功保存', ['path' => $relativePath]);
                     
-                    // 先确保目录存在
-                    $directory = 'public/items/' . $item->id;
-                    if (!file_exists(storage_path('app/' . $directory))) {
-                        mkdir(storage_path('app/' . $directory), 0755, true);
-                    }
-                    
-                    // 尝试直接保存文件
-                    if ($image->move(storage_path('app/public/items/' . $item->id), $filename)) {
-                        Log::info('图片直接保存成功', ['path' => $path]);
-                    } else {
-                        // 如果直接保存失败，尝试使用store方法
-                        $path = $image->store('items/' . $item->id, 'public');
-                        if (!$path) {
-                            throw new \Exception('无法保存图片');
-                        }
-                        Log::info('图片使用store方法保存成功', ['path' => $path]);
-                    }
-                } catch (\Exception $storeException) {
-                    Log::error('保存图片失败: ' . $storeException->getMessage(), [
-                        'filename' => $image->getClientOriginalName()
-                    ]);
-                    
-                    // 最后尝试
-                    $path = $image->store('items/' . $item->id, 'public');
-                    if (!$path) {
-                        Log::error('图片存储失败 - 最终尝试也失败', [
-                            'filename' => $image->getClientOriginalName()
+                    // 创建缩略图
+                    try {
+                        $fullPath = $dirPath . '/' . $filename;
+                        $thumbnail = $manager->read(file_get_contents($fullPath));
+                        $thumbnail->cover(200, 200);
+                        
+                        $thumbnailFilename = 'thumb_' . $filename;
+                        $thumbnailPath = $dirPath . '/' . $thumbnailFilename;
+                        $relativeThumbPath = 'items/' . $item->id . '/' . $thumbnailFilename;
+                        
+                        // 直接写入文件
+                        file_put_contents($thumbnailPath, (string) $thumbnail->encode());
+                        
+                        // 设置图片记录
+                        $isPrimary = $sortOrder === 1 && !ItemImage::where('item_id', $item->id)
+                            ->where('is_primary', true)->exists();
+                        
+                        $itemImage = ItemImage::create([
+                            'item_id' => $item->id,
+                            'path' => $relativePath,
+                            'thumbnail_path' => $relativeThumbPath,
+                            'is_primary' => $isPrimary,
+                            'sort_order' => $sortOrder,
                         ]);
-                        $errorCount++;
-                        continue;
-                    }
-                }
-                
-                // 检查文件是否真的存在
-                if (!Storage::disk('public')->exists($path)) {
-                    Log::error('图片存储成功但文件不存在', [
-                        'path' => $path,
-                        'filename' => $image->getClientOriginalName()
-                    ]);
-                    $errorCount++;
-                    continue;
-                }
-                
-                // 创建缩略图
-                try {
-                    $fileContent = Storage::disk('public')->get($path);
-                    
-                    if (empty($fileContent)) {
-                        Log::error('获取图片内容为空', ['path' => $path]);
-                        throw new \Exception('图片内容为空');
-                    }
-                    
-                    $thumbnail = $manager->read($fileContent);
-                    $thumbnail->cover(200, 200);
-                    $thumbnailPath = 'items/' . $item->id . '/thumb_' . basename($path);
-                    Storage::disk('public')->put($thumbnailPath, (string) $thumbnail->encode());
-                    
-                    // 验证缩略图是否已保存
-                    if (!Storage::disk('public')->exists($thumbnailPath)) {
-                        Log::error('缩略图保存失败', [
-                            'path' => $thumbnailPath
+                        
+                        $successCount++;
+                        Log::info('图片处理成功', [
+                            'image_id' => $itemImage->id,
+                            'path' => $relativePath,
+                            'thumbnail_path' => $relativeThumbPath
                         ]);
+                    } catch (\Exception $thumbException) {
+                        Log::error('缩略图创建失败: ' . $thumbException->getMessage(), [
+                            'file' => $fullPath ?? 'unknown'
+                        ]);
+                        
+                        // 即使缩略图失败，也保存原图记录
+                        $isPrimary = $sortOrder === 1 && !ItemImage::where('item_id', $item->id)
+                            ->where('is_primary', true)->exists();
+                        
+                        $itemImage = ItemImage::create([
+                            'item_id' => $item->id,
+                            'path' => $relativePath,
+                            'thumbnail_path' => null, // 缩略图失败
+                            'is_primary' => $isPrimary,
+                            'sort_order' => $sortOrder,
+                        ]);
+                        
+                        $successCount++;
                     }
-                } catch (\Exception $thumbException) {
-                    Log::error('创建缩略图失败: ' . $thumbException->getMessage(), [
-                        'filename' => $image->getClientOriginalName(),
-                        'path' => $path
-                    ]);
-                    $thumbnailPath = null;
-                }
-                
-                // 设置第一张图片为主图
-                $isPrimary = $sortOrder === 1 && !ItemImage::where('item_id', $item->id)->where('is_primary', true)->exists();
-                
-                // 创建图片记录
-                $itemImage = ItemImage::create([
-                    'item_id' => $item->id,
-                    'path' => $path,
-                    'thumbnail_path' => $thumbnailPath,
-                    'is_primary' => $isPrimary,
-                    'sort_order' => $sortOrder,
-                ]);
-                
-                if ($itemImage) {
-                    $successCount++;
-                    Log::info('图片处理成功', [
-                        'image_id' => $itemImage->id,
-                        'path' => $path,
-                        'thumbnail_path' => $thumbnailPath
-                    ]);
+                } else {
+                    throw new \Exception('移动图片文件失败');
                 }
             } catch (\Exception $e) {
-                Log::error('图片处理异常: ' . $e->getMessage(), [
-                    'filename' => $image->getClientOriginalName() ?? 'unknown',
-                    'item_id' => $item->id,
+                $errorCount++;
+                Log::error('图片处理错误: ' . $e->getMessage(), [
+                    'file' => $image->getClientOriginalName(),
                     'trace' => $e->getTraceAsString()
                 ]);
-                $errorCount++;
             }
         }
         
@@ -385,5 +339,7 @@ class ItemController extends Controller
             'success' => $successCount,
             'errors' => $errorCount
         ]);
+        
+        return $successCount;
     }
 }
