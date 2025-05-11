@@ -12,3 +12,6 @@ Route::apiResource('categories', CategoryController::class);
 
 // 获取用户的物品分类
 Route::get('user/categories', [ItemController::class, 'categories']);
+
+// 临时图片上传
+Route::post('items/upload-temp-image', [ItemController::class, 'uploadTempImage']);

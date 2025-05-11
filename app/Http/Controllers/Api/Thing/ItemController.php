@@ -109,9 +109,13 @@ class ItemController extends Controller
             $item->user_id = Auth::id();
             $item->save();
             
-            // 处理图片上传
+            // 处理图片
             if ($request->hasFile('images')) {
+                // 如果直接提交了图片文件，仍然支持
                 $this->processImages($request->file('images'), $item);
+            } elseif ($request->has('image_paths') && is_array($request->image_paths)) {
+                // 处理临时图片路径
+                $this->processTempImages($request->image_paths, $item);
             }
             
             DB::commit();
@@ -122,6 +126,9 @@ class ItemController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('创建物品失败: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json(['message' => '物品创建失败: ' . $e->getMessage()], 500);
         }
     }
@@ -154,9 +161,13 @@ class ItemController extends Controller
             
             $item->update($request->validated());
             
-            // 处理图片上传
+            // 处理图片
             if ($request->hasFile('images')) {
+                // 如果直接提交了图片文件，仍然支持
                 $this->processImages($request->file('images'), $item);
+            } elseif ($request->has('image_paths') && is_array($request->image_paths)) {
+                // 处理临时图片路径
+                $this->processTempImages($request->image_paths, $item);
             }
             
             // 处理图片排序
@@ -179,6 +190,28 @@ class ItemController extends Controller
                     ->update(['is_primary' => true]);
             }
             
+            // 处理要删除的图片ID
+            if ($request->has('delete_image_ids') && is_array($request->delete_image_ids)) {
+                foreach ($request->delete_image_ids as $imageId) {
+                    $image = ItemImage::where('id', $imageId)
+                        ->where('item_id', $item->id)
+                        ->first();
+                    
+                    if ($image) {
+                        // 删除物理文件
+                        if (file_exists(storage_path('app/public/' . $image->path))) {
+                            @unlink(storage_path('app/public/' . $image->path));
+                        }
+                        if ($image->thumbnail_path && file_exists(storage_path('app/public/' . $image->thumbnail_path))) {
+                            @unlink(storage_path('app/public/' . $image->thumbnail_path));
+                        }
+                        
+                        // 删除数据库记录
+                        $image->delete();
+                    }
+                }
+            }
+            
             DB::commit();
             
             return response()->json([
@@ -187,6 +220,9 @@ class ItemController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('更新物品失败: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json(['message' => '物品更新失败: ' . $e->getMessage()], 500);
         }
     }
@@ -339,6 +375,158 @@ class ItemController extends Controller
             'success' => $successCount,
             'errors' => $errorCount
         ]);
+        
+        return $successCount;
+    }
+
+    /**
+     * 上传临时图片
+     */
+    public function uploadTempImage(Request $request)
+    {
+        $request->validate([
+            'image' => 'required|image|max:10240', // 10MB
+        ]);
+        
+        try {
+            // 获取用户ID
+            $userId = Auth::id();
+            
+            // 创建临时目录
+            $dirPath = storage_path('app/public/temp/' . $userId);
+            if (!file_exists($dirPath)) {
+                mkdir($dirPath, 0755, true);
+            }
+            
+            $image = $request->file('image');
+            
+            // 记录上传信息
+            Log::info('开始处理临时图片上传', [
+                'filename' => $image->getClientOriginalName(),
+                'size' => $image->getSize(),
+                'mime' => $image->getMimeType() ?: 'unknown',
+                'extension' => $image->getClientOriginalExtension() ?: 'jpg',
+                'user_id' => $userId
+            ]);
+            
+            // 生成文件名
+            $filename = uniqid() . '.' . ($image->getClientOriginalExtension() ?: 'jpg');
+            $relativePath = 'temp/' . $userId . '/' . $filename;
+            
+            // 移动文件
+            if ($image->move($dirPath, $filename)) {
+                $fullPath = $dirPath . '/' . $filename;
+                
+                // 创建缩略图
+                $manager = new ImageManager(new Driver());
+                $thumbnail = $manager->read(file_get_contents($fullPath));
+                $thumbnail->cover(200, 200);
+                
+                $thumbnailFilename = 'thumb_' . $filename;
+                $thumbnailPath = $dirPath . '/' . $thumbnailFilename;
+                $relativeThumbPath = 'temp/' . $userId . '/' . $thumbnailFilename;
+                
+                // 保存缩略图
+                file_put_contents($thumbnailPath, (string) $thumbnail->encode());
+                
+                // 构建URL
+                $baseUrl = config('app.url');
+                $url = $baseUrl . '/storage/' . $relativePath;
+                $thumbnailUrl = $baseUrl . '/storage/' . $relativeThumbPath;
+                
+                return response()->json([
+                    'message' => '图片上传成功',
+                    'path' => $relativePath,
+                    'thumbnail_path' => $relativeThumbPath,
+                    'url' => $url,
+                    'thumbnail_url' => $thumbnailUrl,
+                ]);
+            } else {
+                return response()->json(['message' => '图片上传失败'], 500);
+            }
+        } catch (\Exception $e) {
+            Log::error('临时图片上传失败: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'message' => '图片上传失败: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 处理临时图片，将其移动到正式目录
+     */
+    private function processTempImages(array $imagePaths, Item $item)
+    {
+        $sortOrder = ItemImage::where('item_id', $item->id)->max('sort_order') ?? 0;
+        $successCount = 0;
+        
+        // 确保目标目录存在
+        $targetDir = storage_path('app/public/items/' . $item->id);
+        if (!file_exists($targetDir)) {
+            mkdir($targetDir, 0755, true);
+        }
+        
+        foreach ($imagePaths as $index => $path) {
+            try {
+                $sortOrder++;
+                $filename = basename($path);
+                $thumbnailPath = dirname($path) . '/thumb_' . $filename;
+                
+                // 检查源文件是否存在
+                $sourcePath = storage_path('app/public/' . $path);
+                $sourceThumbPath = storage_path('app/public/' . $thumbnailPath);
+                
+                if (!file_exists($sourcePath)) {
+                    Log::error('临时图片文件不存在', ['path' => $path]);
+                    continue;
+                }
+                
+                // 移动文件到最终目录
+                $newRelativePath = 'items/' . $item->id . '/' . $filename;
+                $newPath = $targetDir . '/' . $filename;
+                
+                if (copy($sourcePath, $newPath)) {
+                    // 移动缩略图
+                    $newThumbRelativePath = 'items/' . $item->id . '/thumb_' . $filename;
+                    $newThumbPath = $targetDir . '/thumb_' . $filename;
+                    
+                    if (file_exists($sourceThumbPath)) {
+                        copy($sourceThumbPath, $newThumbPath);
+                    }
+                    
+                    // 设置图片记录
+                    $isPrimary = $sortOrder === 1 && !ItemImage::where('item_id', $item->id)
+                        ->where('is_primary', true)->exists();
+                    
+                    $itemImage = ItemImage::create([
+                        'item_id' => $item->id,
+                        'path' => $newRelativePath,
+                        'thumbnail_path' => $newThumbRelativePath,
+                        'is_primary' => $isPrimary,
+                        'sort_order' => $sortOrder,
+                    ]);
+                    
+                    $successCount++;
+                    
+                    // 删除临时文件
+                    @unlink($sourcePath);
+                    @unlink($sourceThumbPath);
+                } else {
+                    Log::error('移动临时图片失败', [
+                        'from' => $path,
+                        'to' => $newRelativePath
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('处理临时图片出错: ' . $e->getMessage(), [
+                    'path' => $path,
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
+        }
         
         return $successCount;
     }
