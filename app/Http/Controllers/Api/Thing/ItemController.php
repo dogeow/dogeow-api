@@ -202,8 +202,8 @@ class ItemController extends Controller
                         if (file_exists(storage_path('app/public/' . $image->path))) {
                             @unlink(storage_path('app/public/' . $image->path));
                         }
-                        if ($image->thumbnail_path && file_exists(storage_path('app/public/' . $image->thumbnail_path))) {
-                            @unlink(storage_path('app/public/' . $image->thumbnail_path));
+                        if (Storage::exists($image->thumbnail_path)) {
+                            Storage::delete($image->thumbnail_path);
                         }
                         
                         // 删除数据库记录
@@ -390,7 +390,11 @@ class ItemController extends Controller
         
         try {
             // 获取用户ID
-            $userId = Auth::id();
+            $userId = Auth::id() ?? 0;
+            
+            // 获取客户端信息
+            $userAgent = $request->header('User-Agent');
+            $isIOS = stripos($userAgent, 'iPhone') !== false || stripos($userAgent, 'iPad') !== false;
             
             // 创建临时目录
             $dirPath = storage_path('app/public/temp/' . $userId);
@@ -408,7 +412,9 @@ class ItemController extends Controller
                 'extension' => $image->getClientOriginalExtension() ?: 'jpg',
                 'user_id' => $userId,
                 'is_valid' => $image->isValid(),
-                'error' => $image->getError()
+                'error' => $image->getError(),
+                'is_ios' => $isIOS,
+                'user_agent' => $userAgent
             ]);
             
             // 检查文件有效性
@@ -421,6 +427,14 @@ class ItemController extends Controller
                 return response()->json([
                     'message' => '图片上传失败: ' . $this->getUploadErrorMessage($image->getError())
                 ], 422);
+            }
+            
+            // 检查iOS设备和大文件的情况
+            if ($isIOS && $image->getSize() > 3 * 1024 * 1024) { // 3MB
+                Log::warning('iOS设备上传大文件', [
+                    'size' => $image->getSize(),
+                    'filename' => $image->getClientOriginalName()
+                ]);
             }
             
             // 检查文件MIME类型
@@ -457,7 +471,13 @@ class ItemController extends Controller
                 };
             }
             
-            $filename = uniqid() . '.' . $extension;
+            // 为iOS设备生成更简单的文件名（避免特殊字符和长文件名）
+            if ($isIOS) {
+                $filename = 'ios_' . uniqid() . '.' . $extension;
+            } else {
+                $filename = uniqid() . '.' . $extension;
+            }
+            
             $relativePath = 'temp/' . $userId . '/' . $filename;
             $fullPath = $dirPath . '/' . $filename;
             
@@ -471,7 +491,8 @@ class ItemController extends Controller
                 }
             } catch (\Exception $e) {
                 Log::error('移动图片文件失败，尝试替代方法', [
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
+                    'is_ios' => $isIOS
                 ]);
                 
                 // 尝试用替代方法保存文件
@@ -487,32 +508,80 @@ class ItemController extends Controller
                 Log::info('使用替代方法成功保存图片', ['path' => $fullPath]);
             }
             
+            // 对于iOS设备和大图片，降低缩略图尺寸以减少内存使用
+            $thumbWidth = 200;
+            $thumbHeight = 200;
+            if ($isIOS && $image->getSize() > 2 * 1024 * 1024) {
+                // 对大图使用更小的缩略图尺寸
+                $thumbWidth = 150;
+                $thumbHeight = 150;
+            }
+            
             // 创建缩略图
             try {
                 $manager = new ImageManager(new Driver());
-                $thumbnail = $manager->read(file_get_contents($fullPath));
-                $thumbnail->cover(200, 200);
                 
-                $thumbnailFilename = 'thumb_' . $filename;
-                $thumbnailPath = $dirPath . '/' . $thumbnailFilename;
-                $relativeThumbPath = 'temp/' . $userId . '/' . $thumbnailFilename;
-                
-                // 保存缩略图
-                file_put_contents($thumbnailPath, (string) $thumbnail->encode());
+                // 修改读取方式，减少内存使用
+                if ($isIOS) {
+                    // 对于iOS设备，尝试使用更节省内存的方式
+                    $imgResource = @imagecreatefromjpeg($fullPath);
+                    if ($imgResource) {
+                        // 计算缩放比例
+                        $origWidth = imagesx($imgResource);
+                        $origHeight = imagesy($imgResource);
+                        $ratio = min($thumbWidth / $origWidth, $thumbHeight / $origHeight);
+                        $targetWidth = round($origWidth * $ratio);
+                        $targetHeight = round($origHeight * $ratio);
+                        
+                        // 创建缩略图
+                        $thumbResource = imagecreatetruecolor($targetWidth, $targetHeight);
+                        imagecopyresampled(
+                            $thumbResource, $imgResource,
+                            0, 0, 0, 0,
+                            $targetWidth, $targetHeight, $origWidth, $origHeight
+                        );
+                        
+                        // 保存缩略图
+                        $thumbnailFilename = 'thumb_' . $filename;
+                        $thumbnailPath = $dirPath . '/' . $thumbnailFilename;
+                        $relativeThumbPath = 'temp/' . $userId . '/' . $thumbnailFilename;
+                        
+                        imagejpeg($thumbResource, $thumbnailPath, 80);
+                        imagedestroy($thumbResource);
+                        imagedestroy($imgResource);
+                        
+                        Log::info('使用原生GD库创建缩略图成功', ['path' => $thumbnailPath]);
+                    } else {
+                        // 如果GD失败，回退到正常方法
+                        throw new \Exception('GD库创建缩略图失败，尝试使用Intervention/Image');
+                    }
+                } else {
+                    // 非iOS设备使用标准方法
+                    $thumbnail = $manager->read(file_get_contents($fullPath));
+                    $thumbnail->cover($thumbWidth, $thumbHeight);
+                    
+                    $thumbnailFilename = 'thumb_' . $filename;
+                    $thumbnailPath = $dirPath . '/' . $thumbnailFilename;
+                    $relativeThumbPath = 'temp/' . $userId . '/' . $thumbnailFilename;
+                    
+                    // 保存缩略图
+                    file_put_contents($thumbnailPath, (string) $thumbnail->encode());
+                }
                 
                 Log::info('缩略图创建成功', ['path' => $thumbnailPath]);
             } catch (\Exception $e) {
                 Log::error('创建缩略图失败: ' . $e->getMessage(), [
                     'file' => $fullPath,
-                    'trace' => $e->getTraceAsString()
+                    'trace' => $e->getTraceAsString(),
+                    'is_ios' => $isIOS
                 ]);
                 
                 // 缩略图创建失败，使用原图路径
                 $relativeThumbPath = $relativePath;
             }
             
-            // 构建URL
-            $baseUrl = config('app.url');
+            // 构建URL - 确保URL不包含特殊字符
+            $baseUrl = rtrim(config('app.url'), '/');
             $url = $baseUrl . '/storage/' . $relativePath;
             $thumbnailUrl = $baseUrl . '/storage/' . $relativeThumbPath;
             
@@ -522,10 +591,14 @@ class ItemController extends Controller
                 'thumbnail_path' => $relativeThumbPath,
                 'url' => $url,
                 'thumbnail_url' => $thumbnailUrl,
+                'size' => $image->getSize(),
+                'width' => $isIOS ? 'unknown' : null, // 对iOS设备不尝试获取尺寸以节省内存
+                'height' => $isIOS ? 'unknown' : null,
             ]);
         } catch (\Exception $e) {
             Log::error('临时图片上传失败: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'user_agent' => $request->header('User-Agent')
             ]);
             
             return response()->json([
