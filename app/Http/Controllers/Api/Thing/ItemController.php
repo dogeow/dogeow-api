@@ -429,14 +429,6 @@ class ItemController extends Controller
                 ], 422);
             }
             
-            // 检查iOS设备和大文件的情况
-            if ($isIOS && $image->getSize() > 3 * 1024 * 1024) { // 3MB
-                Log::warning('iOS设备上传大文件', [
-                    'size' => $image->getSize(),
-                    'filename' => $image->getClientOriginalName()
-                ]);
-            }
-            
             // 检查文件MIME类型
             $mime = $image->getMimeType();
             if (!$mime || !str_starts_with($mime, 'image/')) {
@@ -622,7 +614,6 @@ class ItemController extends Controller
                 'thumbnail_path' => $relativeThumbPath,
                 'url' => $url,
                 'thumbnail_url' => $thumbnailUrl,
-                'size' => $image->getSize(),
             ]);
         } catch (\Exception $e) {
             Log::error('临时图片上传失败: ' . $e->getMessage(), [
