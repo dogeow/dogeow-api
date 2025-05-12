@@ -471,12 +471,8 @@ class ItemController extends Controller
                 };
             }
             
-            // 为iOS设备生成更简单的文件名（避免特殊字符和长文件名）
-            if ($isIOS) {
-                $filename = 'ios_' . uniqid() . '.' . $extension;
-            } else {
-                $filename = uniqid() . '.' . $extension;
-            }
+            // 简化文件名处理，对所有设备使用统一的方式
+            $filename = uniqid() . '.' . $extension;
             
             $relativePath = 'temp/' . $userId . '/' . $filename;
             $fullPath = $dirPath . '/' . $filename;
@@ -508,82 +504,117 @@ class ItemController extends Controller
                 Log::info('使用替代方法成功保存图片', ['path' => $fullPath]);
             }
             
-            // 对于iOS设备和大图片，降低缩略图尺寸以减少内存使用
-            $thumbWidth = 200;
-            $thumbHeight = 200;
-            if ($isIOS && $image->getSize() > 2 * 1024 * 1024) {
-                // 对大图使用更小的缩略图尺寸
-                $thumbWidth = 150;
-                $thumbHeight = 150;
-            }
-            
             // 创建缩略图
+            $thumbnailFilename = 'thumb_' . $filename;
+            $thumbnailPath = $dirPath . '/' . $thumbnailFilename;
+            $relativeThumbPath = 'temp/' . $userId . '/' . $thumbnailFilename;
+            
             try {
-                $manager = new ImageManager(new Driver());
+                // 使用GD库处理图片，更节省内存
+                $imageResource = null;
                 
-                // 修改读取方式，减少内存使用
-                if ($isIOS) {
-                    // 对于iOS设备，尝试使用更节省内存的方式
-                    $imgResource = @imagecreatefromjpeg($fullPath);
-                    if ($imgResource) {
-                        // 计算缩放比例
-                        $origWidth = imagesx($imgResource);
-                        $origHeight = imagesy($imgResource);
-                        $ratio = min($thumbWidth / $origWidth, $thumbHeight / $origHeight);
-                        $targetWidth = round($origWidth * $ratio);
-                        $targetHeight = round($origHeight * $ratio);
-                        
-                        // 创建缩略图
-                        $thumbResource = imagecreatetruecolor($targetWidth, $targetHeight);
-                        imagecopyresampled(
-                            $thumbResource, $imgResource,
-                            0, 0, 0, 0,
-                            $targetWidth, $targetHeight, $origWidth, $origHeight
-                        );
-                        
-                        // 保存缩略图
-                        $thumbnailFilename = 'thumb_' . $filename;
-                        $thumbnailPath = $dirPath . '/' . $thumbnailFilename;
-                        $relativeThumbPath = 'temp/' . $userId . '/' . $thumbnailFilename;
-                        
-                        imagejpeg($thumbResource, $thumbnailPath, 80);
-                        imagedestroy($thumbResource);
-                        imagedestroy($imgResource);
-                        
-                        Log::info('使用原生GD库创建缩略图成功', ['path' => $thumbnailPath]);
-                    } else {
-                        // 如果GD失败，回退到正常方法
-                        throw new \Exception('GD库创建缩略图失败，尝试使用Intervention/Image');
-                    }
-                } else {
-                    // 非iOS设备使用标准方法
-                    $thumbnail = $manager->read(file_get_contents($fullPath));
-                    $thumbnail->cover($thumbWidth, $thumbHeight);
-                    
-                    $thumbnailFilename = 'thumb_' . $filename;
-                    $thumbnailPath = $dirPath . '/' . $thumbnailFilename;
-                    $relativeThumbPath = 'temp/' . $userId . '/' . $thumbnailFilename;
-                    
-                    // 保存缩略图
-                    file_put_contents($thumbnailPath, (string) $thumbnail->encode());
+                // 根据文件类型读取图片
+                switch ($mime) {
+                    case 'image/jpeg':
+                    case 'image/jpg':
+                        $imageResource = imagecreatefromjpeg($fullPath);
+                        break;
+                    case 'image/png':
+                        $imageResource = imagecreatefrompng($fullPath);
+                        break;
+                    case 'image/gif':
+                        $imageResource = imagecreatefromgif($fullPath);
+                        break;
+                    case 'image/webp':
+                        $imageResource = imagecreatefromwebp($fullPath);
+                        break;
+                    case 'image/bmp':
+                        $imageResource = imagecreatefrombmp($fullPath);
+                        break;
+                    default:
+                        // 尝试使用GD自动检测
+                        $imageResource = imagecreatefromstring(file_get_contents($fullPath));
                 }
                 
+                if (!$imageResource) {
+                    throw new \Exception('无法读取图片资源');
+                }
+                
+                // 获取原图尺寸
+                $width = imagesx($imageResource);
+                $height = imagesy($imageResource);
+                
+                // 计算缩略图尺寸，保持宽高比
+                $thumbWidth = 200;
+                $thumbHeight = 200;
+                
+                if ($width > $height) {
+                    $new_height = $thumbHeight;
+                    $new_width = floor($width * ($new_height / $height));
+                } else {
+                    $new_width = $thumbWidth;
+                    $new_height = floor($height * ($new_width / $width));
+                }
+                
+                // 创建缩略图画布
+                $thumbnail = imagecreatetruecolor($new_width, $new_height);
+                
+                // 保留透明度
+                if ($mime === 'image/png') {
+                    imagealphablending($thumbnail, false);
+                    imagesavealpha($thumbnail, true);
+                    $transparent = imagecolorallocatealpha($thumbnail, 255, 255, 255, 127);
+                    imagefilledrectangle($thumbnail, 0, 0, $new_width, $new_height, $transparent);
+                }
+                
+                // 调整大小
+                imagecopyresampled($thumbnail, $imageResource, 0, 0, 0, 0, $new_width, $new_height, $width, $height);
+                
+                // 保存缩略图
+                switch ($mime) {
+                    case 'image/jpeg':
+                    case 'image/jpg':
+                        imagejpeg($thumbnail, $thumbnailPath, 80); // 80%质量
+                        break;
+                    case 'image/png':
+                        imagepng($thumbnail, $thumbnailPath, 8); // 压缩级别8
+                        break;
+                    case 'image/gif':
+                        imagegif($thumbnail, $thumbnailPath);
+                        break;
+                    case 'image/webp':
+                        imagewebp($thumbnail, $thumbnailPath, 80);
+                        break;
+                    default:
+                        imagejpeg($thumbnail, $thumbnailPath, 80); // 默认JPEG
+                }
+                
+                // 释放资源
+                imagedestroy($thumbnail);
+                imagedestroy($imageResource);
+                
                 Log::info('缩略图创建成功', ['path' => $thumbnailPath]);
-            } catch (\Exception $e) {
-                Log::error('创建缩略图失败: ' . $e->getMessage(), [
+            } catch (\Exception $thumbException) {
+                // 记录错误但继续处理
+                Log::error('创建缩略图失败: ' . $thumbException->getMessage(), [
                     'file' => $fullPath,
-                    'trace' => $e->getTraceAsString(),
-                    'is_ios' => $isIOS
+                    'trace' => $thumbException->getTraceAsString()
                 ]);
                 
-                // 缩略图创建失败，使用原图路径
+                // 缩略图处理失败，使用原图作为缩略图
                 $relativeThumbPath = $relativePath;
             }
             
-            // 构建URL - 确保URL不包含特殊字符
-            $baseUrl = rtrim(config('app.url'), '/');
-            $url = $baseUrl . '/storage/' . $relativePath;
-            $thumbnailUrl = $baseUrl . '/storage/' . $relativeThumbPath;
+            // 获取图片的公共URL
+            $url = url('storage/' . $relativePath);
+            $thumbnailUrl = url('storage/' . $relativeThumbPath);
+            
+            Log::info('图片上传完成', [
+                'path' => $relativePath,
+                'thumb_path' => $relativeThumbPath,
+                'url' => $url,
+                'thumb_url' => $thumbnailUrl
+            ]);
             
             return response()->json([
                 'message' => '图片上传成功',
@@ -592,8 +623,6 @@ class ItemController extends Controller
                 'url' => $url,
                 'thumbnail_url' => $thumbnailUrl,
                 'size' => $image->getSize(),
-                'width' => $isIOS ? 'unknown' : null, // 对iOS设备不尝试获取尺寸以节省内存
-                'height' => $isIOS ? 'unknown' : null,
             ]);
         } catch (\Exception $e) {
             Log::error('临时图片上传失败: ' . $e->getMessage(), [
