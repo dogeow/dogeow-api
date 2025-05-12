@@ -36,6 +36,8 @@ class ItemRequest extends FormRequest
             'is_public' => 'boolean',
             'images' => 'nullable|array',
             'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'tags' => 'nullable|array',
+            'tags.*' => 'string|max:255',
         ];
     }
 
@@ -57,6 +59,8 @@ class ItemRequest extends FormRequest
             'images.*.image' => '上传的文件必须是图片',
             'images.*.mimes' => '图片格式必须为jpeg,png,jpg,gif',
             'images.*.max' => '图片大小不能超过2MB',
+            'tags.*.string' => '标签必须是字符串',
+            'tags.*.max' => '标签长度不能超过255个字符',
         ];
     }
 }

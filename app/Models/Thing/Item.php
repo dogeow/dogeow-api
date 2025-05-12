@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
 use Laravel\Scout\Searchable;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Item extends Model
 {
@@ -91,5 +92,14 @@ class Item extends Model
     public function spot()
     {
         return $this->belongsTo(Spot::class);
+    }
+    
+    /**
+     * 获取物品的标签
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'thing_item_tag', 'item_id', 'thing_tag_id')
+            ->withTimestamps();
     }
 } 

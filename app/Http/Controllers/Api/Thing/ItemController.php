@@ -118,11 +118,16 @@ class ItemController extends Controller
                 $this->processTempImages($request->image_paths, $item);
             }
             
+            // 处理标签
+            if ($request->has('tags') && is_array($request->tags)) {
+                $this->processTags($request->tags, $item);
+            }
+            
             DB::commit();
             
             return response()->json([
                 'message' => '物品创建成功',
-                'item' => $item->load(['images', 'category', 'spot.room.area'])
+                'item' => $item->load(['images', 'category', 'spot.room.area', 'tags'])
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -143,7 +148,7 @@ class ItemController extends Controller
             return response()->json(['message' => '无权查看此物品'], 403);
         }
         
-        return response()->json($item->load(['images', 'category', 'spot.room.area']));
+        return response()->json($item->load(['images', 'category', 'spot.room.area', 'tags']));
     }
 
     /**
@@ -212,11 +217,16 @@ class ItemController extends Controller
                 }
             }
             
+            // 处理标签
+            if ($request->has('tags')) {
+                $this->processTags($request->tags, $item);
+            }
+            
             DB::commit();
             
             return response()->json([
                 'message' => '物品更新成功',
-                'item' => $item->load(['images', 'category', 'spot.room.area'])
+                'item' => $item->load(['images', 'category', 'spot.room.area', 'tags'])
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -718,5 +728,22 @@ class ItemController extends Controller
         }
         
         return $successCount;
+    }
+
+    /**
+     * 处理标签
+     */
+    private function processTags(array $tagIds, Item $item)
+    {
+        // 清除当前的标签关联
+        $item->tags()->detach();
+        
+        // 如果没有标签，直接返回
+        if (empty($tagIds)) {
+            return;
+        }
+        
+        // 重新关联标签
+        $item->tags()->attach($tagIds);
     }
 }
