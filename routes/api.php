@@ -163,17 +163,6 @@ Route::get('/search', function (Request $request) {
 });
 
 // 音乐相关路由
-Route::prefix('music')->group(function () {
+Route::prefix('musics')->group(function () {
     Route::get('/', [App\Http\Controllers\Api\MusicController::class, 'index']);
-    Route::get('/stream/{filename}', [App\Http\Controllers\Api\MusicController::class, 'stream'])->where('filename', '.*');
-
-    // HLS 音乐路由
-    Route::prefix('hls')->group(function () {
-        Route::get('/', [App\Http\Controllers\Api\HLSMusicController::class, 'index']);
-        Route::get('/stream/{path}', [App\Http\Controllers\Api\HLSMusicController::class, 'stream'])->where('path', '.*');
-        Route::post('/generate', [App\Http\Controllers\Api\HLSMusicController::class, 'generateHLS']);
-    });
 });
-
-// 添加错误日志记录路由，需要找到合适的位置添加
-Route::post('/debug/log-error', 'App\Http\Controllers\Api\DebugController@logError'); 
