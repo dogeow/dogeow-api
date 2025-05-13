@@ -24,7 +24,7 @@ class ItemController extends Controller
      */
     public function index(Request $request)
     {
-        $baseQuery = Item::with(['user', 'images', 'category', 'spot.room.area',]);
+        $baseQuery = Item::with(['user', 'images', 'category', 'spot.room.area', 'tags']);
         
         // 如果用户已登录，显示公开物品和自己的物品
         if (Auth::check()) {
