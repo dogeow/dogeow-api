@@ -37,13 +37,47 @@ class ItemController extends Controller
             $baseQuery->where('is_public', true);
         }
         
+        // 处理仅查看自己的物品
+        if ($request->has('own') && Auth::check()) {
+            $baseQuery->where('user_id', Auth::id());
+        }
+        
+        // 处理未分类物品
+        if ($request->has('uncategorized') && $request->uncategorized) {
+            $baseQuery->whereNull('category_id');
+        }
         // 直接处理category_id参数
-        if ($request->has('category_id')) {
+        elseif ($request->has('category_id')) {
             $baseQuery->where('category_id', $request->category_id);
         }
         
         $query = QueryBuilder::for($baseQuery)
             ->allowedFilters([
+                // 名字筛选
+                AllowedFilter::callback('name', function ($query, $value) {
+                    $query->where('name', 'like', "%{$value}%");
+                }),
+                
+                // 描述筛选
+                AllowedFilter::callback('description', function ($query, $value) {
+                    $query->where('description', 'like', "%{$value}%");
+                }),
+                
+                // 状态筛选
+                AllowedFilter::callback('status', function ($query, $value) {
+                    if ($value !== 'all') {
+                        $query->where('status', $value);
+                    }
+                }),
+                
+                // 标签筛选
+                AllowedFilter::callback('tags', function ($query, $value) {
+                    $tags = explode(',', $value);
+                    $query->whereHas('tags', function ($q) use ($tags) {
+                        $q->whereIn('thing_tags.name', $tags);
+                    });
+                }),
+                
                 // 搜索关键词
                 AllowedFilter::callback('search', function ($query, $value) {
                     $query->search($value);

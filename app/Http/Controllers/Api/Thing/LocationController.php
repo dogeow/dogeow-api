@@ -7,8 +7,10 @@ use App\Http\Requests\Thing\LocationRequest;
 use App\Models\Thing\Area;
 use App\Models\Thing\Room;
 use App\Models\Thing\Spot;
+use App\Models\Thing\Item;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class LocationController extends Controller
 {
@@ -351,13 +353,32 @@ class LocationController extends Controller
         // 构建树形结构
         $tree = [];
         
+        // 获取每个区域下物品数量
+        $areaItemCounts = DB::table('thing_items')
+            ->where('user_id', Auth::id())
+            ->whereNotNull('area_id')
+            ->select('area_id', DB::raw('SUM(quantity) as items_count'))
+            ->groupBy('area_id')
+            ->pluck('items_count', 'area_id')
+            ->toArray();
+        
+        // 获取每个房间下物品数量
+        $roomItemCounts = DB::table('thing_items')
+            ->where('user_id', Auth::id())
+            ->whereNotNull('room_id')
+            ->select('room_id', DB::raw('SUM(quantity) as items_count'))
+            ->groupBy('room_id')
+            ->pluck('items_count', 'room_id')
+            ->toArray();
+        
         foreach ($areas as $area) {
             $areaNode = [
                 'id' => 'area_' . $area->id,
                 'name' => $area->name,
                 'type' => 'area',
                 'original_id' => $area->id,
-                'children' => []
+                'children' => [],
+                'items_count' => $areaItemCounts[$area->id] ?? 0
             ];
             
             // 添加该区域下的房间
@@ -369,7 +390,8 @@ class LocationController extends Controller
                     'type' => 'room',
                     'original_id' => $room->id,
                     'parent_id' => $area->id,
-                    'children' => []
+                    'children' => [],
+                    'items_count' => $roomItemCounts[$room->id] ?? 0
                 ];
                 
                 // 添加该房间下的具体位置

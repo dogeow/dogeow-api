@@ -17,6 +17,7 @@ class TagController extends Controller
     public function index(): JsonResponse
     {
         $tags = Tag::where('user_id', Auth::id())
+            ->withCount('items')
             ->orderBy('created_at', 'desc')
             ->get();
 
