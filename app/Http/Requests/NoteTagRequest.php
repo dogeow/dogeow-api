@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class NoteTagRequest extends FormRequest
 {
@@ -22,7 +24,14 @@ class NoteTagRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:50',
+            'name' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('note_tags', 'name')
+                    ->where('user_id', Auth::id())
+                    ->ignore($this->route('note_tag'))
+            ],
             'color' => 'sometimes|string|regex:/^#([A-Fa-f0-9]{6})$/'
         ];
     }
