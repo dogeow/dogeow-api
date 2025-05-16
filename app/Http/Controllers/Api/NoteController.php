@@ -5,12 +5,20 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\NoteRequest;
 use App\Models\Note;
+use App\Services\SlateMarkdownService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
 class NoteController extends Controller
 {
+    protected $slateMarkdownService;
+
+    public function __construct(SlateMarkdownService $slateMarkdownService)
+    {
+        $this->slateMarkdownService = $slateMarkdownService;
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -28,10 +36,18 @@ class NoteController extends Controller
      */
     public function store(NoteRequest $request): JsonResponse
     {
+        $content = $request->content ?? '';
+        $contentMarkdown = '';
+
+        if (!empty($content)) {
+            $contentMarkdown = $this->slateMarkdownService->jsonToMarkdown($content);
+        }
+
         $note = Note::create([
             'user_id' => Auth::id(),
             'title' => $request->title,
-            'content' => $request->content ?? '',
+            'content' => $content,
+            'content_markdown' => $contentMarkdown,
         ]);
 
         return response()->json($note, 201);
@@ -65,9 +81,17 @@ class NoteController extends Controller
         }
         
         if ($request->has('content')) {
-            $validatedData['content'] = $request->validate([
+            $content = $request->validate([
                 'content' => 'nullable|string',
             ])['content'];
+            
+            $validatedData['content'] = $content;
+            
+            if (!empty($content)) {
+                $validatedData['content_markdown'] = $this->slateMarkdownService->jsonToMarkdown($content);
+            } else {
+                $validatedData['content_markdown'] = '';
+            }
         }
         
         $note->update($validatedData);

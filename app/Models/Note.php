@@ -29,6 +29,7 @@ class Note extends Model
         'note_category_id',
         'title',
         'content',
+        'content_markdown',
     ];
 
     /**
