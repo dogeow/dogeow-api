@@ -124,6 +124,10 @@ class ItemController extends Controller
                         });
                     });
                 }),
+                // 分类筛选
+                AllowedFilter::callback('category_id', function ($query, $value) {
+                    $query->where('category_id', $value);
+                }),
             ])
             ->defaultSort('-created_at');
 
