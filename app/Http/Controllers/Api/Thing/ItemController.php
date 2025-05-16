@@ -72,9 +72,10 @@ class ItemController extends Controller
                 
                 // 标签筛选
                 AllowedFilter::callback('tags', function ($query, $value) {
-                    $tags = explode(',', $value);
-                    $query->whereHas('tags', function ($q) use ($tags) {
-                        $q->whereIn('thing_tags.name', $tags);
+                    // 支持数组或字符串格式
+                    $tagIds = is_array($value) ? $value : explode(',', $value);
+                    $query->whereHas('tags', function ($q) use ($tagIds) {
+                        $q->whereIn('thing_tags.id', $tagIds);
                     });
                 }),
                 
