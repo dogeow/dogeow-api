@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Nav\ItemController as NavItemController;
 use App\Http\Controllers\Api\WordController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\Cloud\FileController;
+use App\Http\Controllers\TitleController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -86,3 +87,5 @@ Route::get('/search', [SearchController::class, 'search']);
 Route::prefix('musics')->group(function () {
     Route::get('/', [App\Http\Controllers\Api\MusicController::class, 'index']);
 });
+
+Route::get('/fetch-title', [TitleController::class, 'fetch']);
