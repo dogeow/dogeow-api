@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\Thing\TagController;
 use Illuminate\Support\Facades\Route;
 
 // 物品
-Route::apiResource('items', ItemController::class);
+Route::apiResource('thing-items', ItemController::class);
 
 // 分类
 Route::apiResource('categories', CategoryController::class);
@@ -18,4 +18,4 @@ Route::apiResource('thing-tags', TagController::class);
 Route::get('user/categories', [ItemController::class, 'categories']);
 
 // 临时图片上传
-Route::post('items/upload-temp-image', [ItemController::class, 'uploadTempImage']);
+Route::post('thing-items/upload-temp-image', [ItemController::class, 'uploadTempImage']);
