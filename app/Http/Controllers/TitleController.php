@@ -22,7 +22,26 @@ class TitleController extends Controller
             $html = $response->body();
             preg_match('/<title>(.*?)<\/title>/is', $html, $matches);
             $title = $matches[1] ?? '';
-            return response()->json(['title' => $title]);
+            $favicon = '';
+            if (preg_match('/<link[^>]+rel=[\'\"]?(?:shortcut )?icon[\'\"]?[^>]*>/i', $html, $iconTag)) {
+                if (preg_match('/href=[\'\"]([^\'\"]+)[\'\"]/i', $iconTag[0], $hrefMatch)) {
+                    $favicon = $hrefMatch[1];
+                    if (!preg_match('/^https?:\/\//i', $favicon)) {
+                        $parsed = parse_url($url);
+                        $origin = $parsed['scheme'] . '://' . $parsed['host'];
+                        if (str_starts_with($favicon, '/')) {
+                            $favicon = $origin . $favicon;
+                        } else {
+                            $favicon = rtrim($origin . dirname($parsed['path']), '/') . '/' . $favicon;
+                        }
+                    }
+                }
+            }
+            if (!$favicon) {
+                $parsed = parse_url($url);
+                $favicon = $parsed['scheme'] . '://' . $parsed['host'] . '/favicon.ico';
+            }
+            return response()->json(['title' => $title, 'favicon' => $favicon]);
         } catch (\Exception $e) {
             return response()->json(['error' => '请求异常'], 500);
         }
