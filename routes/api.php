@@ -29,12 +29,6 @@ Route::middleware('auth:sanctum')->group(function () {
 // 公开路由
 Route::get('public-items', [App\Http\Controllers\Api\Thing\ItemController::class, 'index']);
 
-// 导航查询相关公开路由
-Route::prefix('nav')->group(function () {
-    Route::get('/categories', [CategoryController::class, 'index']);
-    Route::get('/categories/{category}', [CategoryController::class, 'show']);
-});
-
 // 引入单词相关路由
 require base_path('routes/api/word.php');
 

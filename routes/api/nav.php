@@ -3,18 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Nav\ItemController;
 use App\Http\Controllers\TitleController;
-
-// 这些路由已移动到 routes/api.php 文件中
-// use App\Http\Controllers\Api\Nav\CategoryController;
-// use App\Http\Controllers\Api\Nav\ItemController;
-
-// // 导航分类
-// Route::apiResource('nav/categories', CategoryController::class);
-// Route::get('nav/admin/categories', [CategoryController::class, 'all']);
-
-// // 导航项
-// Route::apiResource('nav/items', ItemController::class);
-// Route::post('nav/items/{item}/click', [ItemController::class, 'recordClick']);
+use App\Http\Controllers\Api\Nav\CategoryController;
 
 Route::get('/fetch-title', [TitleController::class, 'fetch']);
 
@@ -25,6 +14,9 @@ Route::prefix('nav')->group(function () {
     Route::put('items/{item}', [ItemController::class, 'update'])->name('nav.items.update');
     Route::delete('items/{item}', [ItemController::class, 'destroy'])->name('nav.items.destroy');
     Route::post('items/{item}/click', [ItemController::class, 'recordClick'])->name('nav.items.click');
+
+    Route::get('/categories', [CategoryController::class, 'index']);
+    Route::get('/categories/{category}', [CategoryController::class, 'show']);
 }); 
 
 Route::middleware('auth:sanctum')->group(function () {
