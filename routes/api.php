@@ -4,7 +4,6 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Api\Thing\ItemController;
 use App\Http\Controllers\Api\Nav\CategoryController;
-use App\Http\Controllers\Api\Nav\ItemController as NavItemController;
 use App\Http\Controllers\Api\WordController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\Cloud\FileController;
@@ -28,10 +27,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/categories/{category}', [CategoryController::class, 'update']);
         Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
         Route::get('/admin/categories', [CategoryController::class, 'all']);
-        
-        Route::post('/items', [NavItemController::class, 'store']);
-        Route::put('/items/{item}', [NavItemController::class, 'update']);
-        Route::delete('/items/{item}', [NavItemController::class, 'destroy']);
     });
 
     // 笔记相关路由
@@ -63,9 +58,6 @@ Route::get('public-items', [App\Http\Controllers\Api\Thing\ItemController::class
 Route::prefix('nav')->group(function () {
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/categories/{category}', [CategoryController::class, 'show']);
-    Route::get('/items', [NavItemController::class, 'index']);
-    Route::get('/items/{item}', [NavItemController::class, 'show']);
-    Route::post('/items/{item}/click', [NavItemController::class, 'recordClick']);
 });
 
 // 引入单词相关路由
