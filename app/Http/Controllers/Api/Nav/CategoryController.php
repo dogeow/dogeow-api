@@ -13,12 +13,24 @@ class CategoryController extends Controller
     /**
      * 获取所有导航分类
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $categories = Category::with('items')
-            ->orderBy('sort_order')
-            ->where('is_visible', true)
-            ->get();
+        $categories = Category::with(['items' => function ($query) use ($request) {
+            if ($request->has('filter') && isset($request->input('filter')['name'])) {
+                $name = $request->input('filter')['name'];
+                $query->where('name', 'like', '%' . $name . '%');
+            }
+        }])
+        ->orderBy('sort_order')
+        ->where('is_visible', true)
+        ->get();
+
+        // 只返回有 items 的分类
+        if ($request->has('filter') && isset($request->input('filter')['name'])) {
+            $categories = $categories->filter(function ($category) {
+                return $category->items->isNotEmpty();
+            })->values();
+        }
 
         return response()->json($categories);
     }

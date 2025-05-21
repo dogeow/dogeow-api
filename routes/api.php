@@ -6,8 +6,6 @@ use App\Http\Controllers\Api\Thing\ItemController;
 use App\Http\Controllers\Api\Nav\CategoryController;
 use App\Http\Controllers\Api\WordController;
 use App\Http\Controllers\Api\SearchController;
-use App\Http\Controllers\Api\Cloud\FileController;
-use App\Http\Controllers\TitleController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -22,13 +20,7 @@ Route::middleware('auth:sanctum')->group(function () {
     require base_path('routes/api/stats.php');
     require base_path('routes/api/todo.php');
     require base_path('routes/api/game.php');
-    // 导航管理相关路由需要认证
-    Route::prefix('nav')->group(function () {
-        Route::post('/categories', [CategoryController::class, 'store']);
-        Route::put('/categories/{category}', [CategoryController::class, 'update']);
-        Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
-        Route::get('/admin/categories', [CategoryController::class, 'all']);
-    });
+    require base_path('routes/api/cloud.php');
 
     // 笔记相关路由
     Route::apiResource('notes', \App\Http\Controllers\Api\NoteController::class);
@@ -38,19 +30,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // 批量上传图片
     Route::post('/upload/images', [ItemController::class, 'uploadBatchImages']);
 });
-
-// Cloud Files - 云存储文件路由（公开路由）
-Route::get('/cloud/files', [FileController::class, 'index']);
-Route::get('/cloud/files/{id}', [FileController::class, 'show']);
-Route::post('/cloud/folders', [FileController::class, 'createFolder']);
-Route::post('/cloud/files', [FileController::class, 'upload']);
-Route::get('/cloud/files/{id}/download', [FileController::class, 'download'])->name('cloud.files.download');
-Route::get('/cloud/files/{id}/preview', [FileController::class, 'preview']);
-Route::delete('/cloud/files/{id}', [FileController::class, 'destroy']);
-Route::put('/cloud/files/{id}', [FileController::class, 'update']);
-Route::post('/cloud/files/move', [FileController::class, 'move']);
-Route::get('/cloud/tree', [FileController::class, 'tree']);
-Route::get('/cloud/statistics', [FileController::class, 'statistics']);
 
 // 公开路由
 Route::get('public-items', [App\Http\Controllers\Api\Thing\ItemController::class, 'index']);
@@ -80,5 +59,3 @@ Route::get('/search', [SearchController::class, 'search']);
 Route::prefix('musics')->group(function () {
     Route::get('/', [App\Http\Controllers\Api\MusicController::class, 'index']);
 });
-
-Route::get('/fetch-title', [TitleController::class, 'fetch']);
