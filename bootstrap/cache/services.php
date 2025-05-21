@@ -33,7 +33,6 @@
     29 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
     30 => 'Termwind\\Laravel\\TermwindServiceProvider',
     31 => 'Spatie\\QueryBuilder\\QueryBuilderServiceProvider',
-    32 => 'App\\Providers\\RouteServiceProvider',
     33 => 'App\\Providers\\AppServiceProvider',
   ),
   'eager' => 
@@ -55,7 +54,6 @@
     14 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
     15 => 'Termwind\\Laravel\\TermwindServiceProvider',
     16 => 'Spatie\\QueryBuilder\\QueryBuilderServiceProvider',
-    17 => 'App\\Providers\\RouteServiceProvider',
     18 => 'App\\Providers\\AppServiceProvider',
   ),
   'deferred' => 
