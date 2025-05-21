@@ -21,6 +21,7 @@ Route::middleware('auth:sanctum')->group(function () {
     require base_path('routes/api/todo.php');
     require base_path('routes/api/game.php');
     require base_path('routes/api/cloud.php');
+    require base_path('routes/api/word.php');
 
     // 批量上传图片
     Route::post('/upload/images', [ItemController::class, 'uploadBatchImages']);
@@ -28,12 +29,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // 公开路由
 Route::get('public-items', [App\Http\Controllers\Api\Thing\ItemController::class, 'index']);
-
-// 引入单词相关路由
-require base_path('routes/api/word.php');
-
-// 添加测试路由
-Route::get('/test-word-categories', [WordController::class, 'testCategories']);
 
 // 物品搜索路由 - 使用控制器方法
 Route::get('/things', [App\Http\Controllers\Api\Thing\ItemController::class, 'index']);
