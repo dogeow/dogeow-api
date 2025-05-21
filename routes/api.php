@@ -17,6 +17,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // 引入各个项目的路由文件
     require base_path('routes/api/item.php');
+    require base_path('routes/api/nav.php');
     require base_path('routes/api/location.php');
     require base_path('routes/api/stats.php');
     require base_path('routes/api/todo.php');
