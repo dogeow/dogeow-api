@@ -2,10 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Nav\ItemController;
-use App\Http\Controllers\TitleController;
 use App\Http\Controllers\Api\Nav\CategoryController;
-
-Route::get('/fetch-title', [TitleController::class, 'fetch']);
 
 Route::prefix('nav')->group(function () {
     Route::get('items', [ItemController::class, 'index'])->name('nav.items.index');
