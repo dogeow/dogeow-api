@@ -43,18 +43,13 @@ class ProcessItemImages extends Command
                     $originalFilename = basename($originalPath);
                     $extension = pathinfo($originalPath, PATHINFO_EXTENSION) ?: 'jpg';
                     
-                    // 先保存原图
-                    $originFilename = 'origin-' . $originalFilename;
-                    $originPath = 'items/' . $itemId . '/' . $originFilename;
-                    $fullOriginPath = storage_path('app/public/' . $originPath);
-                    copy($originalPath, $fullOriginPath);
-                    
                     // 创建800宽度的版本
                     $compressed = $manager->read($originalPath);
                     $compressed->resize(800, 800, function ($constraint) {
                         $constraint->aspectRatio();
                         $constraint->upsize();
                     });
+                    $compressed->save($originalPath);
                     
                     // 创建缩略图
                     $thumbnailFilename = $originalFilename . '-thumb';
@@ -63,6 +58,13 @@ class ProcessItemImages extends Command
                     
                     $thumbnail = $manager->read($originalPath);
                     $thumbnail->cover(200, 200);
+                    $thumbnail->save($fullThumbPath);
+                    
+                    // 保存原图
+                    $originFilename = 'origin-' . $originalFilename;
+                    $originPath = 'items/' . $itemId . '/' . $originFilename;
+                    $fullOriginPath = storage_path('app/public/' . $originPath);
+                    copy($originalPath, $fullOriginPath);
                     
                     // 更新数据库记录
                     $image->update([
