@@ -77,9 +77,20 @@ class UploadController extends Controller
                         // 读取原图
                         $img = $manager->read($originPath);
                         
-                        // 创建缩略图
+                        // 创建缩略图（最长边不小于200，等比例缩放，使用scale方法）
                         $thumbnail = $manager->read($originPath);
-                        $thumbnail->cover(200, 200);
+                        $thumbWidth = $img->width();
+                        $thumbHeight = $img->height();
+                        $thumbMin = 200;
+                        if ($thumbWidth < $thumbMin && $thumbHeight < $thumbMin) {
+                            // 原图宽高都小于200，不缩放
+                        } elseif ($thumbWidth <= $thumbHeight) {
+                            // 高图或正方形，宽缩放到200
+                            $thumbnail->scale(width: $thumbMin);
+                        } else {
+                            // 宽图，高缩放到200
+                            $thumbnail->scale(height: $thumbMin);
+                        }
                         $thumbnail->save($thumbnailPath);
                         
                         // 创建压缩图（最长边800px，等比例缩放，使用scale方法）
