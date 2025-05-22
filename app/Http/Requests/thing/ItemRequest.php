@@ -38,6 +38,8 @@ class ItemRequest extends FormRequest
             'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
             'tags' => 'nullable|array',
             'tags.*' => 'string|max:255',
+            'image_ids' => 'nullable|array',
+            'image_ids.*' => 'integer|exists:thing_item_images,id',
         ];
     }
 

@@ -202,9 +202,16 @@ class ItemController extends Controller
             
             $item->update($request->validated());
             
-            if ($request->hasFile('images')) {
-                $this->imageUploadService->processUploadedImages($request->file('images'), $item);
+            // 图片同步：只保留 image_ids 中的图片，其余全部删除
+            if ($request->has('image_ids')) {
+                $keepIds = $request->input('image_ids', []);
+                $allIds = $item->images()->pluck('id')->toArray();
+                $deleteIds = array_diff($allIds, $keepIds);
+                if (!empty($deleteIds)) {
+                    $this->imageUploadService->deleteImagesByIds($deleteIds, $item);
+                }
             }
+            
             if ($request->has('image_paths')) {
                 $this->imageUploadService->processImagePaths($request->image_paths, $item);
             }
