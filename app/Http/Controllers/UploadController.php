@@ -2,14 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\FileStorageService;
+use App\Services\ImageProcessingService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Drivers\Imagick\Driver;
 use Illuminate\Http\Request;
 
 class UploadController extends Controller
 {
+    private FileStorageService $fileStorageService;
+    private ImageProcessingService $imageProcessingService;
+
+    public function __construct(
+        FileStorageService $fileStorageService,
+        ImageProcessingService $imageProcessingService
+    ) {
+        $this->fileStorageService = $fileStorageService;
+        $this->imageProcessingService = $imageProcessingService;
+    }
+
     /**
      * 批量上传图片（支持多张图片同时上传）
      */
@@ -20,30 +31,21 @@ class UploadController extends Controller
         ]);
         
         try {
-            // 获取用户ID
             $userId = Auth::id() ?? 0;
+            $dirPath = $this->fileStorageService->createUserDirectory($userId);
             
-            // 创建用户目录
-            $dirPath = storage_path('app/public/uploads/' . $userId);
-            if (!file_exists($dirPath)) {
-                mkdir($dirPath, 0755, true);
-            }
-            
-            $manager = new ImageManager(new Driver());
-            $uploadedImages = [];
-            $fileCount = 0;
-            $errorCount = 0;
-            
-            // 检查是否有文件上传
             if (!$request->hasFile('images')) {
                 return response()->json([
                     'message' => '没有找到上传的图片文件'
                 ], 400);
             }
+
+            $uploadedImages = [];
+            $fileCount = 0;
+            $errorCount = 0;
             
             foreach ($request->file('images') as $image) {
                 try {
-                    // 检查文件有效性
                     if (!$image->isValid()) {
                         Log::error('上传的图片无效', [
                             'error' => $image->getError(),
@@ -52,83 +54,32 @@ class UploadController extends Controller
                         $errorCount++;
                         continue;
                     }
-                    
-                    // 统一生成基础文件名
-                    $basename = uniqid();
-                    $ext = $image->getClientOriginalExtension() ?: 'jpg';
-                    
-                    // 生成三种文件名
-                    $compressedFilename = $basename . '.' . $ext;
-                    $thumbnailFilename = $basename . '-thumb.' . $ext;
-                    $originFilename = $basename . '-origin.' . $ext;
 
-                    $compressedPath = $dirPath . '/' . $compressedFilename;
-                    $thumbnailPath = $dirPath . '/' . $thumbnailFilename;
-                    $originPath = $dirPath . '/' . $originFilename;
+                    // 存储文件
+                    $fileInfo = $this->fileStorageService->storeFile($image, $dirPath);
+                    
+                    // 处理图片
+                    $processResult = $this->imageProcessingService->processImage(
+                        $fileInfo['origin_path'],
+                        $fileInfo['compressed_path'],
+                        $fileInfo['thumbnail_path']
+                    );
 
-                    $relativeCompressedPath = 'uploads/' . $userId . '/' . $compressedFilename;
-                    $relativeThumbPath = 'uploads/' . $userId . '/' . $thumbnailFilename;
-                    $relativeOriginPath = 'uploads/' . $userId . '/' . $originFilename;
-                    
-                    // 保存原图
-                    $image->move($dirPath, $originFilename);
-                    
-                    try {
-                        // 读取原图
-                        $img = $manager->read($originPath);
-                        
-                        // 创建缩略图（最长边不小于200，等比例缩放，使用scale方法）
-                        $thumbnail = $manager->read($originPath);
-                        $thumbWidth = $img->width();
-                        $thumbHeight = $img->height();
-                        $thumbMin = 200;
-                        if ($thumbWidth < $thumbMin && $thumbHeight < $thumbMin) {
-                            // 原图宽高都小于200，不缩放
-                        } elseif ($thumbWidth <= $thumbHeight) {
-                            // 高图或正方形，宽缩放到200
-                            $thumbnail->scale(width: $thumbMin);
-                        } else {
-                            // 宽图，高缩放到200
-                            $thumbnail->scale(height: $thumbMin);
-                        }
-                        $thumbnail->save($thumbnailPath);
-                        
-                        // 创建压缩图（最长边800px，等比例缩放，使用scale方法）
-                        $compressed = $manager->read($originPath);
-                        $width = $img->width();
-                        $height = $img->height();
-                        $maxSize = 800;
-                        if ($width > $maxSize || $height > $maxSize) {
-                            if ($width >= $height) {
-                                $compressed->scale(width: $maxSize);
-                            } else {
-                                $compressed->scale(height: $maxSize);
-                            }
-                        }
-                        // 如果宽高都小于等于800，不缩放，直接保存
-                        $compressed->save($compressedPath);
-                        
-                    } catch (\Exception $thumbException) {
-                        Log::error('处理图片失败: ' . $thumbException->getMessage(), [
-                            'file' => $compressedPath,
-                            'trace' => $thumbException->getTraceAsString()
-                        ]);
-                        $relativeThumbPath = $relativeCompressedPath;
+                    if (!$processResult['success']) {
+                        throw new \Exception($processResult['error']);
                     }
-                    
-                    // 获取图片的公共URL
-                    $url = url('storage/' . $relativeCompressedPath);
-                    $thumbnailUrl = url('storage/' . $relativeThumbPath);
-                    $originUrl = url('storage/' . $relativeOriginPath);
+
+                    // 获取公共URL
+                    $urls = $this->fileStorageService->getPublicUrls($userId, $fileInfo);
                     
                     // 添加到上传图片列表
                     $uploadedImages[] = [
-                        'path' => $relativeCompressedPath,
-                        'thumbnail_path' => $relativeThumbPath,
-                        'origin_path' => $relativeOriginPath,
-                        'url' => $url,
-                        'thumbnail_url' => $thumbnailUrl,
-                        'origin_url' => $originUrl,
+                        'path' => 'uploads/' . $userId . '/' . $fileInfo['compressed_filename'],
+                        'thumbnail_path' => 'uploads/' . $userId . '/' . $fileInfo['thumbnail_filename'],
+                        'origin_path' => 'uploads/' . $userId . '/' . $fileInfo['origin_filename'],
+                        'url' => $urls['compressed_url'],
+                        'thumbnail_url' => $urls['thumbnail_url'],
+                        'origin_url' => $urls['origin_url'],
                     ];
                     
                     $fileCount++;
@@ -159,7 +110,7 @@ class UploadController extends Controller
     /**
      * 获取上传错误信息
      */
-    private function getUploadErrorMessage($errorCode)
+    private function getUploadErrorMessage($errorCode): string
     {
         return match($errorCode) {
             UPLOAD_ERR_INI_SIZE => '上传的文件超过了 php.ini 中 upload_max_filesize 选项限制的值',

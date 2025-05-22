@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\WebPageService;
+use App\Services\CacheService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Cache; // Added
 
 class TitleController extends Controller
 {
+    public function __construct(
+        private readonly WebPageService $webPageService,
+        private readonly CacheService $cacheService
+    ) {}
+
     public function fetch(Request $request)
     {
         $url = $request->query('url');
@@ -15,54 +20,28 @@ class TitleController extends Controller
             return response()->json(['error' => '缺少url参数'], 400);
         }
 
-        $cacheKey = 'title_favicon_' . md5($url);
-
-        if (Cache::has($cacheKey)) {
-            $cachedData = Cache::get($cacheKey);
-            // Ensure errors are returned with the correct status code
+        // 检查缓存
+        if ($cachedData = $this->cacheService->get($url)) {
             if (isset($cachedData['error'])) {
-                return response()->json($cachedData, isset($cachedData['status_code']) ? $cachedData['status_code'] : 500);
+                return response()->json(
+                    $cachedData,
+                    $cachedData['status_code'] ?? 500
+                );
             }
             return response()->json($cachedData);
         }
 
         try {
-            $response = Http::timeout(5)->get($url);
-            if (!$response->ok()) {
-                $errorData = ['error' => '获取网页失败', 'details' => $response->status(), 'status_code' => 500];
-                Cache::put($cacheKey, $errorData, now()->addMinutes(30)); // Cache error for 30 minutes
-                return response()->json($errorData, 500);
-            }
-            $html = $response->body();
-            preg_match('/<title>(.*?)<\/title>/is', $html, $matches);
-            $title = $matches[1] ?? '';
-            $favicon = '';
-            if (preg_match('/<link[^>]+rel=[\'\"]?(?:shortcut )?icon[\'\"]?[^>]*>/i', $html, $iconTag)) {
-                if (preg_match('/href=[\'\"]([^\'\"]+)[\'\"]/i', $iconTag[0], $hrefMatch)) {
-                    $favicon = $hrefMatch[1];
-                    if (!preg_match('/^https?:\/\//i', $favicon)) {
-                        $parsed = parse_url($url);
-                        $origin = $parsed['scheme'] . '://' . $parsed['host'];
-                        if (str_starts_with($favicon, '/')) {
-                            $favicon = $origin . $favicon;
-                        } else {
-                            $favicon = rtrim($origin . dirname($parsed['path']), '/') . '/' . $favicon;
-                        }
-                    }
-                }
-            }
-            if (!$favicon) {
-                $parsed = parse_url($url);
-                $favicon = $parsed['scheme'] . '://' . $parsed['host'] . '/favicon.ico';
-            }
-
-            $dataToCache = ['title' => $title, 'favicon' => $favicon];
-            Cache::put($cacheKey, $dataToCache, now()->addHours(24)); // Cache for 24 hours
-            return response()->json($dataToCache);
-
+            $data = $this->webPageService->fetchContent($url);
+            $this->cacheService->putSuccess($url, $data);
+            return response()->json($data);
         } catch (\Exception $e) {
-            $errorData = ['error' => '请求异常', 'details' => $e->getMessage(), 'status_code' => 500];
-            Cache::put($cacheKey, $errorData, now()->addMinutes(30)); // Cache error for 30 minutes
+            $errorData = [
+                'error' => '请求异常',
+                'details' => $e->getMessage(),
+                'status_code' => 500
+            ];
+            $this->cacheService->putError($url, $errorData);
             return response()->json($errorData, 500);
         }
     }
