@@ -272,72 +272,50 @@ class ItemController extends Controller
         
         foreach ($images as $image) {
             try {
-                // 记录上传信息
-                Log::info('开始处理图片上传', [
-                    'filename' => $image->getClientOriginalName(),
-                    'size' => $image->getSize(),
-                    'mime' => $image->getMimeType() ?: 'unknown',
-                    'extension' => $image->getClientOriginalExtension() ?: 'jpg',
-                    'item_id' => $item->id
-                ]);
-                
-                // 简化存储逻辑，直接使用move方法
                 $sortOrder++;
-                $filename = uniqid() . '.' . ($image->getClientOriginalExtension() ?: 'jpg');
+                $basename = uniqid();
+                $ext = $image->getClientOriginalExtension() ?: 'jpg';
+                $filename = $basename . '.' . $ext;
+                $thumbnailFilename = $basename . '-thumb.' . $ext;
                 $relativePath = 'items/' . $item->id . '/' . $filename;
+                $relativeThumbPath = 'items/' . $item->id . '/' . $thumbnailFilename;
                 
                 // 直接将文件移动到public目录
                 if ($image->move($dirPath, $filename)) {
-                    Log::info('图片成功保存', ['path' => $relativePath]);
-                    
-                    // 创建缩略图
                     try {
                         $fullPath = $dirPath . '/' . $filename;
+                        $thumbnailPath = $dirPath . '/' . $thumbnailFilename;
                         $thumbnail = $manager->read(file_get_contents($fullPath));
                         $thumbnail->cover(200, 200);
-                        
-                        $thumbnailFilename = 'thumb_' . $filename;
-                        $thumbnailPath = $dirPath . '/' . $thumbnailFilename;
-                        $relativeThumbPath = 'items/' . $item->id . '/' . $thumbnailFilename;
-                        
-                        // 直接写入文件
                         file_put_contents($thumbnailPath, (string) $thumbnail->encode());
-                        
+
                         // 设置图片记录
                         $isPrimary = $sortOrder === 1 && !ItemImage::where('item_id', $item->id)
                             ->where('is_primary', true)->exists();
-                        
-                        $itemImage = ItemImage::create([
+
+                        ItemImage::create([
                             'item_id' => $item->id,
                             'path' => $relativePath,
                             'thumbnail_path' => $relativeThumbPath,
                             'is_primary' => $isPrimary,
                             'sort_order' => $sortOrder,
                         ]);
-                        
+
                         $successCount++;
-                        Log::info('图片处理成功', [
-                            'image_id' => $itemImage->id,
-                            'path' => $relativePath,
-                            'thumbnail_path' => $relativeThumbPath
-                        ]);
                     } catch (\Exception $thumbException) {
                         Log::error('缩略图创建失败: ' . $thumbException->getMessage(), [
                             'file' => $fullPath ?? 'unknown'
                         ]);
-                        
                         // 即使缩略图失败，也保存原图记录
                         $isPrimary = $sortOrder === 1 && !ItemImage::where('item_id', $item->id)
                             ->where('is_primary', true)->exists();
-                        
-                        $itemImage = ItemImage::create([
+                        ItemImage::create([
                             'item_id' => $item->id,
                             'path' => $relativePath,
                             'thumbnail_path' => null, // 缩略图失败
                             'is_primary' => $isPrimary,
                             'sort_order' => $sortOrder,
                         ]);
-                        
                         $successCount++;
                     }
                 } else {
@@ -351,12 +329,6 @@ class ItemController extends Controller
                 ]);
             }
         }
-        
-        Log::info('图片处理完成', [
-            'item_id' => $item->id,
-            'success' => $successCount,
-            'errors' => $errorCount
-        ]);
         
         return $successCount;
     }
