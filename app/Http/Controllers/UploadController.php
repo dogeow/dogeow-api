@@ -59,13 +59,13 @@ class UploadController extends Controller
                     $relativePath = 'uploads/' . $userId . '/' . $filename;
                     
                     // 保存原图
-                    $originFilename = 'origin_' . $filename;
+                    $originFilename = 'origin-' . $filename;
                     $originPath = $dirPath . '/' . $originFilename;
                     $relativeOriginPath = 'uploads/' . $userId . '/' . $originFilename;
                     $image->move($dirPath, $originFilename);
                     
                     // 创建缩略图
-                    $thumbnailFilename = 'thumb_' . $filename;
+                    $thumbnailFilename = $filename . '-thumb';
                     $thumbnailPath = $dirPath . '/' . $thumbnailFilename;
                     $relativeThumbPath = 'uploads/' . $userId . '/' . $thumbnailFilename;
                     
