@@ -147,6 +147,7 @@ class ItemController extends Controller
             $item->save();
             
             $this->handleImages($request, $item);
+            $this->handleImagePaths($request, $item);
             $this->handleTags($request, $item);
             
             DB::commit();
@@ -191,6 +192,7 @@ class ItemController extends Controller
             $item->update($request->validated());
             
             $this->handleImages($request, $item);
+            $this->handleImagePaths($request, $item);
             $this->handleImageOrder($request, $item);
             $this->handlePrimaryImage($request, $item);
             $this->handleDeleteImages($request, $item);
@@ -439,6 +441,53 @@ class ItemController extends Controller
             Storage::disk('public')->delete($image->path);
             if ($image->thumbnail_path) {
                 Storage::disk('public')->delete($image->thumbnail_path);
+            }
+        }
+    }
+
+    /**
+     * 处理 image_paths 字段，将图片从 uploads 目录移动到 items 目录，并生成缩略图
+     */
+    private function handleImagePaths(Request $request, Item $item)
+    {
+        if ($request->has('image_paths')) {
+            $dirPath = storage_path('app/public/items/' . $item->id);
+            if (!file_exists($dirPath)) {
+                mkdir($dirPath, 0755, true);
+            }
+            $manager = new ImageManager(new Driver());
+            foreach ($request->image_paths as $index => $originPath) {
+                // 只处理 uploads 目录下的图片
+                if (!str_starts_with($originPath, 'uploads/')) continue;
+                $originAbsPath = storage_path('app/public/' . $originPath);
+                if (!file_exists($originAbsPath)) continue;
+                $ext = pathinfo($originAbsPath, PATHINFO_EXTENSION) ?: 'jpg';
+                $basename = uniqid();
+                $filename = $basename . '.' . $ext;
+                $thumbFilename = $basename . '-thumb.' . $ext;
+                $itemPath = 'items/' . $item->id . '/' . $filename;
+                $itemThumbPath = 'items/' . $item->id . '/' . $thumbFilename;
+                $absItemPath = $dirPath . '/' . $filename;
+                $absThumbPath = $dirPath . '/' . $thumbFilename;
+                // 移动原图
+                rename($originAbsPath, $absItemPath);
+                // 生成缩略图
+                try {
+                    $img = $manager->read($absItemPath);
+                    $img->cover(200, 200);
+                    $img->save($absThumbPath);
+                } catch (\Exception $e) {
+                    Log::error('生成缩略图失败: ' . $e->getMessage(), ['file' => $absItemPath]);
+                    $itemThumbPath = null;
+                }
+                $isPrimary = $index === 0;
+                ItemImage::create([
+                    'item_id' => $item->id,
+                    'path' => $itemPath,
+                    'thumbnail_path' => $itemThumbPath,
+                    'is_primary' => $isPrimary,
+                    'sort_order' => $index + 1,
+                ]);
             }
         }
     }
