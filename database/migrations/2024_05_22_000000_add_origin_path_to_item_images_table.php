@@ -9,14 +9,14 @@ return new class extends Migration
     public function up()
     {
         Schema::table('item_images', function (Blueprint $table) {
-            $table->string('origin_path')->nullable()->after('thumbnail_path');
+            // $table->string('origin_path')->nullable()->after('thumbnail_path'); // 如有依赖 thumbnail_path，需调整
         });
     }
 
     public function down()
     {
         Schema::table('item_images', function (Blueprint $table) {
-            $table->dropColumn('origin_path');
+            // $table->dropColumn('origin_path');
         });
     }
 }; 

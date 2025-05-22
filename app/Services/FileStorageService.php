@@ -27,7 +27,6 @@ class FileStorageService
             'thumbnail_filename' => $thumbnailFilename,
             'origin_filename' => $originFilename,
             'compressed_path' => $directory . '/' . $compressedFilename,
-            'thumbnail_path' => $directory . '/' . $thumbnailFilename,
             'origin_path' => $directory . '/' . $originFilename,
         ];
     }

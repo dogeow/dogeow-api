@@ -67,7 +67,6 @@ class ImageUploadServiceTest extends TestCase
 
         foreach ($itemImageRecords as $record) {
             Storage::disk('public')->assertExists($record->path); // Check original image
-            $this->assertNull($record->thumbnail_path); // Thumbnail path should be null initially
         }
 
         Queue::assertPushed(GenerateThumbnailForItemImageJob::class, 2);

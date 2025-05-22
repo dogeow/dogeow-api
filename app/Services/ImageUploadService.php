@@ -48,7 +48,6 @@ class ImageUploadService
                     $itemImage = ItemImage::create([
                         'item_id' => $item->id,
                         'path' => $relativePath,
-                        'thumbnail_path' => null, // Will be updated by the job
                         'is_primary' => $isPrimary,
                         'sort_order' => $sortOrder,
                     ]);
@@ -107,7 +106,6 @@ class ImageUploadService
                 $itemImage = ItemImage::create([
                     'item_id' => $item->id,
                     'path' => $itemPath,
-                    'thumbnail_path' => null, // Will be updated by the job
                     'is_primary' => $isPrimary,
                     'sort_order' => $currentMaxSortOrder,
                     // 'origin_path' => $originPath, // If you want to track the original path from uploads
@@ -169,9 +167,6 @@ class ImageUploadService
 
         foreach ($imagesToDelete as $image) {
             Storage::disk('public')->delete($image->path);
-            if ($image->thumbnail_path) {
-                Storage::disk('public')->delete($image->thumbnail_path);
-            }
             $image->delete();
         }
     }
@@ -187,9 +182,6 @@ class ImageUploadService
         $images = $item->images; // Assumes 'images' relationship is loaded or loads lazily
         foreach ($images as $image) {
             Storage::disk('public')->delete($image->path);
-            if ($image->thumbnail_path) {
-                Storage::disk('public')->delete($image->thumbnail_path);
-            }
         }
         // After deleting files, delete the records
         ItemImage::where('item_id', $item->id)->delete();

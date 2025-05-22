@@ -15,9 +15,8 @@ class ItemImage extends Model
     protected $fillable = [
         'item_id',
         'path',
-        'thumbnail_path',
-        'is_primary',
         'sort_order',
+        'is_primary',
     ];
 
     protected $casts = [
@@ -51,10 +50,25 @@ class ItemImage extends Model
      */
     public function getThumbnailUrlAttribute()
     {
-        if (!$this->thumbnail_path) {
+        if (!$this->path) {
             return null;
         }
-        
-        return config('app.url') . '/storage/' . $this->thumbnail_path;
+        $dirname = pathinfo($this->path, PATHINFO_DIRNAME);
+        $filename = pathinfo($this->path, PATHINFO_FILENAME);
+        $extension = pathinfo($this->path, PATHINFO_EXTENSION);
+        $thumbPath = $dirname . '/thumb_' . $filename . '.' . $extension;
+        return config('app.url') . '/storage/' . $thumbPath;
+    }
+
+    public function getThumbnailPathAttribute()
+    {
+        if (!$this->path) {
+            return null;
+        }
+        $dirname = pathinfo($this->path, PATHINFO_DIRNAME);
+        $filename = pathinfo($this->path, PATHINFO_FILENAME);
+        $extension = pathinfo($this->path, PATHINFO_EXTENSION);
+        $thumbPath = $dirname . '/thumb_' . $filename . '.' . $extension;
+        return Storage::url($thumbPath);
     }
 } 

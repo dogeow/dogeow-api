@@ -41,7 +41,6 @@ class FixItemImagePaths extends Command
                     // 构建新的路径
                     $itemId = $image->item_id;
                     $newPath = "items/{$itemId}/{$filename}.{$extension}";
-                    $newThumbPath = "items/{$itemId}/{$filename}.{$extension}-thumb";
                     $newOriginPath = "items/{$itemId}/origin-{$filename}.{$extension}";
                     
                     // 检查文件是否存在
@@ -55,7 +54,6 @@ class FixItemImagePaths extends Command
                     // 更新数据库记录
                     $image->update([
                         'path' => $newPath,
-                        'thumbnail_path' => $newThumbPath,
                         'origin_path' => $newOriginPath,
                     ]);
                     

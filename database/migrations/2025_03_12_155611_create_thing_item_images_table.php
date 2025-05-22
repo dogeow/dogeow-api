@@ -16,7 +16,6 @@ return new class extends Migration
      * - id: 主键
      * - item_id: 物品ID
      * - path: 图片路径
-     * - thumbnail_path: 缩略图路径
      * - is_primary: 是否为主图
      * - sort_order: 排序顺序
      */
@@ -26,7 +25,6 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('item_id');
             $table->string('path');
-            $table->string('thumbnail_path')->nullable();
             $table->boolean('is_primary')->default(false);
             $table->integer('sort_order')->default(0);
             $table->timestamps();

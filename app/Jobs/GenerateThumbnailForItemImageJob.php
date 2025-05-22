@@ -50,9 +50,6 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
             $thumbnail->cover(200, 200); // Same dimensions as before
             $thumbnail->save($thumbnailFullPath);
 
-            $this->itemImage->thumbnail_path = $thumbnailRelativePath;
-            $this->itemImage->save();
-
             Log::info("Successfully generated thumbnail for ItemImage ID: {$this->itemImage->id}, Path: {$thumbnailRelativePath}");
         } catch (\Exception $e) {
             Log::error("Thumbnail generation failed for ItemImage ID: {$this->itemImage->id}: " . $e->getMessage(), [

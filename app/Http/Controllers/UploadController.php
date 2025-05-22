@@ -75,10 +75,8 @@ class UploadController extends Controller
                     // 添加到上传图片列表
                     $uploadedImages[] = [
                         'path' => 'uploads/' . $userId . '/' . $fileInfo['compressed_filename'],
-                        'thumbnail_path' => 'uploads/' . $userId . '/' . $fileInfo['thumbnail_filename'],
                         'origin_path' => 'uploads/' . $userId . '/' . $fileInfo['origin_filename'],
                         'url' => $urls['compressed_url'],
-                        'thumbnail_url' => $urls['thumbnail_url'],
                         'origin_url' => $urls['origin_url'],
                     ];
                     
