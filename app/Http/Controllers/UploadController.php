@@ -53,55 +53,59 @@ class UploadController extends Controller
                         continue;
                     }
                     
-                    // 生成文件名和路径
-                    $filename = uniqid() . '.' . ($image->getClientOriginalExtension() ?: 'jpg');
-                    $fullPath = $dirPath . '/' . $filename;
-                    $relativePath = 'uploads/' . $userId . '/' . $filename;
+                    // 统一生成基础文件名
+                    $basename = uniqid();
+                    $ext = $image->getClientOriginalExtension() ?: 'jpg';
+                    
+                    // 生成三种文件名
+                    $compressedFilename = $basename . '.' . $ext;
+                    $thumbnailFilename = $basename . '-thumb.' . $ext;
+                    $originFilename = $basename . '-origin.' . $ext;
+
+                    $compressedPath = $dirPath . '/' . $compressedFilename;
+                    $thumbnailPath = $dirPath . '/' . $thumbnailFilename;
+                    $originPath = $dirPath . '/' . $originFilename;
+
+                    $relativeCompressedPath = 'uploads/' . $userId . '/' . $compressedFilename;
+                    $relativeThumbPath = 'uploads/' . $userId . '/' . $thumbnailFilename;
+                    $relativeOriginPath = 'uploads/' . $userId . '/' . $originFilename;
                     
                     // 保存原图
-                    $originFilename = 'origin-' . $filename;
-                    $originPath = $dirPath . '/' . $originFilename;
-                    $relativeOriginPath = 'uploads/' . $userId . '/' . $originFilename;
                     $image->move($dirPath, $originFilename);
-                    
-                    // 创建缩略图
-                    $thumbnailFilename = $filename . '-thumb';
-                    $thumbnailPath = $dirPath . '/' . $thumbnailFilename;
-                    $relativeThumbPath = 'uploads/' . $userId . '/' . $thumbnailFilename;
                     
                     try {
                         // 读取原图
-                        $img = $manager->read($image->getRealPath());
+                        $img = $manager->read($originPath);
                         
                         // 创建缩略图
-                        $thumbnail = $manager->read($image->getRealPath());
+                        $thumbnail = $manager->read($originPath);
                         $thumbnail->cover(200, 200);
                         $thumbnail->save($thumbnailPath);
                         
                         // 创建压缩图（最大800px）
-                        $compressed = $manager->read($image->getRealPath());
+                        $compressed = $manager->read($originPath);
                         $compressed->resize(800, 800, function ($constraint) {
                             $constraint->aspectRatio();
                             $constraint->upsize();
                         });
-                        $compressed->save($fullPath);
+                        $compressed->save($compressedPath);
                         
                     } catch (\Exception $thumbException) {
                         Log::error('处理图片失败: ' . $thumbException->getMessage(), [
-                            'file' => $fullPath,
+                            'file' => $compressedPath,
                             'trace' => $thumbException->getTraceAsString()
                         ]);
-                        $relativeThumbPath = $relativePath;
+                        $relativeThumbPath = $relativeCompressedPath;
                     }
                     
                     // 获取图片的公共URL
-                    $url = url('storage/' . $relativePath);
+                    $url = url('storage/' . $relativeCompressedPath);
                     $thumbnailUrl = url('storage/' . $relativeThumbPath);
                     $originUrl = url('storage/' . $relativeOriginPath);
                     
                     // 添加到上传图片列表
                     $uploadedImages[] = [
-                        'path' => $relativePath,
+                        'path' => $relativeCompressedPath,
                         'thumbnail_path' => $relativeThumbPath,
                         'origin_path' => $relativeOriginPath,
                         'url' => $url,
