@@ -2,8 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\Api\Thing\ItemController;
 use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\UploadController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -30,5 +30,5 @@ Route::middleware('auth:sanctum')->group(function () {
     require base_path('routes/api/word.php');
 
     // 批量上传图片
-    Route::post('/upload/images', [ItemController::class, 'uploadBatchImages']);
+    Route::post('/upload/images', [UploadController::class, 'uploadBatchImages']);
 });
