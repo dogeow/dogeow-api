@@ -23,10 +23,6 @@ class UploadController extends Controller
             // 获取用户ID
             $userId = Auth::id() ?? 0;
             
-            // 获取客户端信息
-            $userAgent = $request->header('User-Agent');
-            $isIOS = stripos($userAgent, 'iPhone') !== false || stripos($userAgent, 'iPad') !== false;
-            
             // 创建临时目录
             $dirPath = storage_path('app/public/temp/' . $userId);
             if (!file_exists($dirPath)) {
@@ -47,17 +43,6 @@ class UploadController extends Controller
             
             foreach ($request->file('images') as $image) {
                 try {
-                    // 记录上传信息
-                    Log::info('开始处理批量图片上传', [
-                        'filename' => $image->getClientOriginalName(),
-                        'size' => $image->getSize(),
-                        'mime' => $image->getMimeType() ?: 'unknown',
-                        'extension' => $image->getClientOriginalExtension() ?: 'jpg',
-                        'user_id' => $userId,
-                        'is_valid' => $image->isValid(),
-                        'error' => $image->getError()
-                    ]);
-                    
                     // 检查文件有效性
                     if (!$image->isValid()) {
                         Log::error('上传的图片无效', [
@@ -83,18 +68,7 @@ class UploadController extends Controller
                     } catch (\Exception $e) {
                         Log::error('移动图片文件失败，尝试替代方法', [
                             'error' => $e->getMessage(),
-                            'is_ios' => $isIOS
                         ]);
-                        
-                        // 尝试用替代方法保存文件
-                        $content = file_get_contents($image->getRealPath());
-                        if ($content === false) {
-                            throw new \Exception('无法读取上传文件内容');
-                        }
-                        
-                        if (file_put_contents($fullPath, $content) === false) {
-                            throw new \Exception('无法写入图片文件');
-                        }
                     }
                     
                     // 创建缩略图
@@ -109,7 +83,6 @@ class UploadController extends Controller
                         
                         // 直接写入文件
                         file_put_contents($thumbnailPath, (string) $thumbnail->encode());
-                        
                     } catch (\Exception $thumbException) {
                         // 记录错误但继续处理
                         Log::error('创建缩略图失败: ' . $thumbException->getMessage(), [
