@@ -362,6 +362,32 @@ class ItemController extends Controller
     }
 
     /**
+     * 检查用户是否有权限查看物品
+     */
+    private function canViewItem(Item $item): bool
+    {
+        return $item->is_public || (Auth::check() && $item->user_id === Auth::id());
+    }
+
+    /**
+     * 检查用户是否有权限修改物品
+     */
+    private function canModifyItem(Item $item): bool
+    {
+        return Auth::check() && $item->user_id === Auth::id();
+    }
+
+    /**
+     * 处理标签
+     */
+    private function handleTags(Request $request, Item $item)
+    {
+        if ($request->has('tags')) {
+            $this->processTags($request->tags, $item);
+        }
+    }
+
+    /**
      * 处理标签
      */
     private function processTags(array $tagIds, Item $item)
@@ -376,5 +402,72 @@ class ItemController extends Controller
         
         // 重新关联标签
         $item->tags()->attach($tagIds);
+    }
+
+    /**
+     * 处理图片排序
+     */
+    private function handleImageOrder(Request $request, Item $item)
+    {
+        if ($request->has('image_order')) {
+            foreach ($request->image_order as $order => $imageId) {
+                ItemImage::where('id', $imageId)
+                    ->where('item_id', $item->id)
+                    ->update(['sort_order' => $order + 1]);
+            }
+        }
+    }
+
+    /**
+     * 处理主图片设置
+     */
+    private function handlePrimaryImage(Request $request, Item $item)
+    {
+        if ($request->has('primary_image_id')) {
+            // 先重置所有图片的主图状态
+            ItemImage::where('item_id', $item->id)
+                ->update(['is_primary' => false]);
+            
+            // 设置新的主图
+            ItemImage::where('id', $request->primary_image_id)
+                ->where('item_id', $item->id)
+                ->update(['is_primary' => true]);
+        }
+    }
+
+    /**
+     * 处理删除图片
+     */
+    private function handleDeleteImages(Request $request, Item $item)
+    {
+        if ($request->has('delete_images')) {
+            $imagesToDelete = ItemImage::whereIn('id', $request->delete_images)
+                ->where('item_id', $item->id)
+                ->get();
+            
+            foreach ($imagesToDelete as $image) {
+                // 删除文件
+                Storage::disk('public')->delete($image->path);
+                if ($image->thumbnail_path) {
+                    Storage::disk('public')->delete($image->thumbnail_path);
+                }
+                // 删除记录
+                $image->delete();
+            }
+        }
+    }
+
+    /**
+     * 删除物品的所有图片
+     */
+    private function deleteItemImages(Item $item)
+    {
+        $images = $item->images;
+        foreach ($images as $image) {
+            Storage::disk('public')->delete($image->path);
+            if ($image->thumbnail_path) {
+                Storage::disk('public')->delete($image->thumbnail_path);
+            }
+        }
     }
 }
