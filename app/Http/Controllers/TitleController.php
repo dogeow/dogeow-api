@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache; // Added
 
 class TitleController extends Controller
 {
@@ -14,10 +15,23 @@ class TitleController extends Controller
             return response()->json(['error' => '缺少url参数'], 400);
         }
 
+        $cacheKey = 'title_favicon_' . md5($url);
+
+        if (Cache::has($cacheKey)) {
+            $cachedData = Cache::get($cacheKey);
+            // Ensure errors are returned with the correct status code
+            if (isset($cachedData['error'])) {
+                return response()->json($cachedData, isset($cachedData['status_code']) ? $cachedData['status_code'] : 500);
+            }
+            return response()->json($cachedData);
+        }
+
         try {
             $response = Http::timeout(5)->get($url);
             if (!$response->ok()) {
-                return response()->json(['error' => '获取网页失败'], 500);
+                $errorData = ['error' => '获取网页失败', 'details' => $response->status(), 'status_code' => 500];
+                Cache::put($cacheKey, $errorData, now()->addMinutes(30)); // Cache error for 30 minutes
+                return response()->json($errorData, 500);
             }
             $html = $response->body();
             preg_match('/<title>(.*?)<\/title>/is', $html, $matches);
@@ -41,9 +55,15 @@ class TitleController extends Controller
                 $parsed = parse_url($url);
                 $favicon = $parsed['scheme'] . '://' . $parsed['host'] . '/favicon.ico';
             }
-            return response()->json(['title' => $title, 'favicon' => $favicon]);
+
+            $dataToCache = ['title' => $title, 'favicon' => $favicon];
+            Cache::put($cacheKey, $dataToCache, now()->addHours(24)); // Cache for 24 hours
+            return response()->json($dataToCache);
+
         } catch (\Exception $e) {
-            return response()->json(['error' => '请求异常'], 500);
+            $errorData = ['error' => '请求异常', 'details' => $e->getMessage(), 'status_code' => 500];
+            Cache::put($cacheKey, $errorData, now()->addMinutes(30)); // Cache error for 30 minutes
+            return response()->json($errorData, 500);
         }
     }
-} 
+}
