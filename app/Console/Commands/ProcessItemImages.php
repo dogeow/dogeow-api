@@ -39,14 +39,9 @@ class ProcessItemImages extends Command
                         continue;
                     }
                     
-                    // 生成新的文件名
+                    // 获取原文件名
+                    $originalFilename = basename($originalPath);
                     $extension = pathinfo($originalPath, PATHINFO_EXTENSION) ?: 'jpg';
-                    $newFilename = uniqid() . '.' . $extension;
-                    $newPath = 'items/' . $itemId . '/' . $newFilename;
-                    $fullNewPath = storage_path('app/public/' . $newPath);
-                    
-                    // 读取原图
-                    $img = $manager->read($originalPath);
                     
                     // 创建800宽度的版本
                     $compressed = $manager->read($originalPath);
@@ -54,10 +49,10 @@ class ProcessItemImages extends Command
                         $constraint->aspectRatio();
                         $constraint->upsize();
                     });
-                    $compressed->save($fullNewPath);
+                    $compressed->save($originalPath);
                     
                     // 创建缩略图
-                    $thumbnailFilename = $newFilename . '-thumb';
+                    $thumbnailFilename = $originalFilename . '-thumb';
                     $thumbnailPath = 'items/' . $itemId . '/' . $thumbnailFilename;
                     $fullThumbPath = storage_path('app/public/' . $thumbnailPath);
                     
@@ -66,23 +61,16 @@ class ProcessItemImages extends Command
                     $thumbnail->save($fullThumbPath);
                     
                     // 保存原图
-                    $originFilename = 'origin-' . $newFilename;
+                    $originFilename = 'origin-' . $originalFilename;
                     $originPath = 'items/' . $itemId . '/' . $originFilename;
                     $fullOriginPath = storage_path('app/public/' . $originPath);
                     copy($originalPath, $fullOriginPath);
                     
                     // 更新数据库记录
                     $image->update([
-                        'path' => $newPath,
                         'thumbnail_path' => $thumbnailPath,
                         'origin_path' => $originPath,
                     ]);
-                    
-                    // 删除旧文件
-                    Storage::disk('public')->delete($image->path);
-                    if ($image->thumbnail_path) {
-                        Storage::disk('public')->delete($image->thumbnail_path);
-                    }
                     
                     $processedCount++;
                     $this->output->progressAdvance();
@@ -107,4 +95,4 @@ class ProcessItemImages extends Command
         
         return Command::SUCCESS;
     }
-} 
+}
