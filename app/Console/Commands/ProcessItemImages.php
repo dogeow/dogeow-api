@@ -8,84 +8,82 @@ use Illuminate\Support\Facades\Log;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Imagick\Driver;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 
 class ProcessItemImages extends Command
 {
     protected $signature = 'items:process-images';
-    protected $description = '处理物品图片，添加800宽度的版本并重命名';
+    protected $description = '处理物品图片，为 origin- 开头的图片创建压缩版本';
 
     public function handle()
     {
         $this->info('开始处理物品图片...');
         
         $manager = new ImageManager(new Driver());
-        $totalImages = ItemImage::count();
         $processedCount = 0;
         $errorCount = 0;
         
-        $this->output->progressStart($totalImages);
+        // 获取所有物品目录
+        $itemsPath = storage_path('app/public/items');
+        if (!File::exists($itemsPath)) {
+            $this->error('物品目录不存在');
+            return Command::FAILURE;
+        }
         
-        ItemImage::chunk(100, function ($images) use ($manager, &$processedCount, &$errorCount) {
-            foreach ($images as $image) {
-                try {
-                    $itemId = $image->item_id;
-                    $dirPath = storage_path('app/public/items/' . $itemId);
+        $itemDirs = File::directories($itemsPath);
+        $totalDirs = count($itemDirs);
+        
+        $this->output->progressStart($totalDirs);
+        
+        foreach ($itemDirs as $itemDir) {
+            try {
+                $itemId = basename($itemDir);
+                $files = File::files($itemDir);
+                
+                foreach ($files as $file) {
+                    $filename = $file->getFilename();
                     
-                    // 获取原图路径
-                    $originalPath = storage_path('app/public/' . $image->path);
-                    if (!file_exists($originalPath)) {
-                        $this->error("原图不存在: {$image->path}");
-                        $errorCount++;
+                    // 只处理 origin- 开头的文件
+                    if (!str_starts_with($filename, 'origin-')) {
                         continue;
                     }
                     
-                    // 获取原文件名
-                    $originalFilename = basename($originalPath);
-                    $extension = pathinfo($originalPath, PATHINFO_EXTENSION) ?: 'jpg';
-                    
-                    // 创建800宽度的版本
-                    $compressed = $manager->read($originalPath);
-                    $compressed->resize(800, 800, function ($constraint) {
-                        $constraint->aspectRatio();
-                        $constraint->upsize();
-                    });
-                    $compressed->save($originalPath);
-                    
-                    // 创建缩略图
-                    $thumbnailFilename = $originalFilename . '-thumb';
-                    $thumbnailPath = 'items/' . $itemId . '/' . $thumbnailFilename;
-                    $fullThumbPath = storage_path('app/public/' . $thumbnailPath);
-                    
-                    $thumbnail = $manager->read($originalPath);
-                    $thumbnail->cover(200, 200);
-                    $thumbnail->save($fullThumbPath);
-                    
-                    // 保存原图
-                    $originFilename = 'origin-' . $originalFilename;
-                    $originPath = 'items/' . $itemId . '/' . $originFilename;
-                    $fullOriginPath = storage_path('app/public/' . $originPath);
-                    copy($originalPath, $fullOriginPath);
-                    
-                    // 更新数据库记录
-                    $image->update([
-                        'thumbnail_path' => $thumbnailPath,
-                        'origin_path' => $originPath,
-                    ]);
-                    
-                    $processedCount++;
-                    $this->output->progressAdvance();
-                    
-                } catch (\Exception $e) {
-                    $errorCount++;
-                    Log::error('处理图片失败: ' . $e->getMessage(), [
-                        'image_id' => $image->id,
-                        'path' => $image->path,
-                        'trace' => $e->getTraceAsString()
-                    ]);
-                    $this->error("处理图片失败: {$image->path} - {$e->getMessage()}");
+                    try {
+                        // 生成压缩版本的文件名（去掉 origin- 前缀）
+                        $compressedFilename = substr($filename, 7); // 去掉 'origin-' 前缀
+                        $compressedPath = $itemDir . '/' . $compressedFilename;
+                        
+                        // 创建800宽度的版本
+                        $compressed = $manager->read($file->getPathname());
+                        $compressed->resize(800, 800, function ($constraint) {
+                            $constraint->aspectRatio();
+                            $constraint->upsize();
+                        });
+                        $compressed->save($compressedPath);
+                        
+                        $processedCount++;
+                        
+                    } catch (\Exception $e) {
+                        $errorCount++;
+                        Log::error('处理图片失败: ' . $e->getMessage(), [
+                            'file' => $filename,
+                            'trace' => $e->getTraceAsString()
+                        ]);
+                        $this->error("处理图片失败: {$filename} - {$e->getMessage()}");
+                    }
                 }
+                
+                $this->output->progressAdvance();
+                
+            } catch (\Exception $e) {
+                $errorCount++;
+                Log::error('处理目录失败: ' . $e->getMessage(), [
+                    'dir' => $itemDir,
+                    'trace' => $e->getTraceAsString()
+                ]);
+                $this->error("处理目录失败: {$itemDir} - {$e->getMessage()}");
             }
-        });
+        }
         
         $this->output->progressFinish();
         
