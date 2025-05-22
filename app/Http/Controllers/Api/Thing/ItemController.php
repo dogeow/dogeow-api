@@ -6,19 +6,26 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Thing\ItemRequest;
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemCategory;
-use App\Models\Thing\ItemImage;
+use App\Models\Thing\ItemImage; // Keep if $item->images() or similar is used elsewhere
+use App\Services\ImageUploadService; // Added
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Drivers\Gd\Driver;
+// Storage might be used by other methods, keep for now or check thoroughly
+// Intervention\Image\ImageManager and Intervention\Image\Drivers\Gd\Driver are removed as they are now in the service
 use Spatie\QueryBuilder\QueryBuilder;
 use Spatie\QueryBuilder\AllowedFilter;
 
 class ItemController extends Controller
 {
+    protected ImageUploadService $imageUploadService;
+
+    public function __construct(ImageUploadService $imageUploadService)
+    {
+        $this->imageUploadService = $imageUploadService;
+    }
+
     /**
      * 获取物品列表
      */
@@ -145,9 +152,13 @@ class ItemController extends Controller
             $item = new Item($request->validated());
             $item->user_id = Auth::id();
             $item->save();
-            
-            $this->handleImages($request, $item);
-            $this->handleImagePaths($request, $item);
+
+            if ($request->hasFile('images')) {
+                $this->imageUploadService->processUploadedImages($request->file('images'), $item);
+            }
+            if ($request->has('image_paths')) {
+                $this->imageUploadService->processImagePaths($request->image_paths, $item);
+            }
             $this->handleTags($request, $item);
             
             DB::commit();
@@ -191,11 +202,21 @@ class ItemController extends Controller
             
             $item->update($request->validated());
             
-            $this->handleImages($request, $item);
-            $this->handleImagePaths($request, $item);
-            $this->handleImageOrder($request, $item);
-            $this->handlePrimaryImage($request, $item);
-            $this->handleDeleteImages($request, $item);
+            if ($request->hasFile('images')) {
+                $this->imageUploadService->processUploadedImages($request->file('images'), $item);
+            }
+            if ($request->has('image_paths')) {
+                $this->imageUploadService->processImagePaths($request->image_paths, $item);
+            }
+            if ($request->has('image_order')) {
+                $this->imageUploadService->updateImageOrder($request->image_order, $item);
+            }
+            if ($request->has('primary_image_id')) {
+                $this->imageUploadService->setPrimaryImage($request->primary_image_id, $item);
+            }
+            if ($request->has('delete_images')) {
+                $this->imageUploadService->deleteImagesByIds($request->delete_images, $item);
+            }
             $this->handleTags($request, $item);
             
             DB::commit();
@@ -225,8 +246,8 @@ class ItemController extends Controller
         try {
             DB::beginTransaction();
             
-            $this->deleteItemImages($item);
-            $item->images()->delete();
+            $this->imageUploadService->deleteAllItemImages($item); // This already deletes records
+            // $item->images()->delete(); // This line is now redundant if deleteAllItemImages handles record deletion.
             $item->delete();
             
             DB::commit();
@@ -246,94 +267,7 @@ class ItemController extends Controller
         return response()->json(ItemCategory::where('user_id', Auth::id())->get());
     }
 
-    /**
-     * 处理图片相关操作
-     */
-    private function handleImages(Request $request, Item $item)
-    {
-        if ($request->hasFile('images')) {
-            $this->processImages($request->file('images'), $item);
-        }
-    }
-
-    /**
-     * 处理图片上传
-     */
-    private function processImages($images, Item $item)
-    {
-        $sortOrder = ItemImage::where('item_id', $item->id)->max('sort_order') ?? 0;
-        $manager = new ImageManager(new Driver());
-        $successCount = 0;
-        $errorCount = 0;
-        
-        // 确保存储目录存在
-        $dirPath = storage_path('app/public/items/' . $item->id);
-        if (!file_exists($dirPath)) {
-            mkdir($dirPath, 0755, true);
-        }
-        
-        foreach ($images as $image) {
-            try {
-                $sortOrder++;
-                $basename = uniqid();
-                $ext = $image->getClientOriginalExtension() ?: 'jpg';
-                $filename = $basename . '.' . $ext;
-                $thumbnailFilename = $basename . '-thumb.' . $ext;
-                $relativePath = 'items/' . $item->id . '/' . $filename;
-                $relativeThumbPath = 'items/' . $item->id . '/' . $thumbnailFilename;
-                
-                // 直接将文件移动到public目录
-                if ($image->move($dirPath, $filename)) {
-                    try {
-                        $fullPath = $dirPath . '/' . $filename;
-                        $thumbnailPath = $dirPath . '/' . $thumbnailFilename;
-                        $thumbnail = $manager->read(file_get_contents($fullPath));
-                        $thumbnail->cover(200, 200);
-                        file_put_contents($thumbnailPath, (string) $thumbnail->encode());
-
-                        // 设置图片记录
-                        $isPrimary = $sortOrder === 1 && !ItemImage::where('item_id', $item->id)
-                            ->where('is_primary', true)->exists();
-
-                        ItemImage::create([
-                            'item_id' => $item->id,
-                            'path' => $relativePath,
-                            'thumbnail_path' => $relativeThumbPath,
-                            'is_primary' => $isPrimary,
-                            'sort_order' => $sortOrder,
-                        ]);
-
-                        $successCount++;
-                    } catch (\Exception $thumbException) {
-                        Log::error('缩略图创建失败: ' . $thumbException->getMessage(), [
-                            'file' => $fullPath ?? 'unknown'
-                        ]);
-                        // 即使缩略图失败，也保存原图记录
-                        $isPrimary = $sortOrder === 1 && !ItemImage::where('item_id', $item->id)
-                            ->where('is_primary', true)->exists();
-                        ItemImage::create([
-                            'item_id' => $item->id,
-                            'path' => $relativePath,
-                            'thumbnail_path' => null, // 缩略图失败
-                            'is_primary' => $isPrimary,
-                            'sort_order' => $sortOrder,
-                        ]);
-                        $successCount++;
-                    }
-                } else {
-                    throw new \Exception('移动图片文件失败');
-                }
-            } catch (\Exception $e) {
-                $errorCount++;
-                Log::error('图片处理错误: ' . $e->getMessage(), [
-                    'file' => $image->getClientOriginalName(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-            }
-        }
-        
-        return $successCount;
-    }
+    // Removed handleImages, processImages, handleImageOrder, handlePrimaryImage, handleDeleteImages, deleteItemImages, handleImagePaths
 
     /**
      * 检查用户是否有权限查看物品
@@ -376,119 +310,5 @@ class ItemController extends Controller
         
         // 重新关联标签
         $item->tags()->attach($tagIds);
-    }
-
-    /**
-     * 处理图片排序
-     */
-    private function handleImageOrder(Request $request, Item $item)
-    {
-        if ($request->has('image_order')) {
-            foreach ($request->image_order as $order => $imageId) {
-                ItemImage::where('id', $imageId)
-                    ->where('item_id', $item->id)
-                    ->update(['sort_order' => $order + 1]);
-            }
-        }
-    }
-
-    /**
-     * 处理主图片设置
-     */
-    private function handlePrimaryImage(Request $request, Item $item)
-    {
-        if ($request->has('primary_image_id')) {
-            // 先重置所有图片的主图状态
-            ItemImage::where('item_id', $item->id)
-                ->update(['is_primary' => false]);
-            
-            // 设置新的主图
-            ItemImage::where('id', $request->primary_image_id)
-                ->where('item_id', $item->id)
-                ->update(['is_primary' => true]);
-        }
-    }
-
-    /**
-     * 处理删除图片
-     */
-    private function handleDeleteImages(Request $request, Item $item)
-    {
-        if ($request->has('delete_images')) {
-            $imagesToDelete = ItemImage::whereIn('id', $request->delete_images)
-                ->where('item_id', $item->id)
-                ->get();
-            
-            foreach ($imagesToDelete as $image) {
-                // 删除文件
-                Storage::disk('public')->delete($image->path);
-                if ($image->thumbnail_path) {
-                    Storage::disk('public')->delete($image->thumbnail_path);
-                }
-                // 删除记录
-                $image->delete();
-            }
-        }
-    }
-
-    /**
-     * 删除物品的所有图片
-     */
-    private function deleteItemImages(Item $item)
-    {
-        $images = $item->images;
-        foreach ($images as $image) {
-            Storage::disk('public')->delete($image->path);
-            if ($image->thumbnail_path) {
-                Storage::disk('public')->delete($image->thumbnail_path);
-            }
-        }
-    }
-
-    /**
-     * 处理 image_paths 字段，将图片从 uploads 目录移动到 items 目录，并生成缩略图
-     */
-    private function handleImagePaths(Request $request, Item $item)
-    {
-        if ($request->has('image_paths')) {
-            $dirPath = storage_path('app/public/items/' . $item->id);
-            if (!file_exists($dirPath)) {
-                mkdir($dirPath, 0755, true);
-            }
-            $manager = new ImageManager(new Driver());
-            foreach ($request->image_paths as $index => $originPath) {
-                // 只处理 uploads 目录下的图片
-                if (!str_starts_with($originPath, 'uploads/')) continue;
-                $originAbsPath = storage_path('app/public/' . $originPath);
-                if (!file_exists($originAbsPath)) continue;
-                $ext = pathinfo($originAbsPath, PATHINFO_EXTENSION) ?: 'jpg';
-                $basename = uniqid();
-                $filename = $basename . '.' . $ext;
-                $thumbFilename = $basename . '-thumb.' . $ext;
-                $itemPath = 'items/' . $item->id . '/' . $filename;
-                $itemThumbPath = 'items/' . $item->id . '/' . $thumbFilename;
-                $absItemPath = $dirPath . '/' . $filename;
-                $absThumbPath = $dirPath . '/' . $thumbFilename;
-                // 移动原图
-                rename($originAbsPath, $absItemPath);
-                // 生成缩略图
-                try {
-                    $img = $manager->read($absItemPath);
-                    $img->cover(200, 200);
-                    $img->save($absThumbPath);
-                } catch (\Exception $e) {
-                    Log::error('生成缩略图失败: ' . $e->getMessage(), ['file' => $absItemPath]);
-                    $itemThumbPath = null;
-                }
-                $isPrimary = $index === 0;
-                ItemImage::create([
-                    'item_id' => $item->id,
-                    'path' => $itemPath,
-                    'thumbnail_path' => $itemThumbPath,
-                    'is_primary' => $isPrimary,
-                    'sort_order' => $index + 1,
-                ]);
-            }
-        }
     }
 }

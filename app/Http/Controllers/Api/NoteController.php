@@ -24,7 +24,8 @@ class NoteController extends Controller
      */
     public function index(): JsonResponse
     {
-        $notes = Note::where('user_id', Auth::id())
+        $notes = Note::with(['category', 'tags'])
+            ->where('user_id', Auth::id())
             ->orderBy('updated_at', 'desc')
             ->get();
 
@@ -60,6 +61,7 @@ class NoteController extends Controller
     {
         $note = Note::where('user_id', Auth::id())
             ->findOrFail($id);
+        $note->load(['category', 'tags']);
 
         return response()->json($note);
     }
