@@ -82,12 +82,22 @@ class UploadController extends Controller
                         $thumbnail->cover(200, 200);
                         $thumbnail->save($thumbnailPath);
                         
-                        // 创建压缩图（最大800px）
+                        // 创建压缩图（最长边800px，等比例缩放）
                         $compressed = $manager->read($originPath);
-                        $compressed->resize(800, 800, function ($constraint) {
-                            $constraint->aspectRatio();
-                            $constraint->upsize();
-                        });
+                        $width = $img->width();
+                        $height = $img->height();
+                        $maxSize = 800;
+                        if ($width > $height) {
+                            $compressed->resize($maxSize, null, function ($constraint) {
+                                $constraint->aspectRatio();
+                                $constraint->upsize();
+                            });
+                        } else {
+                            $compressed->resize(null, $maxSize, function ($constraint) {
+                                $constraint->aspectRatio();
+                                $constraint->upsize();
+                            });
+                        }
                         $compressed->save($compressedPath);
                         
                     } catch (\Exception $thumbException) {
