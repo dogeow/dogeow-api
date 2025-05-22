@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 
 class UploadController extends Controller
 {
-/**
+    /**
      * 批量上传图片（支持多张图片同时上传）
      */
     public function uploadBatchImages(Request $request)
@@ -23,8 +23,8 @@ class UploadController extends Controller
             // 获取用户ID
             $userId = Auth::id() ?? 0;
             
-            // 创建临时目录
-            $dirPath = storage_path('app/public/temp/' . $userId);
+            // 创建用户目录
+            $dirPath = storage_path('app/public/uploads/' . $userId);
             if (!file_exists($dirPath)) {
                 mkdir($dirPath, 0755, true);
             }
@@ -56,54 +56,57 @@ class UploadController extends Controller
                     // 生成文件名和路径
                     $filename = uniqid() . '.' . ($image->getClientOriginalExtension() ?: 'jpg');
                     $fullPath = $dirPath . '/' . $filename;
-                    $relativePath = 'temp/' . $userId . '/' . $filename;
+                    $relativePath = 'uploads/' . $userId . '/' . $filename;
                     
-                    try {
-                        // 尝试直接移动文件
-                        if ($image->move($dirPath, $filename)) {
-                            Log::info('图片文件成功保存', ['path' => $fullPath]);
-                        } else {
-                            throw new \Exception('无法移动上传文件');
-                        }
-                    } catch (\Exception $e) {
-                        Log::error('移动图片文件失败，尝试替代方法', [
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
+                    // 保存原图
+                    $originFilename = 'origin_' . $filename;
+                    $originPath = $dirPath . '/' . $originFilename;
+                    $relativeOriginPath = 'uploads/' . $userId . '/' . $originFilename;
+                    $image->move($dirPath, $originFilename);
                     
                     // 创建缩略图
                     $thumbnailFilename = 'thumb_' . $filename;
                     $thumbnailPath = $dirPath . '/' . $thumbnailFilename;
-                    $relativeThumbPath = 'temp/' . $userId . '/' . $thumbnailFilename;
+                    $relativeThumbPath = 'uploads/' . $userId . '/' . $thumbnailFilename;
                     
                     try {
-                        // 创建缩略图
-                        $thumbnail = $manager->read(file_get_contents($fullPath));
-                        $thumbnail->cover(200, 200);
+                        // 读取原图
+                        $img = $manager->read($image->getRealPath());
                         
-                        // 直接写入文件
-                        file_put_contents($thumbnailPath, (string) $thumbnail->encode());
+                        // 创建缩略图
+                        $thumbnail = $manager->read($image->getRealPath());
+                        $thumbnail->cover(200, 200);
+                        $thumbnail->save($thumbnailPath);
+                        
+                        // 创建压缩图（最大800px）
+                        $compressed = $manager->read($image->getRealPath());
+                        $compressed->resize(800, 800, function ($constraint) {
+                            $constraint->aspectRatio();
+                            $constraint->upsize();
+                        });
+                        $compressed->save($fullPath);
+                        
                     } catch (\Exception $thumbException) {
-                        // 记录错误但继续处理
-                        Log::error('创建缩略图失败: ' . $thumbException->getMessage(), [
+                        Log::error('处理图片失败: ' . $thumbException->getMessage(), [
                             'file' => $fullPath,
                             'trace' => $thumbException->getTraceAsString()
                         ]);
-                        
-                        // 缩略图处理失败，使用原图作为缩略图
                         $relativeThumbPath = $relativePath;
                     }
                     
                     // 获取图片的公共URL
                     $url = url('storage/' . $relativePath);
                     $thumbnailUrl = url('storage/' . $relativeThumbPath);
+                    $originUrl = url('storage/' . $relativeOriginPath);
                     
                     // 添加到上传图片列表
                     $uploadedImages[] = [
                         'path' => $relativePath,
                         'thumbnail_path' => $relativeThumbPath,
+                        'origin_path' => $relativeOriginPath,
                         'url' => $url,
                         'thumbnail_url' => $thumbnailUrl,
+                        'origin_url' => $originUrl,
                     ];
                     
                     $fileCount++;
