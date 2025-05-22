@@ -6,26 +6,23 @@ use App\Models\Thing\Item;
 use App\Models\Thing\ItemImage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\ImageManager; // Keep for now, might be used in other methods or future direct operations
-use Intervention\Image\Drivers\Gd\Driver; // Keep for now, might be used in other methods or future direct operations
-use App\Jobs\GenerateThumbnailForItemImageJob; // Added
+use App\Jobs\GenerateThumbnailForItemImageJob;
 
 class ImageUploadService
 {
     /**
-     * Process uploaded images, save them, and create thumbnails.
+     * 处理上传的图片，保存并创建缩略图
      *
-     * @param array $uploadedImages Array of uploaded files.
-     * @param Item $item The item to associate images with.
-     * @return int Count of successfully processed images.
+     * @param array $uploadedImages 上传的文件数组
+     * @param Item $item 关联的物品
+     * @return int 成功处理的图片数量
      */
     public function processUploadedImages(array $uploadedImages, Item $item): int
     {
         $sortOrder = ItemImage::where('item_id', $item->id)->max('sort_order') ?? 0;
-        // $manager = new ImageManager(new Driver()); // Manager not used directly here anymore
         $successCount = 0;
 
-        // Ensure storage directory exists
+        // 确保存储目录存在
         $dirPath = storage_path('app/public/items/' . $item->id);
         if (!file_exists($dirPath)) {
             mkdir($dirPath, 0755, true);
@@ -34,12 +31,8 @@ class ImageUploadService
         foreach ($uploadedImages as $image) {
             try {
                 $sortOrder++;
-                $basename = uniqid();
-                $ext = $image->getClientOriginalExtension() ?: 'jpg';
-                $filename = $basename . '.' . $ext;
-                // $thumbnailFilename = $basename . '-thumb.' . $ext; // Not generated here
+                $filename = $image->getClientOriginalName();
                 $relativePath = 'items/' . $item->id . '/' . $filename;
-                // $relativeThumbPath = 'items/' . $item->id . '/' . $thumbnailFilename; // Not generated here
 
                 if ($image->move($dirPath, $filename)) {
                     $isPrimary = ($sortOrder === 1 && !ItemImage::where('item_id', $item->id)
@@ -56,10 +49,10 @@ class ImageUploadService
                     $successCount++;
                     
                 } else {
-                    throw new \Exception('Moving image file failed');
+                    throw new \Exception('移动图片文件失败');
                 }
             } catch (\Exception $e) {
-                Log::error('Image processing error: ' . $e->getMessage(), [
+                Log::error('图片处理错误: ' . $e->getMessage(), [
                     'file' => $image->getClientOriginalName(),
                     'trace' => $e->getTraceAsString()
                 ]);
@@ -69,10 +62,10 @@ class ImageUploadService
     }
 
     /**
-     * Process image paths from 'uploads' directory, move them to item's directory, and create thumbnails.
+     * 处理来自'uploads'目录的图片路径，将它们移动到物品目录并创建缩略图
      *
-     * @param array $imagePaths Array of image paths (e.g., 'uploads/tempfile.jpg').
-     * @param Item $item The item to associate images with.
+     * @param array $imagePaths 图片路径数组（例如：'uploads/tempfile.jpg'）
+     * @param Item $item 关联的物品
      */
     public function processImagePaths(array $imagePaths, Item $item): void
     {
@@ -80,27 +73,30 @@ class ImageUploadService
         if (!file_exists($dirPath)) {
             mkdir($dirPath, 0755, true);
         }
-        // $manager = new ImageManager(new Driver()); // Manager not used directly here anymore
+
         $currentMaxSortOrder = ItemImage::where('item_id', $item->id)->max('sort_order') ?? 0;
 
-        foreach ($imagePaths as $index => $originPath) {
+        foreach ($imagePaths as $originPath) {
             if (!str_starts_with($originPath, 'uploads/')) continue;
 
             $originAbsPath = storage_path('app/public/' . $originPath);
             if (!file_exists($originAbsPath)) continue;
 
-            $ext = pathinfo($originAbsPath, PATHINFO_EXTENSION) ?: 'jpg';
-            $basename = uniqid();
-            $filename = $basename . '.' . $ext;
-            // $thumbFilename = $basename . '-thumb.' . $ext; // Not generated here
+            $filename = substr($originPath, strrpos($originPath, '/') + 1);
             $itemPath = 'items/' . $item->id . '/' . $filename;
-            // $itemThumbPath = 'items/' . $item->id . '/' . $thumbFilename; // Not generated here
             $absItemPath = $dirPath . '/' . $filename;
-            // $absThumbPath = $dirPath . '/' . $thumbFilename; // Not generated here
+
+            $thumbFilename = pathinfo($filename, PATHINFO_FILENAME) . '-thumb.' . pathinfo($filename, PATHINFO_EXTENSION);
+            $thumbOriginPath = dirname($originAbsPath) . '/' . $thumbFilename;
+            $thumbItemPath = 'items/' . $item->id . '/' . $thumbFilename;
+            $absThumbPath = $dirPath . '/' . $thumbFilename;
 
             if (rename($originAbsPath, $absItemPath)) {
+                if (file_exists($thumbOriginPath)) {
+                    rename($thumbOriginPath, $absThumbPath);
+                }
+
                 $currentMaxSortOrder++;
-                // Set as primary only if it's the first image being added AND no other primary image exists for this item
                 $isPrimary = ($currentMaxSortOrder === 1 && !ItemImage::where('item_id', $item->id)->where('is_primary', true)->exists());
 
                 $itemImage = ItemImage::create([
@@ -108,23 +104,21 @@ class ImageUploadService
                     'path' => $itemPath,
                     'is_primary' => $isPrimary,
                     'sort_order' => $currentMaxSortOrder,
-                    // 'origin_path' => $originPath, // If you want to track the original path from uploads
                 ]);
 
                 GenerateThumbnailForItemImageJob::dispatch($itemImage);
 
             } else {
-                Log::error('Failed to move image file from uploads.', ['origin_path' => $originPath, 'destination' => $absItemPath]);
+                Log::error('从uploads移动图片文件失败', ['origin_path' => $originPath, 'destination' => $absItemPath]);
             }
         }
     }
 
-
     /**
-     * Update the sort order of images for an item.
+     * 更新物品图片的排序
      *
-     * @param array $imageOrder Array where key is sort order (0-indexed) and value is image ID.
-     * @param Item $item The item whose images are being reordered.
+     * @param array $imageOrder 排序数组，键为排序顺序（从0开始），值为图片ID
+     * @param Item $item 要重新排序的物品
      */
     public function updateImageOrder(array $imageOrder, Item $item): void
     {
@@ -136,28 +130,26 @@ class ImageUploadService
     }
 
     /**
-     * Set a specific image as the primary image for an item.
+     * 设置物品的主图
      *
-     * @param int $primaryImageId The ID of the image to set as primary.
-     * @param Item $item The item for which to set the primary image.
+     * @param int $primaryImageId 要设置为主图的图片ID
+     * @param Item $item 要设置主图的物品
      */
     public function setPrimaryImage(int $primaryImageId, Item $item): void
     {
-        // Reset current primary image (if any)
         ItemImage::where('item_id', $item->id)
             ->update(['is_primary' => false]);
 
-        // Set new primary image
         ItemImage::where('id', $primaryImageId)
             ->where('item_id', $item->id)
             ->update(['is_primary' => true]);
     }
 
     /**
-     * Delete specified images by their IDs and remove their files.
+     * 删除指定ID的图片及其文件
      *
-     * @param array $imageIdsToDelete Array of image IDs to delete.
-     * @param Item $item The item from which images are being deleted.
+     * @param array $imageIdsToDelete 要删除的图片ID数组
+     * @param Item $item 要删除图片的物品
      */
     public function deleteImagesByIds(array $imageIdsToDelete, Item $item): void
     {
@@ -172,18 +164,17 @@ class ImageUploadService
     }
 
     /**
-     * Delete all images (files and records) associated with an item.
-     * This is typically used when deleting the item itself.
+     * 删除与物品关联的所有图片（文件和记录）
+     * 通常在删除物品本身时使用
      *
-     * @param Item $item The item whose images are to be deleted.
+     * @param Item $item 要删除图片的物品
      */
     public function deleteAllItemImages(Item $item): void
     {
-        $images = $item->images; // Assumes 'images' relationship is loaded or loads lazily
+        $images = $item->images;
         foreach ($images as $image) {
             Storage::disk('public')->delete($image->path);
         }
-        // After deleting files, delete the records
         ItemImage::where('item_id', $item->id)->delete();
     }
 }

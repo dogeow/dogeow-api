@@ -17,13 +17,13 @@ class ImageProcessingService
         $this->manager = new ImageManager(new Driver());
     }
 
-    public function processImage(string $originPath, string $compressedPath, string $thumbnailPath): array
+    public function processImage(string $originPath, string $compressedPath): array
     {
         try {
             $img = $this->manager->read($originPath);
             
             // 处理缩略图
-            $this->createThumbnail($originPath, $thumbnailPath);
+            $this->createThumbnail($originPath);
             
             // 处理压缩图
             $this->createCompressedImage($originPath, $compressedPath);
@@ -46,7 +46,7 @@ class ImageProcessingService
         }
     }
 
-    private function createThumbnail(string $originPath, string $thumbnailPath): void
+    private function createThumbnail(string $originPath): void
     {
         $thumbnail = $this->manager->read($originPath);
         $thumbWidth = $thumbnail->width();
@@ -61,6 +61,8 @@ class ImageProcessingService
             // 宽图，高缩放到200
             $thumbnail->scale(height: self::THUMBNAIL_MIN_SIZE);
         }
+
+        $thumbnailPath = str_replace('-origin.', '-thumb.', $originPath);
         
         $thumbnail->save($thumbnailPath);
     }

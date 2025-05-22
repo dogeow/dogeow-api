@@ -61,8 +61,7 @@ class UploadController extends Controller
                     // 处理图片
                     $processResult = $this->imageProcessingService->processImage(
                         $fileInfo['origin_path'],
-                        $fileInfo['compressed_path'],
-                        $fileInfo['thumbnail_path']
+                        $fileInfo['compressed_path']
                     );
 
                     if (!$processResult['success']) {

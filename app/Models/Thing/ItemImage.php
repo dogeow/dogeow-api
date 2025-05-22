@@ -56,7 +56,7 @@ class ItemImage extends Model
         $dirname = pathinfo($this->path, PATHINFO_DIRNAME);
         $filename = pathinfo($this->path, PATHINFO_FILENAME);
         $extension = pathinfo($this->path, PATHINFO_EXTENSION);
-        $thumbPath = $dirname . '/thumb_' . $filename . '.' . $extension;
+        $thumbPath = $dirname . '/' . $filename . '-thumb.' . $extension;
         return config('app.url') . '/storage/' . $thumbPath;
     }
 
@@ -68,7 +68,7 @@ class ItemImage extends Model
         $dirname = pathinfo($this->path, PATHINFO_DIRNAME);
         $filename = pathinfo($this->path, PATHINFO_FILENAME);
         $extension = pathinfo($this->path, PATHINFO_EXTENSION);
-        $thumbPath = $dirname . '/thumb_' . $filename . '.' . $extension;
+        $thumbPath = $dirname . '/' . $filename . '-thumb.' . $extension;
         return Storage::url($thumbPath);
     }
 } 
