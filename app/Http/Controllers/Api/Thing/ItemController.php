@@ -251,6 +251,14 @@ class ItemController extends Controller
     {
         if ($request->hasFile('images')) {
             $this->processImages($request->file('images'), $item);
+        }
+    }
+
+    /**
+     * 处理图片上传
+     */
+    private function processImages($images, Item $item)
+    {
         $sortOrder = ItemImage::where('item_id', $item->id)->max('sort_order') ?? 0;
         $manager = new ImageManager(new Driver());
         $successCount = 0;
