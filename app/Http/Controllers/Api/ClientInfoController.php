@@ -11,7 +11,7 @@ class ClientInfoController extends Controller
     public function getClientInfo(Request $request)
     {
         $ip = $request->ip();
-        $ipInfo = Http::get("http://ip-api.com/json/{$ip}")->json();
+        $ipInfo = Http::get("http://ip-api.com/json/{$ip}?lang=zh-CN")->json();
 
         return response()->json([
             'ip' => $ip,
