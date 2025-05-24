@@ -31,4 +31,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // 批量上传图片
     Route::post('/upload/images', [UploadController::class, 'uploadBatchImages']);
+
+    Route::get('/client-info', [App\Http\Controllers\Api\ClientInfoController::class, 'getClientInfo']);
 });
