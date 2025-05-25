@@ -30,6 +30,7 @@ class Note extends Model
         'title',
         'content',
         'content_markdown',
+        'is_draft',
     ];
 
     /**
