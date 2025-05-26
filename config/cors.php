@@ -15,20 +15,26 @@ return [
     |
     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie', '/*'],
+    'paths' => ['api/*', 'sanctum/csrf-cookie'],
 
-    'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+    'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => [
+        env('FRONTEND_URL', 'http://localhost:3000'),
+        'http://127.0.0.1:3000',
+        'http://localhost:3000',
+        'https://dogeow.com',
+        'https://www.dogeow.com',
+    ],
 
     'allowed_origins_patterns' => [],
 
-    'allowed_headers' => ['Content-Type', 'X-Requested-With', 'Authorization', 'Origin', 'Accept', 'Range'],
+    'allowed_headers' => ['*'],
 
-    'exposed_headers' => ['Content-Length', 'Content-Range', 'Content-Disposition'],
+    'exposed_headers' => [],
 
-    'max_age' => 3600,
+    'max_age' => 0,
 
-    'supports_credentials' => false,
+    'supports_credentials' => true,
 
 ]; 
