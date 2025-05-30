@@ -36,6 +36,29 @@ class Item extends Model
         'purchase_price' => 'decimal:2'
     ];
 
+    protected $appends = [
+        'thumbnail_url',
+    ];
+
+    /**
+     * 获取缩略图URL
+     */
+    public function getThumbnailUrlAttribute()
+    {
+        // 优先使用主图片
+        if ($this->primaryImage && $this->primaryImage->thumbnail_url) {
+            return $this->primaryImage->thumbnail_url;
+        }
+        
+        // 如果没有主图片，使用第一张图片
+        $firstImage = $this->images()->first();
+        if ($firstImage && $firstImage->thumbnail_url) {
+            return $firstImage->thumbnail_url;
+        }
+        
+        return null;
+    }
+
     /**
      * 获取模型的可搜索数据
      *
