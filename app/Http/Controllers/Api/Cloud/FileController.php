@@ -435,7 +435,7 @@ class FileController extends Controller
         header('Access-Control-Allow-Headers: Content-Type, Authorization');
         
         // 如果是预检请求，直接返回
-        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
             http_response_code(200);
             exit();
         }
@@ -488,6 +488,23 @@ class FileController extends Controller
             return response()->json([
                 'type' => 'text',
                 'content' => Storage::disk('public')->get($file->path),
+            ]);
+        }
+        
+        // 特殊文档类型的处理
+        if (in_array($extension, ['pages', 'key', 'numbers'])) {
+            return response()->json([
+                'type' => 'document',
+                'message' => '此文件是苹果 ' . strtoupper($extension) . ' 格式，需要在 Mac 上使用相应的应用程序打开',
+                'suggestion' => '您可以下载文件后在 Mac 上打开，或者将其导出为 PDF 格式以便在线预览',
+            ]);
+        }
+        
+        if (in_array($extension, ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'])) {
+            return response()->json([
+                'type' => 'document',
+                'message' => '此文件是 Microsoft Office 格式，需要使用相应的应用程序打开',
+                'suggestion' => '您可以下载文件后使用 Microsoft Office 或其他兼容软件打开',
             ]);
         }
         

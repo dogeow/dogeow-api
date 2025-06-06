@@ -71,7 +71,7 @@ class File extends Model
             return 'pdf';
         }
         
-        if (in_array($extension, ['doc', 'docx', 'txt', 'rtf', 'md'])) {
+        if (in_array($extension, ['doc', 'docx', 'txt', 'rtf', 'md', 'pages', 'key', 'numbers'])) {
             return 'document';
         }
         

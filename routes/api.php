@@ -14,6 +14,9 @@ Route::prefix('musics')->group(function () {
     Route::get('/', [App\Http\Controllers\Api\MusicController::class, 'index']);
 });
 
+// 云存储路由（公开路由）
+require base_path('routes/api/cloud.php');
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
@@ -26,7 +29,6 @@ Route::middleware('auth:sanctum')->group(function () {
     require base_path('routes/api/note.php');
     require base_path('routes/api/todo.php');
     require base_path('routes/api/game.php');
-    require base_path('routes/api/cloud.php');
     require base_path('routes/api/word.php');
 
     // 批量上传图片
