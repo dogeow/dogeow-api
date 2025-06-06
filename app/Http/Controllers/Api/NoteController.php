@@ -49,6 +49,7 @@ class NoteController extends Controller
             'title' => $request->title,
             'content' => $content,
             'content_markdown' => $contentMarkdown,
+            'is_draft' => $request->is_draft ?? false,
         ]);
 
         return response()->json($note, 201);
@@ -94,6 +95,12 @@ class NoteController extends Controller
             } else {
                 $validatedData['content_markdown'] = '';
             }
+        }
+        
+        if ($request->has('is_draft')) {
+            $validatedData['is_draft'] = $request->validate([
+                'is_draft' => 'boolean',
+            ])['is_draft'];
         }
         
         $note->update($validatedData);
