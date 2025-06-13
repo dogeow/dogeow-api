@@ -123,18 +123,21 @@ class ItemController extends Controller
                 $query->where('purchase_price', '<=', $value)),
             
             AllowedFilter::callback('area_id', fn($query, $value) => 
-                $query->whereHas('spot.room.area', fn($q) => 
-                    $q->where('areas.id', $value))),
+                $query->where(function($q) use ($value) {
+                    $q->where('area_id', $value)
+                      ->orWhereHas('spot.room.area', fn($subQ) => 
+                          $subQ->where('thing_areas.id', $value));
+                })),
             
             AllowedFilter::callback('room_id', fn($query, $value) => 
-                $query->whereHas('spot.room.area', fn($q) => 
-                    $q->whereHas('rooms', fn($q) => 
-                        $q->where('rooms.id', $value)))),
+                $query->where(function($q) use ($value) {
+                    $q->where('room_id', $value)
+                      ->orWhereHas('spot.room', fn($subQ) => 
+                          $subQ->where('thing_rooms.id', $value));
+                })),
             
             AllowedFilter::callback('spot_id', fn($query, $value) => 
-                $query->whereHas('spot.room.area', fn($q) => 
-                    $q->whereHas('rooms.spots', fn($q) => 
-                        $q->where('spots.id', $value)))),
+                $query->where('spot_id', $value)),
             
             AllowedFilter::callback('category_id', fn($query, $value) => 
                 $query->where('category_id', $value)),
