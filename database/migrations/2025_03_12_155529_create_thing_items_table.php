@@ -23,6 +23,8 @@ return new class extends Migration
      * - purchase_date: 购买时间
      * - purchase_price: 购买价格
      * - category_id: 分类ID
+     * - area_id: 区域ID
+     * - room_id: 房间ID
      * - spot_id: 地点ID
      * - is_public: 是否公开
      */
@@ -39,6 +41,8 @@ return new class extends Migration
             $table->date('expiry_date')->nullable();
             $table->decimal('purchase_price', 10, 2)->nullable();
             $table->unsignedBigInteger('category_id')->nullable();
+            $table->unsignedBigInteger('area_id')->nullable();
+            $table->unsignedBigInteger('room_id')->nullable();
             $table->unsignedBigInteger('spot_id')->nullable();
             $table->boolean('is_public')->default(false);
             $table->timestamps();
