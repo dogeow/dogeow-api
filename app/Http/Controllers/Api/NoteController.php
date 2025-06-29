@@ -5,20 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\NoteRequest;
 use App\Models\Note;
-use App\Services\SlateMarkdownService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
 class NoteController extends Controller
 {
-    protected $slateMarkdownService;
-
-    public function __construct(SlateMarkdownService $slateMarkdownService)
-    {
-        $this->slateMarkdownService = $slateMarkdownService;
-    }
-
     /**
      * Display a listing of the resource.
      */
@@ -40,9 +32,9 @@ class NoteController extends Controller
         $content = $request->content ?? '';
         $contentMarkdown = $request->content_markdown ?? '';
 
-        // 如果前端没有提供 markdown，则尝试从 content 生成
+        // 如果前端没有提供 markdown，使用 content 作为 markdown
         if (empty($contentMarkdown) && !empty($content)) {
-            $contentMarkdown = $this->slateMarkdownService->jsonToMarkdown($content);
+            $contentMarkdown = $content;
         }
 
         $note = Note::create([
@@ -97,8 +89,8 @@ class NoteController extends Controller
                     'content_markdown' => 'nullable|string',
                 ])['content_markdown'];
             } else if (!empty($content)) {
-                // 如果没有提供 markdown，则从 content 生成
-                $validatedData['content_markdown'] = $this->slateMarkdownService->jsonToMarkdown($content);
+                // 如果没有提供 markdown，使用 content 作为 markdown
+                $validatedData['content_markdown'] = $content;
             } else {
                 $validatedData['content_markdown'] = '';
             }
