@@ -38,9 +38,10 @@ class NoteController extends Controller
     public function store(NoteRequest $request): JsonResponse
     {
         $content = $request->content ?? '';
-        $contentMarkdown = '';
+        $contentMarkdown = $request->content_markdown ?? '';
 
-        if (!empty($content)) {
+        // 如果前端没有提供 markdown，则尝试从 content 生成
+        if (empty($contentMarkdown) && !empty($content)) {
             $contentMarkdown = $this->slateMarkdownService->jsonToMarkdown($content);
         }
 
@@ -90,7 +91,13 @@ class NoteController extends Controller
             
             $validatedData['content'] = $content;
             
-            if (!empty($content)) {
+            // 检查是否有前端提供的 markdown
+            if ($request->has('content_markdown')) {
+                $validatedData['content_markdown'] = $request->validate([
+                    'content_markdown' => 'nullable|string',
+                ])['content_markdown'];
+            } else if (!empty($content)) {
+                // 如果没有提供 markdown，则从 content 生成
                 $validatedData['content_markdown'] = $this->slateMarkdownService->jsonToMarkdown($content);
             } else {
                 $validatedData['content_markdown'] = '';

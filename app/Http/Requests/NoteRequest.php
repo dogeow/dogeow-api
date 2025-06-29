@@ -24,6 +24,7 @@ class NoteRequest extends FormRequest
         return [
             'title' => 'required|string|max:255',
             'content' => 'nullable|string',
+            'content_markdown' => 'nullable|string',
             'is_draft' => 'nullable|boolean',
         ];
     }
@@ -38,6 +39,7 @@ class NoteRequest extends FormRequest
         return [
             'title' => '笔记标题',
             'content' => '笔记内容',
+            'content_markdown' => '笔记Markdown内容',
             'is_draft' => '草稿状态',
         ];
     }

@@ -15,10 +15,21 @@ class CategoryController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $categories = Category::with(['items' => function ($query) use ($request) {
+        $query = Category::query();
+
+        // 如果请求显示所有分类（用于管理界面选择分类）
+        if ($request->has('show_all')) {
+            $categories = $query->withCount('items')
+                ->orderBy('sort_order')
+                ->get();
+            return response()->json($categories);
+        }
+
+        // 默认行为：只返回可见的分类，并加载其导航项
+        $categories = $query->with(['items' => function ($itemQuery) use ($request) {
             if ($request->has('filter') && isset($request->input('filter')['name'])) {
                 $name = $request->input('filter')['name'];
-                $query->where('name', 'like', '%' . $name . '%');
+                $itemQuery->where('name', 'like', '%' . $name . '%');
             }
         }])
         ->orderBy('sort_order')
