@@ -16,7 +16,10 @@ class CategoryController extends Controller
     public function index()
     {
         $categories = ItemCategory::where('user_id', Auth::id())
+            ->with(['parent', 'children'])
             ->withCount('items')
+            ->orderBy('parent_id', 'asc')
+            ->orderBy('name', 'asc')
             ->get();
         
         return response()->json($categories);
@@ -27,13 +30,28 @@ class CategoryController extends Controller
      */
     public function store(CategoryRequest $request)
     {
-        $category = new ItemCategory($request->validated());
+        $validated = $request->validated();
+        
+        // 如果指定了父分类，验证父分类是否属于当前用户
+        if (isset($validated['parent_id'])) {
+            $parentCategory = ItemCategory::find($validated['parent_id']);
+            if (!$parentCategory || $parentCategory->user_id !== Auth::id()) {
+                return response()->json(['message' => '指定的父分类不存在或无权访问'], 400);
+            }
+            
+            // 防止创建三级分类（子分类不能再有子分类）
+            if ($parentCategory->parent_id !== null) {
+                return response()->json(['message' => '不能在子分类下创建分类'], 400);
+            }
+        }
+        
+        $category = new ItemCategory($validated);
         $category->user_id = Auth::id();
         $category->save();
         
         return response()->json([
             'message' => '分类创建成功',
-            'category' => $category
+            'category' => $category->load(['parent', 'children'])
         ], 201);
     }
 
@@ -81,6 +99,11 @@ class CategoryController extends Controller
         // 检查分类是否有关联的物品
         if ($category->items()->count() > 0) {
             return response()->json(['message' => '无法删除已有物品的分类'], 400);
+        }
+        
+        // 检查是否有子分类
+        if ($category->children()->count() > 0) {
+            return response()->json(['message' => '无法删除有子分类的分类'], 400);
         }
         
         $category->delete();

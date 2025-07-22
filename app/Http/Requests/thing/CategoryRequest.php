@@ -23,6 +23,7 @@ class CategoryRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
+            'parent_id' => 'nullable|integer|exists:thing_item_categories,id',
         ];
     }
 
@@ -34,6 +35,8 @@ class CategoryRequest extends FormRequest
         return [
             'name.required' => '分类名称不能为空',
             'name.max' => '分类名称不能超过255个字符',
+            'parent_id.integer' => '父分类ID必须为整数',
+            'parent_id.exists' => '指定的父分类不存在',
         ];
     }
 }
