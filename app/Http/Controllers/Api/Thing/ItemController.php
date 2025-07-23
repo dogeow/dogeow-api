@@ -78,7 +78,25 @@ class ItemController extends Controller
         if ($request->has('uncategorized') && $request->uncategorized) {
             $query->whereNull('category_id');
         } elseif ($request->has('category_id')) {
-            $query->where('category_id', $request->category_id);
+            $categoryId = $request->category_id;
+            
+            // 查找该分类
+            $category = ItemCategory::find($categoryId);
+            
+            if ($category) {
+                // 如果是父分类，包括该分类及其所有子分类的物品
+                if ($category->isParent()) {
+                    $childCategoryIds = $category->children()->pluck('id')->toArray();
+                    $allCategoryIds = array_merge([$categoryId], $childCategoryIds);
+                    $query->whereIn('category_id', $allCategoryIds);
+                } else {
+                    // 如果是子分类，只查询该子分类的物品
+                    $query->where('category_id', $categoryId);
+                }
+            } else {
+                // 如果分类不存在，返回空结果
+                $query->where('category_id', $categoryId);
+            }
         }
     }
 
