@@ -86,7 +86,7 @@ class ItemCategorySearchTest extends TestCase
         ]);
 
         // 测试：搜索父分类应该返回父分类及所有子分类的物品
-        $response = $this->getJson("/api/things/items?category_id={$parentCategory->id}");
+        $response = $this->getJson("/api/things/items?filter[category_id]={$parentCategory->id}");
 
         $response->assertStatus(200);
         
@@ -135,7 +135,7 @@ class ItemCategorySearchTest extends TestCase
         ]);
 
         // 测试：搜索子分类应该只返回该子分类的物品
-        $response = $this->getJson("/api/things/items?category_id={$childCategory->id}");
+        $response = $this->getJson("/api/things/items?filter[category_id]={$childCategory->id}");
 
         $response->assertStatus(200);
         
@@ -151,11 +151,51 @@ class ItemCategorySearchTest extends TestCase
     public function test_nonexistent_category_returns_empty_result()
     {
         // 测试：搜索不存在的分类ID
-        $response = $this->getJson("/api/things/items?category_id=99999");
+        $response = $this->getJson("/api/things/items?filter[category_id]=99999");
 
         $response->assertStatus(200);
         
         $items = $response->json('data');
         $this->assertCount(0, $items, '搜索不存在的分类应该返回空结果');
+    }
+
+    public function test_uncategorized_filter_returns_items_without_category()
+    {
+        // 创建分类
+        $category = ItemCategory::create([
+            'name' => '电子产品',
+            'user_id' => $this->user->id,
+        ]);
+
+        // 创建有分类的物品
+        $categorizedItem = Item::create([
+            'name' => '手机',
+            'description' => '智能手机',
+            'user_id' => $this->user->id,
+            'category_id' => $category->id,
+            'is_public' => true,
+        ]);
+
+        // 创建无分类的物品
+        $uncategorizedItem = Item::create([
+            'name' => '未分类物品',
+            'description' => '没有分类的物品',
+            'user_id' => $this->user->id,
+            'category_id' => null,
+            'is_public' => true,
+        ]);
+
+        // 测试：搜索未分类应该只返回没有分类的物品
+        $response = $this->getJson("/api/things/items?filter[category_id]=uncategorized");
+
+        $response->assertStatus(200);
+        
+        $items = $response->json('data');
+        $this->assertCount(1, $items, '搜索未分类应该返回1个物品');
+
+        // 验证返回的物品ID
+        $itemIds = collect($items)->pluck('id')->toArray();
+        $this->assertContains($uncategorizedItem->id, $itemIds, '应该包含未分类的物品');
+        $this->assertNotContains($categorizedItem->id, $itemIds, '不应该包含有分类的物品');
     }
 } 

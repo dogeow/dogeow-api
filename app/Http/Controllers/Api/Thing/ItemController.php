@@ -35,8 +35,6 @@ class ItemController extends Controller
         
         // 构建查询条件
         $this->buildVisibilityQuery($baseQuery);
-        $this->buildOwnershipQuery($baseQuery, $request);
-        $this->buildCategoryQuery($baseQuery, $request);
         
         $query = QueryBuilder::for($baseQuery)
             ->allowedFilters($this->getAllowedFilters())
@@ -60,45 +58,6 @@ class ItemController extends Controller
         }
     }
 
-    /**
-     * 构建所有权查询条件
-     */
-    private function buildOwnershipQuery($query, Request $request)
-    {
-        if ($request->has('own') && Auth::check()) {
-            $query->where('user_id', Auth::id());
-        }
-    }
-
-    /**
-     * 构建分类查询条件
-     */
-    private function buildCategoryQuery($query, Request $request)
-    {
-        if ($request->has('uncategorized') && $request->uncategorized) {
-            $query->whereNull('category_id');
-        } elseif ($request->has('category_id')) {
-            $categoryId = $request->category_id;
-            
-            // 查找该分类
-            $category = ItemCategory::find($categoryId);
-            
-            if ($category) {
-                // 如果是父分类，包括该分类及其所有子分类的物品
-                if ($category->isParent()) {
-                    $childCategoryIds = $category->children()->pluck('id')->toArray();
-                    $allCategoryIds = array_merge([$categoryId], $childCategoryIds);
-                    $query->whereIn('category_id', $allCategoryIds);
-                } else {
-                    // 如果是子分类，只查询该子分类的物品
-                    $query->where('category_id', $categoryId);
-                }
-            } else {
-                // 如果分类不存在，返回空结果
-                $query->where('category_id', $categoryId);
-            }
-        }
-    }
 
     /**
      * 获取允许的过滤器
@@ -157,8 +116,37 @@ class ItemController extends Controller
             AllowedFilter::callback('spot_id', fn($query, $value) => 
                 $query->where('spot_id', $value)),
             
-            AllowedFilter::callback('category_id', fn($query, $value) => 
-                $query->where('category_id', $value)),
+            AllowedFilter::callback('category_id', function($query, $value) {
+                // 处理未分类的情况
+                if ($value === 'uncategorized' || $value === null) {
+                    return $query->whereNull('category_id');
+                }
+                
+                // 查找该分类
+                $category = ItemCategory::find($value);
+                
+                if ($category) {
+                    // 如果是父分类，包括该分类及其所有子分类的物品
+                    if ($category->isParent()) {
+                        $childCategoryIds = $category->children()->pluck('id')->toArray();
+                        $allCategoryIds = array_merge([$value], $childCategoryIds);
+                        return $query->whereIn('category_id', $allCategoryIds);
+                    } else {
+                        // 如果是子分类，只查询该子分类的物品
+                        return $query->where('category_id', $value);
+                    }
+                } else {
+                    // 如果分类不存在，返回空结果
+                    return $query->where('category_id', $value);
+                }
+            }),
+            
+            AllowedFilter::callback('own', function($query, $value) {
+                if ($value && Auth::check()) {
+                    return $query->where('user_id', Auth::id());
+                }
+                return $query;
+            }),
         ];
     }
 
