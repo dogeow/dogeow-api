@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Cloud\FileController;
 
-// Cloud Files - 云存储文件路由（公开路由）
+// 云存储
 Route::get('/cloud/files', [FileController::class, 'index']);
 Route::get('/cloud/files/{id}', [FileController::class, 'show']);
 Route::post('/cloud/folders', [FileController::class, 'createFolder']);

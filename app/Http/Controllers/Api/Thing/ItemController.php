@@ -6,53 +6,46 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Thing\ItemRequest;
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemCategory;
-use App\Models\Thing\ItemImage; // Keep if $item->images() or similar is used elsewhere
-use App\Services\ImageUploadService; // Added
+use App\Services\ImageUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-// Storage might be used by other methods, keep for now or check thoroughly
-// Intervention\Image\ImageManager and Intervention\Image\Drivers\Gd\Driver are removed as they are now in the service
 use Spatie\QueryBuilder\QueryBuilder;
 use Spatie\QueryBuilder\AllowedFilter;
 
 class ItemController extends Controller
 {
-    protected ImageUploadService $imageUploadService;
+    private const DEFAULT_PAGE_SIZE = 10;
+    private const ITEM_RELATIONS = ['user', 'images', 'category', 'spot.room.area', 'tags'];
 
-    public function __construct(ImageUploadService $imageUploadService)
-    {
-        $this->imageUploadService = $imageUploadService;
-    }
+    public function __construct(
+        private readonly ImageUploadService $imageUploadService
+    ) {}
 
     /**
      * 获取物品列表
      */
     public function index(Request $request)
     {
-        $baseQuery = Item::with(['user', 'images', 'category', 'spot.room.area', 'tags']);
+        $baseQuery = Item::with(self::ITEM_RELATIONS);
         
-        // 构建查询条件
         $this->buildVisibilityQuery($baseQuery);
         
         $query = QueryBuilder::for($baseQuery)
             ->allowedFilters($this->getAllowedFilters())
             ->defaultSort('-created_at');
 
-        return response()->json($query->paginate(10));
+        return response()->json($query->paginate(self::DEFAULT_PAGE_SIZE));
     }
 
     /**
      * 构建可见性查询条件
      */
-    private function buildVisibilityQuery($query)
+    private function buildVisibilityQuery($query): void
     {
         if (Auth::check()) {
-            $query->where(function($q) {
-                $q->where('is_public', true)
-                  ->orWhere('user_id', Auth::id());
-            });
+            $query->where(fn($q) => $q->where('is_public', true)->orWhere('user_id', Auth::id()));
         } else {
             $query->where('is_public', true);
         }
@@ -62,7 +55,7 @@ class ItemController extends Controller
     /**
      * 获取允许的过滤器
      */
-    private function getAllowedFilters()
+    private function getAllowedFilters(): array
     {
         return [
             AllowedFilter::callback('name', fn($query, $value) => 
@@ -72,14 +65,13 @@ class ItemController extends Controller
                 $query->where('description', 'like', "%{$value}%")),
             
             AllowedFilter::callback('status', fn($query, $value) => 
-                $value !== 'all' ? $query->where('status', $value) : null),
+                $value !== 'all' ? $query->where('status', $value) : $query),
             
             AllowedFilter::callback('tags', fn($query, $value) => 
                 $query->whereHas('tags', fn($q) => 
                     $q->whereIn('thing_tags.id', is_array($value) ? $value : explode(',', $value)))),
             
-            AllowedFilter::callback('search', fn($query, $value) => 
-                $query->search($value)),
+            AllowedFilter::callback('search', fn($query, $value) => $query->search($value)),
             
             AllowedFilter::callback('purchase_date_from', fn($query, $value) => 
                 $query->whereDate('purchase_date', '>=', $value)),
@@ -100,53 +92,23 @@ class ItemController extends Controller
                 $query->where('purchase_price', '<=', $value)),
             
             AllowedFilter::callback('area_id', fn($query, $value) => 
-                $query->where(function($q) use ($value) {
-                    $q->where('area_id', $value)
-                      ->orWhereHas('spot.room.area', fn($subQ) => 
-                          $subQ->where('thing_areas.id', $value));
-                })),
+                $query->where(fn($q) => $q->where('area_id', $value)
+                    ->orWhereHas('spot.room.area', fn($subQ) => 
+                        $subQ->where('thing_areas.id', $value)))),
             
             AllowedFilter::callback('room_id', fn($query, $value) => 
-                $query->where(function($q) use ($value) {
-                    $q->where('room_id', $value)
-                      ->orWhereHas('spot.room', fn($subQ) => 
-                          $subQ->where('thing_rooms.id', $value));
-                })),
+                $query->where(fn($q) => $q->where('room_id', $value)
+                    ->orWhereHas('spot.room', fn($subQ) => 
+                        $subQ->where('thing_rooms.id', $value)))),
             
             AllowedFilter::callback('spot_id', fn($query, $value) => 
                 $query->where('spot_id', $value)),
             
-            AllowedFilter::callback('category_id', function($query, $value) {
-                // 处理未分类的情况
-                if ($value === 'uncategorized' || $value === null) {
-                    return $query->whereNull('category_id');
-                }
-                
-                // 查找该分类
-                $category = ItemCategory::find($value);
-                
-                if ($category) {
-                    // 如果是父分类，包括该分类及其所有子分类的物品
-                    if ($category->isParent()) {
-                        $childCategoryIds = $category->children()->pluck('id')->toArray();
-                        $allCategoryIds = array_merge([$value], $childCategoryIds);
-                        return $query->whereIn('category_id', $allCategoryIds);
-                    } else {
-                        // 如果是子分类，只查询该子分类的物品
-                        return $query->where('category_id', $value);
-                    }
-                } else {
-                    // 如果分类不存在，返回空结果
-                    return $query->where('category_id', $value);
-                }
-            }),
+            AllowedFilter::callback('category_id', fn($query, $value) => 
+                $this->applyCategoryFilter($query, $value)),
             
-            AllowedFilter::callback('own', function($query, $value) {
-                if ($value && Auth::check()) {
-                    return $query->where('user_id', Auth::id());
-                }
-                return $query;
-            }),
+            AllowedFilter::callback('own', fn($query, $value) => 
+                $value && Auth::check() ? $query->where('user_id', Auth::id()) : $query),
         ];
     }
 
@@ -155,34 +117,20 @@ class ItemController extends Controller
      */
     public function store(ItemRequest $request)
     {
-        try {
-            DB::beginTransaction();
-            
-            $item = new Item($request->validated());
-            $item->user_id = Auth::id();
-            $item->save();
+        return DB::transaction(function () use ($request) {
+            $item = Item::create([
+                ...$request->validated(),
+                'user_id' => Auth::id()
+            ]);
 
-            if ($request->hasFile('images')) {
-                $this->imageUploadService->processUploadedImages($request->file('images'), $item);
-            }
-            if ($request->has('image_paths')) {
-                $this->imageUploadService->processImagePaths($request->image_paths, $item);
-            }
+            $this->processItemImages($request, $item);
             $this->handleTags($request, $item);
-            
-            DB::commit();
             
             return response()->json([
                 'message' => '物品创建成功',
-                'item' => $item->load(['images', 'category', 'spot.room.area', 'tags'])
+                'item' => $item->load(self::ITEM_RELATIONS)
             ], 201);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('创建物品失败: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json(['message' => '物品创建失败: ' . $e->getMessage()], 500);
-        }
+        });
     }
 
     /**
@@ -194,7 +142,7 @@ class ItemController extends Controller
             return response()->json(['message' => '无权查看此物品'], 403);
         }
         
-        return response()->json($item->load(['images', 'category', 'spot.room.area', 'tags']));
+        return response()->json($item->load(self::ITEM_RELATIONS));
     }
 
     /**
@@ -206,48 +154,17 @@ class ItemController extends Controller
             return response()->json(['message' => '无权更新此物品'], 403);
         }
         
-        try {
-            DB::beginTransaction();
-            
+        return DB::transaction(function () use ($request, $item) {
             $item->update($request->validated());
             
-            // 图片同步：只保留 image_ids 中的图片，其余全部删除
-            if ($request->has('image_ids')) {
-                $keepIds = $request->input('image_ids', []);
-                $allIds = $item->images()->pluck('id')->toArray();
-                $deleteIds = array_diff($allIds, $keepIds);
-                if (!empty($deleteIds)) {
-                    $this->imageUploadService->deleteImagesByIds($deleteIds, $item);
-                }
-            }
-            
-            if ($request->has('image_paths')) {
-                $this->imageUploadService->processImagePaths($request->image_paths, $item);
-            }
-            if ($request->has('image_order')) {
-                $this->imageUploadService->updateImageOrder($request->image_order, $item);
-            }
-            if ($request->has('primary_image_id')) {
-                $this->imageUploadService->setPrimaryImage($request->primary_image_id, $item);
-            }
-            if ($request->has('delete_images')) {
-                $this->imageUploadService->deleteImagesByIds($request->delete_images, $item);
-            }
+            $this->processItemImageUpdates($request, $item);
             $this->handleTags($request, $item);
-            
-            DB::commit();
             
             return response()->json([
                 'message' => '物品更新成功',
-                'item' => $item->load(['images', 'category', 'spot.room.area', 'tags'])
+                'item' => $item->load(self::ITEM_RELATIONS)
             ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('更新物品失败: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json(['message' => '物品更新失败: ' . $e->getMessage()], 500);
-        }
+        });
     }
 
     /**
@@ -259,20 +176,44 @@ class ItemController extends Controller
             return response()->json(['message' => '无权删除此物品'], 403);
         }
         
-        try {
-            DB::beginTransaction();
-            
-            $this->imageUploadService->deleteAllItemImages($item); // This already deletes records
-            // $item->images()->delete(); // This line is now redundant if deleteAllItemImages handles record deletion.
+        return DB::transaction(function () use ($item) {
+            $this->imageUploadService->deleteAllItemImages($item);
             $item->delete();
             
-            DB::commit();
-            
             return response()->json(['message' => '物品删除成功']);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['message' => '物品删除失败: ' . $e->getMessage()], 500);
+        });
+    }
+
+    /**
+     * 搜索物品
+     */
+    public function search(Request $request)
+    {
+        $searchTerm = $request->get('q', '');
+        
+        if (empty($searchTerm)) {
+            return response()->json([
+                'search_term' => $searchTerm,
+                'count' => 0,
+                'results' => []
+            ]);
         }
+        
+        $query = Item::with(self::ITEM_RELATIONS)
+            ->where(function ($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                  ->orWhere('description', 'like', "%{$searchTerm}%");
+            });
+        
+        $this->buildVisibilityQuery($query);
+        
+        $results = $query->limit(10)->get();
+        
+        return response()->json([
+            'search_term' => $searchTerm,
+            'count' => $results->count(),
+            'results' => $results
+        ]);
     }
 
     /**
@@ -282,8 +223,6 @@ class ItemController extends Controller
     {
         return response()->json(ItemCategory::where('user_id', Auth::id())->get());
     }
-
-    // Removed handleImages, processImages, handleImageOrder, handlePrimaryImage, handleDeleteImages, deleteItemImages, handleImagePaths
 
     /**
      * 检查用户是否有权限查看物品
@@ -302,29 +241,83 @@ class ItemController extends Controller
     }
 
     /**
-     * 处理标签
+     * 应用分类过滤器
      */
-    private function handleTags(Request $request, Item $item)
+    private function applyCategoryFilter($query, $value)
     {
-        if ($request->has('tags')) {
-            $this->processTags($request->tags, $item);
+        if ($value === 'uncategorized' || $value === null) {
+            return $query->whereNull('category_id');
+        }
+        
+        $category = ItemCategory::find($value);
+        
+        if (!$category) {
+            return $query->where('category_id', $value);
+        }
+        
+        if ($category->isParent()) {
+            $childCategoryIds = $category->children()->pluck('id')->toArray();
+            $allCategoryIds = array_merge([$value], $childCategoryIds);
+            return $query->whereIn('category_id', $allCategoryIds);
+        }
+        
+        return $query->where('category_id', $value);
+    }
+
+    /**
+     * 处理物品图片（创建时）
+     */
+    private function processItemImages(Request $request, Item $item): void
+    {
+        if ($request->hasFile('images')) {
+            $this->imageUploadService->processUploadedImages($request->file('images'), $item);
+        }
+        
+        if ($request->has('image_paths')) {
+            $this->imageUploadService->processImagePaths($request->image_paths, $item);
+        }
+    }
+
+    /**
+     * 处理物品图片更新
+     */
+    private function processItemImageUpdates(Request $request, Item $item): void
+    {
+        // 图片同步：只保留 image_ids 中的图片，其余全部删除
+        if ($request->has('image_ids')) {
+            $keepIds = $request->input('image_ids', []);
+            $allIds = $item->images()->pluck('id')->toArray();
+            $deleteIds = array_diff($allIds, $keepIds);
+            
+            if (!empty($deleteIds)) {
+                $this->imageUploadService->deleteImagesByIds($deleteIds, $item);
+            }
+        }
+        
+        if ($request->has('image_paths')) {
+            $this->imageUploadService->processImagePaths($request->image_paths, $item);
+        }
+        
+        if ($request->has('image_order')) {
+            $this->imageUploadService->updateImageOrder($request->image_order, $item);
+        }
+        
+        if ($request->has('primary_image_id')) {
+            $this->imageUploadService->setPrimaryImage($request->primary_image_id, $item);
+        }
+        
+        if ($request->has('delete_images')) {
+            $this->imageUploadService->deleteImagesByIds($request->delete_images, $item);
         }
     }
 
     /**
      * 处理标签
      */
-    private function processTags(array $tagIds, Item $item)
+    private function handleTags(Request $request, Item $item): void
     {
-        // 清除当前的标签关联
-        $item->tags()->detach();
-        
-        // 如果没有标签，直接返回
-        if (empty($tagIds)) {
-            return;
+        if ($request->has('tags')) {
+            $item->tags()->sync($request->tags ?? []);
         }
-        
-        // 重新关联标签
-        $item->tags()->attach($tagIds);
     }
 }
