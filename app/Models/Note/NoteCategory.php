@@ -1,14 +1,15 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Note;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class NoteTag extends Model
+class NoteCategory extends Model
 {
     use HasFactory, SoftDeletes;
     
@@ -20,7 +21,7 @@ class NoteTag extends Model
     protected $fillable = [
         'user_id',
         'name',
-        'color',
+        'description',
     ];
     
     /**
@@ -35,7 +36,7 @@ class NoteTag extends Model
     ];
     
     /**
-     * 获取标签所属用户
+     * 获取分类所属用户
      */
     public function user(): BelongsTo
     {
@@ -43,11 +44,10 @@ class NoteTag extends Model
     }
     
     /**
-     * 获取具有此标签的笔记
+     * 获取此分类下的笔记
      */
-    public function notes(): BelongsToMany
+    public function notes(): HasMany
     {
-        return $this->belongsToMany(Note::class, 'note_note_tag', 'note_tag_id', 'note_id')
-            ->withTimestamps();
+        return $this->hasMany(Note::class, 'note_category_id');
     }
 }
