@@ -1,14 +1,58 @@
-# Role
+# Laravel API 项目规则
 
+## 项目概述
+这是一个 Laravel 12 API 项目，为 dogeow (Next.js) 前端提供后端服务。
 
-# Goal
+## 技术栈
 
-Laravel 项目，尽量使用 Laravel 官方的包: https://laravel.com/docs, 比如使用 Sanctum 而非其他的 jwt 包。 
-你可以改进注释，但不要删除我的注释。
-数据库不要使用外键关联。
-代码不要超过600行，超过的话，要拆分组件。
-React 的项目，不要用 css 文件，直接在 React 组件里面写。
-我现在的偏好是使用 Laravel 12 和 Next.js 15，UI 使用 shadcn，React 状态管理使用 Zuntand。
-可以单独一个文件就单独，比如 Laravel 的 Policy、Request Validation 等。
-我修改过的东西，你下一次帮我修改的时候，不要又给我恢复了。
-界面尽量简洁，功能简单的话，不要写一些功能介绍。
+### 核心框架
+- Laravel 12
+- PHP 8.4
+- MySQL 8
+- Redis 7
+
+### Laravel 扩展包
+- **认证**: Laravel Sanctum (官方推荐)
+- **搜索**: Laravel Scout
+- **图片处理**: intervention/image
+- **实时通信**: Laravel Reverb
+- **权限管理**: spatie/laravel-permission
+- **查询构建**: spatie/laravel-query-builder
+- **活动日志**: spatie/laravel-activitylog
+- **备份**: spatie/laravel-backup
+- **媒体库**: spatie/laravel-medialibrary
+
+### 性能 & 监控
+- Laravel Octane (性能优化)
+- Laravel Horizon (队列监控)
+- Laravel Telescope (调试工具)
+- Laravel Pint (代码格式化)
+
+## 开发规范
+
+### 技术选择
+- **优先使用 Laravel 官方包** - 参考 https://laravel.com/docs
+- **认证方案**: 使用 Sanctum，避免第三方 JWT 包
+- **数据库设计**: 不使用外键关联，通过应用层维护数据关系
+
+### 代码组织
+- **文件拆分**: 单个文件不超过 600 行，超过需拆分
+- **独立文件**: Policy、Request Validation 等单独文件
+- **功能模块**: 按业务功能组织代码结构
+
+### 代码质量
+- **注释保护**: 可以改进注释，但不删除现有注释
+- **修改保护**: 不要恢复已修改的代码逻辑
+- **简洁原则**: 界面简洁，功能简单时避免冗余介绍
+
+### API 设计
+- 遵循 RESTful 设计原则
+- 统一的响应格式
+- 适当的 HTTP 状态码
+- 完善的错误处理
+
+### 安全规范
+- 使用 Laravel 内置安全特性
+- 数据验证和清理
+- 适当的权限控制
+- API 限流保护
