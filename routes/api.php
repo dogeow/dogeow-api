@@ -27,5 +27,5 @@ Route::middleware('auth:sanctum')->group(function () {
     require base_path('routes/api/note.php');
     require base_path('routes/api/todo.php');
     require base_path('routes/api/game.php');
-    require base_path('routes/api/word.php');
+
 });

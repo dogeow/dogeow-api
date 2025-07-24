@@ -28,7 +28,7 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
     protected string $thumbnailSuffix;
 
     /**
-     * Create a new job instance.
+     * 创建新的任务实例
      */
     public function __construct(
         ItemImage $itemImage,
@@ -43,11 +43,11 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
     }
 
     /**
-     * Execute the job.
+     * 执行任务
      */
     public function handle(): void
     {
-        // Refresh model to get latest data
+        // 刷新模型获取最新数据
         $this->itemImage->refresh();
 
         if (!$this->validateOriginalImage()) {
@@ -56,9 +56,9 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
 
         $thumbnailPath = $this->generateThumbnailPath();
         
-        // Skip if thumbnail already exists and is newer than original
+        // 如果缩略图已存在且比原图新，则跳过
         if ($this->thumbnailExistsAndIsNewer($thumbnailPath)) {
-            Log::info("Thumbnail already exists and is up-to-date for ItemImage ID: {$this->itemImage->id}");
+            Log::info("缩略图已存在且是最新的，ItemImage ID: {$this->itemImage->id}");
             return;
         }
 
@@ -66,25 +66,25 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
     }
 
     /**
-     * Validate that the original image exists and is accessible.
+     * 验证原始图片是否存在且可访问
      */
     protected function validateOriginalImage(): bool
     {
         if (!$this->itemImage->path) {
-            Log::warning("ItemImage ID: {$this->itemImage->id} has no path set");
+            Log::warning("ItemImage ID: {$this->itemImage->id} 未设置路径");
             return false;
         }
 
         $disk = Storage::disk('public');
         if (!$disk->exists($this->itemImage->path)) {
-            Log::error("Original image not found for ItemImage ID: {$this->itemImage->id}, Path: {$this->itemImage->path}");
+            Log::error("找不到原始图片，ItemImage ID: {$this->itemImage->id}, 路径: {$this->itemImage->path}");
             return false;
         }
 
-        // Check if file is readable and not corrupted
+        // 检查文件是否可读且未损坏
         $originalPath = $disk->path($this->itemImage->path);
         if (!FileHelper::isValidFile($originalPath)) {
-            Log::error("Original image is not readable or empty for ItemImage ID: {$this->itemImage->id}");
+            Log::error("原始图片不可读或为空，ItemImage ID: {$this->itemImage->id}");
             return false;
         }
 
@@ -92,7 +92,7 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
     }
 
     /**
-     * Generate the thumbnail file path.
+     * 生成缩略图文件路径
      */
     protected function generateThumbnailPath(): string
     {
@@ -104,7 +104,7 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
     }
 
     /**
-     * Check if thumbnail exists and is newer than the original image.
+     * 检查缩略图是否存在且比原图新
      */
     protected function thumbnailExistsAndIsNewer(string $thumbnailPath): bool
     {
@@ -121,7 +121,7 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
     }
 
     /**
-     * Generate the thumbnail image.
+     * 生成缩略图
      */
     protected function generateThumbnail(string $thumbnailPath): void
     {
@@ -130,25 +130,25 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
         $thumbnailFullPath = $disk->path($thumbnailPath);
 
         try {
-            // Ensure directory exists
+            // 确保目录存在
             FileHelper::ensureDirectoryExists(dirname($thumbnailFullPath));
 
             $manager = new ImageManager(new Driver());
             $image = $manager->read($originalFullPath);
             
-            // Get original dimensions for logging
+            // 获取原始尺寸用于日志记录
             $originalWidth = $image->width();
             $originalHeight = $image->height();
             
-            // Only resize if image is larger than thumbnail dimensions
+            // 只有当图片大于缩略图尺寸时才调整大小
             if ($originalWidth > $this->thumbnailWidth || $originalHeight > $this->thumbnailHeight) {
                 $image->cover($this->thumbnailWidth, $this->thumbnailHeight);
             }
             
-            // Save with quality optimization
+            // 保存时进行质量优化
             $image->save($thumbnailFullPath, quality: 85);
 
-            Log::info("Successfully generated thumbnail for ItemImage ID: {$this->itemImage->id}", [
+            Log::info("成功生成缩略图，ItemImage ID: {$this->itemImage->id}", [
                 'original_path' => $this->itemImage->path,
                 'thumbnail_path' => $thumbnailPath,
                 'original_size' => "{$originalWidth}x{$originalHeight}",
@@ -157,7 +157,7 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
             ]);
 
         } catch (\Exception $e) {
-            Log::error("Thumbnail generation failed for ItemImage ID: {$this->itemImage->id}", [
+            Log::error("缩略图生成失败，ItemImage ID: {$this->itemImage->id}", [
                 'error' => $e->getMessage(),
                 'original_path' => $this->itemImage->path,
                 'thumbnail_path' => $thumbnailPath,
@@ -165,23 +165,21 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
                 'trace' => $e->getTraceAsString()
             ]);
             
-            // Clean up partial file if it exists
+            // 清理部分生成的文件
             if (file_exists($thumbnailFullPath)) {
                 unlink($thumbnailFullPath);
             }
             
-            throw $e; // Re-throw to trigger retry mechanism
+            throw $e; // 重新抛出异常以触发重试机制
         }
     }
 
-
-
     /**
-     * Handle job failure.
+     * 处理任务失败
      */
     public function failed(\Throwable $exception): void
     {
-        Log::error("Thumbnail generation job failed permanently for ItemImage ID: {$this->itemImage->id}", [
+        Log::error("缩略图生成任务永久失败，ItemImage ID: {$this->itemImage->id}", [
             'error' => $exception->getMessage(),
             'attempts' => $this->attempts(),
             'path' => $this->itemImage->path
