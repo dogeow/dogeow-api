@@ -22,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_admin',
     ];
 
     /**
@@ -44,6 +45,48 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_admin' => 'boolean',
         ];
+    }
+
+    /**
+     * Check if the user is an admin.
+     */
+    public function isAdmin(): bool
+    {
+        return (bool) $this->is_admin;
+    }
+
+    /**
+     * Check if the user can moderate a chat room.
+     */
+    public function canModerate($room = null): bool
+    {
+        // Admins can moderate any room
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        // Room creators can moderate their own rooms
+        if ($room && $room->created_by === $this->id) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if the user has a specific role.
+     */
+    public function hasRole(string $role): bool
+    {
+        switch ($role) {
+            case 'admin':
+                return $this->isAdmin();
+            case 'moderator':
+                return $this->isAdmin(); // For now, only admins are moderators
+            default:
+                return false;
+        }
     }
 }

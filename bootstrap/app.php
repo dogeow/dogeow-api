@@ -9,12 +9,16 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
+        channels: __DIR__.'/../routes/channels.php',
         health: '/up',
     )
     ->withProviders([
+        Laravel\Sanctum\SanctumServiceProvider::class,
     ])
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        $middleware->alias([
+            'websocket.auth' => \App\Http\Middleware\WebSocketAuthMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
