@@ -44,7 +44,7 @@ class ChatModerationController extends Controller
             DB::beginTransaction();
 
             // Log the moderation action
-            ChatModerationAction::create([
+            $moderationAction = ChatModerationAction::create([
                 'room_id' => $roomId,
                 'moderator_id' => $moderator->id,
                 'target_user_id' => $message->user_id,
@@ -59,6 +59,10 @@ class ChatModerationController extends Controller
 
             // Delete the message
             $message->delete();
+
+            // Update the moderation action to remove the message_id reference
+            // since the message has been deleted
+            $moderationAction->update(['message_id' => null]);
 
             DB::commit();
 

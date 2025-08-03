@@ -34,6 +34,21 @@ class LocationRequest extends FormRequest
             $rules['room_id'] = 'required|exists:thing_rooms,id';
         }
 
+        // 对于更新操作，允许部分字段更新
+        if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
+            $rules = [
+                'name' => 'sometimes|required|string|max:255',
+            ];
+
+            if ($this->is('*/rooms/*')) {
+                $rules['area_id'] = 'sometimes|required|exists:thing_areas,id';
+            }
+
+            if ($this->is('*/spots/*')) {
+                $rules['room_id'] = 'sometimes|required|exists:thing_rooms,id';
+            }
+        }
+
         return $rules;
     }
 

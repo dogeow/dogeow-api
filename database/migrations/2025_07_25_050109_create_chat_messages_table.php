@@ -21,7 +21,9 @@ return new class extends Migration
             
             // Performance indexes
             $table->index(['room_id', 'id', 'created_at'], 'idx_room_id_cursor');
-            $table->fullText('message', 'idx_message_fulltext');
+            if (config('database.default') !== 'sqlite') {
+                $table->fullText('message', 'idx_message_fulltext');
+            }
             $table->index(['user_id', 'created_at'], 'idx_user_messages');
             $table->index(['room_id', 'message_type', 'created_at'], 'idx_room_type_time');
         });

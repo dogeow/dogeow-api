@@ -13,6 +13,7 @@ Route::prefix('nav')->group(function () {
     Route::post('items/{item}/click', [ItemController::class, 'recordClick'])->name('nav.items.click');
 
     Route::get('/categories', [CategoryController::class, 'index']);
+    Route::get('/categories/all', [CategoryController::class, 'all']);
     Route::get('/categories/{category}', [CategoryController::class, 'show']);
 }); 
 
@@ -22,6 +23,5 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/categories', [CategoryController::class, 'store']);
         Route::put('/categories/{category}', [CategoryController::class, 'update']);
         Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
-        Route::get('/admin/categories', [CategoryController::class, 'all']);
     });
 });

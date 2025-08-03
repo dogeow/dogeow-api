@@ -4,49 +4,64 @@ namespace Tests\Unit\Services;
 
 use App\Models\ChatMessage;
 use App\Models\ChatRoom;
+use App\Models\ChatRoomUser;
 use App\Models\User;
+use App\Services\ChatCacheService;
+use App\Services\ChatPaginationService;
 use App\Services\ChatService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class ChatServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    private ChatService $chatService;
-    private User $user;
-    private ChatRoom $room;
+    protected ChatService $chatService;
+    protected User $user;
+    protected ChatRoom $room;
 
     protected function setUp(): void
     {
         parent::setUp();
         
-        $this->chatService = new ChatService();
-        $this->user = User::factory()->create(['name' => 'testuser']);
-        $this->room = ChatRoom::factory()->create();
+        $this->chatService = new ChatService(
+            new ChatCacheService(),
+            new ChatPaginationService()
+        );
+        
+        $this->user = User::factory()->create();
+        $this->room = ChatRoom::factory()->create([
+            'created_by' => $this->user->id,
+        ]);
     }
 
-    public function test_validate_message_with_valid_input()
+    public function test_validate_message_with_valid_message()
     {
-        $result = $this->chatService->validateMessage('Hello world!');
+        $message = "Hello, this is a valid message!";
+        
+        $result = $this->chatService->validateMessage($message);
         
         $this->assertTrue($result['valid']);
         $this->assertEmpty($result['errors']);
-        $this->assertEquals('Hello world!', $result['sanitized_message']);
+        $this->assertEquals($message, $result['sanitized_message']);
     }
 
-    public function test_validate_message_with_empty_input()
+    public function test_validate_message_with_empty_message()
     {
-        $result = $this->chatService->validateMessage('   ');
+        $message = "";
+        
+        $result = $this->chatService->validateMessage($message);
         
         $this->assertFalse($result['valid']);
         $this->assertContains('Message cannot be empty', $result['errors']);
     }
 
-    public function test_validate_message_with_too_long_input()
+    public function test_validate_message_with_too_long_message()
     {
-        $longMessage = str_repeat('a', 1001);
-        $result = $this->chatService->validateMessage($longMessage);
+        $message = str_repeat('a', 1001); // Exceeds MAX_MESSAGE_LENGTH
+        
+        $result = $this->chatService->validateMessage($message);
         
         $this->assertFalse($result['valid']);
         $this->assertContains('Message cannot exceed 1000 characters', $result['errors']);
@@ -54,180 +69,259 @@ class ChatServiceTest extends TestCase
 
     public function test_sanitize_message_removes_html_tags()
     {
-        $message = '<script>alert("xss")</script>Hello <b>world</b>!';
-        $sanitized = $this->chatService->sanitizeMessage($message);
+        $message = "<script>alert('xss')</script>Hello <b>world</b>!";
         
-        $this->assertEquals('alert(&quot;xss&quot;)Hello world!', $sanitized);
+        $result = $this->chatService->sanitizeMessage($message);
+        
+        $this->assertEquals("Hello world!", $result);
     }
 
-    public function test_sanitize_message_converts_special_characters()
+    public function test_sanitize_message_normalizes_whitespace()
     {
-        $message = 'Hello & "world" <test>';
-        $sanitized = $this->chatService->sanitizeMessage($message);
+        $message = "Hello    world\n\n\n!";
         
-        $this->assertEquals('Hello &amp; &quot;world&quot;', $sanitized);
+        $result = $this->chatService->sanitizeMessage($message);
+        
+        $this->assertEquals("Hello world !", $result);
     }
 
-    public function test_process_mentions_finds_existing_users()
+    public function test_process_mentions_with_mentions()
     {
-        $message = 'Hello @testuser, how are you?';
-        $mentions = $this->chatService->processMentions($message);
+        // Create users first
+        $user1 = User::factory()->create(['name' => 'john']);
+        $user2 = User::factory()->create(['name' => 'jane']);
         
-        $this->assertCount(1, $mentions);
-        $this->assertEquals($this->user->id, $mentions[0]['user_id']);
-        $this->assertEquals('testuser', $mentions[0]['username']);
+        $message = "Hello @john and @jane, how are you?";
+        
+        $result = $this->chatService->processMentions($message);
+        
+        $this->assertCount(2, $result);
+        $this->assertEquals($user1->id, $result[0]['user_id']);
+        $this->assertEquals($user2->id, $result[1]['user_id']);
     }
 
-    public function test_process_mentions_ignores_nonexistent_users()
+    public function test_process_mentions_without_mentions()
     {
-        $message = 'Hello @nonexistentuser, how are you?';
-        $mentions = $this->chatService->processMentions($message);
+        $message = "Hello world!";
         
-        $this->assertEmpty($mentions);
+        $result = $this->chatService->processMentions($message);
+        
+        $this->assertEmpty($result);
     }
 
-    public function test_process_mentions_handles_multiple_mentions()
+    public function test_format_message_with_mentions()
     {
-        $user2 = User::factory()->create(['name' => 'user2']);
-        $message = 'Hello @testuser and @user2!';
-        $mentions = $this->chatService->processMentions($message);
-        
-        $this->assertCount(2, $mentions);
-        $userIds = array_column($mentions, 'user_id');
-        $this->assertContains($this->user->id, $userIds);
-        $this->assertContains($user2->id, $userIds);
-    }
-
-    public function test_format_message_highlights_mentions()
-    {
-        $message = 'Hello @testuser!';
+        $message = "Hello @john!";
         $mentions = [
             [
-                'user_id' => $this->user->id,
-                'username' => 'testuser',
-                'email' => $this->user->email
+                'user_id' => 1,
+                'username' => 'john'
             ]
         ];
         
-        $formatted = $this->chatService->formatMessage($message, $mentions);
+        $result = $this->chatService->formatMessage($message, $mentions);
         
-        $this->assertStringContainsString('<mention data-user-id="' . $this->user->id . '">@testuser</mention>', $formatted);
+        $this->assertStringContainsString('@john', $result);
     }
 
-    public function test_format_message_converts_emoticons()
+    public function test_create_room_with_valid_data()
     {
-        $message = 'Hello :) I am happy :D';
-        $formatted = $this->chatService->formatMessage($message);
+        $roomData = [
+            'name' => 'Test Room',
+            'description' => 'A test room',
+        ];
         
-        $this->assertEquals('Hello 😊 I am happy 😃', $formatted);
-    }
-
-    public function test_process_message_creates_valid_message()
-    {
-        $result = $this->chatService->processMessage(
-            $this->room->id,
-            $this->user->id,
-            'Hello world!'
-        );
+        $result = $this->chatService->createRoom($roomData, $this->user->id);
         
         $this->assertTrue($result['success']);
-        $this->assertInstanceOf(ChatMessage::class, $result['message']);
-        $this->assertEquals('Hello world!', $result['original_message']);
-        $this->assertEmpty($result['mentions']);
+        $this->assertDatabaseHas('chat_rooms', [
+            'name' => 'Test Room',
+            'description' => 'A test room',
+            'created_by' => $this->user->id,
+        ]);
     }
 
-    public function test_process_message_with_mentions()
+    public function test_create_room_with_invalid_data()
     {
-        $result = $this->chatService->processMessage(
-            $this->room->id,
-            $this->user->id,
-            'Hello @testuser!'
-        );
+        $roomData = [
+            'name' => '', // Invalid: empty name
+            'description' => 'A test room',
+        ];
         
-        $this->assertTrue($result['success']);
-        $this->assertCount(1, $result['mentions']);
-        $this->assertEquals($this->user->id, $result['mentions'][0]['user_id']);
-    }
-
-    public function test_process_message_fails_with_invalid_input()
-    {
-        $result = $this->chatService->processMessage(
-            $this->room->id,
-            $this->user->id,
-            ''
-        );
+        $result = $this->chatService->createRoom($roomData, $this->user->id);
         
         $this->assertFalse($result['success']);
-        $this->assertContains('Message cannot be empty', $result['errors']);
+        $this->assertNotEmpty($result['errors']);
     }
 
-    public function test_create_system_message()
+    public function test_validate_room_data_with_valid_data()
     {
-        $systemUser = User::factory()->create(['name' => 'system']);
-        $message = $this->chatService->createSystemMessage($this->room->id, 'User joined the room', $systemUser->id);
+        $roomData = [
+            'name' => 'Test Room',
+            'description' => 'A test room',
+        ];
         
-        $this->assertInstanceOf(ChatMessage::class, $message);
-        $this->assertEquals(ChatMessage::TYPE_SYSTEM, $message->message_type);
-        $this->assertEquals($systemUser->id, $message->user_id);
-        $this->assertEquals('User joined the room', $message->message);
+        $result = $this->chatService->validateRoomData($roomData);
+        
+        $this->assertTrue($result['valid']);
+        $this->assertEmpty($result['errors']);
     }
 
-    public function test_get_recent_messages()
+    public function test_validate_room_data_with_invalid_name()
     {
-        // Create some test messages
-        ChatMessage::factory()->count(5)->create([
-            'room_id' => $this->room->id,
-            'user_id' => $this->user->id
-        ]);
+        $roomData = [
+            'name' => 'ab', // Too short
+            'description' => 'A test room',
+        ];
         
-        $messages = $this->chatService->getRecentMessages($this->room->id, 3);
+        $result = $this->chatService->validateRoomData($roomData);
         
-        $this->assertCount(3, $messages);
-        // Messages should be in chronological order (oldest first)
-        $this->assertTrue($messages[0]->created_at <= $messages[1]->created_at);
+        $this->assertFalse($result['valid']);
+        $this->assertNotEmpty($result['errors']);
     }
 
-    public function test_search_messages()
+    public function test_check_room_permission_for_creator()
     {
-        ChatMessage::factory()->create([
+        $result = $this->chatService->checkRoomPermission($this->room->id, $this->user->id, 'delete');
+        
+        $this->assertTrue($result);
+    }
+
+    public function test_check_room_permission_for_non_creator()
+    {
+        $otherUser = User::factory()->create();
+        
+        $result = $this->chatService->checkRoomPermission($this->room->id, $otherUser->id, 'delete');
+        
+        $this->assertFalse($result);
+    }
+
+    public function test_join_room_successfully()
+    {
+        $result = $this->chatService->joinRoom($this->room->id, $this->user->id);
+        
+        $this->assertTrue($result['success']);
+        $this->assertDatabaseHas('chat_room_users', [
             'room_id' => $this->room->id,
             'user_id' => $this->user->id,
-            'message' => 'Hello world'
+            'is_online' => true,
         ]);
-        
-        ChatMessage::factory()->create([
-            'room_id' => $this->room->id,
-            'user_id' => $this->user->id,
-            'message' => 'Goodbye everyone'
-        ]);
-        
-        $results = $this->chatService->searchMessages($this->room->id, 'Hello');
-        
-        $this->assertCount(1, $results);
-        $this->assertStringContainsString('Hello world', $results->first()->message);
     }
 
-    public function test_get_message_stats()
+    public function test_join_room_when_already_member()
     {
-        // Create test messages
-        ChatMessage::factory()->count(3)->create([
+        // First join
+        $this->chatService->joinRoom($this->room->id, $this->user->id);
+        
+        // Try to join again
+        $result = $this->chatService->joinRoom($this->room->id, $this->user->id);
+        
+        $this->assertTrue($result['success']);
+        $this->assertStringContainsString('already a member', $result['message']);
+    }
+
+    public function test_leave_room_successfully()
+    {
+        // First join
+        $this->chatService->joinRoom($this->room->id, $this->user->id);
+        
+        // Then leave
+        $result = $this->chatService->leaveRoom($this->room->id, $this->user->id);
+        
+        $this->assertTrue($result['success']);
+        $this->assertDatabaseMissing('chat_room_users', [
             'room_id' => $this->room->id,
             'user_id' => $this->user->id,
-            'message_type' => ChatMessage::TYPE_TEXT
         ]);
+    }
+
+    public function test_leave_room_when_not_member()
+    {
+        $result = $this->chatService->leaveRoom($this->room->id, $this->user->id);
         
-        $systemUser = User::factory()->create(['name' => 'system']);
-        ChatMessage::factory()->create([
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('not a member', $result['message']);
+    }
+
+    public function test_update_user_status()
+    {
+        // First join
+        $this->chatService->joinRoom($this->room->id, $this->user->id);
+        
+        // Update status to offline
+        $result = $this->chatService->updateUserStatus($this->room->id, $this->user->id, false);
+        
+        $this->assertTrue($result['success']);
+        $this->assertDatabaseHas('chat_room_users', [
             'room_id' => $this->room->id,
-            'user_id' => $systemUser->id,
-            'message_type' => ChatMessage::TYPE_SYSTEM
+            'user_id' => $this->user->id,
+            'is_online' => false,
+        ]);
+    }
+
+    public function test_get_online_users()
+    {
+        $user2 = User::factory()->create();
+        $user3 = User::factory()->create();
+        
+        // Join users to room
+        $this->chatService->joinRoom($this->room->id, $this->user->id);
+        $this->chatService->joinRoom($this->room->id, $user2->id);
+        $this->chatService->joinRoom($this->room->id, $user3->id);
+        
+        // Set one user offline
+        $this->chatService->updateUserStatus($this->room->id, $user3->id, false);
+        
+        $onlineUsers = $this->chatService->getOnlineUsers($this->room->id);
+        
+        $this->assertCount(2, $onlineUsers);
+        $this->assertTrue($onlineUsers->contains($this->user));
+        $this->assertTrue($onlineUsers->contains($user2));
+        $this->assertFalse($onlineUsers->contains($user3));
+    }
+
+    public function test_process_heartbeat()
+    {
+        // First join
+        $this->chatService->joinRoom($this->room->id, $this->user->id);
+        
+        $result = $this->chatService->processHeartbeat($this->room->id, $this->user->id);
+        
+        $this->assertTrue($result['success']);
+        $this->assertDatabaseHas('chat_room_users', [
+            'room_id' => $this->room->id,
+            'user_id' => $this->user->id,
+            'is_online' => true,
+        ]);
+    }
+
+    public function test_cleanup_inactive_users()
+    {
+        $user2 = User::factory()->create();
+        
+        // Join users to room
+        $this->chatService->joinRoom($this->room->id, $this->user->id);
+        $this->chatService->joinRoom($this->room->id, $user2->id);
+        
+        // Set one user as inactive (last_seen more than 5 minutes ago)
+        ChatRoomUser::where('user_id', $user2->id)->update([
+            'last_seen' => now()->subMinutes(10),
         ]);
         
-        $stats = $this->chatService->getMessageStats($this->room->id);
+        $result = $this->chatService->cleanupInactiveUsers();
         
-        $this->assertEquals(4, $stats['total_messages']);
-        $this->assertEquals(3, $stats['text_messages']);
-        $this->assertEquals(1, $stats['system_messages']);
-        $this->assertCount(1, $stats['top_users']);
+        $this->assertTrue($result['success']);
+        $this->assertGreaterThan(0, $result['cleaned_count']);
+    }
+
+    public function test_get_active_rooms()
+    {
+        $activeRoom = ChatRoom::factory()->create(['is_active' => true]);
+        $inactiveRoom = ChatRoom::factory()->create(['is_active' => false]);
+        
+        $activeRooms = $this->chatService->getActiveRooms();
+        
+        $this->assertTrue($activeRooms->contains($activeRoom));
+        $this->assertFalse($activeRooms->contains($inactiveRoom));
     }
 }

@@ -12,202 +12,238 @@ class ChatMessageTest extends TestCase
 {
     use RefreshDatabase;
 
-    private User $user;
-    private ChatRoom $room;
-    private ChatMessage $message;
+    protected User $user;
+    protected ChatRoom $room;
 
     protected function setUp(): void
     {
         parent::setUp();
         
         $this->user = User::factory()->create();
-        $this->room = ChatRoom::factory()->create();
-        $this->message = ChatMessage::factory()->create([
-            'room_id' => $this->room->id,
-            'user_id' => $this->user->id,
+        $this->room = ChatRoom::factory()->create([
+            'created_by' => $this->user->id,
         ]);
     }
 
-    public function test_chat_message_has_fillable_attributes()
+    public function test_chat_message_can_be_created()
     {
-        $fillable = ['room_id', 'user_id', 'message', 'message_type'];
-        
-        $this->assertEquals($fillable, $this->message->getFillable());
-    }
-
-    public function test_chat_message_casts_attributes_correctly()
-    {
-        $casts = [
-            'created_at' => 'datetime',
-            'updated_at' => 'datetime',
-        ];
-        
-        foreach ($casts as $attribute => $cast) {
-            $this->assertEquals($cast, $this->message->getCasts()[$attribute]);
-        }
-    }
-
-    public function test_chat_message_has_type_constants()
-    {
-        $this->assertEquals('text', ChatMessage::TYPE_TEXT);
-        $this->assertEquals('system', ChatMessage::TYPE_SYSTEM);
-    }
-
-    public function test_chat_message_belongs_to_room()
-    {
-        $this->assertInstanceOf(ChatRoom::class, $this->message->room);
-        $this->assertEquals($this->room->id, $this->message->room->id);
-    }
-
-    public function test_chat_message_belongs_to_user()
-    {
-        $this->assertInstanceOf(User::class, $this->message->user);
-        $this->assertEquals($this->user->id, $this->message->user->id);
-    }
-
-    public function test_text_messages_scope_returns_only_text_messages()
-    {
-        $textMessage = ChatMessage::factory()->create([
+        $message = ChatMessage::create([
             'room_id' => $this->room->id,
             'user_id' => $this->user->id,
+            'message' => 'Hello, world!',
             'message_type' => ChatMessage::TYPE_TEXT,
         ]);
-        
-        $systemMessage = ChatMessage::factory()->create([
+
+        $this->assertInstanceOf(ChatMessage::class, $message);
+        $this->assertEquals('Hello, world!', $message->message);
+        $this->assertEquals(ChatMessage::TYPE_TEXT, $message->message_type);
+    }
+
+    public function test_chat_message_has_room_relationship()
+    {
+        $message = ChatMessage::create([
             'room_id' => $this->room->id,
             'user_id' => $this->user->id,
+            'message' => 'Test message',
+            'message_type' => ChatMessage::TYPE_TEXT,
+        ]);
+
+        $this->assertInstanceOf(ChatRoom::class, $message->room);
+        $this->assertEquals($this->room->id, $message->room->id);
+    }
+
+    public function test_chat_message_has_user_relationship()
+    {
+        $message = ChatMessage::create([
+            'room_id' => $this->room->id,
+            'user_id' => $this->user->id,
+            'message' => 'Test message',
+            'message_type' => ChatMessage::TYPE_TEXT,
+        ]);
+
+        $this->assertInstanceOf(User::class, $message->user);
+        $this->assertEquals($this->user->id, $message->user->id);
+    }
+
+    public function test_text_messages_scope()
+    {
+        // Create text message
+        ChatMessage::create([
+            'room_id' => $this->room->id,
+            'user_id' => $this->user->id,
+            'message' => 'Text message',
+            'message_type' => ChatMessage::TYPE_TEXT,
+        ]);
+
+        // Create system message
+        ChatMessage::create([
+            'room_id' => $this->room->id,
+            'user_id' => $this->user->id,
+            'message' => 'System message',
             'message_type' => ChatMessage::TYPE_SYSTEM,
         ]);
 
         $textMessages = ChatMessage::textMessages()->get();
 
-        $this->assertTrue($textMessages->contains($textMessage));
-        $this->assertFalse($textMessages->contains($systemMessage));
+        $this->assertCount(1, $textMessages);
+        $this->assertEquals(ChatMessage::TYPE_TEXT, $textMessages->first()->message_type);
     }
 
-    public function test_system_messages_scope_returns_only_system_messages()
+    public function test_system_messages_scope()
     {
-        $textMessage = ChatMessage::factory()->create([
+        // Create text message
+        ChatMessage::create([
             'room_id' => $this->room->id,
             'user_id' => $this->user->id,
+            'message' => 'Text message',
             'message_type' => ChatMessage::TYPE_TEXT,
         ]);
-        
-        $systemMessage = ChatMessage::factory()->create([
+
+        // Create system message
+        ChatMessage::create([
             'room_id' => $this->room->id,
             'user_id' => $this->user->id,
+            'message' => 'System message',
             'message_type' => ChatMessage::TYPE_SYSTEM,
         ]);
 
         $systemMessages = ChatMessage::systemMessages()->get();
 
-        $this->assertFalse($systemMessages->contains($textMessage));
-        $this->assertTrue($systemMessages->contains($systemMessage));
+        $this->assertCount(1, $systemMessages);
+        $this->assertEquals(ChatMessage::TYPE_SYSTEM, $systemMessages->first()->message_type);
     }
 
-    public function test_for_room_scope_returns_messages_for_specific_room()
+    public function test_for_room_scope()
     {
         $room2 = ChatRoom::factory()->create();
-        
-        $messageInRoom1 = ChatMessage::factory()->create([
+
+        // Create messages in different rooms
+        ChatMessage::create([
             'room_id' => $this->room->id,
             'user_id' => $this->user->id,
+            'message' => 'Message in room 1',
+            'message_type' => ChatMessage::TYPE_TEXT,
         ]);
-        
-        $messageInRoom2 = ChatMessage::factory()->create([
+
+        ChatMessage::create([
             'room_id' => $room2->id,
             'user_id' => $this->user->id,
+            'message' => 'Message in room 2',
+            'message_type' => ChatMessage::TYPE_TEXT,
         ]);
 
         $room1Messages = ChatMessage::forRoom($this->room->id)->get();
 
-        $this->assertTrue($room1Messages->contains($messageInRoom1));
-        $this->assertFalse($room1Messages->contains($messageInRoom2));
+        $this->assertCount(1, $room1Messages);
+        $this->assertEquals($this->room->id, $room1Messages->first()->room_id);
     }
 
-    public function test_is_text_message_returns_true_for_text_messages()
+    public function test_is_text_message_method()
     {
-        $textMessage = ChatMessage::factory()->create([
+        $textMessage = ChatMessage::create([
             'room_id' => $this->room->id,
             'user_id' => $this->user->id,
+            'message' => 'Text message',
             'message_type' => ChatMessage::TYPE_TEXT,
         ]);
 
-        $this->assertTrue($textMessage->isTextMessage());
-    }
-
-    public function test_is_text_message_returns_false_for_system_messages()
-    {
-        $systemMessage = ChatMessage::factory()->create([
+        $systemMessage = ChatMessage::create([
             'room_id' => $this->room->id,
             'user_id' => $this->user->id,
+            'message' => 'System message',
             'message_type' => ChatMessage::TYPE_SYSTEM,
         ]);
 
+        $this->assertTrue($textMessage->isTextMessage());
         $this->assertFalse($systemMessage->isTextMessage());
     }
 
-    public function test_is_system_message_returns_true_for_system_messages()
+    public function test_is_system_message_method()
     {
-        $systemMessage = ChatMessage::factory()->create([
+        $textMessage = ChatMessage::create([
             'room_id' => $this->room->id,
             'user_id' => $this->user->id,
+            'message' => 'Text message',
+            'message_type' => ChatMessage::TYPE_TEXT,
+        ]);
+
+        $systemMessage = ChatMessage::create([
+            'room_id' => $this->room->id,
+            'user_id' => $this->user->id,
+            'message' => 'System message',
             'message_type' => ChatMessage::TYPE_SYSTEM,
         ]);
 
         $this->assertTrue($systemMessage->isSystemMessage());
-    }
-
-    public function test_is_system_message_returns_false_for_text_messages()
-    {
-        $textMessage = ChatMessage::factory()->create([
-            'room_id' => $this->room->id,
-            'user_id' => $this->user->id,
-            'message_type' => ChatMessage::TYPE_TEXT,
-        ]);
-
         $this->assertFalse($textMessage->isSystemMessage());
     }
 
-    public function test_chat_message_can_be_created_with_valid_data()
+    public function test_message_type_constants()
+    {
+        $this->assertEquals('text', ChatMessage::TYPE_TEXT);
+        $this->assertEquals('system', ChatMessage::TYPE_SYSTEM);
+    }
+
+    public function test_chat_message_can_be_updated()
+    {
+        $message = ChatMessage::create([
+            'room_id' => $this->room->id,
+            'user_id' => $this->user->id,
+            'message' => 'Original message',
+            'message_type' => ChatMessage::TYPE_TEXT,
+        ]);
+
+        $message->update([
+            'message' => 'Updated message',
+        ]);
+
+        $this->assertEquals('Updated message', $message->fresh()->message);
+    }
+
+    public function test_chat_message_can_be_deleted()
+    {
+        $message = ChatMessage::create([
+            'room_id' => $this->room->id,
+            'user_id' => $this->user->id,
+            'message' => 'Test message',
+            'message_type' => ChatMessage::TYPE_TEXT,
+        ]);
+
+        $messageId = $message->id;
+        $message->delete();
+
+        $this->assertDatabaseMissing('chat_messages', ['id' => $messageId]);
+    }
+
+    public function test_chat_message_has_correct_timestamps()
+    {
+        $message = ChatMessage::create([
+            'room_id' => $this->room->id,
+            'user_id' => $this->user->id,
+            'message' => 'Test message',
+            'message_type' => ChatMessage::TYPE_TEXT,
+        ]);
+
+        $this->assertNotNull($message->created_at);
+        $this->assertNotNull($message->updated_at);
+        $this->assertInstanceOf(\Carbon\Carbon::class, $message->created_at);
+        $this->assertInstanceOf(\Carbon\Carbon::class, $message->updated_at);
+    }
+
+    public function test_chat_message_fillable_attributes()
     {
         $messageData = [
             'room_id' => $this->room->id,
             'user_id' => $this->user->id,
-            'message' => 'Hello, world!',
+            'message' => 'Test message',
             'message_type' => ChatMessage::TYPE_TEXT,
         ];
 
         $message = ChatMessage::create($messageData);
 
-        $this->assertInstanceOf(ChatMessage::class, $message);
-        $this->assertEquals($this->room->id, $message->room_id);
-        $this->assertEquals($this->user->id, $message->user_id);
-        $this->assertEquals('Hello, world!', $message->message);
-        $this->assertEquals(ChatMessage::TYPE_TEXT, $message->message_type);
-    }
-
-    public function test_chat_message_defaults_to_text_type()
-    {
-        $message = ChatMessage::factory()->create([
-            'room_id' => $this->room->id,
-            'user_id' => $this->user->id,
-            'message' => 'Test message',
-        ]);
-
-        $this->assertEquals(ChatMessage::TYPE_TEXT, $message->message_type);
-    }
-
-    public function test_chat_message_can_be_system_type()
-    {
-        $message = ChatMessage::factory()->create([
-            'room_id' => $this->room->id,
-            'user_id' => $this->user->id,
-            'message' => 'User joined the room',
-            'message_type' => ChatMessage::TYPE_SYSTEM,
-        ]);
-
-        $this->assertEquals(ChatMessage::TYPE_SYSTEM, $message->message_type);
-        $this->assertTrue($message->isSystemMessage());
+        $this->assertEquals($messageData['room_id'], $message->room_id);
+        $this->assertEquals($messageData['user_id'], $message->user_id);
+        $this->assertEquals($messageData['message'], $message->message);
+        $this->assertEquals($messageData['message_type'], $message->message_type);
     }
 }

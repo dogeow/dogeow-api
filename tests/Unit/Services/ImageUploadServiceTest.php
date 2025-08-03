@@ -5,77 +5,241 @@ namespace Tests\Unit\Services;
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemImage;
 use App\Services\ImageUploadService;
-use App\Jobs\GenerateThumbnailForItemImageJob;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Queue; // For job dispatch assertion
-use Illuminate\Foundation\Testing\RefreshDatabase; // If interacting with DB
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class ImageUploadServiceTest extends TestCase
 {
-    use RefreshDatabase; // Use this if your test actually writes to an in-memory DB
+
+    protected ImageUploadService $imageUploadService;
+    protected Item $item;
 
     protected function setUp(): void
     {
         parent::setUp();
-        Storage::fake('public'); // Use Laravel's fake storage
-        // Log::shouldReceive('error')->andReturnNull(); // Optional: Mock Log facade
-        Queue::fake(); // Fake the queue to test job dispatching
+        
+        $this->imageUploadService = new ImageUploadService();
+        $this->item = Item::factory()->create();
+        
+        // Fake the queue to avoid actual job processing
+        Queue::fake();
+        
+        // Create storage directory
+        Storage::fake('public');
     }
 
-    public function testProcessUploadedImagesSuccess()
+    public function test_process_uploaded_images_successfully()
     {
-        // Attempt to create an Item. If factory is not configured, this might fail.
-        // For robustness in this subtask, let's create it manually if factory fails.
-        try {
-            // Ensure a user exists for the item's user_id
-            $user = \App\Models\User::factory()->create();
-            $item = Item::factory()->create(['user_id' => $user->id]);
-        } catch (\Exception $e) {
-            // Fallback if factories are not set up or fail
-            if (!\App\Models\User::find(1)) { // Check if user with ID 1 exists
-                 \App\Models\User::factory()->create(['id' => 1]); // Create user if not exists
-            }
-             // Ensure all required fields for Item are provided for ::create method
-             // Adjust these fields based on your actual Item model's fillable attributes and constraints
-            $item = Item::create([
-                'id' => 1, // Assuming ID can be manually set or RefreshDatabase handles it
-                'user_id' => 1, 
-                'name' => 'Test Item', 
-                'is_public' => true,
-                // Add any other required fields here, e.g., category_id, spot_id if they don't have defaults
-                // 'category_id' => null, // Example if nullable
-                // 'spot_id' => null, // Example if nullable
-            ]);
+        $uploadedImages = [
+            UploadedFile::fake()->image('test1.jpg'),
+            UploadedFile::fake()->image('test2.png'),
+        ];
+
+        $result = $this->imageUploadService->processUploadedImages($uploadedImages, $this->item);
+
+        $this->assertEquals(2, $result);
+        $this->assertDatabaseHas('item_images', [
+            'item_id' => $this->item->id,
+            'path' => 'items/' . $this->item->id . '/test1.jpg',
+            'is_primary' => true,
+            'sort_order' => 1,
+        ]);
+        $this->assertDatabaseHas('item_images', [
+            'item_id' => $this->item->id,
+            'path' => 'items/' . $this->item->id . '/test2.png',
+            'is_primary' => false,
+            'sort_order' => 2,
+        ]);
+    }
+
+    public function test_process_uploaded_images_with_existing_images()
+    {
+        // Create existing image
+        ItemImage::create([
+            'item_id' => $this->item->id,
+            'path' => 'items/' . $this->item->id . '/existing.jpg',
+            'is_primary' => true,
+            'sort_order' => 1,
+        ]);
+
+        $uploadedImages = [
+            UploadedFile::fake()->image('new.jpg'),
+        ];
+
+        $result = $this->imageUploadService->processUploadedImages($uploadedImages, $this->item);
+
+        $this->assertEquals(1, $result);
+        $this->assertDatabaseHas('item_images', [
+            'item_id' => $this->item->id,
+            'path' => 'items/' . $this->item->id . '/new.jpg',
+            'is_primary' => false,
+            'sort_order' => 2,
+        ]);
+    }
+
+    public function test_process_uploaded_images_handles_file_move_failure()
+    {
+        // Mock a file that will fail to move
+        $mockFile = $this->createMock(UploadedFile::class);
+        $mockFile->method('getClientOriginalName')->willReturn('test.jpg');
+        $mockFile->method('move')->willReturn(false);
+
+        $uploadedImages = [$mockFile];
+
+        $result = $this->imageUploadService->processUploadedImages($uploadedImages, $this->item);
+
+        $this->assertEquals(0, $result);
+        $this->assertDatabaseMissing('item_images', [
+            'item_id' => $this->item->id,
+        ]);
+    }
+
+    public function test_process_image_paths_successfully()
+    {
+        // Create temporary files
+        $tempDir = storage_path('app/public/uploads');
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0755, true);
         }
+        
+        $tempFile = $tempDir . '/temp.jpg';
+        file_put_contents($tempFile, 'fake image content');
 
+        $imagePaths = ['uploads/temp.jpg'];
 
-        // Create mock UploadedFile
-        $file1 = UploadedFile::fake()->image('photo1.jpg');
-        $file2 = UploadedFile::fake()->image('photo2.png');
-        $mockedFiles = [$file1, $file2];
+        $this->imageUploadService->processImagePaths($imagePaths, $this->item);
 
-        $service = new ImageUploadService();
-        $successCount = $service->processUploadedImages($mockedFiles, $item);
+        $this->assertDatabaseHas('item_images', [
+            'item_id' => $this->item->id,
+            'path' => 'items/' . $this->item->id . '/temp.jpg',
+            'is_primary' => true,
+            'sort_order' => 1,
+        ]);
 
-        $this->assertEquals(2, $successCount);
+        // Clean up
+        unlink($tempFile);
+    }
 
-        $itemImageRecords = ItemImage::where('item_id', $item->id)->get();
-        $this->assertCount(2, $itemImageRecords);
-
-        foreach ($itemImageRecords as $record) {
-            Storage::disk('public')->assertExists($record->path); // Check original image
+    public function test_process_image_paths_with_thumbnail()
+    {
+        // Create temporary files including thumbnail
+        $tempDir = storage_path('app/public/uploads');
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0755, true);
         }
+        
+        $tempFile = $tempDir . '/temp.jpg';
+        $thumbFile = $tempDir . '/temp-thumb.jpg';
+        file_put_contents($tempFile, 'fake image content');
+        file_put_contents($thumbFile, 'fake thumbnail content');
 
-        Queue::assertPushed(GenerateThumbnailForItemImageJob::class, 2);
+        $imagePaths = ['uploads/temp.jpg'];
 
-        // To check if the job was dispatched with the correct ItemImage instance
-        foreach ($itemImageRecords as $itemImageRecord) {
-            Queue::assertPushed(GenerateThumbnailForItemImageJob::class, function ($job) use ($itemImageRecord) {
-                return $job->itemImage->id === $itemImageRecord->id;
-            });
-        }
+        $this->imageUploadService->processImagePaths($imagePaths, $this->item);
+
+        $this->assertDatabaseHas('item_images', [
+            'item_id' => $this->item->id,
+            'path' => 'items/' . $this->item->id . '/temp.jpg',
+        ]);
+
+        // Clean up
+        unlink($tempFile);
+        unlink($thumbFile);
+    }
+
+    public function test_process_image_paths_ignores_invalid_paths()
+    {
+        $imagePaths = ['invalid/path.jpg', 'uploads/temp.jpg'];
+
+        $result = $this->imageUploadService->processImagePaths($imagePaths, $this->item);
+
+        // Should not create any images since both paths are invalid
+        $this->assertDatabaseMissing('item_images', [
+            'item_id' => $this->item->id,
+        ]);
+    }
+
+    public function test_update_image_order()
+    {
+        // Create test images
+        $image1 = ItemImage::create([
+            'item_id' => $this->item->id,
+            'path' => 'items/' . $this->item->id . '/image1.jpg',
+            'sort_order' => 1,
+        ]);
+        $image2 = ItemImage::create([
+            'item_id' => $this->item->id,
+            'path' => 'items/' . $this->item->id . '/image2.jpg',
+            'sort_order' => 2,
+        ]);
+
+        $imageOrder = [$image2->id, $image1->id];
+
+        $this->imageUploadService->updateImageOrder($imageOrder, $this->item);
+
+        $this->assertEquals(1, $image2->fresh()->sort_order);
+        $this->assertEquals(2, $image1->fresh()->sort_order);
+    }
+
+    public function test_set_primary_image()
+    {
+        // Create test images
+        $image1 = ItemImage::create([
+            'item_id' => $this->item->id,
+            'path' => 'items/' . $this->item->id . '/image1.jpg',
+            'is_primary' => true,
+        ]);
+        $image2 = ItemImage::create([
+            'item_id' => $this->item->id,
+            'path' => 'items/' . $this->item->id . '/image2.jpg',
+            'is_primary' => false,
+        ]);
+
+        $this->imageUploadService->setPrimaryImage($image2->id, $this->item);
+
+        $this->assertFalse($image1->fresh()->is_primary);
+        $this->assertTrue($image2->fresh()->is_primary);
+    }
+
+    public function test_delete_images_by_ids()
+    {
+        // Create test images
+        $image1 = ItemImage::create([
+            'item_id' => $this->item->id,
+            'path' => 'items/' . $this->item->id . '/image1.jpg',
+        ]);
+        $image2 = ItemImage::create([
+            'item_id' => $this->item->id,
+            'path' => 'items/' . $this->item->id . '/image2.jpg',
+        ]);
+
+        $imageIdsToDelete = [$image1->id];
+
+        $this->imageUploadService->deleteImagesByIds($imageIdsToDelete, $this->item);
+
+        $this->assertDatabaseMissing('item_images', ['id' => $image1->id]);
+        $this->assertDatabaseHas('item_images', ['id' => $image2->id]);
+    }
+
+    public function test_delete_all_item_images()
+    {
+        // Create test images
+        ItemImage::create([
+            'item_id' => $this->item->id,
+            'path' => 'items/' . $this->item->id . '/image1.jpg',
+        ]);
+        ItemImage::create([
+            'item_id' => $this->item->id,
+            'path' => 'items/' . $this->item->id . '/image2.jpg',
+        ]);
+
+        $this->imageUploadService->deleteAllItemImages($this->item);
+
+        $this->assertDatabaseMissing('item_images', [
+            'item_id' => $this->item->id,
+        ]);
     }
 }

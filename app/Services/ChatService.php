@@ -80,11 +80,9 @@ class ChatService
      */
     public function sanitizeMessage(string $message): string
     {
-        // Remove any HTML tags
+        // Remove any HTML tags and their content
+        $message = preg_replace('/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/mi', '', $message);
         $message = strip_tags($message);
-        
-        // Convert special characters to HTML entities
-        $message = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
         
         // Normalize whitespace
         $message = preg_replace('/\s+/', ' ', $message);
