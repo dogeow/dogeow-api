@@ -86,7 +86,7 @@ class NoteCategoryControllerTest extends TestCase
     public function test_store_validation_fails_with_long_name()
     {
         $data = [
-            'name' => str_repeat('a', 256),
+            'name' => str_repeat('a', 51), // 超过50字符限制
         ];
 
         $response = $this->postJson('/api/notes/categories', $data);
@@ -99,7 +99,7 @@ class NoteCategoryControllerTest extends TestCase
     {
         $data = [
             'name' => 'Test Category',
-            'description' => str_repeat('a', 1001),
+            'description' => str_repeat('a', 201), // 超过200字符限制
         ];
 
         $response = $this->postJson('/api/notes/categories', $data);
@@ -211,7 +211,7 @@ class NoteCategoryControllerTest extends TestCase
         $category = NoteCategory::factory()->create(['user_id' => $this->user->id]);
 
         $data = [
-            'name' => str_repeat('a', 256),
+            'name' => str_repeat('a', 51), // 超过50字符限制
         ];
 
         $response = $this->putJson("/api/notes/categories/{$category->id}", $data);
@@ -226,7 +226,7 @@ class NoteCategoryControllerTest extends TestCase
 
         $data = [
             'name' => 'Test Category',
-            'description' => str_repeat('a', 1001),
+            'description' => str_repeat('a', 201), // 超过200字符限制
         ];
 
         $response = $this->putJson("/api/notes/categories/{$category->id}", $data);
@@ -296,6 +296,114 @@ class NoteCategoryControllerTest extends TestCase
                 'created_at',
                 'updated_at',
                 'notes',
+            ]);
+    }
+
+    public function test_destroy_returns_404_for_nonexistent_category()
+    {
+        $response = $this->deleteJson('/api/notes/categories/999');
+
+        $response->assertStatus(404);
+    }
+
+    public function test_update_returns_404_for_nonexistent_category()
+    {
+        $data = [
+            'name' => 'Updated Category',
+        ];
+
+        $response = $this->putJson('/api/notes/categories/999', $data);
+
+        $response->assertStatus(404);
+    }
+
+    public function test_store_validation_fails_with_empty_name()
+    {
+        $data = [
+            'name' => '',
+        ];
+
+        $response = $this->postJson('/api/notes/categories', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['name']);
+    }
+
+    public function test_update_validation_fails_with_empty_name()
+    {
+        $category = NoteCategory::factory()->create(['user_id' => $this->user->id]);
+
+        $data = [
+            'name' => '',
+        ];
+
+        $response = $this->putJson("/api/notes/categories/{$category->id}", $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['name']);
+    }
+
+    public function test_store_validation_fails_with_non_string_name()
+    {
+        $data = [
+            'name' => 123,
+        ];
+
+        $response = $this->postJson('/api/notes/categories', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['name']);
+    }
+
+    public function test_update_validation_fails_with_non_string_name()
+    {
+        $category = NoteCategory::factory()->create(['user_id' => $this->user->id]);
+
+        $data = [
+            'name' => 123,
+        ];
+
+        $response = $this->putJson("/api/notes/categories/{$category->id}", $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['name']);
+    }
+
+    public function test_store_accepts_null_description()
+    {
+        $data = [
+            'name' => 'Test Category',
+            'description' => null,
+        ];
+
+        $response = $this->postJson('/api/notes/categories', $data);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'name' => 'Test Category',
+                'description' => null,
+                'user_id' => $this->user->id,
+            ]);
+    }
+
+    public function test_update_accepts_null_description()
+    {
+        $category = NoteCategory::factory()->create([
+            'user_id' => $this->user->id,
+            'description' => 'Original description',
+        ]);
+
+        $data = [
+            'name' => 'Updated Category',
+            'description' => null,
+        ];
+
+        $response = $this->putJson("/api/notes/categories/{$category->id}", $data);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'name' => 'Updated Category',
+                'description' => null,
             ]);
     }
 } 

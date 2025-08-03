@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use App\Models\Thing\Item;
 
 class User extends Authenticatable
 {
@@ -88,5 +89,13 @@ class User extends Authenticatable
             default:
                 return false;
         }
+    }
+
+    /**
+     * Get the items that belong to the user.
+     */
+    public function items()
+    {
+        return $this->hasMany(Item::class);
     }
 }

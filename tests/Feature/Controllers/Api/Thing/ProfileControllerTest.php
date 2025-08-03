@@ -3,7 +3,14 @@
 namespace Tests\Feature\Controllers\Api\Thing;
 
 use App\Models\User;
+use App\Models\Thing\Item;
+use App\Models\Thing\ItemImage;
+use App\Models\Thing\ItemCategory;
+use App\Models\Thing\Area;
+use App\Models\Thing\Room;
+use App\Models\Thing\Spot;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -21,15 +28,29 @@ class ProfileControllerTest extends TestCase
         Sanctum::actingAs($this->user);
     }
 
-    public function test_edit_returns_profile_view()
+    /**
+     * Test the edit method returns profile data
+     */
+    public function test_edit_returns_profile_data()
     {
-        $response = $this->get('/profile');
+        $response = $this->get('/api/profile');
 
         $response->assertStatus(200);
-        $response->assertViewIs('profile.edit');
-        $response->assertViewHas('user', $this->user);
+        $response->assertJsonStructure([
+            'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at']
+        ]);
+        $response->assertJson([
+            'user' => [
+                'id' => $this->user->id,
+                'name' => $this->user->name,
+                'email' => $this->user->email,
+            ]
+        ]);
     }
 
+    /**
+     * Test the update method with valid data
+     */
     public function test_update_profile_with_valid_data()
     {
         $updateData = [
@@ -37,16 +58,29 @@ class ProfileControllerTest extends TestCase
             'email' => 'updated@example.com',
         ];
 
-        $response = $this->put('/profile', $updateData);
+        $response = $this->put('/api/profile', $updateData);
 
-        $response->assertRedirect(route('profile.edit'));
-        $response->assertSessionHas('status', 'profile-updated');
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'message',
+            'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at']
+        ]);
+        $response->assertJson([
+            'message' => 'Profile updated successfully',
+            'user' => [
+                'name' => 'Updated Name',
+                'email' => 'updated@example.com',
+            ]
+        ]);
 
         $this->user->refresh();
         $this->assertEquals('Updated Name', $this->user->name);
         $this->assertEquals('updated@example.com', $this->user->email);
     }
 
+    /**
+     * Test the update method with email change resets verification
+     */
     public function test_update_profile_with_email_change_resets_verification()
     {
         $this->user->update(['email_verified_at' => now()]);
@@ -56,31 +90,37 @@ class ProfileControllerTest extends TestCase
             'email' => 'newemail@example.com',
         ];
 
-        $response = $this->put('/profile', $updateData);
+        $response = $this->put('/api/profile', $updateData);
 
-        $response->assertRedirect(route('profile.edit'));
+        $response->assertStatus(200);
 
         $this->user->refresh();
         $this->assertNull($this->user->email_verified_at);
     }
 
+    /**
+     * Test the update method without email change keeps verification
+     */
     public function test_update_profile_without_email_change_keeps_verification()
     {
         $this->user->update(['email_verified_at' => now()]);
 
         $updateData = [
             'name' => 'Updated Name',
-            'email' => $this->user->email, // 相同的邮箱
+            'email' => $this->user->email, // Same email
         ];
 
-        $response = $this->put('/profile', $updateData);
+        $response = $this->put('/api/profile', $updateData);
 
-        $response->assertRedirect(route('profile.edit'));
+        $response->assertStatus(200);
 
         $this->user->refresh();
         $this->assertNotNull($this->user->email_verified_at);
     }
 
+    /**
+     * Test the update method with invalid data
+     */
     public function test_update_profile_with_invalid_data()
     {
         $updateData = [
@@ -88,11 +128,15 @@ class ProfileControllerTest extends TestCase
             'email' => 'invalid-email',
         ];
 
-        $response = $this->put('/profile', $updateData);
+        $response = $this->put('/api/profile', $updateData);
 
-        $response->assertSessionHasErrors(['name', 'email']);
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['name', 'email']);
     }
 
+    /**
+     * Test the update method with duplicate email
+     */
     public function test_update_profile_with_duplicate_email()
     {
         $otherUser = User::factory()->create(['email' => 'existing@example.com']);
@@ -102,124 +146,284 @@ class ProfileControllerTest extends TestCase
             'email' => 'existing@example.com',
         ];
 
-        $response = $this->put('/profile', $updateData);
+        $response = $this->put('/api/profile', $updateData);
 
-        $response->assertSessionHasErrors(['email']);
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['email']);
     }
 
+    /**
+     * Test the destroy method with valid password
+     */
     public function test_destroy_account_with_valid_password()
     {
         $this->user->update(['password' => Hash::make('password123')]);
 
-        $response = $this->delete('/profile', [
+        $response = $this->delete('/api/profile', [
             'password' => 'password123'
         ]);
 
-        $response->assertRedirect('/');
+        $response->assertStatus(200);
+        $response->assertJson([
+            'message' => 'Account deleted successfully'
+        ]);
         
         $this->assertDatabaseMissing('users', ['id' => $this->user->id]);
     }
 
+    /**
+     * Test the destroy method with invalid password
+     */
     public function test_destroy_account_with_invalid_password()
     {
         $this->user->update(['password' => Hash::make('password123')]);
 
-        $response = $this->delete('/profile', [
+        $response = $this->delete('/api/profile', [
             'password' => 'wrongpassword'
         ]);
 
-        $response->assertSessionHasErrors(['password']);
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['password']);
         
         $this->assertDatabaseHas('users', ['id' => $this->user->id]);
     }
 
+    /**
+     * Test the destroy method without password
+     */
     public function test_destroy_account_without_password()
     {
-        $response = $this->delete('/profile', []);
+        $response = $this->delete('/api/profile', []);
 
-        $response->assertSessionHasErrors(['password']);
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['password']);
         
         $this->assertDatabaseHas('users', ['id' => $this->user->id]);
     }
 
+    /**
+     * Test the destroy method deletes related data
+     */
     public function test_destroy_account_deletes_related_data()
     {
         $this->user->update(['password' => Hash::make('password123')]);
 
-        // 创建相关的数据（这里需要根据实际的模型关系调整）
-        // 例如：创建用户的物品、图片等
+        // Create related data
+        $item = Item::factory()->create(['user_id' => $this->user->id]);
+        $image = ItemImage::factory()->create(['item_id' => $item->id]);
 
-        $response = $this->delete('/profile', [
+        $response = $this->delete('/api/profile', [
             'password' => 'password123'
         ]);
 
-        $response->assertRedirect('/');
+        $response->assertStatus(200);
+        $response->assertJson([
+            'message' => 'Account deleted successfully'
+        ]);
         
-        // 验证用户被删除
+        // Verify user is deleted
         $this->assertDatabaseMissing('users', ['id' => $this->user->id]);
         
-        // 验证相关数据也被删除（如果有的话）
-        // $this->assertDatabaseMissing('thing_items', ['user_id' => $this->user->id]);
+        // Verify related data is deleted
+        $this->assertDatabaseMissing('thing_items', ['id' => $item->id]);
+        $this->assertDatabaseMissing('thing_item_images', ['id' => $image->id]);
     }
 
+    /**
+     * Test the destroy method logs out user
+     */
     public function test_destroy_account_logs_out_user()
     {
         $this->user->update(['password' => Hash::make('password123')]);
 
-        $this->assertTrue(auth()->check());
+        $this->assertTrue(Auth::check());
 
-        $response = $this->delete('/profile', [
+        $response = $this->delete('/api/profile', [
             'password' => 'password123'
         ]);
 
-        $response->assertRedirect('/');
+        $response->assertStatus(200);
         
-        // 用户应该被登出
-        $this->assertFalse(auth()->check());
+        // User should be logged out
+        $this->assertFalse(Auth::check());
     }
 
+    /**
+     * Test the destroy method invalidates session
+     */
     public function test_destroy_account_invalidates_session()
     {
         $this->user->update(['password' => Hash::make('password123')]);
 
-        $response = $this->delete('/profile', [
+        $response = $this->delete('/api/profile', [
             'password' => 'password123'
         ]);
 
-        $response->assertRedirect('/');
+        $response->assertStatus(200);
         
-        // 会话应该被清除
-        $this->assertFalse(auth()->check());
+        // Session should be cleared
+        $this->assertFalse(Auth::check());
     }
 
+    /**
+     * Test edit method requires authentication
+     */
     public function test_edit_requires_authentication()
     {
-        auth()->logout();
+        Auth::logout();
 
-        $response = $this->get('/profile');
+        $response = $this->get('/api/profile');
 
-        $response->assertRedirect('/login');
+        $response->assertStatus(401);
     }
 
+    /**
+     * Test update method requires authentication
+     */
     public function test_update_requires_authentication()
     {
-        auth()->logout();
+        Auth::logout();
 
-        $response = $this->put('/profile', [
+        $response = $this->put('/api/profile', [
             'name' => 'Updated Name',
         ]);
 
-        $response->assertRedirect('/login');
+        $response->assertStatus(401);
     }
 
+    /**
+     * Test destroy method requires authentication
+     */
     public function test_destroy_requires_authentication()
     {
-        auth()->logout();
+        Auth::logout();
 
-        $response = $this->delete('/profile', [
+        $response = $this->delete('/api/profile', [
             'password' => 'password123'
         ]);
 
-        $response->assertRedirect('/login');
+        $response->assertStatus(401);
+    }
+
+    /**
+     * Test update method with only name change
+     */
+    public function test_update_profile_with_only_name_change()
+    {
+        $originalEmail = $this->user->email;
+        $originalVerifiedAt = $this->user->email_verified_at;
+
+        $updateData = [
+            'name' => 'New Name Only',
+            'email' => $originalEmail,
+        ];
+
+        $response = $this->put('/api/profile', $updateData);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'message' => 'Profile updated successfully'
+        ]);
+
+        $this->user->refresh();
+        $this->assertEquals('New Name Only', $this->user->name);
+        $this->assertEquals($originalEmail, $this->user->email);
+        $this->assertEquals($originalVerifiedAt, $this->user->email_verified_at);
+    }
+
+    /**
+     * Test update method with only email change
+     */
+    public function test_update_profile_with_only_email_change()
+    {
+        $originalName = $this->user->name;
+        $this->user->update(['email_verified_at' => now()]);
+
+        $updateData = [
+            'name' => $originalName,
+            'email' => 'newemailonly@example.com',
+        ];
+
+        $response = $this->put('/api/profile', $updateData);
+
+        $response->assertStatus(200);
+
+        $this->user->refresh();
+        $this->assertEquals($originalName, $this->user->name);
+        $this->assertEquals('newemailonly@example.com', $this->user->email);
+        $this->assertNull($this->user->email_verified_at);
+    }
+
+    /**
+     * Test destroy method with multiple items and related data
+     */
+    public function test_destroy_account_with_multiple_items()
+    {
+        $this->user->update(['password' => Hash::make('password123')]);
+
+        // Create multiple items with related data
+        $item1 = Item::factory()->create(['user_id' => $this->user->id]);
+        $item2 = Item::factory()->create(['user_id' => $this->user->id]);
+        
+        $image1 = ItemImage::factory()->create(['item_id' => $item1->id]);
+        $image2 = ItemImage::factory()->create(['item_id' => $item2->id]);
+
+        $response = $this->delete('/api/profile', [
+            'password' => 'password123'
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'message' => 'Account deleted successfully'
+        ]);
+        
+        // Verify user is deleted
+        $this->assertDatabaseMissing('users', ['id' => $this->user->id]);
+        
+        // Verify all items are deleted
+        $this->assertDatabaseMissing('thing_items', ['id' => $item1->id]);
+        $this->assertDatabaseMissing('thing_items', ['id' => $item2->id]);
+        
+        // Verify all images are deleted
+        $this->assertDatabaseMissing('thing_item_images', ['id' => $image1->id]);
+        $this->assertDatabaseMissing('thing_item_images', ['id' => $image2->id]);
+    }
+
+    /**
+     * Test update method validation rules
+     */
+    public function test_update_profile_validation_rules()
+    {
+        // Test empty name
+        $response = $this->put('/api/profile', [
+            'name' => '',
+            'email' => 'test@example.com',
+        ]);
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['name']);
+
+        // Test name too long
+        $response = $this->put('/api/profile', [
+            'name' => str_repeat('a', 256),
+            'email' => 'test@example.com',
+        ]);
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['name']);
+
+        // Test invalid email format
+        $response = $this->put('/api/profile', [
+            'name' => 'Test Name',
+            'email' => 'invalid-email',
+        ]);
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['email']);
+
+        // Test email too long
+        $response = $this->put('/api/profile', [
+            'name' => 'Test Name',
+            'email' => str_repeat('a', 250) . '@example.com',
+        ]);
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['email']);
     }
 } 

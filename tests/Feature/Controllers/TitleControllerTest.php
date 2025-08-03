@@ -177,4 +177,194 @@ class TitleControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson($fetchedData);
     }
+
+    // Additional test cases for better coverage
+
+    public function test_fetch_handles_runtime_exception()
+    {
+        $url = 'https://runtime-error.com';
+        $exception = new \RuntimeException('HTTP 404 Not Found');
+
+        $this->cacheService->shouldReceive('get')
+            ->with($url)
+            ->once()
+            ->andReturn(null);
+
+        $this->webPageService->shouldReceive('fetchContent')
+            ->with($url)
+            ->once()
+            ->andThrow($exception);
+
+        $this->cacheService->shouldReceive('putError')
+            ->with($url, Mockery::on(function ($errorData) {
+                return $errorData['error'] === '请求异常' &&
+                       $errorData['details'] === 'HTTP 404 Not Found' &&
+                       $errorData['status_code'] === 500;
+            }))
+            ->once();
+
+        $response = $this->getJson("/api/fetch-title?url={$url}");
+
+        $response->assertStatus(500)
+            ->assertJson([
+                'error' => '请求异常',
+                'details' => 'HTTP 404 Not Found',
+                'status_code' => 500,
+            ]);
+    }
+
+    public function test_fetch_handles_malformed_url()
+    {
+        $url = 'not-a-valid-url';
+        
+        $this->cacheService->shouldReceive('get')
+            ->with($url)
+            ->once()
+            ->andReturn(null);
+
+        $this->webPageService->shouldReceive('fetchContent')
+            ->with($url)
+            ->once()
+            ->andThrow(new \Exception('Invalid URL format'));
+
+        $this->cacheService->shouldReceive('putError')
+            ->with($url, Mockery::on(function ($errorData) {
+                return $errorData['error'] === '请求异常' &&
+                       $errorData['details'] === 'Invalid URL format' &&
+                       $errorData['status_code'] === 500;
+            }))
+            ->once();
+
+        $response = $this->getJson("/api/fetch-title?url={$url}");
+
+        $response->assertStatus(500)
+            ->assertJson([
+                'error' => '请求异常',
+                'details' => 'Invalid URL format',
+                'status_code' => 500,
+            ]);
+    }
+
+    public function test_fetch_handles_cached_error_without_status_code()
+    {
+        $url = 'https://error-without-status.com';
+        $cachedError = [
+            'error' => '无法获取网页内容',
+            'details' => 'Connection timeout',
+        ];
+
+        $this->cacheService->shouldReceive('get')
+            ->with($url)
+            ->once()
+            ->andReturn($cachedError);
+
+        $response = $this->getJson("/api/fetch-title?url={$url}");
+
+        $response->assertStatus(500)
+            ->assertJson($cachedError);
+    }
+
+    public function test_fetch_handles_cached_error_with_custom_status_code()
+    {
+        $url = 'https://error-with-custom-status.com';
+        $cachedError = [
+            'error' => '无法获取网页内容',
+            'details' => 'Page not found',
+            'status_code' => 404,
+        ];
+
+        $this->cacheService->shouldReceive('get')
+            ->with($url)
+            ->once()
+            ->andReturn($cachedError);
+
+        $response = $this->getJson("/api/fetch-title?url={$url}");
+
+        $response->assertStatus(404)
+            ->assertJson($cachedError);
+    }
+
+    public function test_fetch_with_special_characters_in_url()
+    {
+        $url = 'https://example.com/path?param=value&another=param';
+        $fetchedData = [
+            'title' => 'Example Page with Query',
+            'favicon' => 'https://example.com/favicon.ico',
+        ];
+
+        $this->cacheService->shouldReceive('get')
+            ->with($url)
+            ->once()
+            ->andReturn(null);
+
+        $this->webPageService->shouldReceive('fetchContent')
+            ->with($url)
+            ->once()
+            ->andReturn($fetchedData);
+
+        $this->cacheService->shouldReceive('putSuccess')
+            ->with($url, $fetchedData)
+            ->once();
+
+        $response = $this->getJson("/api/fetch-title?url=" . urlencode($url));
+
+        $response->assertStatus(200)
+            ->assertJson($fetchedData);
+    }
+
+    public function test_fetch_with_very_long_url()
+    {
+        $url = 'https://example.com/' . str_repeat('very-long-path/', 50) . 'end';
+        $fetchedData = [
+            'title' => 'Long URL Page',
+            'favicon' => 'https://example.com/favicon.ico',
+        ];
+
+        $this->cacheService->shouldReceive('get')
+            ->with($url)
+            ->once()
+            ->andReturn(null);
+
+        $this->webPageService->shouldReceive('fetchContent')
+            ->with($url)
+            ->once()
+            ->andReturn($fetchedData);
+
+        $this->cacheService->shouldReceive('putSuccess')
+            ->with($url, $fetchedData)
+            ->once();
+
+        $response = $this->getJson("/api/fetch-title?url=" . urlencode($url));
+
+        $response->assertStatus(200)
+            ->assertJson($fetchedData);
+    }
+
+    public function test_fetch_with_http_url()
+    {
+        $url = 'http://example.com';
+        $fetchedData = [
+            'title' => 'HTTP Example',
+            'favicon' => 'http://example.com/favicon.ico',
+        ];
+
+        $this->cacheService->shouldReceive('get')
+            ->with($url)
+            ->once()
+            ->andReturn(null);
+
+        $this->webPageService->shouldReceive('fetchContent')
+            ->with($url)
+            ->once()
+            ->andReturn($fetchedData);
+
+        $this->cacheService->shouldReceive('putSuccess')
+            ->with($url, $fetchedData)
+            ->once();
+
+        $response = $this->getJson("/api/fetch-title?url={$url}");
+
+        $response->assertStatus(200)
+            ->assertJson($fetchedData);
+    }
 } 
