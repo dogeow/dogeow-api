@@ -15,6 +15,11 @@ class Area extends Model
     protected $fillable = [
         'name',
         'user_id',
+        'is_default',
+    ];
+
+    protected $casts = [
+        'is_default' => 'boolean',
     ];
 
     public function rooms()

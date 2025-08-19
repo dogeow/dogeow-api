@@ -16,6 +16,7 @@ return new class extends Migration
      * - id: 主键
      * - name: 区域名称
      * - user_id: 所属用户ID
+     * - is_default: 是否为默认区域
      */
     public function up(): void
     {
@@ -23,6 +24,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->unsignedBigInteger('user_id');
+            $table->boolean('is_default')->default(false);
             $table->timestamps();
         });
     }

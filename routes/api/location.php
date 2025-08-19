@@ -13,6 +13,7 @@ Route::get('areas/{area}', [LocationController::class, 'areaShow']);
 Route::put('areas/{area}', [LocationController::class, 'areaUpdate']);
 Route::delete('areas/{area}', [LocationController::class, 'areaDestroy']);
 Route::get('areas/{area}/rooms', [LocationController::class, 'areaRooms']);
+Route::post('areas/{area}/set-default', [LocationController::class, 'setDefaultArea']);
 
 // 房间
 Route::get('rooms', [LocationController::class, 'roomIndex']);

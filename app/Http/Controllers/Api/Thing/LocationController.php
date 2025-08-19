@@ -93,6 +93,31 @@ class LocationController extends Controller
     }
 
     /**
+     * 设置默认区域
+     */
+    public function setDefaultArea(Area $area)
+    {
+        // 检查权限：只有区域所有者可以设置默认
+        if ($area->user_id !== Auth::id()) {
+            return response()->json(['message' => '无权设置此区域为默认'], 403);
+        }
+
+        // 使用事务确保数据一致性
+        DB::transaction(function () use ($area) {
+            // 先将该用户的所有区域设置为非默认
+            Area::where('user_id', Auth::id())->update(['is_default' => false]);
+            
+            // 将指定区域设置为默认
+            $area->update(['is_default' => true]);
+        });
+
+        return response()->json([
+            'message' => '默认区域设置成功',
+            'area' => $area
+        ]);
+    }
+
+    /**
      * 获取房间列表
      */
     public function roomIndex(Request $request)
