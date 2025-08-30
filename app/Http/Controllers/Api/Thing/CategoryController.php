@@ -16,11 +16,21 @@ class CategoryController extends Controller
     public function index()
     {
         $categories = ItemCategory::where('user_id', Auth::id())
-            ->with(['parent', 'children'])
+            ->with(['parent', 'children.items'])
             ->withCount('items')
             ->orderBy('parent_id', 'asc')
             ->orderBy('name', 'asc')
             ->get();
+        
+        // 计算父分类的总物品数量（包括子分类的物品）
+        $categories->each(function ($category) {
+            if ($category->isParent()) {
+                // 计算所有子分类的物品数量总和
+                $totalItems = $category->items_count;
+                $childrenItems = $category->children->sum('items_count');
+                $category->items_count = $totalItems + $childrenItems;
+            }
+        });
         
         return response()->json($categories);
     }
