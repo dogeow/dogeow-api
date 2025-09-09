@@ -12,45 +12,26 @@ use Illuminate\Support\Str;
 class ContentFilterService
 {
     /**
-     * Inappropriate words list (basic implementation)
-     * In production, this should be stored in database or external service
+     * 不当词汇列表（基础实现）
+     * 生产环境应存储在数据库或外部服务中
      */
-    private const INAPPROPRIATE_WORDS = [
-        'spam', 'scam', 'fake', 'bot', 'hack', 'cheat',
-        'stupid', 'idiot', 'moron', 'dumb', 'loser',
-        'hate', 'kill', 'die', 'death', 'murder',
-        'drug', 'drugs', 'cocaine', 'heroin', 'weed',
-        'porn', 'sex', 'nude', 'naked', 'xxx',
-        // Add more words as needed
-    ];
+    private const INAPPROPRIATE_WORDS = [];
 
     /**
-     * Replacement words for filtered content
+     * 敏感词替换内容
      */
-    private const WORD_REPLACEMENTS = [
-        'spam' => '****',
-        'scam' => '****',
-        'stupid' => '[filtered]',
-        'idiot' => '[filtered]',
-        'hate' => '[filtered]',
-        'kill' => '[filtered]',
-        'die' => '[filtered]',
-        'drug' => '[filtered]',
-        'drugs' => '[filtered]',
-        'porn' => '[filtered]',
-        'sex' => '[filtered]',
-    ];
+    private const WORD_REPLACEMENTS = [];
 
     /**
-     * Spam detection thresholds
+     * 垃圾信息检测阈值
      */
-    private const SPAM_MESSAGE_LIMIT = 5; // Messages per minute
-    private const SPAM_DUPLICATE_LIMIT = 3; // Duplicate messages
-    private const SPAM_CAPS_THRESHOLD = 0.7; // 70% caps
-    private const SPAM_REPETITION_THRESHOLD = 0.5; // 50% repeated characters
+    private const SPAM_MESSAGE_LIMIT = 30; // 每分钟消息数上限
+    private const SPAM_DUPLICATE_LIMIT = 3; // 重复消息上限
+    private const SPAM_CAPS_THRESHOLD = 0.7; // 大写字母比例70%
+    private const SPAM_REPETITION_THRESHOLD = 0.5; // 重复字符比例50%
 
     /**
-     * Check if message contains inappropriate content
+     * 检查消息是否包含不当内容
      *
      * @param string $message
      * @return array
@@ -60,30 +41,30 @@ class ContentFilterService
         $violations = [];
         $severity = 'low';
         $filteredMessage = $message;
-        
         $lowerMessage = strtolower($message);
-        
+
         foreach (self::INAPPROPRIATE_WORDS as $word) {
-            if (strpos($lowerMessage, strtolower($word)) !== false) {
+            $wordLower = strtolower($word);
+            if (strpos($lowerMessage, $wordLower) !== false) {
+                $wordSeverity = $this->getWordSeverity($word);
                 $violations[] = [
                     'type' => 'inappropriate_word',
                     'word' => $word,
-                    'severity' => $this->getWordSeverity($word)
+                    'severity' => $wordSeverity
                 ];
-                
-                // Replace the word if replacement exists
+
+                // 如果有替换内容则进行替换
                 if (isset(self::WORD_REPLACEMENTS[$word])) {
                     $filteredMessage = str_ireplace($word, self::WORD_REPLACEMENTS[$word], $filteredMessage);
                 }
-                
-                // Update overall severity
-                $wordSeverity = $this->getWordSeverity($word);
+
+                // 更新整体严重等级
                 if ($wordSeverity === 'high' || ($wordSeverity === 'medium' && $severity === 'low')) {
                     $severity = $wordSeverity;
                 }
             }
         }
-        
+
         return [
             'has_violations' => !empty($violations),
             'violations' => $violations,
@@ -94,27 +75,27 @@ class ContentFilterService
     }
 
     /**
-     * Get severity level for a specific word
+     * 获取指定词汇的严重等级
      *
      * @param string $word
      * @return string
      */
     private function getWordSeverity(string $word): string
     {
-        $highSeverityWords = ['hate', 'kill', 'die', 'death', 'murder', 'drug', 'drugs', 'porn', 'xxx'];
-        $mediumSeverityWords = ['stupid', 'idiot', 'moron', 'dumb', 'loser', 'sex', 'nude', 'naked'];
-        
-        if (in_array($word, $highSeverityWords)) {
+        static $highSeverityWords = [];
+        static $mediumSeverityWords = [];
+
+        if (in_array($word, $highSeverityWords, true)) {
             return 'high';
-        } elseif (in_array($word, $mediumSeverityWords)) {
+        }
+        if (in_array($word, $mediumSeverityWords, true)) {
             return 'medium';
         }
-        
         return 'low';
     }
 
     /**
-     * Detect spam patterns in message
+     * 检测消息中的垃圾信息模式
      *
      * @param string $message
      * @param int $userId
@@ -125,8 +106,8 @@ class ContentFilterService
     {
         $violations = [];
         $severity = 'low';
-        
-        // Check message frequency
+
+        // 检查消息频率
         $frequencyCheck = $this->checkMessageFrequency($userId, $roomId);
         if ($frequencyCheck['is_spam']) {
             $violations[] = [
@@ -136,8 +117,8 @@ class ContentFilterService
             ];
             $severity = 'high';
         }
-        
-        // Check for duplicate messages
+
+        // 检查重复消息
         $duplicateCheck = $this->checkDuplicateMessages($message, $userId, $roomId);
         if ($duplicateCheck['is_spam']) {
             $violations[] = [
@@ -149,8 +130,8 @@ class ContentFilterService
                 $severity = 'medium';
             }
         }
-        
-        // Check for excessive caps
+
+        // 检查过多大写字母
         $capsCheck = $this->checkExcessiveCaps($message);
         if ($capsCheck['is_spam']) {
             $violations[] = [
@@ -159,8 +140,8 @@ class ContentFilterService
                 'severity' => 'low'
             ];
         }
-        
-        // Check for character repetition
+
+        // 检查字符重复
         $repetitionCheck = $this->checkCharacterRepetition($message);
         if ($repetitionCheck['is_spam']) {
             $violations[] = [
@@ -169,8 +150,8 @@ class ContentFilterService
                 'severity' => 'low'
             ];
         }
-        
-        // Check for URL spam
+
+        // 检查URL垃圾信息
         $urlCheck = $this->checkUrlSpam($message);
         if ($urlCheck['is_spam']) {
             $violations[] = [
@@ -182,7 +163,7 @@ class ContentFilterService
                 $severity = 'medium';
             }
         }
-        
+
         return [
             'is_spam' => !empty($violations),
             'violations' => $violations,
@@ -192,7 +173,7 @@ class ContentFilterService
     }
 
     /**
-     * Check message frequency for spam detection
+     * 检查消息频率用于垃圾信息检测
      *
      * @param int $userId
      * @param int $roomId
@@ -202,21 +183,21 @@ class ContentFilterService
     {
         $cacheKey = "chat_message_frequency_{$userId}_{$roomId}";
         $messages = Cache::get($cacheKey, []);
-        
-        // Clean old messages (older than 1 minute)
+
+        // 清理1分钟前的旧消息
         $oneMinuteAgo = now()->subMinute()->timestamp;
-        $messages = array_filter($messages, function($timestamp) use ($oneMinuteAgo) {
+        $messages = array_filter($messages, static function($timestamp) use ($oneMinuteAgo) {
             return $timestamp > $oneMinuteAgo;
         });
-        
-        // Add current message timestamp
+
+        // 添加当前消息时间戳
         $messages[] = now()->timestamp;
-        
-        // Store back in cache
-        Cache::put($cacheKey, $messages, 300); // 5 minutes
-        
+
+        // 存回缓存，有效期5分钟
+        Cache::put($cacheKey, $messages, 300); // 5分钟
+
         $messageCount = count($messages);
-        
+
         return [
             'is_spam' => $messageCount > self::SPAM_MESSAGE_LIMIT,
             'message_count' => $messageCount,
@@ -226,7 +207,7 @@ class ContentFilterService
     }
 
     /**
-     * Check for duplicate messages
+     * 检查重复消息
      *
      * @param string $message
      * @param int $userId
@@ -240,16 +221,12 @@ class ContentFilterService
             ->where('created_at', '>=', now()->subMinutes(5))
             ->pluck('message')
             ->toArray();
-        
-        $duplicateCount = 0;
+
         $messageHash = md5(strtolower(trim($message)));
-        
-        foreach ($recentMessages as $recentMessage) {
-            if (md5(strtolower(trim($recentMessage))) === $messageHash) {
-                $duplicateCount++;
-            }
-        }
-        
+        $duplicateCount = count(array_filter($recentMessages, static function($recentMessage) use ($messageHash) {
+            return md5(strtolower(trim($recentMessage))) === $messageHash;
+        }));
+
         return [
             'is_spam' => $duplicateCount >= self::SPAM_DUPLICATE_LIMIT,
             'duplicate_count' => $duplicateCount,
@@ -259,22 +236,23 @@ class ContentFilterService
     }
 
     /**
-     * Check for excessive capital letters
+     * 检查是否有过多大写字母
      *
      * @param string $message
      * @return array
      */
     private function checkExcessiveCaps(string $message): array
     {
-        $totalChars = strlen(preg_replace('/[^a-zA-Z]/', '', $message));
-        
+        $letters = preg_replace('/[^a-zA-Z]/', '', $message);
+        $totalChars = strlen($letters);
+
         if ($totalChars < 10) {
-            return ['is_spam' => false]; // Too short to determine
+            return ['is_spam' => false]; // 字符太短无法判断
         }
-        
-        $capsChars = strlen(preg_replace('/[^A-Z]/', '', $message));
+
+        $capsChars = strlen(preg_replace('/[^A-Z]/', '', $letters));
         $capsRatio = $totalChars > 0 ? $capsChars / $totalChars : 0;
-        
+
         return [
             'is_spam' => $capsRatio > self::SPAM_CAPS_THRESHOLD,
             'caps_ratio' => $capsRatio,
@@ -285,60 +263,58 @@ class ContentFilterService
     }
 
     /**
-     * Check for character repetition spam
+     * 检查字符重复的垃圾信息
      *
      * @param string $message
      * @return array
      */
     private function checkCharacterRepetition(string $message): array
     {
-        if (strlen($message) < 10) {
+        $length = strlen($message);
+        if ($length < 10) {
             return ['is_spam' => false];
         }
-        
-        // Count repeated character sequences
+
         $repetitionCount = 0;
-        $totalChars = strlen($message);
-        
-        for ($i = 0; $i < $totalChars - 2; $i++) {
+        $i = 0;
+        while ($i < $length) {
             $char = $message[$i];
-            $consecutiveCount = 1;
-            
-            for ($j = $i + 1; $j < $totalChars && $message[$j] === $char; $j++) {
-                $consecutiveCount++;
+            $j = $i + 1;
+            while ($j < $length && $message[$j] === $char) {
+                $j++;
             }
-            
-            if ($consecutiveCount >= 4) { // 4 or more consecutive same characters
+            $consecutiveCount = $j - $i;
+            if ($consecutiveCount >= 4) { // 4个及以上连续相同字符
                 $repetitionCount += $consecutiveCount;
-                $i = $j - 1; // Skip the counted characters
             }
+            $i = $j;
         }
-        
-        $repetitionRatio = $totalChars > 0 ? $repetitionCount / $totalChars : 0;
-        
+
+        $repetitionRatio = $length > 0 ? $repetitionCount / $length : 0;
+
         return [
             'is_spam' => $repetitionRatio > self::SPAM_REPETITION_THRESHOLD,
             'repetition_ratio' => $repetitionRatio,
             'threshold' => self::SPAM_REPETITION_THRESHOLD,
             'repetition_count' => $repetitionCount,
-            'total_chars' => $totalChars
+            'total_chars' => $length
         ];
     }
 
     /**
-     * Check for URL spam
+     * 检查URL垃圾信息
      *
      * @param string $message
      * @return array
      */
     private function checkUrlSpam(string $message): array
     {
-        // Count URLs in message
+        // 统计消息中的URL数量
         $urlPattern = '/https?:\/\/[^\s]+/i';
         preg_match_all($urlPattern, $message, $matches);
         $urlCount = count($matches[0]);
-        
-        // Check for suspicious URL patterns
+
+        // 检查可疑URL模式
         $suspiciousPatterns = [
             '/bit\.ly/i',
             '/tinyurl/i',
@@ -349,14 +325,14 @@ class ContentFilterService
             '/click.*here/i',
             '/limited.*time/i',
         ];
-        
+
         $suspiciousUrls = 0;
         foreach ($suspiciousPatterns as $pattern) {
             if (preg_match($pattern, $message)) {
                 $suspiciousUrls++;
             }
         }
-        
+
         return [
             'is_spam' => $urlCount > 2 || $suspiciousUrls > 0,
             'url_count' => $urlCount,
@@ -366,7 +342,7 @@ class ContentFilterService
     }
 
     /**
-     * Process message through content filter
+     * 处理消息内容过滤
      *
      * @param string $message
      * @param int $userId
@@ -382,19 +358,19 @@ class ContentFilterService
             'actions_taken' => [],
             'severity' => 'none'
         ];
-        
-        // Check inappropriate content
+
+        // 检查不当内容
         $contentCheck = $this->checkInappropriateContent($message);
         if ($contentCheck['has_violations']) {
             $result['violations']['content'] = $contentCheck;
             $result['filtered_message'] = $contentCheck['filtered_message'];
             $result['severity'] = $contentCheck['severity'];
-            
+
             if ($contentCheck['action_required']) {
                 $result['allowed'] = false;
                 $result['actions_taken'][] = 'message_blocked';
-                
-                // Log the action
+
+                // 记录操作日志
                 $this->logModerationAction($roomId, $userId, null, ChatModerationAction::ACTION_CONTENT_FILTER, [
                     'original_message' => $message,
                     'violations' => $contentCheck['violations'],
@@ -402,41 +378,41 @@ class ContentFilterService
                 ]);
             }
         }
-        
-        // Check for spam
+
+        // 检查垃圾信息
         $spamCheck = $this->detectSpam($message, $userId, $roomId);
         if ($spamCheck['is_spam']) {
             $result['violations']['spam'] = $spamCheck;
-            
+
             if ($spamCheck['action_required']) {
                 $result['allowed'] = false;
                 $result['actions_taken'][] = 'spam_blocked';
-                
-                // Log the action
+
+                // 记录操作日志
                 $this->logModerationAction($roomId, $userId, null, ChatModerationAction::ACTION_SPAM_DETECTION, [
                     'message' => $message,
                     'violations' => $spamCheck['violations'],
                     'severity' => $spamCheck['severity']
                 ]);
-                
-                // Auto-mute user if high severity spam
+
+                // 如果垃圾信息严重则自动禁言用户
                 if ($spamCheck['severity'] === 'high') {
                     $this->autoMuteUser($userId, $roomId, 'Automatic mute for spam detection');
                     $result['actions_taken'][] = 'user_auto_muted';
                 }
             }
-            
-            // Update severity if spam is more severe
+
+            // 如果垃圾信息严重等级更高则更新
             if ($spamCheck['severity'] === 'high' || ($spamCheck['severity'] === 'medium' && $result['severity'] === 'low')) {
                 $result['severity'] = $spamCheck['severity'];
             }
         }
-        
+
         return $result;
     }
 
     /**
-     * Auto-mute user for violations
+     * 用户违规自动禁言
      *
      * @param int $userId
      * @param int $roomId
@@ -450,36 +426,36 @@ class ContentFilterService
             $roomUser = \App\Models\ChatRoomUser::where('room_id', $roomId)
                 ->where('user_id', $userId)
                 ->first();
-            
+
             if ($roomUser) {
                 $roomUser->update([
                     'is_muted' => true,
                     'muted_until' => now()->addMinutes($durationMinutes),
-                    'muted_by' => 1 // System user
+                    'muted_by' => 1 // 系统用户
                 ]);
-                
-                // Log the auto-mute action
+
+                // 记录自动禁言操作
                 $this->logModerationAction($roomId, $userId, 1, ChatModerationAction::ACTION_MUTE_USER, [
                     'duration_minutes' => $durationMinutes,
                     'auto_action' => true,
                     'reason' => $reason
                 ]);
-                
+
                 return true;
             }
         } catch (\Exception $e) {
-            Log::error('Failed to auto-mute user', [
+            Log::error('自动禁言用户失败', [
                 'user_id' => $userId,
                 'room_id' => $roomId,
                 'error' => $e->getMessage()
             ]);
         }
-        
+
         return false;
     }
 
     /**
-     * Log moderation action
+     * 记录内容审核操作
      *
      * @param int $roomId
      * @param int $targetUserId
@@ -493,14 +469,14 @@ class ContentFilterService
         try {
             ChatModerationAction::create([
                 'room_id' => $roomId,
-                'moderator_id' => $moderatorId ?? 1, // System user for automated actions
+                'moderator_id' => $moderatorId ?? 1, // 自动操作使用系统用户
                 'target_user_id' => $targetUserId,
                 'action_type' => $actionType,
                 'reason' => $metadata['reason'] ?? 'Automated content filtering',
                 'metadata' => $metadata
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to log moderation action', [
+            Log::error('记录内容审核操作失败', [
                 'room_id' => $roomId,
                 'target_user_id' => $targetUserId,
                 'action_type' => $actionType,
@@ -510,7 +486,7 @@ class ContentFilterService
     }
 
     /**
-     * Get content filter statistics
+     * 获取内容过滤统计信息
      *
      * @param int|null $roomId
      * @param int $days
@@ -523,13 +499,13 @@ class ContentFilterService
                 ChatModerationAction::ACTION_CONTENT_FILTER,
                 ChatModerationAction::ACTION_SPAM_DETECTION
             ]);
-        
+
         if ($roomId) {
             $query->where('room_id', $roomId);
         }
-        
+
         $actions = $query->get();
-        
+
         $stats = [
             'total_actions' => $actions->count(),
             'content_filter_actions' => $actions->where('action_type', ChatModerationAction::ACTION_CONTENT_FILTER)->count(),
@@ -543,8 +519,8 @@ class ContentFilterService
             'affected_users' => $actions->pluck('target_user_id')->unique()->count(),
             'period_days' => $days
         ];
-        
-        // Calculate severity breakdown
+
+        // 统计严重等级分布
         foreach ($actions as $action) {
             $severity = $action->metadata['severity'] ?? 'low';
             if (isset($stats['severity_breakdown'][$severity])) {
@@ -552,7 +528,7 @@ class ContentFilterService
             }
         }
         
-        // Get top violation types
+        // 获取违规类型排行
         $violationTypes = [];
         foreach ($actions as $action) {
             if (isset($action->metadata['violations'])) {
@@ -564,6 +540,11 @@ class ContentFilterService
         }
         
         arsort($violationTypes);
+        $stats['top_violations'] = array_slice($violationTypes, 0, 10, true);
+        
+        return $stats;
+    }
+}
         $stats['top_violations'] = array_slice($violationTypes, 0, 10, true);
         
         return $stats;
