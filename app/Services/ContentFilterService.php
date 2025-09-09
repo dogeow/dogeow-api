@@ -545,8 +545,3 @@ class ContentFilterService
         return $stats;
     }
 }
-        $stats['top_violations'] = array_slice($violationTypes, 0, 10, true);
-        
-        return $stats;
-    }
-}
