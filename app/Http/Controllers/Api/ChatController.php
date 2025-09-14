@@ -175,10 +175,11 @@ class ChatController extends Controller
     /**
      * Join a chat room.
      */
-    public function joinRoom(Request $request, int $roomId): JsonResponse
+    public function joinRoom(Request $request, $roomId): JsonResponse
     {
         try {
             $userId = $this->getCurrentUserId();
+            $roomId = (int) $roomId; // 确保转换为整数
             $result = $this->chatService->joinRoom($roomId, $userId);
 
             if (!$result['success']) {
@@ -213,10 +214,11 @@ class ChatController extends Controller
     /**
      * Leave a chat room.
      */
-    public function leaveRoom(Request $request, int $roomId): JsonResponse
+    public function leaveRoom(Request $request, $roomId): JsonResponse
     {
         try {
             $userId = $this->getCurrentUserId();
+            $roomId = (int) $roomId; // 确保转换为整数
             $result = $this->chatService->leaveRoom($roomId, $userId);
 
             if (!$result['success']) {
@@ -248,10 +250,11 @@ class ChatController extends Controller
     /**
      * Delete a chat room (only by creator).
      */
-    public function deleteRoom(Request $request, int $roomId): JsonResponse
+    public function deleteRoom(Request $request, $roomId): JsonResponse
     {
         try {
             $userId = $this->getCurrentUserId();
+            $roomId = (int) $roomId; // 确保转换为整数
             $result = $this->chatService->deleteRoom($roomId, $userId);
 
             if (!$result['success']) {
@@ -278,10 +281,11 @@ class ChatController extends Controller
     /**
      * Get messages for a chat room with pagination.
      */
-    public function getMessages(Request $request, int $roomId): JsonResponse
+    public function getMessages(Request $request, $roomId): JsonResponse
     {
         try {
             $userId = $this->getCurrentUserId();
+            $roomId = (int) $roomId; // 确保转换为整数
             
             // 验证房间是否存在
             $room = ChatRoom::active()->findOrFail($roomId);
@@ -330,10 +334,11 @@ class ChatController extends Controller
     /**
      * Send a message to a chat room.
      */
-    public function sendMessage(SendMessageRequest $request, int $roomId): JsonResponse
+    public function sendMessage(SendMessageRequest $request, $roomId): JsonResponse
     {
         try {
             $userId = $this->getCurrentUserId();
+            $roomId = (int) $roomId; // 确保转换为整数
             
             // 验证房间是否存在
             $room = ChatRoom::active()->findOrFail($roomId);
@@ -473,10 +478,12 @@ class ChatController extends Controller
     /**
      * Delete a message (for moderation).
      */
-    public function deleteMessage(Request $request, int $roomId, int $messageId): JsonResponse
+    public function deleteMessage(Request $request, $roomId, $messageId): JsonResponse
     {
         try {
             $userId = $this->getCurrentUserId();
+            $roomId = (int) $roomId; // 确保转换为整数
+            $messageId = (int) $messageId; // 确保转换为整数
             
             // 验证房间和消息是否存在
             $room = ChatRoom::active()->findOrFail($roomId);
@@ -527,10 +534,11 @@ class ChatController extends Controller
     /**
      * Get online users in a chat room.
      */
-    public function getOnlineUsers(Request $request, int $roomId): JsonResponse
+    public function getOnlineUsers(Request $request, $roomId): JsonResponse
     {
         try {
             $userId = $this->getCurrentUserId();
+            $roomId = (int) $roomId; // 确保转换为整数
             
             // 验证房间是否存在
             $room = ChatRoom::active()->findOrFail($roomId);
@@ -559,10 +567,11 @@ class ChatController extends Controller
     /**
      * Update user status (heartbeat/presence tracking).
      */
-    public function updateUserStatus(Request $request, int $roomId): JsonResponse
+    public function updateUserStatus(Request $request, $roomId): JsonResponse
     {
         try {
             $userId = $this->getCurrentUserId();
+            $roomId = (int) $roomId; // 确保转换为整数
             
             // 验证房间是否存在
             $room = ChatRoom::active()->findOrFail($roomId);
@@ -618,10 +627,11 @@ class ChatController extends Controller
     /**
      * Get user's presence status in a specific room.
      */
-    public function getUserPresenceStatus(Request $request, int $roomId): JsonResponse
+    public function getUserPresenceStatus(Request $request, $roomId): JsonResponse
     {
         try {
             $userId = $this->getCurrentUserId();
+            $roomId = (int) $roomId; // 确保转换为整数
             
             // 验证房间是否存在
             $room = ChatRoom::active()->findOrFail($roomId);
