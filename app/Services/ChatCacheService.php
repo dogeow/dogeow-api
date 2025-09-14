@@ -29,30 +29,29 @@ class ChatCacheService
     private const PREFIX_ROOM_ACTIVITY = 'chat:room:activity:';
 
     /**
-     * Get cached room list or fetch from database
+     * Get room list directly from database (no cache for real-time online count)
      */
     public function getRoomList(): Collection
     {
-        return Cache::remember(self::PREFIX_ROOM_LIST, self::ROOM_LIST_TTL, function () {
-            return ChatRoom::where('is_active', true)
-                ->with('creator:id,name,email')
-                ->withCount([
-                    'users as online_count' => function ($query) {
-                        $query->where('is_online', true);
-                    },
-                    'messages as message_count'
-                ])
-                ->orderBy('created_at', 'desc')
-                ->get();
-        });
+        return ChatRoom::where('is_active', true)
+            ->with('creator:id,name,email')
+            ->withCount([
+                'users as online_count' => function ($query) {
+                    $query->where('is_online', true);
+                },
+                'messages as message_count'
+            ])
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
-     * Invalidate room list cache
+     * Invalidate room list cache (no longer needed as we removed caching)
      */
     public function invalidateRoomList(): void
     {
-        Cache::forget(self::PREFIX_ROOM_LIST);
+        // No longer needed since we removed room list caching for real-time updates
+        // This method is kept for backward compatibility
     }
 
     /**
