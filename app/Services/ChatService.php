@@ -6,6 +6,8 @@ use App\Models\ChatMessage;
 use App\Models\ChatRoom;
 use App\Models\ChatRoomUser;
 use App\Models\User;
+use App\Events\UserJoinedRoom;
+use App\Events\UserLeftRoom;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -763,8 +765,16 @@ class ChatService
             $user = User::find($userId);
             $this->createSystemMessage($roomId, "{$user->name} joined the room", $userId);
             
+            // 获取当前在线人数
+            $onlineCount = ChatRoomUser::where('room_id', $roomId)
+                ->where('is_online', true)
+                ->count();
+            
             // 广播用户加入事件
             broadcast(new \App\Events\Chat\UserJoined($user, $roomId));
+            
+            // 广播在线人数变化事件
+            broadcast(new UserJoinedRoom($roomId, $userId, $user->name, $onlineCount));
             
             DB::commit();
             
@@ -807,8 +817,16 @@ class ChatService
             $user = User::find($userId);
             $this->createSystemMessage($roomId, "{$user->name} left the room", $userId);
             
+            // 获取当前在线人数
+            $onlineCount = ChatRoomUser::where('room_id', $roomId)
+                ->where('is_online', true)
+                ->count();
+            
             // 广播用户离开事件
             broadcast(new \App\Events\Chat\UserLeft($user, $roomId));
+            
+            // 广播在线人数变化事件
+            broadcast(new UserLeftRoom($roomId, $userId, $user->name, $onlineCount));
             
             DB::commit();
             
