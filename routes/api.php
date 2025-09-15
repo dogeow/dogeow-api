@@ -30,6 +30,8 @@ Route::post('/broadcasting/auth', function (\Illuminate\Http\Request $request) {
     return response()->json(['auth' => 'success']);
 });
 Route::get('/client-info', [App\Http\Controllers\Api\ClientInfoController::class, 'getClientInfo']);
+Route::get('/client-basic-info', [App\Http\Controllers\Api\ClientInfoController::class, 'getBasicInfo']);
+Route::get('/client-location-info', [App\Http\Controllers\Api\ClientInfoController::class, 'getLocationInfo']);
 Route::prefix('musics')->group(function () {
     Route::get('/', [App\Http\Controllers\Api\MusicController::class, 'index']);
     Route::get('/{filename}', [App\Http\Controllers\Api\MusicController::class, 'download']);
