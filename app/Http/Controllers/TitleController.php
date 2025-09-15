@@ -20,20 +20,9 @@ class TitleController extends Controller
             return response()->json(['error' => '缺少url参数'], 400);
         }
 
-        // 检查缓存
-        if ($cachedData = $this->cacheService->get($url)) {
-            if (isset($cachedData['error'])) {
-                return response()->json(
-                    $cachedData,
-                    $cachedData['status_code'] ?? 500
-                );
-            }
-            return response()->json($cachedData);
-        }
-
         try {
             $data = $this->webPageService->fetchContent($url);
-            $this->cacheService->putSuccess($url, $data);
+            
             return response()->json($data);
         } catch (\Exception $e) {
             $errorData = [
