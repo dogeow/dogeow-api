@@ -17,6 +17,18 @@ Broadcast::channel('chat.room.{roomId}', function ($user, $roomId) {
     ];
 });
 
+// Presence channels for real-time user status tracking
+Broadcast::channel('chat.room.{roomId}.presence', function ($user, $roomId) {
+    // Users can join presence channels if they are authenticated
+    // This allows real-time tracking of who is currently in the room
+    return [
+        'id' => $user->id,
+        'name' => $user->name,
+        'email' => $user->email,
+        'avatar' => $user->avatar ?? null,
+    ];
+});
+
 // Private user channels for notifications
 Broadcast::channel('user.{userId}', function ($user, $userId) {
     return (int) $user->id === (int) $userId;
