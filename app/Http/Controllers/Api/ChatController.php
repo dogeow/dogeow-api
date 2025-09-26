@@ -36,22 +36,13 @@ class ChatController extends Controller
     }
 
     /**
-     * 获取当前认证用户ID
-     */
-    private function getCurrentUserId(): int
-    {
-        return Auth::id();
-    }
-
-    /**
      * 判断用户是否在房间
      */
     private function isUserInRoom(int $roomId, int $userId): bool
     {
-        return ChatRoomUser::where([
-            ['room_id', '=', $roomId],
-            ['user_id', '=', $userId]
-        ])->exists();
+        return ChatRoomUser::where('room_id', $roomId)
+            ->where('user_id', $userId)
+            ->exists();
     }
 
     /**
@@ -59,41 +50,9 @@ class ChatController extends Controller
      */
     private function fetchRoomUser(int $roomId, int $userId): ?ChatRoomUser
     {
-        return ChatRoomUser::where([
-            ['room_id', '=', $roomId],
-            ['user_id', '=', $userId]
-        ])->first();
-    }
-
-    /**
-     * 分页参数校验
-     */
-    private function getPagination(Request $request): array
-    {
-        $perPage = (int) $request->get('per_page', self::DEFAULT_PAGE_SIZE);
-        $perPage = max(1, min($perPage, self::MAX_PAGE_SIZE));
-        $page = max(1, (int) $request->get('page', 1));
-        return [$page, $perPage];
-    }
-
-    /**
-     * 错误响应
-     */
-    private function fail(string $msg, array $errors = [], int $code = 422): JsonResponse
-    {
-        $data = ['message' => $msg];
-        if ($errors) $data['errors'] = $errors;
-        return response()->json($data, $code);
-    }
-
-    /**
-     * 成功响应
-     */
-    private function ok(array $data = [], string $msg = 'Success', int $code = 200): JsonResponse
-    {
-        $resp = ['message' => $msg];
-        if ($data) $resp = array_merge($resp, $data);
-        return response()->json($resp, $code);
+        return ChatRoomUser::where('room_id', $roomId)
+            ->where('user_id', $userId)
+            ->first();
     }
 
     /**
@@ -121,13 +80,13 @@ class ChatController extends Controller
     {
         try {
             $rooms = $this->chatService->getActiveRooms();
-            return $this->ok(['rooms' => $rooms], 'Rooms retrieved successfully');
+            return $this->success(['rooms' => $rooms], 'Rooms retrieved successfully');
         } catch (\Throwable $e) {
             Log::error('Failed to retrieve rooms', [
                 'error' => $e->getMessage(),
                 'user_id' => $this->getCurrentUserId()
             ]);
-            return $this->fail('Failed to retrieve rooms', [], 500);
+            return $this->error('Failed to retrieve rooms', [], 500);
         }
     }
 
@@ -143,7 +102,7 @@ class ChatController extends Controller
             ], $this->getCurrentUserId());
 
             if (empty($result['success'])) {
-                return $this->fail('Failed to create room', $result['errors'] ?? []);
+                return $this->error('Failed to create room', $result['errors'] ?? []);
             }
 
             Log::info('Room created', [
@@ -152,7 +111,7 @@ class ChatController extends Controller
                 'created_by' => $this->getCurrentUserId()
             ]);
 
-            return $this->ok(['room' => $result['room']], 'Room created successfully', 201);
+            return $this->success(['room' => $result['room']], 'Room created successfully', 201);
         } catch (\Throwable $e) {
             Log::error('Failed to create room', [
                 'error' => $e->getMessage(),

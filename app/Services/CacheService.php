@@ -4,29 +4,107 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Cache;
 
-class CacheService
+class CacheService extends BaseService
 {
-    private const CACHE_PREFIX = 'title_favicon_';
-    private const SUCCESS_CACHE_TTL = 86400; // 24 hours
-    private const ERROR_CACHE_TTL = 1800; // 30 minutes
+    private const DEFAULT_TTL = 3600; // 1 hour
+    private const SUCCESS_TTL = 86400; // 24 hours
+    private const ERROR_TTL = 1800; // 30 minutes
 
-    public function get(string $url): ?array
+    /**
+     * 获取缓存数据
+     */
+    public function get(string $key, string $prefix = ''): mixed
     {
-        return Cache::get($this->getCacheKey($url));
+        return Cache::get($this->buildCacheKey($key, $prefix));
     }
 
-    public function putSuccess(string $url, array $data): void
+    /**
+     * 设置缓存数据
+     */
+    public function put(string $key, mixed $data, int $ttl = self::DEFAULT_TTL, string $prefix = ''): void
     {
-        Cache::put($this->getCacheKey($url), $data, now()->addSeconds(self::SUCCESS_CACHE_TTL));
+        Cache::put($this->buildCacheKey($key, $prefix), $data, now()->addSeconds($ttl));
     }
 
-    public function putError(string $url, array $errorData): void
+    /**
+     * 设置成功缓存（长期）
+     */
+    public function putSuccess(string $key, mixed $data, string $prefix = ''): void
     {
-        Cache::put($this->getCacheKey($url), $errorData, now()->addSeconds(self::ERROR_CACHE_TTL));
+        $this->put($key, $data, self::SUCCESS_TTL, $prefix);
     }
 
-    private function getCacheKey(string $url): string
+    /**
+     * 设置错误缓存（短期）
+     */
+    public function putError(string $key, mixed $data, string $prefix = ''): void
     {
-        return self::CACHE_PREFIX . md5($url);
+        $this->put($key, $data, self::ERROR_TTL, $prefix);
+    }
+
+    /**
+     * 删除缓存
+     */
+    public function forget(string $key, string $prefix = ''): void
+    {
+        Cache::forget($this->buildCacheKey($key, $prefix));
+    }
+
+    /**
+     * 批量删除缓存（通过前缀）
+     */
+    public function forgetByPrefix(string $prefix): void
+    {
+        $pattern = $this->buildCacheKey('*', $prefix);
+        $keys = Cache::getRedis()->keys($pattern);
+        
+        if (!empty($keys)) {
+            Cache::getRedis()->del($keys);
+        }
+    }
+
+    /**
+     * 记住缓存（如果不存在则执行回调并缓存结果）
+     */
+    public function remember(string $key, callable $callback, int $ttl = self::DEFAULT_TTL, string $prefix = ''): mixed
+    {
+        return Cache::remember(
+            $this->buildCacheKey($key, $prefix),
+            now()->addSeconds($ttl),
+            $callback
+        );
+    }
+
+    /**
+     * 构建缓存键
+     */
+    private function buildCacheKey(string $key, string $prefix = ''): string
+    {
+        $prefix = $prefix ?: 'app';
+        return "{$prefix}:" . md5($key);
+    }
+
+    /**
+     * 获取标题和图标缓存（保持向后兼容）
+     */
+    public function getTitleFavicon(string $url): ?array
+    {
+        return $this->get($url, 'title_favicon');
+    }
+
+    /**
+     * 设置标题和图标成功缓存
+     */
+    public function putTitleFaviconSuccess(string $url, array $data): void
+    {
+        $this->putSuccess($url, $data, 'title_favicon');
+    }
+
+    /**
+     * 设置标题和图标错误缓存
+     */
+    public function putTitleFaviconError(string $url, array $errorData): void
+    {
+        $this->putError($url, $errorData, 'title_favicon');
     }
 } 

@@ -4,83 +4,182 @@ namespace App\Services;
 
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Imagick\Driver;
-use Illuminate\Support\Facades\Log;
 
-class ImageProcessingService
+class ImageProcessingService extends BaseService
 {
     private ImageManager $manager;
-    private const THUMBNAIL_MIN_SIZE = 200;
-    private const COMPRESSED_MAX_SIZE = 800;
+    
+    // 图片尺寸配置
+    private function getThumbnailSize(): int
+    {
+        return \App\Utils\Constants::thumbnailSize();
+    }
+
+    private function getCompressedMaxSize(): int
+    {
+        return \App\Utils\Constants::compressedMaxSize();
+    }
+
+    private function getQualityCompressed(): int
+    {
+        return \App\Utils\Constants::image('quality')['compressed'];
+    }
+
+    private function getQualityThumbnail(): int
+    {
+        return \App\Utils\Constants::image('quality')['thumbnail'];
+    }
 
     public function __construct()
     {
         $this->manager = new ImageManager(new Driver());
     }
 
+    /**
+     * 处理图片（生成缩略图和压缩图）
+     */
     public function processImage(string $originPath, string $compressedPath): array
     {
         try {
+            if (!file_exists($originPath)) {
+                return $this->error('Original image file not found');
+            }
+
             $img = $this->manager->read($originPath);
-            
-            // 处理缩略图
-            $this->createThumbnail($originPath);
-            
-            // 处理压缩图
-            $this->createCompressedImage($originPath, $compressedPath);
-            
-            return [
-                'success' => true,
+            $dimensions = [
                 'width' => $img->width(),
                 'height' => $img->height()
             ];
-        } catch (\Exception $e) {
-            Log::error('图片处理失败: ' . $e->getMessage(), [
-                'file' => $originPath,
-                'trace' => $e->getTraceAsString()
+            
+            // 生成缩略图
+            $thumbnailResult = $this->createThumbnail($originPath);
+            if (!$thumbnailResult['success']) {
+                return $thumbnailResult;
+            }
+            
+            // 生成压缩图
+            $compressedResult = $this->createCompressedImage($originPath, $compressedPath);
+            if (!$compressedResult['success']) {
+                return $compressedResult;
+            }
+            
+            $this->logInfo('Image processed successfully', [
+                'original_path' => $originPath,
+                'dimensions' => $dimensions
             ]);
             
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
+            return $this->success($dimensions, 'Image processed successfully');
+            
+        } catch (\Throwable $e) {
+            return $this->handleException($e, 'process image');
         }
     }
 
-    private function createThumbnail(string $originPath): void
+    /**
+     * 创建缩略图
+     */
+    private function createThumbnail(string $originPath): array
     {
-        $thumbnail = $this->manager->read($originPath);
-        $thumbWidth = $thumbnail->width();
-        $thumbHeight = $thumbnail->height();
+        try {
+            $thumbnail = $this->manager->read($originPath);
+            $originalWidth = $thumbnail->width();
+            $originalHeight = $thumbnail->height();
 
-        if ($thumbWidth < self::THUMBNAIL_MIN_SIZE && $thumbHeight < self::THUMBNAIL_MIN_SIZE) {
-            // 原图宽高都小于200，不缩放
-        } elseif ($thumbWidth <= $thumbHeight) {
-            // 高图或正方形，宽缩放到200
-            $thumbnail->scale(width: self::THUMBNAIL_MIN_SIZE);
-        } else {
-            // 宽图，高缩放到200
-            $thumbnail->scale(height: self::THUMBNAIL_MIN_SIZE);
-        }
-
-        $thumbnailPath = str_replace('-origin.', '-thumb.', $originPath);
-        
-        $thumbnail->save($thumbnailPath);
-    }
-
-    private function createCompressedImage(string $originPath, string $compressedPath): void
-    {
-        $compressed = $this->manager->read($originPath);
-        $width = $compressed->width();
-        $height = $compressed->height();
-
-        if ($width > self::COMPRESSED_MAX_SIZE || $height > self::COMPRESSED_MAX_SIZE) {
-            if ($width >= $height) {
-                $compressed->scale(width: self::COMPRESSED_MAX_SIZE);
+            // 如果原图尺寸已经很小，则不需要缩放
+            $thumbnailSize = $this->getThumbnailSize();
+            if ($this->shouldSkipResize($originalWidth, $originalHeight, $thumbnailSize)) {
+                $thumbnail = $thumbnail; // 保持原尺寸
             } else {
-                $compressed->scale(height: self::COMPRESSED_MAX_SIZE);
+                $thumbnail = $this->resizeImage($thumbnail, $thumbnailSize);
             }
+
+            $thumbnailPath = $this->getThumbnailPath($originPath);
+            $thumbnail->save($thumbnailPath, quality: $this->getQualityThumbnail());
+            
+            return $this->success(['thumbnail_path' => $thumbnailPath]);
+            
+        } catch (\Throwable $e) {
+            return $this->handleException($e, 'create thumbnail');
         }
-        
-        $compressed->save($compressedPath);
+    }
+
+    /**
+     * 创建压缩图
+     */
+    private function createCompressedImage(string $originPath, string $compressedPath): array
+    {
+        try {
+            $compressed = $this->manager->read($originPath);
+            $originalWidth = $compressed->width();
+            $originalHeight = $compressed->height();
+
+            // 如果需要压缩尺寸
+            $compressedMaxSize = $this->getCompressedMaxSize();
+            if ($originalWidth > $compressedMaxSize || $originalHeight > $compressedMaxSize) {
+                $compressed = $this->resizeImage($compressed, $compressedMaxSize);
+            }
+            
+            $compressed->save($compressedPath, quality: $this->getQualityCompressed());
+            
+            return $this->success(['compressed_path' => $compressedPath]);
+            
+        } catch (\Throwable $e) {
+            return $this->handleException($e, 'create compressed image');
+        }
+    }
+
+    /**
+     * 调整图片尺寸（保持宽高比）
+     */
+    private function resizeImage($image, int $maxSize)
+    {
+        $width = $image->width();
+        $height = $image->height();
+
+        if ($width >= $height) {
+            return $image->scale(width: $maxSize);
+        } else {
+            return $image->scale(height: $maxSize);
+        }
+    }
+
+    /**
+     * 判断是否应该跳过调整尺寸
+     */
+    private function shouldSkipResize(int $width, int $height, int $targetSize): bool
+    {
+        return $width <= $targetSize && $height <= $targetSize;
+    }
+
+    /**
+     * 获取缩略图路径
+     */
+    private function getThumbnailPath(string $originPath): string
+    {
+        return str_replace('-origin.', '-thumb.', $originPath);
+    }
+
+    /**
+     * 获取图片信息
+     */
+    public function getImageInfo(string $imagePath): array
+    {
+        try {
+            if (!file_exists($imagePath)) {
+                return $this->error('Image file not found');
+            }
+
+            $img = $this->manager->read($imagePath);
+            
+            return $this->success([
+                'width' => $img->width(),
+                'height' => $img->height(),
+                'size' => filesize($imagePath),
+                'mime_type' => mime_content_type($imagePath)
+            ]);
+            
+        } catch (\Throwable $e) {
+            return $this->handleException($e, 'get image info');
+        }
     }
 } 

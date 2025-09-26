@@ -81,14 +81,11 @@ class User extends Authenticatable
      */
     public function hasRole(string $role): bool
     {
-        switch ($role) {
-            case 'admin':
-                return $this->isAdmin();
-            case 'moderator':
-                return $this->isAdmin(); // For now, only admins are moderators
-            default:
-                return false;
-        }
+        return match ($role) {
+            'admin' => $this->isAdmin(),
+            'moderator' => $this->isAdmin(), // For now, only admins are moderators
+            default => false,
+        };
     }
 
     /**
@@ -97,5 +94,78 @@ class User extends Authenticatable
     public function items()
     {
         return $this->hasMany(Item::class);
+    }
+
+    /**
+     * Get the notes that belong to the user.
+     */
+    public function notes()
+    {
+        return $this->hasMany(\App\Models\Note\Note::class);
+    }
+
+    /**
+     * Get the chat rooms created by the user.
+     */
+    public function createdRooms()
+    {
+        return $this->hasMany(ChatRoom::class, 'created_by');
+    }
+
+    /**
+     * Get the chat rooms the user has joined.
+     */
+    public function joinedRooms()
+    {
+        return $this->belongsToMany(ChatRoom::class, 'chat_room_users', 'user_id', 'room_id')
+            ->withPivot(['joined_at', 'last_seen_at', 'is_online'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the chat messages sent by the user.
+     */
+    public function chatMessages()
+    {
+        return $this->hasMany(ChatMessage::class);
+    }
+
+    /**
+     * Scope to get only active users.
+     */
+    public function scopeActive($query)
+    {
+        return $query->whereNotNull('email_verified_at');
+    }
+
+    /**
+     * Get user's full name or email if name is not available.
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->name ?: $this->email;
+    }
+
+    /**
+     * Get user's initials for avatar.
+     */
+    public function getInitialsAttribute(): string
+    {
+        $name = $this->name ?: $this->email;
+        $words = explode(' ', $name);
+        
+        if (count($words) >= 2) {
+            return strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1));
+        }
+        
+        return strtoupper(substr($name, 0, 2));
+    }
+
+    /**
+     * Check if user is online in any chat room.
+     */
+    public function isOnlineInAnyRoom(): bool
+    {
+        return $this->joinedRooms()->wherePivot('is_online', true)->exists();
     }
 }
