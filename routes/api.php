@@ -70,3 +70,8 @@ require base_path('routes/api/nav.php');
 
 // 公开的工具路由
 require base_path('routes/api/tools.php');
+
+// Wiki 路由（包含公开和管理员路由）
+Route::prefix('wiki')->group(function () {
+    require base_path('routes/api/wiki.php');
+});
