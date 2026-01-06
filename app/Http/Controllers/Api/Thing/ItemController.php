@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Spatie\QueryBuilder\QueryBuilder;
 use Spatie\QueryBuilder\AllowedFilter;
+use Illuminate\Support\Facades\Log;
 
 class ItemController extends Controller
 {
@@ -184,11 +185,14 @@ class ItemController extends Controller
     }
 
     /**
-     * 搜索物品
+     * 增强搜索物品功能
+     * 支持搜索名称、描述、标签、分类
+     * 记录搜索历史
      */
     public function search(Request $request)
     {
         $searchTerm = $request->get('q', '');
+        $limit = $request->get('limit', 10);
         
         if (empty($searchTerm)) {
             return response()->json([
@@ -198,20 +202,256 @@ class ItemController extends Controller
             ]);
         }
         
+        // 增强搜索：支持名称、描述、标签、分类
         $query = Item::with(self::ITEM_RELATIONS)
             ->where(function ($q) use ($searchTerm) {
+                // 搜索名称和描述
                 $q->where('name', 'like', "%{$searchTerm}%")
-                  ->orWhere('description', 'like', "%{$searchTerm}%");
+                  ->orWhere('description', 'like', "%{$searchTerm}%")
+                  // 搜索分类名称
+                  ->orWhereHas('category', function($subQ) use ($searchTerm) {
+                      $subQ->where('name', 'like', "%{$searchTerm}%");
+                  })
+                  // 搜索标签名称
+                  ->orWhereHas('tags', function($subQ) use ($searchTerm) {
+                      $subQ->where('name', 'like', "%{$searchTerm}%");
+                  })
+                  // 搜索位置信息
+                  ->orWhereHas('spot', function($subQ) use ($searchTerm) {
+                      $subQ->where('name', 'like', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('spot.room', function($subQ) use ($searchTerm) {
+                      $subQ->where('name', 'like', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('spot.room.area', function($subQ) use ($searchTerm) {
+                      $subQ->where('name', 'like', "%{$searchTerm}%");
+                  });
             });
         
         $this->buildVisibilityQuery($query);
         
-        $results = $query->limit(10)->get();
+        $results = $query->limit($limit)->get();
+        
+        // 记录搜索历史
+        $this->recordSearchHistory($searchTerm, $results->count(), $request);
         
         return response()->json([
             'search_term' => $searchTerm,
             'count' => $results->count(),
             'results' => $results
+        ]);
+    }
+
+    /**
+     * 获取搜索建议（基于搜索历史）
+     */
+    public function searchSuggestions(Request $request)
+    {
+        $query = $request->get('q', '');
+        $limit = $request->get('limit', 5);
+        
+        if (empty($query)) {
+            return response()->json([]);
+        }
+        
+        // 基于用户搜索历史的建议
+        $suggestions = DB::table('thing_search_history')
+            ->select('search_term', DB::raw('COUNT(*) as frequency'))
+            ->where('search_term', 'like', "%{$query}%")
+            ->when(Auth::check(), function($q) {
+                return $q->where('user_id', Auth::id());
+            })
+            ->groupBy('search_term')
+            ->orderBy('frequency', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get()
+            ->pluck('search_term');
+        
+        return response()->json($suggestions);
+    }
+
+    /**
+     * 获取搜索历史
+     */
+    public function searchHistory(Request $request)
+    {
+        if (!Auth::check()) {
+            return response()->json([]);
+        }
+        
+        $limit = $request->get('limit', 10);
+        
+        $history = DB::table('thing_search_history')
+            ->select('search_term', DB::raw('MAX(created_at) as last_searched'), DB::raw('COUNT(*) as search_count'))
+            ->where('user_id', Auth::id())
+            ->groupBy('search_term')
+            ->orderBy('last_searched', 'desc')
+            ->limit($limit)
+            ->get();
+        
+        return response()->json($history);
+    }
+
+    /**
+     * 清除搜索历史
+     */
+    public function clearSearchHistory(Request $request)
+    {
+        if (!Auth::check()) {
+            return response()->json(['message' => '未登录'], 401);
+        }
+        
+        DB::table('thing_search_history')
+            ->where('user_id', Auth::id())
+            ->delete();
+        
+        return response()->json(['message' => '搜索历史已清除']);
+    }
+
+    /**
+     * 记录搜索历史
+     */
+    private function recordSearchHistory(string $searchTerm, int $resultsCount, Request $request): void
+    {
+        try {
+            DB::table('thing_search_history')->insert([
+                'user_id' => Auth::id(),
+                'search_term' => $searchTerm,
+                'results_count' => $resultsCount,
+                'filters' => json_encode($request->except(['q', 'limit'])),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (\Exception $e) {
+            // 记录失败不影响主要功能
+            Log::warning('记录搜索历史失败: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 获取物品的关联列表
+     */
+    public function relations(Item $item)
+    {
+        if (!$this->canViewItem($item)) {
+            return response()->json(['message' => '无权查看此物品'], 403);
+        }
+        
+        $relations = [
+            'related_items' => $item->relatedItems()->with(self::ITEM_RELATIONS)->get(),
+            'relating_items' => $item->relatingItems()->with(self::ITEM_RELATIONS)->get(),
+        ];
+        
+        return response()->json($relations);
+    }
+
+    /**
+     * 添加物品关联
+     */
+    public function addRelation(Request $request, Item $item)
+    {
+        if (!$this->canModifyItem($item)) {
+            return response()->json(['message' => '无权修改此物品'], 403);
+        }
+        
+        $request->validate([
+            'related_item_id' => 'required|exists:thing_items,id',
+            'relation_type' => 'required|in:accessory,replacement,related,bundle,parent,child',
+            'description' => 'nullable|string|max:500',
+        ]);
+        
+        $relatedItemId = $request->input('related_item_id');
+        
+        // 检查不能关联自己
+        if ($item->id === $relatedItemId) {
+            return response()->json(['message' => '不能关联自己'], 400);
+        }
+        
+        // 检查关联的物品是否存在且有权限访问
+        $relatedItem = Item::find($relatedItemId);
+        if (!$this->canViewItem($relatedItem)) {
+            return response()->json(['message' => '无权访问关联的物品'], 403);
+        }
+        
+        try {
+            $item->addRelation(
+                $relatedItemId,
+                $request->input('relation_type', 'related'),
+                $request->input('description')
+            );
+            
+            return response()->json([
+                'message' => '关联添加成功',
+                'relations' => $item->relatedItems()->with(self::ITEM_RELATIONS)->get()
+            ], 201);
+        } catch (\Exception $e) {
+            if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                return response()->json(['message' => '该关联已存在'], 400);
+            }
+            
+            return response()->json(['message' => '添加关联失败: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * 删除物品关联
+     */
+    public function removeRelation(Item $item, int $relatedItemId)
+    {
+        if (!$this->canModifyItem($item)) {
+            return response()->json(['message' => '无权修改此物品'], 403);
+        }
+        
+        $item->removeRelation($relatedItemId);
+        
+        return response()->json([
+            'message' => '关联删除成功',
+            'relations' => $item->relatedItems()->with(self::ITEM_RELATIONS)->get()
+        ]);
+    }
+
+    /**
+     * 批量添加关联
+     */
+    public function batchAddRelations(Request $request, Item $item)
+    {
+        if (!$this->canModifyItem($item)) {
+            return response()->json(['message' => '无权修改此物品'], 403);
+        }
+        
+        $request->validate([
+            'relations' => 'required|array',
+            'relations.*.related_item_id' => 'required|exists:thing_items,id',
+            'relations.*.relation_type' => 'required|in:accessory,replacement,related,bundle,parent,child',
+            'relations.*.description' => 'nullable|string|max:500',
+        ]);
+        
+        $successCount = 0;
+        $errors = [];
+        
+        foreach ($request->input('relations') as $relation) {
+            try {
+                $item->addRelation(
+                    $relation['related_item_id'],
+                    $relation['relation_type'],
+                    $relation['description'] ?? null
+                );
+                $successCount++;
+            } catch (\Exception $e) {
+                $errors[] = [
+                    'related_item_id' => $relation['related_item_id'],
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+        
+        return response()->json([
+            'message' => "成功添加 {$successCount} 个关联",
+            'success_count' => $successCount,
+            'errors' => $errors,
+            'relations' => $item->relatedItems()->with(self::ITEM_RELATIONS)->get()
         ]);
     }
 

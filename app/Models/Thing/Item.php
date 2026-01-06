@@ -125,4 +125,86 @@ class Item extends Model
         return $this->belongsToMany(Tag::class, 'thing_item_tag', 'item_id', 'thing_tag_id')
             ->withTimestamps();
     }
+
+    /**
+     * 获取此物品关联的所有物品
+     */
+    public function relatedItems()
+    {
+        return $this->belongsToMany(
+            Item::class,
+            'thing_item_relations',
+            'item_id',
+            'related_item_id'
+        )
+        ->withPivot('relation_type', 'description')
+        ->withTimestamps();
+    }
+
+    /**
+     * 获取关联到此物品的所有物品（反向关系）
+     */
+    public function relatingItems()
+    {
+        return $this->belongsToMany(
+            Item::class,
+            'thing_item_relations',
+            'related_item_id',
+            'item_id'
+        )
+        ->withPivot('relation_type', 'description')
+        ->withTimestamps();
+    }
+
+    /**
+     * 获取所有关联（包括正向和反向）
+     */
+    public function allRelations()
+    {
+        // 合并正向和反向关联
+        $related = $this->relatedItems()->get();
+        $relating = $this->relatingItems()->get();
+        
+        return $related->merge($relating)->unique('id');
+    }
+
+    /**
+     * 按关联类型获取关联物品
+     * 
+     * @param string $type 关联类型：accessory, replacement, related, bundle, parent, child
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getRelationsByType(string $type)
+    {
+        return $this->relatedItems()
+            ->wherePivot('relation_type', $type)
+            ->get();
+    }
+
+    /**
+     * 添加物品关联
+     * 
+     * @param int $relatedItemId 关联物品ID
+     * @param string $type 关联类型
+     * @param string|null $description 关联描述
+     * @return void
+     */
+    public function addRelation(int $relatedItemId, string $type = 'related', ?string $description = null)
+    {
+        $this->relatedItems()->attach($relatedItemId, [
+            'relation_type' => $type,
+            'description' => $description,
+        ]);
+    }
+
+    /**
+     * 移除物品关联
+     * 
+     * @param int $relatedItemId 关联物品ID
+     * @return void
+     */
+    public function removeRelation(int $relatedItemId)
+    {
+        $this->relatedItems()->detach($relatedItemId);
+    }
 } 
