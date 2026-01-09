@@ -37,7 +37,7 @@ return new class extends Migration
                 ->references('id')
                 ->on('thing_items')
                 ->onDelete('cascade');
-            
+
             $table->foreign('related_item_id')
                 ->references('id')
                 ->on('thing_items')
@@ -47,9 +47,9 @@ return new class extends Migration
             $table->index('item_id');
             $table->index('related_item_id');
             $table->index('relation_type');
-            
+
             // 唯一约束：同一对物品的同一类型关联只能存在一次
-            $table->unique(['item_id', 'related_item_id', 'relation_type']);
+            $table->unique(['item_id', 'related_item_id', 'relation_type'], 'tir_item_related_type_unique');
         });
     }
 
