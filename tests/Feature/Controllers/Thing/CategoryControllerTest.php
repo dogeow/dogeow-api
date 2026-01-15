@@ -542,7 +542,7 @@ class CategoryControllerTest extends TestCase
 
     public function test_unauthenticated_user_cannot_access_categories()
     {
-        Auth::logout();
+        Auth::forgetGuards();
 
         $response = $this->getJson('/api/things/categories');
 
@@ -551,7 +551,7 @@ class CategoryControllerTest extends TestCase
 
     public function test_unauthenticated_user_cannot_create_category()
     {
-        Auth::logout();
+        Auth::forgetGuards();
 
         $data = ['name' => 'Test Category'];
         $response = $this->postJson('/api/things/categories', $data);
@@ -561,7 +561,7 @@ class CategoryControllerTest extends TestCase
 
     public function test_unauthenticated_user_cannot_update_category()
     {
-        Auth::logout();
+        Auth::forgetGuards();
 
         $category = ItemCategory::factory()->create(['user_id' => $this->user->id]);
         $data = ['name' => 'Updated Category'];
@@ -573,7 +573,7 @@ class CategoryControllerTest extends TestCase
 
     public function test_unauthenticated_user_cannot_delete_category()
     {
-        Auth::logout();
+        Auth::forgetGuards();
 
         $category = ItemCategory::factory()->create(['user_id' => $this->user->id]);
 

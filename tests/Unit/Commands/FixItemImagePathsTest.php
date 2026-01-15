@@ -261,10 +261,10 @@ class FixItemImagePathsTest extends TestCase
         
         $this->assertEquals(0, $result);
         
-        // 验证数据库记录没有改变
+        // 验证有效图片的路径被更新，无效图片的路径保持不变
         $validImage->refresh();
         $invalidImage->refresh();
-        $this->assertEquals('old/path/valid.jpg', $validImage->path);
+        $this->assertEquals("items/{$item->id}/valid.jpg", $validImage->path);
         $this->assertEquals('old/path/invalid.jpg', $invalidImage->path);
     }
 

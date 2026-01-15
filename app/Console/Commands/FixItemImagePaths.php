@@ -43,9 +43,15 @@ class FixItemImagePaths extends Command
                     $newPath = "items/{$itemId}/{$filename}.{$extension}";
                     $newOriginPath = "items/{$itemId}/origin-{$filename}.{$extension}";
                     
+                    // 如果路径已经是新格式，跳过
+                    if ($originalPath === $newPath) {
+                        $processedCount++;
+                        $this->output->progressAdvance();
+                        continue;
+                    }
+                    
                     // 检查文件是否存在
-                    $fullPath = storage_path('app/public/' . $newPath);
-                    if (!file_exists($fullPath)) {
+                    if (!Storage::disk('public')->exists($newPath)) {
                         $this->error("文件不存在: {$newPath}");
                         $errorCount++;
                         continue;

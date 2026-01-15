@@ -92,4 +92,43 @@ class LocationRequestTest extends TestCase
 
         $this->assertEquals('所选房间不存在', $messages['room_id.exists']);
     }
+
+    public function test_rules_for_rooms_path_includes_area_id()
+    {
+        // Mock request with rooms path
+        $request = LocationRequest::create('/api/rooms', 'POST', ['name' => 'Test Room']);
+        $rules = $request->rules();
+
+        $this->assertArrayHasKey('area_id', $rules);
+        $this->assertStringContainsString('required', $rules['area_id']);
+    }
+
+    public function test_rules_for_spots_path_includes_room_id()
+    {
+        // Mock request with spots path
+        $request = LocationRequest::create('/api/spots', 'POST', ['name' => 'Test Spot']);
+        $rules = $request->rules();
+
+        $this->assertArrayHasKey('room_id', $rules);
+        $this->assertStringContainsString('required', $rules['room_id']);
+    }
+
+    public function test_rules_for_update_uses_sometimes()
+    {
+        // Mock PUT request
+        $request = LocationRequest::create('/api/rooms/1', 'PUT', ['name' => 'Updated Room']);
+        $rules = $request->rules();
+
+        $this->assertStringContainsString('sometimes', $rules['name']);
+    }
+
+    public function test_rules_for_areas_path_does_not_include_area_id()
+    {
+        // Mock request with areas path
+        $request = LocationRequest::create('/api/areas', 'POST', ['name' => 'Test Area']);
+        $rules = $request->rules();
+
+        $this->assertArrayNotHasKey('area_id', $rules);
+        $this->assertArrayNotHasKey('room_id', $rules);
+    }
 } 

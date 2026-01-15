@@ -751,6 +751,22 @@ class ChatService
         }
         
         try {
+            // 检查用户是否已经是成员
+            $existingRoomUser = ChatRoomUser::where('room_id', $roomId)
+                ->where('user_id', $userId)
+                ->first();
+            
+            if ($existingRoomUser) {
+                // 用户已经是成员，只更新在线状态
+                $result = $this->updateUserStatus($roomId, $userId, true);
+                return [
+                    'success' => true,
+                    'room_user' => $result['room_user'],
+                    'room' => $room,
+                    'message' => 'User is already a member of this room'
+                ];
+            }
+            
             DB::beginTransaction();
             
             // 更新或创建用户在线状态
@@ -803,6 +819,18 @@ class ChatService
     public function leaveRoom(int $roomId, int $userId): array
     {
         try {
+            // 检查用户是否是成员
+            $roomUser = ChatRoomUser::where('room_id', $roomId)
+                ->where('user_id', $userId)
+                ->first();
+            
+            if (!$roomUser) {
+                return [
+                    'success' => false,
+                    'message' => 'User is not a member of this room'
+                ];
+            }
+            
             DB::beginTransaction();
             
             // 将用户状态更新为离线
@@ -928,7 +956,7 @@ class ChatService
             
             return [
                 'success' => true,
-                'cleaned_users' => $cleanedCount,
+                'cleaned_count' => $cleanedCount,
                 'message' => "Cleaned up {$cleanedCount} inactive users"
             ];
             

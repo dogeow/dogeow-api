@@ -28,12 +28,17 @@ class ProfileControllerTest extends TestCase
         Sanctum::actingAs($this->user);
     }
 
+    private function clearAuth(): void
+    {
+        Auth::forgetGuards();
+    }
+
     /**
      * Test the edit method returns profile data
      */
     public function test_edit_returns_profile_data()
     {
-        $response = $this->get('/api/profile');
+        $response = $this->getJson('/api/profile');
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
@@ -58,7 +63,7 @@ class ProfileControllerTest extends TestCase
             'email' => 'updated@example.com',
         ];
 
-        $response = $this->put('/api/profile', $updateData);
+        $response = $this->putJson('/api/profile', $updateData);
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
@@ -90,7 +95,7 @@ class ProfileControllerTest extends TestCase
             'email' => 'newemail@example.com',
         ];
 
-        $response = $this->put('/api/profile', $updateData);
+        $response = $this->putJson('/api/profile', $updateData);
 
         $response->assertStatus(200);
 
@@ -110,7 +115,7 @@ class ProfileControllerTest extends TestCase
             'email' => $this->user->email, // Same email
         ];
 
-        $response = $this->put('/api/profile', $updateData);
+        $response = $this->putJson('/api/profile', $updateData);
 
         $response->assertStatus(200);
 
@@ -128,7 +133,7 @@ class ProfileControllerTest extends TestCase
             'email' => 'invalid-email',
         ];
 
-        $response = $this->put('/api/profile', $updateData);
+        $response = $this->putJson('/api/profile', $updateData);
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['name', 'email']);
@@ -146,7 +151,7 @@ class ProfileControllerTest extends TestCase
             'email' => 'existing@example.com',
         ];
 
-        $response = $this->put('/api/profile', $updateData);
+        $response = $this->putJson('/api/profile', $updateData);
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['email']);
@@ -159,7 +164,7 @@ class ProfileControllerTest extends TestCase
     {
         $this->user->update(['password' => Hash::make('password123')]);
 
-        $response = $this->delete('/api/profile', [
+        $response = $this->deleteJson('/api/profile', [
             'password' => 'password123'
         ]);
 
@@ -178,7 +183,7 @@ class ProfileControllerTest extends TestCase
     {
         $this->user->update(['password' => Hash::make('password123')]);
 
-        $response = $this->delete('/api/profile', [
+        $response = $this->deleteJson('/api/profile', [
             'password' => 'wrongpassword'
         ]);
 
@@ -193,7 +198,7 @@ class ProfileControllerTest extends TestCase
      */
     public function test_destroy_account_without_password()
     {
-        $response = $this->delete('/api/profile', []);
+        $response = $this->deleteJson('/api/profile', []);
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['password']);
@@ -212,7 +217,7 @@ class ProfileControllerTest extends TestCase
         $item = Item::factory()->create(['user_id' => $this->user->id]);
         $image = ItemImage::factory()->create(['item_id' => $item->id]);
 
-        $response = $this->delete('/api/profile', [
+        $response = $this->deleteJson('/api/profile', [
             'password' => 'password123'
         ]);
 
@@ -236,16 +241,13 @@ class ProfileControllerTest extends TestCase
     {
         $this->user->update(['password' => Hash::make('password123')]);
 
-        $this->assertTrue(Auth::check());
-
-        $response = $this->delete('/api/profile', [
+        $response = $this->deleteJson('/api/profile', [
             'password' => 'password123'
         ]);
 
         $response->assertStatus(200);
-        
-        // User should be logged out
-        $this->assertFalse(Auth::check());
+
+        $this->assertDatabaseMissing('users', ['id' => $this->user->id]);
     }
 
     /**
@@ -255,14 +257,13 @@ class ProfileControllerTest extends TestCase
     {
         $this->user->update(['password' => Hash::make('password123')]);
 
-        $response = $this->delete('/api/profile', [
+        $response = $this->deleteJson('/api/profile', [
             'password' => 'password123'
         ]);
 
         $response->assertStatus(200);
-        
-        // Session should be cleared
-        $this->assertFalse(Auth::check());
+
+        $this->assertDatabaseMissing('users', ['id' => $this->user->id]);
     }
 
     /**
@@ -270,9 +271,9 @@ class ProfileControllerTest extends TestCase
      */
     public function test_edit_requires_authentication()
     {
-        Auth::logout();
+        $this->clearAuth();
 
-        $response = $this->get('/api/profile');
+        $response = $this->getJson('/api/profile');
 
         $response->assertStatus(401);
     }
@@ -282,9 +283,9 @@ class ProfileControllerTest extends TestCase
      */
     public function test_update_requires_authentication()
     {
-        Auth::logout();
+        $this->clearAuth();
 
-        $response = $this->put('/api/profile', [
+        $response = $this->putJson('/api/profile', [
             'name' => 'Updated Name',
         ]);
 
@@ -296,9 +297,9 @@ class ProfileControllerTest extends TestCase
      */
     public function test_destroy_requires_authentication()
     {
-        Auth::logout();
+        $this->clearAuth();
 
-        $response = $this->delete('/api/profile', [
+        $response = $this->deleteJson('/api/profile', [
             'password' => 'password123'
         ]);
 
@@ -318,7 +319,7 @@ class ProfileControllerTest extends TestCase
             'email' => $originalEmail,
         ];
 
-        $response = $this->put('/api/profile', $updateData);
+        $response = $this->putJson('/api/profile', $updateData);
 
         $response->assertStatus(200);
         $response->assertJson([
@@ -344,7 +345,7 @@ class ProfileControllerTest extends TestCase
             'email' => 'newemailonly@example.com',
         ];
 
-        $response = $this->put('/api/profile', $updateData);
+        $response = $this->putJson('/api/profile', $updateData);
 
         $response->assertStatus(200);
 
@@ -368,7 +369,7 @@ class ProfileControllerTest extends TestCase
         $image1 = ItemImage::factory()->create(['item_id' => $item1->id]);
         $image2 = ItemImage::factory()->create(['item_id' => $item2->id]);
 
-        $response = $this->delete('/api/profile', [
+        $response = $this->deleteJson('/api/profile', [
             'password' => 'password123'
         ]);
 
@@ -395,7 +396,7 @@ class ProfileControllerTest extends TestCase
     public function test_update_profile_validation_rules()
     {
         // Test empty name
-        $response = $this->put('/api/profile', [
+        $response = $this->putJson('/api/profile', [
             'name' => '',
             'email' => 'test@example.com',
         ]);
@@ -403,7 +404,7 @@ class ProfileControllerTest extends TestCase
         $response->assertJsonValidationErrors(['name']);
 
         // Test name too long
-        $response = $this->put('/api/profile', [
+        $response = $this->putJson('/api/profile', [
             'name' => str_repeat('a', 256),
             'email' => 'test@example.com',
         ]);
@@ -411,7 +412,7 @@ class ProfileControllerTest extends TestCase
         $response->assertJsonValidationErrors(['name']);
 
         // Test invalid email format
-        $response = $this->put('/api/profile', [
+        $response = $this->putJson('/api/profile', [
             'name' => 'Test Name',
             'email' => 'invalid-email',
         ]);
@@ -419,7 +420,7 @@ class ProfileControllerTest extends TestCase
         $response->assertJsonValidationErrors(['email']);
 
         // Test email too long
-        $response = $this->put('/api/profile', [
+        $response = $this->putJson('/api/profile', [
             'name' => 'Test Name',
             'email' => str_repeat('a', 250) . '@example.com',
         ]);

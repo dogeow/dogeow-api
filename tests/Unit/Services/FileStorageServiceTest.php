@@ -29,6 +29,7 @@ class FileStorageServiceTest extends TestCase
         $result = $this->fileStorageService->storeFile($file, $directory);
 
         $this->assertIsArray($result);
+        $this->assertTrue($result['success']);
         $this->assertArrayHasKey('basename', $result);
         $this->assertArrayHasKey('extension', $result);
         $this->assertArrayHasKey('compressed_filename', $result);
@@ -50,6 +51,7 @@ class FileStorageServiceTest extends TestCase
 
         $result = $this->fileStorageService->storeFile($file, $directory);
 
+        $this->assertTrue($result['success']);
         $this->assertEquals('jpg', $result['extension']); // Default extension
         $this->assertStringEndsWith('.jpg', $result['compressed_filename']);
     }
@@ -61,6 +63,7 @@ class FileStorageServiceTest extends TestCase
 
         $result = $this->fileStorageService->storeFile($file, $directory);
 
+        $this->assertTrue($result['success']);
         $this->assertEquals('png', $result['extension']);
         $this->assertStringEndsWith('.png', $result['compressed_filename']);
         $this->assertStringEndsWith('-thumb.png', $result['thumbnail_filename']);
@@ -74,8 +77,9 @@ class FileStorageServiceTest extends TestCase
 
         $result = $this->fileStorageService->createUserDirectory($userId);
 
-        $this->assertEquals($expectedPath, $result);
-        $this->assertDirectoryExists($expectedPath);
+        $this->assertTrue($result['success']);
+        $this->assertEquals($expectedPath, $result['directory_path']);
+        $this->assertDirectoryExists($result['directory_path']);
     }
 
     public function test_create_user_directory_when_already_exists()
@@ -90,8 +94,9 @@ class FileStorageServiceTest extends TestCase
 
         $result = $this->fileStorageService->createUserDirectory($userId);
 
-        $this->assertEquals($expectedPath, $result);
-        $this->assertDirectoryExists($expectedPath);
+        $this->assertTrue($result['success']);
+        $this->assertEquals($expectedPath, $result['directory_path']);
+        $this->assertDirectoryExists($result['directory_path']);
     }
 
     public function test_get_public_urls()
@@ -140,6 +145,8 @@ class FileStorageServiceTest extends TestCase
         $result1 = $this->fileStorageService->storeFile($file1, $directory);
         $result2 = $this->fileStorageService->storeFile($file2, $directory);
 
+        $this->assertTrue($result1['success']);
+        $this->assertTrue($result2['success']);
         $this->assertNotEquals($result1['basename'], $result2['basename']);
     }
 } 

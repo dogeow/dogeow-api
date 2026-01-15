@@ -39,7 +39,7 @@ class NavControllerTest extends TestCase
 
     public function test_index_without_authentication_returns_401()
     {
-        Auth::logout();
+        Auth::forgetGuards();
         
         $response = $this->getJson('/api/things/nav');
 
@@ -85,7 +85,7 @@ class NavControllerTest extends TestCase
 
     public function test_store_without_authentication_returns_401()
     {
-        Auth::logout();
+        Auth::forgetGuards();
         
         $data = ['name' => 'Test Navigation'];
         $response = $this->postJson('/api/things/nav', $data);
@@ -117,7 +117,7 @@ class NavControllerTest extends TestCase
 
     public function test_show_without_authentication_returns_401()
     {
-        Auth::logout();
+        Auth::forgetGuards();
         
         $response = $this->getJson('/api/things/nav/1');
 
@@ -169,7 +169,7 @@ class NavControllerTest extends TestCase
 
     public function test_update_without_authentication_returns_401()
     {
-        Auth::logout();
+        Auth::forgetGuards();
         
         $data = ['name' => 'Updated Navigation'];
         $response = $this->putJson('/api/things/nav/1', $data);
@@ -201,7 +201,7 @@ class NavControllerTest extends TestCase
 
     public function test_destroy_without_authentication_returns_401()
     {
-        Auth::logout();
+        Auth::forgetGuards();
         
         $response = $this->deleteJson('/api/things/nav/1');
 
@@ -227,7 +227,7 @@ class NavControllerTest extends TestCase
 
     public function test_categories_without_authentication_returns_401()
     {
-        Auth::logout();
+        Auth::forgetGuards();
         
         $response = $this->getJson('/api/things/nav/categories');
 

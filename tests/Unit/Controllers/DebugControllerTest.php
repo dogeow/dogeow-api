@@ -52,7 +52,7 @@ class DebugControllerTest extends TestCase
      */
     public function test_log_error_method_with_guest_user()
     {
-        Auth::logout();
+        Auth::forgetGuards();
 
         $request = new Request([
             'error_type' => 'guest_error',

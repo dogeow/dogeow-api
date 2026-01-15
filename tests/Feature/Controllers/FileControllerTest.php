@@ -51,7 +51,7 @@ class FileControllerTest extends TestCase
 
     public function test_index_returns_files_for_guest_user()
     {
-        Auth::logout();
+        Auth::forgetGuards();
         
         // Delete the existing user and create a new one with ID 1
         $this->user->delete();
@@ -684,7 +684,7 @@ class FileControllerTest extends TestCase
 
     public function test_statistics_for_guest_user()
     {
-        Auth::logout();
+        Auth::forgetGuards();
 
         // Delete the existing user and create a new one with ID 1
         $this->user->delete();
@@ -1188,7 +1188,7 @@ class FileControllerTest extends TestCase
 
     public function test_upload_file_without_authentication()
     {
-        Auth::logout();
+        Auth::forgetGuards();
 
         $file = UploadedFile::fake()->create('test.txt', 100);
 
@@ -1201,7 +1201,7 @@ class FileControllerTest extends TestCase
 
     public function test_create_folder_without_authentication()
     {
-        Auth::logout();
+        Auth::forgetGuards();
 
         $response = $this->postJson('/api/cloud/folders', [
             'name' => 'Guest Folder'

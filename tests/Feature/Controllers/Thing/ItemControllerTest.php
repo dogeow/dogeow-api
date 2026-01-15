@@ -8,6 +8,7 @@ use App\Models\Thing\Tag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -63,7 +64,7 @@ class ItemControllerTest extends TestCase
         Item::factory()->create(['is_public' => false, 'user_id' => $this->user->id]);
 
         // 以访客身份访问
-        auth()->logout();
+        Auth::forgetGuards();
         
         $response = $this->getJson('/api/things/items');
 
@@ -263,10 +264,10 @@ class ItemControllerTest extends TestCase
             'user_id' => $this->user->id,
         ]);
 
-        $response = $this->getJson('/api/things/search?search=iPhone');
+        $response = $this->getJson('/api/things/search?q=iPhone');
 
         $response->assertStatus(200);
-        $data = $response->json('data');
+        $data = $response->json('results');
         $this->assertCount(1, $data);
         $this->assertStringContainsString('iPhone', $data[0]['name']);
     }

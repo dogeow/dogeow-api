@@ -2,6 +2,13 @@
 
 本项目要求 **100% 的代码覆盖率**，确保所有代码都经过测试。
 
+## 确保已安装Xdebug扩展
+
+```bash
+# 检查Xdebug是否已安装
+php -m | grep xdebug
+```
+
 ## 快速开始
 
 ### 1. 运行测试并生成覆盖率报告
@@ -97,18 +104,3 @@ vendor/bin/phpunit --testsuite=Unit
 # 只运行功能测试
 vendor/bin/phpunit --testsuite=Feature
 ```
-
-## 故障排除
-
-### 覆盖率文件不存在
-确保已安装Xdebug扩展：
-```bash
-# 检查Xdebug是否已安装
-php -m | grep xdebug
-```
-
-### 覆盖率计算错误
-检查PHPUnit配置和覆盖率设置是否正确。
-
-### 测试失败
-修复失败的测试，然后重新运行覆盖率检查。 

@@ -26,6 +26,7 @@ class ItemImage extends Model
     protected $appends = [
         'url',
         'thumbnail_url',
+        'thumbnail_path',
     ];
 
     public function item()

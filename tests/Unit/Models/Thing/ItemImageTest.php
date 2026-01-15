@@ -63,7 +63,7 @@ class ItemImageTest extends TestCase
     {
         $image = ItemImage::create([
             'item_id' => $this->item->id,
-            'path' => null,
+            'path' => '',
         ]);
 
         $this->assertNull($image->url);
@@ -84,7 +84,7 @@ class ItemImageTest extends TestCase
     {
         $image = ItemImage::create([
             'item_id' => $this->item->id,
-            'path' => null,
+            'path' => '',
         ]);
 
         $this->assertNull($image->thumbnail_url);
@@ -116,7 +116,7 @@ class ItemImageTest extends TestCase
     {
         $image = ItemImage::create([
             'item_id' => $this->item->id,
-            'path' => null,
+            'path' => '',
         ]);
 
         $this->assertNull($image->thumbnail_path);

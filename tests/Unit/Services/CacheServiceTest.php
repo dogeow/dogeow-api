@@ -25,9 +25,9 @@ class CacheServiceTest extends TestCase
         $url = 'https://example.com';
         $data = ['title' => 'Example Title', 'favicon' => 'favicon.ico'];
         
-        Cache::put('title_favicon_' . md5($url), $data, 3600);
+        Cache::put('title_favicon:' . md5($url), $data, 3600);
         
-        $result = $this->cacheService->get($url);
+        $result = $this->cacheService->getTitleFavicon($url);
         
         $this->assertEquals($data, $result);
     }
@@ -46,13 +46,13 @@ class CacheServiceTest extends TestCase
         $url = 'https://example.com';
         $data = ['title' => 'Example Title', 'favicon' => 'favicon.ico'];
         
-        $this->cacheService->putSuccess($url, $data);
+        $this->cacheService->putTitleFaviconSuccess($url, $data);
         
-        $result = $this->cacheService->get($url);
+        $result = $this->cacheService->getTitleFavicon($url);
         $this->assertEquals($data, $result);
         
         // Verify it's cached with the correct TTL (24 hours)
-        $this->assertTrue(Cache::has('title_favicon_' . md5($url)));
+        $this->assertTrue(Cache::has('title_favicon:' . md5($url)));
     }
 
     public function test_put_error_stores_data_with_error_ttl()
@@ -60,24 +60,24 @@ class CacheServiceTest extends TestCase
         $url = 'https://example.com';
         $errorData = ['error' => 'Failed to fetch', 'code' => 500];
         
-        $this->cacheService->putError($url, $errorData);
+        $this->cacheService->putTitleFaviconError($url, $errorData);
         
-        $result = $this->cacheService->get($url);
+        $result = $this->cacheService->getTitleFavicon($url);
         $this->assertEquals($errorData, $result);
         
         // Verify it's cached with the correct TTL (30 minutes)
-        $this->assertTrue(Cache::has('title_favicon_' . md5($url)));
+        $this->assertTrue(Cache::has('title_favicon:' . md5($url)));
     }
 
     public function test_get_cache_key_generates_consistent_keys()
     {
         $url = 'https://example.com';
         
-        $key1 = 'title_favicon_' . md5($url);
-        $key2 = 'title_favicon_' . md5($url);
+        $key1 = 'title_favicon:' . md5($url);
+        $key2 = 'title_favicon:' . md5($url);
         
         $this->assertEquals($key1, $key2);
-        $this->assertStringStartsWith('title_favicon_', $key1);
+        $this->assertStringStartsWith('title_favicon:', $key1);
     }
 
     public function test_get_cache_key_generates_different_keys_for_different_urls()
@@ -85,8 +85,8 @@ class CacheServiceTest extends TestCase
         $url1 = 'https://example.com';
         $url2 = 'https://google.com';
         
-        $key1 = 'title_favicon_' . md5($url1);
-        $key2 = 'title_favicon_' . md5($url2);
+        $key1 = 'title_favicon:' . md5($url1);
+        $key2 = 'title_favicon:' . md5($url2);
         
         $this->assertNotEquals($key1, $key2);
     }
@@ -99,11 +99,11 @@ class CacheServiceTest extends TestCase
         $data1 = ['title' => 'Example', 'favicon' => 'example.ico'];
         $data2 = ['title' => 'Google', 'favicon' => 'google.ico'];
         
-        $this->cacheService->putSuccess($url1, $data1);
-        $this->cacheService->putSuccess($url2, $data2);
+        $this->cacheService->putTitleFaviconSuccess($url1, $data1);
+        $this->cacheService->putTitleFaviconSuccess($url2, $data2);
         
-        $this->assertEquals($data1, $this->cacheService->get($url1));
-        $this->assertEquals($data2, $this->cacheService->get($url2));
+        $this->assertEquals($data1, $this->cacheService->getTitleFavicon($url1));
+        $this->assertEquals($data2, $this->cacheService->getTitleFavicon($url2));
     }
 
     public function test_cache_overwrite_behavior()
@@ -112,11 +112,11 @@ class CacheServiceTest extends TestCase
         $data1 = ['title' => 'Original Title'];
         $data2 = ['title' => 'Updated Title'];
         
-        $this->cacheService->putSuccess($url, $data1);
-        $this->assertEquals($data1, $this->cacheService->get($url));
+        $this->cacheService->putTitleFaviconSuccess($url, $data1);
+        $this->assertEquals($data1, $this->cacheService->getTitleFavicon($url));
         
-        $this->cacheService->putSuccess($url, $data2);
-        $this->assertEquals($data2, $this->cacheService->get($url));
+        $this->cacheService->putTitleFaviconSuccess($url, $data2);
+        $this->assertEquals($data2, $this->cacheService->getTitleFavicon($url));
     }
 
     public function test_error_cache_overwrites_success_cache()
@@ -125,20 +125,20 @@ class CacheServiceTest extends TestCase
         $successData = ['title' => 'Success Title'];
         $errorData = ['error' => 'Failed to fetch'];
         
-        $this->cacheService->putSuccess($url, $successData);
-        $this->assertEquals($successData, $this->cacheService->get($url));
+        $this->cacheService->putTitleFaviconSuccess($url, $successData);
+        $this->assertEquals($successData, $this->cacheService->getTitleFavicon($url));
         
-        $this->cacheService->putError($url, $errorData);
-        $this->assertEquals($errorData, $this->cacheService->get($url));
+        $this->cacheService->putTitleFaviconError($url, $errorData);
+        $this->assertEquals($errorData, $this->cacheService->getTitleFavicon($url));
     }
 
     public function test_cache_key_with_special_characters()
     {
         $url = 'https://example.com/path with spaces?param=value&other=123';
         
-        $key = 'title_favicon_' . md5($url);
+        $key = 'title_favicon:' . md5($url);
         
-        $this->assertStringStartsWith('title_favicon_', $key);
+        $this->assertStringStartsWith('title_favicon:', $key);
         $this->assertIsString($key);
     }
 
@@ -146,9 +146,9 @@ class CacheServiceTest extends TestCase
     {
         $url = 'https://example.com/path/中文/测试';
         
-        $key = 'title_favicon_' . md5($url);
+        $key = 'title_favicon:' . md5($url);
         
-        $this->assertStringStartsWith('title_favicon_', $key);
+        $this->assertStringStartsWith('title_favicon:', $key);
         $this->assertIsString($key);
     }
 
@@ -156,9 +156,9 @@ class CacheServiceTest extends TestCase
     {
         $url = '';
         
-        $key = 'title_favicon_' . md5($url);
+        $key = 'title_favicon:' . md5($url);
         
-        $this->assertStringStartsWith('title_favicon_', $key);
+        $this->assertStringStartsWith('title_favicon:', $key);
         $this->assertIsString($key);
     }
 
@@ -179,8 +179,8 @@ class CacheServiceTest extends TestCase
             ]
         ];
         
-        $this->cacheService->putSuccess($url, $complexData);
-        $result = $this->cacheService->get($url);
+        $this->cacheService->putTitleFaviconSuccess($url, $complexData);
+        $result = $this->cacheService->getTitleFavicon($url);
         
         $this->assertEquals($complexData, $result);
         $this->assertEquals('Complex Title', $result['title']);

@@ -9,6 +9,7 @@ use App\Models\Thing\ItemCategory;
 use App\Models\Thing\Spot;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class ProfileControllerTest extends TestCase
@@ -20,12 +21,14 @@ class ProfileControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)
-            ->get('/profile');
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/profile');
 
         $response->assertStatus(200);
-        $response->assertViewIs('profile.edit');
-        $response->assertViewHas('user', $user);
+        $response->assertJsonStructure([
+            'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at']
+        ]);
     }
 
     /** @test */
@@ -41,11 +44,14 @@ class ProfileControllerTest extends TestCase
             'email' => 'new@example.com'
         ];
 
-        $response = $this->actingAs($user)
-            ->put('/profile', $updateData);
+        Sanctum::actingAs($user);
 
-        $response->assertRedirect('/profile');
-        $response->assertSessionHas('status', 'profile-updated');
+        $response = $this->putJson('/api/profile', $updateData);
+
+        $response->assertStatus(200);
+        $response->assertJsonFragment([
+            'message' => 'Profile updated successfully',
+        ]);
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
@@ -64,10 +70,12 @@ class ProfileControllerTest extends TestCase
             'email' => 'invalid-email' // Invalid email
         ];
 
-        $response = $this->actingAs($user)
-            ->put('/profile', $invalidData);
+        Sanctum::actingAs($user);
 
-        $response->assertSessionHasErrors(['name', 'email']);
+        $response = $this->putJson('/api/profile', $invalidData);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['name', 'email']);
     }
 
     /** @test */
@@ -83,10 +91,11 @@ class ProfileControllerTest extends TestCase
             'email' => 'new@example.com'
         ];
 
-        $response = $this->actingAs($user)
-            ->put('/profile', $updateData);
+        Sanctum::actingAs($user);
 
-        $response->assertRedirect('/profile');
+        $response = $this->putJson('/api/profile', $updateData);
+
+        $response->assertStatus(200);
 
         $user->refresh();
         $this->assertNull($user->email_verified_at);
@@ -106,10 +115,11 @@ class ProfileControllerTest extends TestCase
             'email' => 'test@example.com' // Same email
         ];
 
-        $response = $this->actingAs($user)
-            ->put('/profile', $updateData);
+        Sanctum::actingAs($user);
 
-        $response->assertRedirect('/profile');
+        $response = $this->putJson('/api/profile', $updateData);
+
+        $response->assertStatus(200);
 
         $user->refresh();
         $this->assertNotNull($user->email_verified_at);
@@ -129,18 +139,22 @@ class ProfileControllerTest extends TestCase
         ItemCategory::factory()->create();
         Spot::factory()->create();
 
-        $response = $this->actingAs($user)
-            ->delete('/profile', [
-                'password' => 'password123'
-            ]);
+        Sanctum::actingAs($user);
 
-        $response->assertRedirect('/');
+        $response = $this->deleteJson('/api/profile', [
+            'password' => 'password123'
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonFragment([
+            'message' => 'Account deleted successfully'
+        ]);
 
         // Check that user is deleted
         $this->assertDatabaseMissing('users', ['id' => $user->id]);
 
         // Check that related data is cleaned up
-        $this->assertDatabaseMissing('items', ['user_id' => $user->id]);
+        $this->assertDatabaseMissing('thing_items', ['user_id' => $user->id]);
     }
 
     /** @test */
@@ -150,12 +164,14 @@ class ProfileControllerTest extends TestCase
             'password' => Hash::make('password123')
         ]);
 
-        $response = $this->actingAs($user)
-            ->delete('/profile', [
-                'password' => 'wrong-password'
-            ]);
+        Sanctum::actingAs($user);
 
-        $response->assertSessionHasErrors('password');
+        $response = $this->deleteJson('/api/profile', [
+            'password' => 'wrong-password'
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('password');
 
         // Check that user is not deleted
         $this->assertDatabaseHas('users', ['id' => $user->id]);
@@ -166,10 +182,12 @@ class ProfileControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)
-            ->delete('/profile', []);
+        Sanctum::actingAs($user);
 
-        $response->assertSessionHasErrors('password');
+        $response = $this->deleteJson('/api/profile', []);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('password');
 
         // Check that user is not deleted
         $this->assertDatabaseHas('users', ['id' => $user->id]);
@@ -194,22 +212,23 @@ class ProfileControllerTest extends TestCase
         $spot = Spot::factory()->create();
 
         // Attach related data to items
-        $item1->categories()->attach($category->id);
+        $item1->category()->associate($category);
         $item1->spot()->associate($spot);
         $item1->save();
 
-        $response = $this->actingAs($user)
-            ->delete('/profile', [
-                'password' => 'password123'
-            ]);
+        Sanctum::actingAs($user);
 
-        $response->assertRedirect('/');
+        $response = $this->deleteJson('/api/profile', [
+            'password' => 'password123'
+        ]);
+
+        $response->assertStatus(200);
 
         // Check that all related data is cleaned up
         $this->assertDatabaseMissing('users', ['id' => $user->id]);
-        $this->assertDatabaseMissing('items', ['user_id' => $user->id]);
-        $this->assertDatabaseMissing('item_images', ['item_id' => $item1->id]);
-        $this->assertDatabaseMissing('item_images', ['item_id' => $item2->id]);
+        $this->assertDatabaseMissing('thing_items', ['user_id' => $user->id]);
+        $this->assertDatabaseMissing('thing_item_images', ['item_id' => $item1->id]);
+        $this->assertDatabaseMissing('thing_item_images', ['item_id' => $item2->id]);
     }
 
     /** @test */
@@ -219,16 +238,14 @@ class ProfileControllerTest extends TestCase
             'password' => Hash::make('password123')
         ]);
 
-        $this->actingAs($user);
+        Sanctum::actingAs($user);
 
-        $response = $this->delete('/profile', [
+        $response = $this->deleteJson('/api/profile', [
             'password' => 'password123'
         ]);
 
-        $response->assertRedirect('/');
-
-        // Check that user is logged out
-        $this->assertGuest();
+        $response->assertStatus(200);
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
     }
 
     /** @test */
@@ -238,16 +255,14 @@ class ProfileControllerTest extends TestCase
             'password' => Hash::make('password123')
         ]);
 
-        $this->actingAs($user);
+        Sanctum::actingAs($user);
 
-        $response = $this->delete('/profile', [
+        $response = $this->deleteJson('/api/profile', [
             'password' => 'password123'
         ]);
 
-        $response->assertRedirect('/');
-
-        // The session should be invalidated
-        $this->assertGuest();
+        $response->assertStatus(200);
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
     }
 
     /** @test */
@@ -263,14 +278,16 @@ class ProfileControllerTest extends TestCase
             // Email not provided
         ];
 
-        $response = $this->actingAs($user)
-            ->put('/profile', $updateData);
+        Sanctum::actingAs($user);
 
-        $response->assertRedirect('/profile');
+        $response = $this->putJson('/api/profile', $updateData);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['email']);
 
         $user->refresh();
-        $this->assertEquals('New Name', $user->name);
-        $this->assertEquals('old@example.com', $user->email); // Email unchanged
+        $this->assertEquals('Old Name', $user->name);
+        $this->assertEquals('old@example.com', $user->email);
     }
 
     /** @test */
@@ -284,9 +301,11 @@ class ProfileControllerTest extends TestCase
             'email' => 'user2@example.com' // Try to use user2's email
         ];
 
-        $response = $this->actingAs($user1)
-            ->put('/profile', $updateData);
+        Sanctum::actingAs($user1);
 
-        $response->assertSessionHasErrors('email');
+        $response = $this->putJson('/api/profile', $updateData);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('email');
     }
 } 

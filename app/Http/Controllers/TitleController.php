@@ -17,13 +17,26 @@ class TitleController extends Controller
     {
         $url = $request->query('url');
         if (!$url) {
-            return response()->json(['error' => '缺少url参数'], 400);
+            return $this->error('缺少url参数', [], 400);
         }
 
+        // 先检查缓存
+        $cachedData = $this->cacheService->get($url);
+        if ($cachedData !== null) {
+            // 如果缓存存在错误数据，返回错误响应
+            if (isset($cachedData['error'])) {
+                $statusCode = $cachedData['status_code'] ?? 500;
+                return $this->error($cachedData['error'] ?? '请求失败', $cachedData['details'] ?? [], $statusCode);
+            }
+            // 如果缓存存在成功数据，返回成功响应
+            return $this->success($cachedData);
+        }
+
+        // 缓存不存在，获取新数据
         try {
             $data = $this->webPageService->fetchContent($url);
-            
-            return response()->json($data);
+            $this->cacheService->putSuccess($url, $data);
+            return $this->success($data);
         } catch (\Exception $e) {
             $errorData = [
                 'error' => '请求异常',
@@ -31,7 +44,7 @@ class TitleController extends Controller
                 'status_code' => 500
             ];
             $this->cacheService->putError($url, $errorData);
-            return response()->json($errorData, 500);
+            return $this->error('请求异常', ['details' => $e->getMessage()], 500);
         }
     }
 }

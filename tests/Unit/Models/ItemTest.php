@@ -54,6 +54,7 @@ class ItemTest extends TestCase
     public function test_item_has_correct_casts(): void
     {
         $casts = [
+            'id' => 'int',
             'expiry_date' => 'date',
             'purchase_date' => 'date',
             'purchase_price' => 'decimal:2'
@@ -74,7 +75,6 @@ class ItemTest extends TestCase
             'item_id' => $this->item->id,
             'is_primary' => true,
             'path' => 'items/1/test.jpg',
-            'thumbnail_path' => 'items/1/test-thumb.jpg'
         ]);
 
         $thumbnailUrl = $this->item->thumbnail_url;
@@ -90,7 +90,6 @@ class ItemTest extends TestCase
             'item_id' => $this->item->id,
             'is_primary' => false,
             'path' => 'items/1/test.jpg',
-            'thumbnail_path' => 'items/1/test-thumb.jpg'
         ]);
 
         $thumbnailUrl = $this->item->thumbnail_url;
@@ -108,12 +107,11 @@ class ItemTest extends TestCase
 
     public function test_get_thumbnail_url_returns_null_when_images_have_no_thumbnail(): void
     {
-        // Create image without thumbnail
+        // Create image with empty path (which means no thumbnail)
         ItemImage::factory()->create([
             'item_id' => $this->item->id,
             'is_primary' => true,
-            'path' => 'items/1/test.jpg',
-            'thumbnail_path' => null
+            'path' => '',
         ]);
 
         $thumbnailUrl = $this->item->thumbnail_url;

@@ -102,14 +102,9 @@ class ChatPaginationService
 
         return [
             'messages' => $messages->values(),
-            'pagination' => [
-                'has_more' => $hasMore,
-                'next_cursor' => $nextCursor,
-                'prev_cursor' => $prevCursor,
-                'direction' => $direction,
-                'limit' => $limit,
-                'count' => $messages->count()
-            ]
+            'has_more' => $hasMore,
+            'next_cursor' => $nextCursor,
+            'prev_cursor' => $prevCursor,
         ];
     }
 
@@ -209,12 +204,8 @@ class ChatPaginationService
         return [
             'messages' => $messages->values(),
             'search_query' => $searchQuery,
-            'pagination' => [
-                'has_more' => $hasMore,
-                'next_cursor' => $nextCursor,
-                'limit' => $limit,
-                'count' => $messages->count()
-            ]
+            'has_more' => $hasMore,
+            'next_cursor' => $nextCursor,
         ];
     }
 
@@ -229,50 +220,37 @@ class ChatPaginationService
     {
         $since = now()->subDays($days);
         
-        // Use raw queries for better performance
-        $stats = \DB::select("
+        // Get total messages count
+        $totalMessages = ChatMessage::where('room_id', $roomId)
+            ->where('created_at', '>=', $since)
+            ->count();
+        
+        // Get messages per day
+        $dailyStats = \DB::select("
             SELECT 
                 DATE(created_at) as date,
-                COUNT(*) as total_messages,
-                COUNT(DISTINCT user_id) as active_users,
-                COUNT(CASE WHEN message_type = 'text' THEN 1 END) as text_messages,
-                COUNT(CASE WHEN message_type = 'system' THEN 1 END) as system_messages
+                COUNT(*) as count
             FROM chat_messages 
             WHERE room_id = ? AND created_at >= ?
             GROUP BY DATE(created_at)
             ORDER BY date DESC
         ", [$roomId, $since]);
-
-        // Get hourly distribution for the last 24 hours
-        $hourlyStats = \DB::select("
-            SELECT 
-                HOUR(created_at) as hour,
-                COUNT(*) as message_count
-            FROM chat_messages 
-            WHERE room_id = ? AND created_at >= ?
-            GROUP BY HOUR(created_at)
-            ORDER BY hour
-        ", [$roomId, now()->subDay()]);
-
-        // Get top users by message count
-        $topUsers = \DB::select("
-            SELECT 
-                u.id, u.name, u.email,
-                COUNT(cm.id) as message_count
-            FROM chat_messages cm
-            JOIN users u ON cm.user_id = u.id
-            WHERE cm.room_id = ? AND cm.created_at >= ? AND cm.message_type = 'text'
-            GROUP BY u.id, u.name, u.email
-            ORDER BY message_count DESC
-            LIMIT 10
-        ", [$roomId, $since]);
+        
+        $messagesPerDay = [];
+        foreach ($dailyStats as $stat) {
+            $messagesPerDay[$stat->date] = $stat->count;
+        }
+        
+        // Get active users count
+        $activeUsers = ChatMessage::where('room_id', $roomId)
+            ->where('created_at', '>=', $since)
+            ->distinct('user_id')
+            ->count('user_id');
 
         return [
-            'period_days' => $days,
-            'daily_stats' => $stats,
-            'hourly_stats' => $hourlyStats,
-            'top_users' => $topUsers,
-            'generated_at' => now()
+            'total_messages' => $totalMessages,
+            'messages_per_day' => $messagesPerDay,
+            'active_users' => $activeUsers,
         ];
     }
 

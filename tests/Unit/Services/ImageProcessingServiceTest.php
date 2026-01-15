@@ -36,20 +36,16 @@ class ImageProcessingServiceTest extends TestCase
     protected function tearDown(): void
     {
         // Clean up test files
-        $testFiles = [
-            $this->testImagePath,
-            $this->testCompressedPath,
-            str_replace('-origin.', '-thumb.', $this->testImagePath),
-        ];
-        
-        foreach ($testFiles as $file) {
-            if (file_exists($file)) {
-                unlink($file);
+        $testDir = dirname($this->testImagePath);
+        if (file_exists($testDir) && is_dir($testDir)) {
+            foreach (glob($testDir . '/*') as $file) {
+                if (is_file($file)) {
+                    unlink($file);
+                }
             }
         }
         
         // Remove test directory
-        $testDir = dirname($this->testImagePath);
         if (file_exists($testDir) && is_dir($testDir)) {
             rmdir($testDir);
         }
@@ -90,19 +86,19 @@ class ImageProcessingServiceTest extends TestCase
 
         $this->assertIsArray($result);
         $this->assertFalse($result['success']);
-        $this->assertArrayHasKey('error', $result);
-        $this->assertNotEmpty($result['error']);
+        $this->assertArrayHasKey('message', $result);
+        $this->assertNotEmpty($result['message']);
     }
 
     public function test_process_image_logs_error_on_failure()
     {
-        Log::fake();
+        Log::spy();
         
         $nonexistentPath = '/nonexistent/path/image.jpg';
         
         $this->imageProcessingService->processImage($nonexistentPath, $this->testCompressedPath);
 
-        Log::assertLogged('error');
+        Log::shouldHaveReceived('error')->once();
     }
 
     public function test_create_thumbnail_for_small_image()
@@ -178,7 +174,7 @@ class ImageProcessingServiceTest extends TestCase
         $result = $this->imageProcessingService->processImage($invalidImagePath, $this->testCompressedPath);
 
         $this->assertFalse($result['success']);
-        $this->assertArrayHasKey('error', $result);
+        $this->assertArrayHasKey('message', $result);
         
         // Clean up
         unlink($invalidImagePath);

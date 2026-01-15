@@ -41,9 +41,18 @@ class FileStorageService extends BaseService
             // 生成文件信息
             $fileInfo = $this->generateFileInfo($file);
             
-            // 移动文件到目标目录
+            // 移动文件到目标目录（优先使用 Storage，兼容测试环境）
             $originPath = $directory . '/' . $fileInfo['origin_filename'];
-            $file->move($directory, $fileInfo['origin_filename']);
+            $publicRoot = storage_path('app/public');
+            $relativePath = $directory;
+            if (str_starts_with($directory, $publicRoot)) {
+                $relativePath = ltrim(substr($directory, strlen($publicRoot)), DIRECTORY_SEPARATOR);
+            }
+
+            $storedPath = Storage::disk('public')->putFileAs($relativePath, $file, $fileInfo['origin_filename']);
+            if ($storedPath === false) {
+                return $this->error('Failed to store file');
+            }
 
             $this->logInfo('File stored successfully', [
                 'original_name' => $file->getClientOriginalName(),
@@ -161,15 +170,18 @@ class FileStorageService extends BaseService
             $errors[] = 'File size exceeds maximum allowed size of ' . ($maxSize / 1024 / 1024) . 'MB';
         }
 
-        // 检查文件扩展名
-        $extension = strtolower($file->getClientOriginalExtension());
+        // 检查文件扩展名（允许无扩展名，使用默认扩展名）
+        $originalExtension = strtolower($file->getClientOriginalExtension());
+        $extension = $originalExtension;
         $allowedExtensions = $this->getAllowedExtensions();
-        if (!in_array($extension, $allowedExtensions)) {
+        if ($extension === '') {
+            $extension = $this->getDefaultExtension();
+        } elseif (!in_array($extension, $allowedExtensions)) {
             $errors[] = 'File type not allowed. Allowed types: ' . implode(', ', $allowedExtensions);
         }
 
-        // 检查是否为有效图片
-        if (!$this->isValidImage($file)) {
+        // 仅在有明确扩展名且允许的图片扩展名时验证图片内容
+        if ($originalExtension !== '' && in_array($extension, $allowedExtensions) && !$this->isValidImage($file)) {
             $errors[] = 'File is not a valid image';
         }
 

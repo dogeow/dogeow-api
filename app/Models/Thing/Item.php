@@ -5,6 +5,8 @@ namespace App\Models\Thing;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
+use App\Models\Thing\Area;
+use App\Models\Thing\Room;
 use Laravel\Scout\Searchable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -110,6 +112,16 @@ class Item extends Model
     public function category()
     {
         return $this->belongsTo(ItemCategory::class, 'category_id');
+    }
+
+    public function area()
+    {
+        return $this->belongsTo(Area::class);
+    }
+
+    public function room()
+    {
+        return $this->belongsTo(Room::class);
     }
 
     public function spot()

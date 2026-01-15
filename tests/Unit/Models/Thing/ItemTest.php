@@ -125,7 +125,7 @@ class ItemTest extends TestCase
         ]);
 
         $this->assertNotNull($item->thumbnail_url);
-        $this->assertStringContainsString('primary.jpg', $item->thumbnail_url);
+        $this->assertStringContainsString('primary-thumb.jpg', $item->thumbnail_url);
 
         // Test without primary image but with regular image
         $item2 = Item::create([
@@ -140,7 +140,7 @@ class ItemTest extends TestCase
         ]);
 
         $this->assertNotNull($item2->thumbnail_url);
-        $this->assertStringContainsString('regular.jpg', $item2->thumbnail_url);
+        $this->assertStringContainsString('regular-thumb.jpg', $item2->thumbnail_url);
 
         // Test without any images
         $item3 = Item::create([

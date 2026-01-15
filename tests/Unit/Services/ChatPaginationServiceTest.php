@@ -167,13 +167,13 @@ class ChatPaginationServiceTest extends TestCase
         ChatMessage::factory()->create([
             'room_id' => $room->id,
             'user_id' => $user->id,
-            'content' => 'Hello world test message'
+            'message' => 'Hello world test message'
         ]);
         
         ChatMessage::factory()->create([
             'room_id' => $room->id,
             'user_id' => $user->id,
-            'content' => 'Another message without test'
+            'message' => 'Another message without test'
         ]);
 
         $result = $this->paginationService->searchMessages($room->id, 'test');
@@ -182,7 +182,7 @@ class ChatPaginationServiceTest extends TestCase
         $this->assertArrayHasKey('next_cursor', $result);
         $this->assertArrayHasKey('has_more', $result);
         $this->assertCount(1, $result['messages']);
-        $this->assertStringContainsString('test', $result['messages']->first()->content);
+        $this->assertStringContainsString('test', $result['messages']->first()->message);
     }
 
     /** @test */
@@ -195,7 +195,7 @@ class ChatPaginationServiceTest extends TestCase
         ChatMessage::factory()->count(5)->create([
             'room_id' => $room->id,
             'user_id' => $user->id,
-            'content' => 'Hello world'
+            'message' => 'Hello world'
         ]);
 
         $result = $this->paginationService->searchMessages($room->id, 'nonexistent');
@@ -304,7 +304,7 @@ class ChatPaginationServiceTest extends TestCase
         ChatMessage::factory()->count(10)->create([
             'room_id' => $room->id,
             'user_id' => $user->id,
-            'content' => 'test message content'
+            'message' => 'test message content'
         ]);
 
         $result = $this->paginationService->searchMessages($room->id, 'test', null, 5);

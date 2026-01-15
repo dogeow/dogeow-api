@@ -32,8 +32,8 @@ class ChatModerationControllerTest extends TestCase
         
         Event::fake();
         
-        $this->moderator = User::factory()->create(['role' => 'moderator']);
-        $this->regularUser = User::factory()->create(['role' => 'user']);
+        $this->moderator = User::factory()->create(['is_admin' => true]);
+        $this->regularUser = User::factory()->create(['is_admin' => false]);
         $this->room = ChatRoom::factory()->create([
             'created_by' => $this->moderator->id,
             'is_active' => true,
@@ -64,7 +64,7 @@ class ChatModerationControllerTest extends TestCase
 
     public function test_delete_message_successfully()
     {
-        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/messages/{$this->message->id}/delete", [
+        $response = $this->deleteJson("/api/chat/moderation/rooms/{$this->room->id}/messages/{$this->message->id}", [
             'reason' => 'Inappropriate content'
         ]);
 
@@ -90,7 +90,7 @@ class ChatModerationControllerTest extends TestCase
     {
         Sanctum::actingAs($this->regularUser);
 
-        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/messages/{$this->message->id}/delete");
+        $response = $this->deleteJson("/api/chat/moderation/rooms/{$this->room->id}/messages/{$this->message->id}");
 
         $response->assertStatus(403);
         $response->assertJsonFragment([
@@ -100,7 +100,7 @@ class ChatModerationControllerTest extends TestCase
 
     public function test_delete_message_without_reason()
     {
-        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/messages/{$this->message->id}/delete");
+        $response = $this->deleteJson("/api/chat/moderation/rooms/{$this->room->id}/messages/{$this->message->id}");
 
         $response->assertStatus(200);
         $this->assertDatabaseHas('chat_moderation_actions', [
@@ -111,7 +111,7 @@ class ChatModerationControllerTest extends TestCase
 
     public function test_mute_user_successfully()
     {
-        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/users/{$this->regularUser->id}/mute", [
+        $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->regularUser->id}/mute", [
             'reason' => 'Spam',
             'duration' => 3600
         ]);
@@ -137,14 +137,14 @@ class ChatModerationControllerTest extends TestCase
     {
         Sanctum::actingAs($this->regularUser);
 
-        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/users/{$this->moderator->id}/mute");
+        $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->moderator->id}/mute");
 
         $response->assertStatus(403);
     }
 
     public function test_mute_user_without_duration()
     {
-        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/users/{$this->regularUser->id}/mute", [
+        $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->regularUser->id}/mute", [
             'reason' => 'Spam'
         ]);
 
@@ -157,9 +157,9 @@ class ChatModerationControllerTest extends TestCase
     public function test_unmute_user_successfully()
     {
         // First mute the user
-        $this->postJson("/api/chat/rooms/{$this->room->id}/users/{$this->regularUser->id}/mute");
+        $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->regularUser->id}/mute");
 
-        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/users/{$this->regularUser->id}/unmute", [
+        $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->regularUser->id}/unmute", [
             'reason' => 'Appeal accepted'
         ]);
 
@@ -179,17 +179,17 @@ class ChatModerationControllerTest extends TestCase
 
     public function test_unmute_user_not_muted()
     {
-        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/users/{$this->regularUser->id}/unmute");
+        $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->regularUser->id}/unmute");
 
         $response->assertStatus(422);
         $response->assertJsonFragment([
-            'message' => 'User is not currently muted'
+            'message' => 'User is not muted'
         ]);
     }
 
     public function test_ban_user_successfully()
     {
-        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/users/{$this->regularUser->id}/ban", [
+        $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->regularUser->id}/ban", [
             'reason' => 'Repeated violations',
             'duration' => 86400
         ]);
@@ -212,7 +212,7 @@ class ChatModerationControllerTest extends TestCase
     {
         Sanctum::actingAs($this->regularUser);
 
-        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/users/{$this->moderator->id}/ban");
+        $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->moderator->id}/ban");
 
         $response->assertStatus(403);
     }
@@ -220,9 +220,9 @@ class ChatModerationControllerTest extends TestCase
     public function test_unban_user_successfully()
     {
         // First ban the user
-        $this->postJson("/api/chat/rooms/{$this->room->id}/users/{$this->regularUser->id}/ban");
+        $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->regularUser->id}/ban");
 
-        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/users/{$this->regularUser->id}/unban", [
+        $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->regularUser->id}/unban", [
             'reason' => 'Appeal accepted'
         ]);
 
@@ -242,11 +242,11 @@ class ChatModerationControllerTest extends TestCase
 
     public function test_unban_user_not_banned()
     {
-        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/users/{$this->regularUser->id}/unban");
+        $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->regularUser->id}/unban");
 
         $response->assertStatus(422);
         $response->assertJsonFragment([
-            'message' => 'User is not currently banned'
+            'message' => 'User is not banned'
         ]);
     }
 
@@ -261,11 +261,11 @@ class ChatModerationControllerTest extends TestCase
             'reason' => 'Test reason',
         ]);
 
-        $response = $this->getJson("/api/chat/rooms/{$this->room->id}/moderation/actions");
+        $response = $this->getJson("/api/chat/moderation/rooms/{$this->room->id}/actions");
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'actions' => [
+            'moderation_actions' => [
                 '*' => [
                     'id',
                     'action_type',
@@ -282,22 +282,27 @@ class ChatModerationControllerTest extends TestCase
     {
         Sanctum::actingAs($this->regularUser);
 
-        $response = $this->getJson("/api/chat/rooms/{$this->room->id}/moderation/actions");
+        $response = $this->getJson("/api/chat/moderation/rooms/{$this->room->id}/actions");
 
         $response->assertStatus(403);
     }
 
     public function test_get_user_moderation_status()
     {
-        $response = $this->getJson("/api/chat/rooms/{$this->room->id}/users/{$this->regularUser->id}/moderation-status");
+        $response = $this->getJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->regularUser->id}/status");
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'user_id',
-            'is_muted',
-            'is_banned',
-            'mute_expires_at',
-            'ban_expires_at',
+            'user',
+            'moderation_status' => [
+                'is_muted',
+                'muted_until',
+                'muted_by',
+                'is_banned',
+                'banned_until',
+                'banned_by',
+                'can_send_messages',
+            ],
         ]);
     }
 
@@ -305,36 +310,36 @@ class ChatModerationControllerTest extends TestCase
     {
         Sanctum::actingAs($this->regularUser);
 
-        $response = $this->getJson("/api/chat/rooms/{$this->room->id}/users/{$this->moderator->id}/moderation-status");
+        $response = $this->getJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->moderator->id}/status");
 
         $response->assertStatus(403);
     }
 
     public function test_delete_message_with_invalid_message_id()
     {
-        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/messages/999/delete");
+        $response = $this->deleteJson("/api/chat/moderation/rooms/{$this->room->id}/messages/999");
 
         $response->assertStatus(404);
     }
 
     public function test_delete_message_with_invalid_room_id()
     {
-        $response = $this->postJson("/api/chat/rooms/999/messages/{$this->message->id}/delete");
+        $response = $this->deleteJson("/api/chat/moderation/rooms/999/messages/{$this->message->id}");
 
         $response->assertStatus(404);
     }
 
     public function test_mute_user_with_invalid_user_id()
     {
-        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/users/999/mute");
+        $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/999/mute");
 
-        $response->assertStatus(422);
+        $response->assertStatus(404);
     }
 
     public function test_ban_user_with_invalid_user_id()
     {
-        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/users/999/ban");
+        $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/999/ban");
 
-        $response->assertStatus(422);
+        $response->assertStatus(404);
     }
 } 

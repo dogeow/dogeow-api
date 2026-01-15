@@ -31,7 +31,7 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        $this->assertCount(3, $data);
+        $this->assertCount(3, $data['rooms']);
     }
 
     /** @test */
@@ -48,8 +48,8 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(201);
         $data = $response->json();
-        $this->assertEquals('Test Room', $data['name']);
-        $this->assertEquals('A test room', $data['description']);
+        $this->assertEquals('Test Room', $data['room']['name']);
+        $this->assertEquals('A test room', $data['room']['description']);
     }
 
     /** @test */
@@ -155,9 +155,8 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        // The response might be a direct array or have a different structure
-        $this->assertIsArray($data);
-        $this->assertGreaterThan(0, count($data));
+        $this->assertArrayHasKey('messages', $data);
+        $this->assertGreaterThan(0, count($data['messages']));
     }
 
     /** @test */
@@ -180,9 +179,9 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(201);
         $data = $response->json();
-        $this->assertArrayHasKey('message', $data);
-        // The response might not have an 'id' field, so we'll just check for success
-        $this->assertNotEmpty($data);
+        $this->assertArrayHasKey('data', $data);
+        $this->assertArrayHasKey('message', $data['data']);
+        $this->assertNotEmpty($data['data']['message']);
     }
 
     /** @test */
@@ -243,7 +242,8 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        $this->assertIsArray($data);
+        $this->assertArrayHasKey('online_users', $data);
+        $this->assertIsArray($data['online_users']);
     }
 
     /** @test */

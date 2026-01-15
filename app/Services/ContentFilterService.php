@@ -15,17 +15,27 @@ class ContentFilterService
      * 不当词汇列表（基础实现）
      * 生产环境应存储在数据库或外部服务中
      */
-    private const INAPPROPRIATE_WORDS = [];
+    private const INAPPROPRIATE_WORDS = [
+        'stupid',
+        'spam',
+        'hate',
+        'violence',
+    ];
 
     /**
      * 敏感词替换内容
      */
-    private const WORD_REPLACEMENTS = [];
+    private const WORD_REPLACEMENTS = [
+        'spam' => '****',
+        'stupid' => '[filtered]',
+        'hate' => '[filtered]',
+        'violence' => '[filtered]',
+    ];
 
     /**
      * 垃圾信息检测阈值
      */
-    private const SPAM_MESSAGE_LIMIT = 30; // 每分钟消息数上限
+    private const SPAM_MESSAGE_LIMIT = 5; // 每分钟消息数上限
     private const SPAM_DUPLICATE_LIMIT = 3; // 重复消息上限
     private const SPAM_CAPS_THRESHOLD = 0.7; // 大写字母比例70%
     private const SPAM_REPETITION_THRESHOLD = 0.5; // 重复字符比例50%
@@ -82,7 +92,7 @@ class ContentFilterService
      */
     private function getWordSeverity(string $word): string
     {
-        static $highSeverityWords = [];
+        static $highSeverityWords = ['hate', 'violence'];
         static $mediumSeverityWords = [];
 
         if (in_array($word, $highSeverityWords, true)) {

@@ -13,6 +13,7 @@ use Tests\TestCase;
 
 class ImageUploadServiceTest extends TestCase
 {
+    use RefreshDatabase;
 
     protected ImageUploadService $imageUploadService;
     protected Item $item;
@@ -41,13 +42,13 @@ class ImageUploadServiceTest extends TestCase
         $result = $this->imageUploadService->processUploadedImages($uploadedImages, $this->item);
 
         $this->assertEquals(2, $result);
-        $this->assertDatabaseHas('item_images', [
+        $this->assertDatabaseHas('thing_item_images', [
             'item_id' => $this->item->id,
             'path' => 'items/' . $this->item->id . '/test1.jpg',
             'is_primary' => true,
             'sort_order' => 1,
         ]);
-        $this->assertDatabaseHas('item_images', [
+        $this->assertDatabaseHas('thing_item_images', [
             'item_id' => $this->item->id,
             'path' => 'items/' . $this->item->id . '/test2.png',
             'is_primary' => false,
@@ -72,7 +73,7 @@ class ImageUploadServiceTest extends TestCase
         $result = $this->imageUploadService->processUploadedImages($uploadedImages, $this->item);
 
         $this->assertEquals(1, $result);
-        $this->assertDatabaseHas('item_images', [
+        $this->assertDatabaseHas('thing_item_images', [
             'item_id' => $this->item->id,
             'path' => 'items/' . $this->item->id . '/new.jpg',
             'is_primary' => false,
@@ -85,14 +86,14 @@ class ImageUploadServiceTest extends TestCase
         // Mock a file that will fail to move
         $mockFile = $this->createMock(UploadedFile::class);
         $mockFile->method('getClientOriginalName')->willReturn('test.jpg');
-        $mockFile->method('move')->willReturn(false);
+        $mockFile->method('move')->willThrowException(new \Exception('移动图片文件失败'));
 
         $uploadedImages = [$mockFile];
 
         $result = $this->imageUploadService->processUploadedImages($uploadedImages, $this->item);
 
         $this->assertEquals(0, $result);
-        $this->assertDatabaseMissing('item_images', [
+        $this->assertDatabaseMissing('thing_item_images', [
             'item_id' => $this->item->id,
         ]);
     }
@@ -112,7 +113,7 @@ class ImageUploadServiceTest extends TestCase
 
         $this->imageUploadService->processImagePaths($imagePaths, $this->item);
 
-        $this->assertDatabaseHas('item_images', [
+        $this->assertDatabaseHas('thing_item_images', [
             'item_id' => $this->item->id,
             'path' => 'items/' . $this->item->id . '/temp.jpg',
             'is_primary' => true,
@@ -120,7 +121,9 @@ class ImageUploadServiceTest extends TestCase
         ]);
 
         // Clean up
-        unlink($tempFile);
+        if (file_exists($tempFile)) {
+            unlink($tempFile);
+        }
     }
 
     public function test_process_image_paths_with_thumbnail()
@@ -140,14 +143,18 @@ class ImageUploadServiceTest extends TestCase
 
         $this->imageUploadService->processImagePaths($imagePaths, $this->item);
 
-        $this->assertDatabaseHas('item_images', [
+        $this->assertDatabaseHas('thing_item_images', [
             'item_id' => $this->item->id,
             'path' => 'items/' . $this->item->id . '/temp.jpg',
         ]);
 
         // Clean up
-        unlink($tempFile);
-        unlink($thumbFile);
+        if (file_exists($tempFile)) {
+            unlink($tempFile);
+        }
+        if (file_exists($thumbFile)) {
+            unlink($thumbFile);
+        }
     }
 
     public function test_process_image_paths_ignores_invalid_paths()
@@ -157,7 +164,7 @@ class ImageUploadServiceTest extends TestCase
         $result = $this->imageUploadService->processImagePaths($imagePaths, $this->item);
 
         // Should not create any images since both paths are invalid
-        $this->assertDatabaseMissing('item_images', [
+        $this->assertDatabaseMissing('thing_item_images', [
             'item_id' => $this->item->id,
         ]);
     }
@@ -220,8 +227,8 @@ class ImageUploadServiceTest extends TestCase
 
         $this->imageUploadService->deleteImagesByIds($imageIdsToDelete, $this->item);
 
-        $this->assertDatabaseMissing('item_images', ['id' => $image1->id]);
-        $this->assertDatabaseHas('item_images', ['id' => $image2->id]);
+        $this->assertDatabaseMissing('thing_item_images', ['id' => $image1->id]);
+        $this->assertDatabaseHas('thing_item_images', ['id' => $image2->id]);
     }
 
     public function test_delete_all_item_images()
@@ -238,7 +245,7 @@ class ImageUploadServiceTest extends TestCase
 
         $this->imageUploadService->deleteAllItemImages($this->item);
 
-        $this->assertDatabaseMissing('item_images', [
+        $this->assertDatabaseMissing('thing_item_images', [
             'item_id' => $this->item->id,
         ]);
     }

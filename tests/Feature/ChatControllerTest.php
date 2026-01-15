@@ -45,7 +45,7 @@ class ChatControllerTest extends TestCase
         $response = $this->getJson('/api/chat/rooms');
 
         $response->assertStatus(200);
-        $response->assertJsonCount(2); // Including the room from setUp
+        $response->assertJsonCount(2, 'rooms'); // Including the room from setUp
         $response->assertJsonFragment(['id' => $activeRoom->id]);
         $response->assertJsonMissing(['id' => $inactiveRoom->id]);
     }

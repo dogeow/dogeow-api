@@ -96,16 +96,17 @@ class UploadControllerTest extends TestCase
     {
         $user = User::factory()->create();
         
+        $tmpPath = tempnam(sys_get_temp_dir(), 'upload');
+        file_put_contents($tmpPath, 'invalid-image');
+
         // 模拟无效的文件上传
-        $invalidImage = UploadedFile::fake()->image('invalid.jpg');
-        
-        // 使用反射来模拟上传错误
-        $reflection = new \ReflectionClass($invalidImage);
-        $property = $reflection->getProperty('test');
-        $property->setAccessible(true);
-        $test = $property->getValue($invalidImage);
-        $test['error'] = UPLOAD_ERR_PARTIAL;
-        $property->setValue($invalidImage, $test);
+        $invalidImage = new UploadedFile(
+            $tmpPath,
+            'invalid.jpg',
+            'image/jpeg',
+            UPLOAD_ERR_PARTIAL,
+            true
+        );
 
         $response = $this->actingAs($user)
             ->post('/api/upload/images', [

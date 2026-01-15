@@ -14,7 +14,7 @@ class GameController extends Controller
      */
     public function index()
     {
-        return response()->json(['message' => '游戏功能正在开发中']);
+        return $this->success([], '游戏功能正在开发中');
     }
 
     /**
@@ -25,7 +25,7 @@ class GameController extends Controller
      */
     public function store(Request $request)
     {
-        return response()->json(['message' => '游戏功能正在开发中']);
+        return $this->success([], '游戏功能正在开发中');
     }
 
     /**
@@ -36,7 +36,7 @@ class GameController extends Controller
      */
     public function show($id)
     {
-        return response()->json(['message' => '游戏功能正在开发中']);
+        return $this->success([], '游戏功能正在开发中');
     }
 
     /**
@@ -48,7 +48,7 @@ class GameController extends Controller
      */
     public function update(Request $request, $id)
     {
-        return response()->json(['message' => '游戏功能正在开发中']);
+        return $this->success([], '游戏功能正在开发中');
     }
 
     /**
@@ -59,7 +59,7 @@ class GameController extends Controller
      */
     public function destroy($id)
     {
-        return response()->json(['message' => '游戏功能正在开发中']);
+        return $this->success([], '游戏功能正在开发中');
     }
 
     /**
@@ -70,6 +70,6 @@ class GameController extends Controller
      */
     public function play($id)
     {
-        return response()->json(['message' => '游戏功能正在开发中']);
+        return $this->success([], '游戏功能正在开发中');
     }
 } 

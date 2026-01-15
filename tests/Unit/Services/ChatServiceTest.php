@@ -303,9 +303,9 @@ class ChatServiceTest extends TestCase
         $this->chatService->joinRoom($this->room->id, $this->user->id);
         $this->chatService->joinRoom($this->room->id, $user2->id);
         
-        // Set one user as inactive (last_seen more than 5 minutes ago)
+        // Set one user as inactive (last_seen_at more than 5 minutes ago)
         ChatRoomUser::where('user_id', $user2->id)->update([
-            'last_seen' => now()->subMinutes(10),
+            'last_seen_at' => now()->subMinutes(10),
         ]);
         
         $result = $this->chatService->cleanupInactiveUsers();

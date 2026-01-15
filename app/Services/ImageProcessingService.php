@@ -42,6 +42,9 @@ class ImageProcessingService extends BaseService
     {
         try {
             if (!file_exists($originPath)) {
+                $this->logError('Original image file not found', [
+                    'path' => $originPath
+                ]);
                 return $this->error('Original image file not found');
             }
 

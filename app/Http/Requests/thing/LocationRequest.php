@@ -21,32 +21,28 @@ class LocationRequest extends FormRequest
      */
     public function rules(): array
     {
+        $path = $this->path();
+        $method = $this->method();
+        $isUpdate = in_array($method, ['PUT', 'PATCH']);
+
+        // 基础规则
         $rules = [
-            'name' => 'required|string|max:255',
+            'name' => $isUpdate ? 'sometimes|required|string|max:255' : 'required|string|max:255',
         ];
 
-        // 根据请求路径添加不同的验证规则
-        if ($this->is('*/rooms') || $this->is('*/rooms/*')) {
-            $rules['area_id'] = 'required|exists:thing_areas,id';
+        // 根据路径判断是房间还是位置
+        // 检查路径是否包含 'rooms'
+        if (str_contains($path, 'rooms')) {
+            $rules['area_id'] = $isUpdate
+                ? 'sometimes|required|exists:thing_areas,id'
+                : 'required|exists:thing_areas,id';
         }
 
-        if ($this->is('*/spots') || $this->is('*/spots/*')) {
-            $rules['room_id'] = 'required|exists:thing_rooms,id';
-        }
-
-        // 对于更新操作，允许部分字段更新
-        if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
-            $rules = [
-                'name' => 'sometimes|required|string|max:255',
-            ];
-
-            if ($this->is('*/rooms/*')) {
-                $rules['area_id'] = 'sometimes|required|exists:thing_areas,id';
-            }
-
-            if ($this->is('*/spots/*')) {
-                $rules['room_id'] = 'sometimes|required|exists:thing_rooms,id';
-            }
+        // 检查路径是否包含 'spots'
+        if (str_contains($path, 'spots')) {
+            $rules['room_id'] = $isUpdate
+                ? 'sometimes|required|exists:thing_rooms,id'
+                : 'required|exists:thing_rooms,id';
         }
 
         return $rules;

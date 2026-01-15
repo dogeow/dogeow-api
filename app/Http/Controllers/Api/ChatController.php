@@ -35,6 +35,7 @@ class ChatController extends Controller
         $this->cacheService = $cacheService;
     }
 
+
     /**
      * 判断用户是否在房间
      */
@@ -71,6 +72,11 @@ class ChatController extends Controller
     private function logRoomActivity(int $roomId, string $action, int $userId): void
     {
         $this->cacheService->trackRoomActivity($roomId, $action, $userId);
+    }
+
+    private function getPagination(Request $request): array
+    {
+        return $this->getPaginationParams($request, self::DEFAULT_PAGE_SIZE, self::MAX_PAGE_SIZE);
     }
 
     /**
@@ -118,7 +124,7 @@ class ChatController extends Controller
                 'user_id' => $this->getCurrentUserId(),
                 'room_name' => $request->name ?? 'unknown'
             ]);
-            return $this->fail('Failed to create room', [], 500);
+            return $this->error('Failed to create room', [], 500);
         }
     }
 
@@ -133,7 +139,7 @@ class ChatController extends Controller
             $result = $this->chatService->joinRoom($roomId, $userId);
 
             if (empty($result['success'])) {
-                return $this->fail('Failed to join room', $result['errors'] ?? []);
+                return $this->error('Failed to join room', $result['errors'] ?? []);
             }
 
             $this->clearRoomCache($roomId);
@@ -144,7 +150,7 @@ class ChatController extends Controller
                 'user_id' => $userId
             ]);
 
-            return $this->ok([
+            return $this->success([
                 'room' => $result['room'],
                 'room_user' => $result['room_user'],
             ], 'Successfully joined the room');
@@ -154,7 +160,7 @@ class ChatController extends Controller
                 'room_id' => $roomId,
                 'user_id' => $this->getCurrentUserId()
             ]);
-            return $this->fail('Failed to join room', [], 500);
+            return $this->error('Failed to join room', [], 500);
         }
     }
 
@@ -169,7 +175,7 @@ class ChatController extends Controller
             $result = $this->chatService->leaveRoom($roomId, $userId);
 
             if (empty($result['success'])) {
-                return $this->fail('Failed to leave room', $result['errors'] ?? []);
+                return $this->error('Failed to leave room', $result['errors'] ?? []);
             }
 
             $this->clearRoomCache($roomId);
@@ -180,14 +186,14 @@ class ChatController extends Controller
                 'user_id' => $userId
             ]);
 
-            return $this->ok([], $result['message'] ?? 'Left room');
+            return $this->success([], $result['message'] ?? 'Left room');
         } catch (\Throwable $e) {
             Log::error('Failed to leave room', [
                 'error' => $e->getMessage(),
                 'room_id' => $roomId,
                 'user_id' => $this->getCurrentUserId()
             ]);
-            return $this->fail('Failed to leave room', [], 500);
+            return $this->error('Failed to leave room', [], 500);
         }
     }
 
@@ -203,7 +209,7 @@ class ChatController extends Controller
 
             if (empty($result['success'])) {
                 $statusCode = (isset($result['errors']) && in_array('You do not have permission to delete this room', $result['errors'])) ? 403 : 422;
-                return $this->fail('Failed to delete room', $result['errors'] ?? [], $statusCode);
+                return $this->error('Failed to delete room', $result['errors'] ?? [], $statusCode);
             }
 
             Log::info('Room deleted', [
@@ -211,14 +217,14 @@ class ChatController extends Controller
                 'deleted_by' => $userId
             ]);
 
-            return $this->ok([], $result['message'] ?? 'Room deleted');
+            return $this->success([], $result['message'] ?? 'Room deleted');
         } catch (\Throwable $e) {
             Log::error('Failed to delete room', [
                 'error' => $e->getMessage(),
                 'room_id' => $roomId,
                 'user_id' => $this->getCurrentUserId()
             ]);
-            return $this->fail('Failed to delete room', [], 500);
+            return $this->error('Failed to delete room', [], 500);
         }
     }
 
@@ -234,14 +240,14 @@ class ChatController extends Controller
             $room = ChatRoom::active()->findOrFail($roomId);
 
             if (!$this->isUserInRoom($roomId, $userId)) {
-                return $this->fail('You must join the room to view messages', [], 403);
+                return $this->error('You must join the room to view messages', [], 403);
             }
 
             [$page, $perPage] = $this->getPagination($request);
 
             if ($page === 1) {
                 $messages = $this->chatService->getRecentMessages($roomId, $perPage);
-                return $this->ok([
+                return $this->success([
                     'messages' => $messages,
                     'pagination' => [
                         'current_page' => 1,
@@ -250,7 +256,7 @@ class ChatController extends Controller
                 ], 'Messages retrieved successfully');
             } else {
                 $paginated = $this->chatService->getMessageHistoryPaginated($roomId, $page, $perPage);
-                return $this->ok([
+                return $this->success([
                     'messages' => array_reverse($paginated->items()),
                     'pagination' => [
                         'current_page' => $paginated->currentPage(),
@@ -267,7 +273,7 @@ class ChatController extends Controller
                 'room_id' => $roomId,
                 'user_id' => $this->getCurrentUserId()
             ]);
-            return $this->fail('Failed to retrieve messages', [], 500);
+            return $this->error('Failed to retrieve messages', [], 500);
         }
     }
 
@@ -284,17 +290,17 @@ class ChatController extends Controller
 
             $roomUser = $this->fetchRoomUser($roomId, $userId);
             if (!$roomUser || !$roomUser->is_online) {
-                return $this->fail('You must be online in the room to send messages', [], 403);
+                return $this->error('You must be online in the room to send messages', [], 403);
             }
 
             $perm = $this->checkUserPermission($roomUser);
             if (!$perm['allowed']) {
-                return $this->fail($perm['message'], [], 403);
+                return $this->error($perm['message'], [], 403);
             }
 
             $rate = $this->checkRate($userId, $roomId);
             if (!$rate['allowed']) {
-                return $this->fail($rate['message'], $rate['data'] ?? [], 429);
+                return $this->error($rate['message'], $rate['data'] ?? [], 429);
             }
 
             $result = $this->chatService->processMessage(
@@ -305,7 +311,7 @@ class ChatController extends Controller
             );
 
             if (empty($result['success'])) {
-                return $this->fail('Failed to send message', $result['errors'] ?? []);
+                return $this->error('Failed to send message', $result['errors'] ?? []);
             }
 
             $roomUser->updateLastSeen();
@@ -324,7 +330,7 @@ class ChatController extends Controller
                 'message_type' => $result['message']->message_type
             ]);
 
-            return $this->ok([
+            return $this->success([
                 'data' => [
                     'id' => $result['message']->id,
                     'room_id' => $result['message']->room_id,
@@ -346,7 +352,7 @@ class ChatController extends Controller
                 'room_id' => $roomId,
                 'user_id' => $this->getCurrentUserId()
             ]);
-            return $this->fail('Failed to send message', [], 500);
+            return $this->error('Failed to send message', [], 500);
         }
     }
 
@@ -417,7 +423,7 @@ class ChatController extends Controller
 
             $canDelete = $message->user_id === $userId || $room->created_by === $userId;
             if (!$canDelete) {
-                return $this->fail('You are not authorized to delete this message', [], 403);
+                return $this->error('You are not authorized to delete this message', [], 403);
             }
 
             DB::beginTransaction();
@@ -434,7 +440,7 @@ class ChatController extends Controller
                 'deleted_by' => $userId
             ]);
 
-            return $this->ok([], 'Message deleted successfully');
+            return $this->success([], 'Message deleted successfully');
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Failed to delete message', [
@@ -443,7 +449,7 @@ class ChatController extends Controller
                 'room_id' => $roomId,
                 'user_id' => $this->getCurrentUserId()
             ]);
-            return $this->fail('Failed to delete message', [], 500);
+            return $this->error('Failed to delete message', [], 500);
         }
     }
 
@@ -459,12 +465,12 @@ class ChatController extends Controller
             $room = ChatRoom::active()->findOrFail($roomId);
 
             if (!$this->isUserInRoom($roomId, $userId)) {
-                return $this->fail('You must join the room to view online users', [], 403);
+                return $this->error('You must join the room to view online users', [], 403);
             }
 
             $onlineUsers = $this->chatService->getOnlineUsers($roomId);
 
-            return $this->ok([
+            return $this->success([
                 'online_users' => $onlineUsers,
                 'count' => $onlineUsers->count(),
             ], 'Online users retrieved successfully');
@@ -474,7 +480,7 @@ class ChatController extends Controller
                 'room_id' => $roomId,
                 'user_id' => $this->getCurrentUserId()
             ]);
-            return $this->fail('Failed to retrieve online users', [], 500);
+            return $this->error('Failed to retrieve online users', [], 500);
         }
     }
 
@@ -492,10 +498,10 @@ class ChatController extends Controller
             $result = $this->chatService->processHeartbeat($roomId, $userId);
 
             if (empty($result['success'])) {
-                return $this->fail('Failed to update status', $result['errors'] ?? [], 404);
+                return $this->error('Failed to update status', $result['errors'] ?? [], 404);
             }
 
-            return $this->ok([
+            return $this->success([
                 'last_seen_at' => $result['last_seen_at'],
             ], 'Status updated successfully');
         } catch (\Throwable $e) {
@@ -504,7 +510,7 @@ class ChatController extends Controller
                 'room_id' => $roomId,
                 'user_id' => $this->getCurrentUserId()
             ]);
-            return $this->fail('Failed to update status', [], 500);
+            return $this->error('Failed to update status', [], 500);
         }
     }
 
@@ -517,23 +523,23 @@ class ChatController extends Controller
             $result = $this->chatService->cleanupInactiveUsers();
 
             if (empty($result['success'])) {
-                return $this->fail('Failed to cleanup disconnected users', $result['errors'] ?? [], 500);
+                return $this->error('Failed to cleanup disconnected users', $result['errors'] ?? [], 500);
             }
 
             Log::info('Disconnected users cleanup', [
-                'cleaned_users_count' => $result['cleaned_users'],
+                'cleaned_users_count' => $result['cleaned_count'],
                 'initiated_by' => $this->getCurrentUserId()
             ]);
 
-            return $this->ok([
-                'cleaned_users_count' => $result['cleaned_users'],
+            return $this->success([
+                'cleaned_users_count' => $result['cleaned_count'],
             ], $result['message'] ?? 'Cleanup done');
         } catch (\Throwable $e) {
             Log::error('Failed to cleanup disconnected users', [
                 'error' => $e->getMessage(),
                 'initiated_by' => $this->getCurrentUserId()
             ]);
-            return $this->fail('Failed to cleanup disconnected users', [], 500);
+            return $this->error('Failed to cleanup disconnected users', [], 500);
         }
     }
 
@@ -551,13 +557,13 @@ class ChatController extends Controller
             $roomUser = $this->fetchRoomUser($roomId, $userId);
 
             if (!$roomUser) {
-                return $this->ok([
+                return $this->success([
                     'is_in_room' => false,
                     'is_online' => false,
                 ], 'You are not in this room');
             }
 
-            return $this->ok([
+            return $this->success([
                 'is_in_room' => true,
                 'is_online' => $roomUser->is_online,
                 'joined_at' => $roomUser->joined_at,
@@ -570,7 +576,7 @@ class ChatController extends Controller
                 'room_id' => $roomId,
                 'user_id' => $this->getCurrentUserId()
             ]);
-            return $this->fail('Failed to get user presence status', [], 500);
+            return $this->error('Failed to get user presence status', [], 500);
         }
     }
 }
