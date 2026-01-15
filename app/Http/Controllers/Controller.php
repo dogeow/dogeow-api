@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 abstract class Controller
 {
@@ -28,6 +29,14 @@ abstract class Controller
             $response['errors'] = $errors;
         }
         return response()->json($response, $code);
+    }
+
+    /**
+     * 兼容旧的 fail 响应方法
+     */
+    protected function fail(string $message, array $errors = [], int $code = 422): JsonResponse
+    {
+        return $this->error($message, $errors, $code);
     }
 
     /**
@@ -65,5 +74,13 @@ abstract class Controller
         $perPage = max(1, min($perPage, $maxPerPage));
         $page = max(1, (int) $request->get('page', 1));
         return [$page, $perPage];
+    }
+
+    /**
+     * 获取分页参数（便捷方法）
+     */
+    protected function getPagination(Request $request, int $defaultPerPage = 20, int $maxPerPage = 100): array
+    {
+        return $this->getPaginationParams($request, $defaultPerPage, $maxPerPage);
     }
 }
