@@ -74,9 +74,9 @@ class ChatController extends Controller
         $this->cacheService->trackRoomActivity($roomId, $action, $userId);
     }
 
-    protected function getPagination(Request $request): array
+    protected function getPagination(Request $request, int $defaultPerPage = self::DEFAULT_PAGE_SIZE, int $maxPerPage = self::MAX_PAGE_SIZE): array
     {
-        return $this->getPaginationParams($request, self::DEFAULT_PAGE_SIZE, self::MAX_PAGE_SIZE);
+        return $this->getPaginationParams($request, $defaultPerPage, $maxPerPage);
     }
 
     /**
