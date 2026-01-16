@@ -32,7 +32,13 @@ class UploadController extends Controller
         
         try {
             $userId = Auth::id() ?? 0;
-            $dirPath = $this->fileStorageService->createUserDirectory($userId);
+            $directoryResult = $this->fileStorageService->createUserDirectory($userId);
+            if (empty($directoryResult['success'])) {
+                return response()->json([
+                    'message' => $directoryResult['message'] ?? '创建用户目录失败'
+                ], 500);
+            }
+            $dirPath = $directoryResult['directory_path'];
             
             if (!$request->hasFile('images')) {
                 return response()->json([
@@ -57,6 +63,9 @@ class UploadController extends Controller
 
                     // 存储文件
                     $fileInfo = $this->fileStorageService->storeFile($image, $dirPath);
+                    if (empty($fileInfo['success'])) {
+                        throw new \Exception($fileInfo['message'] ?? '文件存储失败');
+                    }
                     
                     // 处理图片
                     $processResult = $this->imageProcessingService->processImage(
