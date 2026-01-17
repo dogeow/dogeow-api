@@ -104,6 +104,26 @@ class WikiController extends Controller
     }
 
     /**
+     * 批量获取所有文章内容（公开）
+     * 用于知识库批量加载，提高性能
+     */
+    public function getAllArticles(): JsonResponse
+    {
+        $nodes = WikiNode::all()->map(function ($node) {
+            return [
+                'title' => $node->title,
+                'slug' => $node->slug,
+                'content' => $node->content,
+                'content_markdown' => $node->content_markdown,
+            ];
+        });
+
+        return $this->success([
+            'articles' => $nodes,
+        ], 'All articles retrieved successfully');
+    }
+
+    /**
      * 创建节点（管理员）
      */
     public function storeNode(Request $request): JsonResponse

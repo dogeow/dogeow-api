@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsureUserIsAdmin;
 // 公开路由
 Route::get('/', [WikiController::class, 'index']);
 Route::get('/article/{slug}', [WikiController::class, 'getArticle']);
+Route::get('/articles', [WikiController::class, 'getAllArticles']);
 
 // 管理员路由
 Route::middleware(['auth:sanctum', EnsureUserIsAdmin::class])->group(function () {
