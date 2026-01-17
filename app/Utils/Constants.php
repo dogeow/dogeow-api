@@ -7,81 +7,86 @@ class Constants
     /**
      * 获取分页配置
      */
-    public static function pagination(string $key = null): mixed
+    public static function pagination(?string $key = null): mixed
     {
         $config = config('app_constants.pagination');
+
         return $key ? ($config[$key] ?? null) : $config;
     }
 
     /**
      * 获取聊天配置
      */
-    public static function chat(string $section = null, string $key = null): mixed
+    public static function chat(?string $section = null, ?string $key = null): mixed
     {
         $config = config('app_constants.chat');
-        
+
         if ($section && $key) {
             return $config[$section][$key] ?? null;
         }
-        
+
         if ($section) {
             return $config[$section] ?? null;
         }
-        
+
         return $config;
     }
 
     /**
      * 获取文件上传配置
      */
-    public static function upload(string $key = null): mixed
+    public static function upload(?string $key = null): mixed
     {
         $config = config('app_constants.upload');
+
         return $key ? ($config[$key] ?? null) : $config;
     }
 
     /**
      * 获取图片处理配置
      */
-    public static function image(string $key = null): mixed
+    public static function image(?string $key = null): mixed
     {
         $config = config('app_constants.image');
+
         return $key ? ($config[$key] ?? null) : $config;
     }
 
     /**
      * 获取缓存配置
      */
-    public static function cache(string $key = null): mixed
+    public static function cache(?string $key = null): mixed
     {
         $config = config('app_constants.cache');
+
         return $key ? ($config[$key] ?? null) : $config;
     }
 
     /**
      * 获取验证配置
      */
-    public static function validation(string $section = null, string $key = null): mixed
+    public static function validation(?string $section = null, ?string $key = null): mixed
     {
         $config = config('app_constants.validation');
-        
+
         if ($section && $key) {
             return $config[$section][$key] ?? null;
         }
-        
+
         if ($section) {
             return $config[$section] ?? null;
         }
-        
+
         return $config;
     }
 
     /**
      * 获取API配置
      */
-    public static function api(string $key = null): mixed
+    public static function api(?string $key = null): mixed
     {
         $config = config('app_constants.api');
+
         return $key ? ($config[$key] ?? null) : $config;
     }
 
