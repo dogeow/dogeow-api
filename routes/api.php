@@ -70,9 +70,3 @@ require base_path('routes/api/nav.php');
 
 // 公开的工具路由
 require base_path('routes/api/tools.php');
-
-// Wiki 路由（已废弃，功能已整合到 notes）
-// TODO: 前端迁移完成后删除此路由
-// Route::prefix('wiki')->group(function () {
-//     require base_path('routes/api/wiki.php');
-// });

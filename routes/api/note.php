@@ -17,3 +17,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // 公开路由：通过 slug 获取文章
 Route::get('notes/article/{slug}', [\App\Http\Controllers\Api\NoteController::class, 'getArticleBySlug']);
+// 批量获取所有 wiki 文章（公开）
+Route::get('notes/wiki/articles', [\App\Http\Controllers\Api\NoteController::class, 'getAllWikiArticles']);

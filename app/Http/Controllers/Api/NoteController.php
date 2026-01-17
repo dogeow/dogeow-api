@@ -87,6 +87,26 @@ class NoteController extends Controller
     }
 
     /**
+     * 批量获取所有 wiki 文章内容（公开）
+     * 用于知识库批量加载，提高性能
+     */
+    public function getAllWikiArticles(): JsonResponse
+    {
+        $notes = Note::where('is_wiki', true)->get()->map(function ($note) {
+            return [
+                'title' => $note->title,
+                'slug' => $note->slug,
+                'content' => $note->content,
+                'content_markdown' => $note->content_markdown,
+            ];
+        });
+
+        return $this->success([
+            'articles' => $notes,
+        ], 'All wiki articles retrieved successfully');
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(NoteRequest $request): JsonResponse
