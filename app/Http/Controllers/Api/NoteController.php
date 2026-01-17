@@ -116,7 +116,7 @@ class NoteController extends Controller
     public function update(Request $request, string $id): JsonResponse
     {
         $note = $this->findUserNote($id);
-        $validatedData = $this->validateUpdateData($request);
+        $validatedData = $this->validateUpdateData($request, $note);
         
         $note->update($validatedData);
 
@@ -135,11 +135,34 @@ class NoteController extends Controller
     }
 
     /**
-     * 查找用户的笔记
+     * 查找用户的笔记或 wiki 节点
      */
     private function findUserNote(string $id): Note
     {
-        return Note::where('user_id', $this->getCurrentUserId())->findOrFail($id);
+        // 先查找笔记（不限制条件）
+        $note = Note::find($id);
+        
+        if (!$note) {
+            throw new \Illuminate\Database\Eloquent\ModelNotFoundException(
+                'No query results for model [App\\Models\\Note\\Note] ' . $id
+            );
+        }
+        
+        $userId = auth()->id(); // 直接使用 auth()->id()，可能返回 null
+        
+        // 检查权限：
+        // 1. 如果是用户自己的笔记（user_id 匹配）
+        // 2. 或者是 wiki 节点（is_wiki = true，允许所有认证用户编辑）
+        $isUserNote = $userId !== null && $note->user_id !== null && $note->user_id === $userId;
+        $isWikiNode = $note->is_wiki === true;
+        
+        if (!$isUserNote && !$isWikiNode) {
+            throw new \Illuminate\Database\Eloquent\ModelNotFoundException(
+                'No query results for model [App\\Models\\Note\\Note] ' . $id
+            );
+        }
+        
+        return $note;
     }
 
     /**
@@ -185,7 +208,7 @@ class NoteController extends Controller
     /**
      * 验证更新数据
      */
-    private function validateUpdateData(Request $request): array
+    private function validateUpdateData(Request $request, ?Note $note = null): array
     {
         $validatedData = [];
         
@@ -236,13 +259,9 @@ class NoteController extends Controller
         }
 
         // 如果更新了 title 但没有提供 slug，且是 wiki 节点，重新生成 slug
-        if (isset($validatedData['title']) && !isset($validatedData['slug'])) {
-            $noteId = $request->route('id');
-            $note = Note::findOrFail($noteId);
-            if ($note->is_wiki) {
-                $validatedData['slug'] = Note::normalizeSlug($validatedData['title']);
-                $validatedData['slug'] = Note::ensureUniqueSlug($validatedData['slug'], $note->id);
-            }
+        if (isset($validatedData['title']) && !isset($validatedData['slug']) && $note && $note->is_wiki) {
+            $validatedData['slug'] = Note::normalizeSlug($validatedData['title']);
+            $validatedData['slug'] = Note::ensureUniqueSlug($validatedData['slug'], $note->id);
         }
         
         return $validatedData;
