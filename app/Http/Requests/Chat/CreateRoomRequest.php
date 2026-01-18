@@ -2,10 +2,16 @@
 
 namespace App\Http\Requests\Chat;
 
+use App\Utils\CharLengthHelper;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class CreateRoomRequest extends FormRequest
 {
+    // 房间名称长度限制（按字符数计算：中文/emoji算2，数字/字母算1）
+    private const MIN_ROOM_NAME_LENGTH = 2; // 最少2个字符
+    private const MAX_ROOM_NAME_LENGTH = 20; // 最多20个字符
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -22,9 +28,45 @@ class CreateRoomRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255|unique:chat_rooms,name',
+            'name' => [
+                'required',
+                'string',
+                'unique:chat_rooms,name',
+            ],
             'description' => 'nullable|string|max:1000',
         ];
+    }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function ($validator) {
+            $name = $this->input('name');
+            
+            if (empty($name)) {
+                return;
+            }
+
+            $charLength = CharLengthHelper::calculateCharLength($name);
+
+            // 检查最小长度
+            if (CharLengthHelper::belowMinLength($name, self::MIN_ROOM_NAME_LENGTH)) {
+                $validator->errors()->add(
+                    'name',
+                    "房间名称至少需要" . self::MIN_ROOM_NAME_LENGTH . "个字符"
+                );
+            }
+
+            // 检查最大长度
+            if (CharLengthHelper::exceedsMaxLength($name, self::MAX_ROOM_NAME_LENGTH)) {
+                $validator->errors()->add(
+                    'name',
+                    "房间名称不能超过" . self::MAX_ROOM_NAME_LENGTH . "个字符（中文/emoji算2个字符，数字/字母算1个字符）"
+                );
+            }
+        });
     }
 
     /**
@@ -48,10 +90,9 @@ class CreateRoomRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'Room name is required.',
-            'name.unique' => 'A room with this name already exists.',
-            'name.max' => 'Room name cannot exceed 255 characters.',
-            'description.max' => 'Room description cannot exceed 1000 characters.',
+            'name.required' => '房间名称是必需的',
+            'name.unique' => '该房间名称已存在',
+            'description.max' => '描述不能超过1000个字符',
         ];
     }
 }

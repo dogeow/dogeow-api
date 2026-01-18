@@ -8,6 +8,7 @@ use App\Models\ChatRoomUser;
 use App\Models\User;
 use App\Events\UserJoinedRoom;
 use App\Events\UserLeftRoom;
+use App\Utils\CharLengthHelper;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -39,10 +40,10 @@ class ChatService
     const MAX_PAGE_SIZE = 100;
     
     /**
-     * 房间验证规则
+     * 房间验证规则（按字符数计算：中文/emoji算2，数字/字母算1）
      */
-    const MAX_ROOM_NAME_LENGTH = 100;
-    const MIN_ROOM_NAME_LENGTH = 3;
+    const MAX_ROOM_NAME_LENGTH = 20; // 最多20个字符
+    const MIN_ROOM_NAME_LENGTH = 2; // 最少2个字符
     const MAX_ROOM_DESCRIPTION_LENGTH = 500;
 
     /**
@@ -375,27 +376,29 @@ class ChatService
         
         // 验证房间名称
         if (empty($data['name'])) {
-            $errors[] = 'Room name is required';
+            $errors[] = '房间名称是必需的';
         } else {
             $name = trim($data['name']);
-            if (strlen($name) < self::MIN_ROOM_NAME_LENGTH) {
-                $errors[] = 'Room name must be at least ' . self::MIN_ROOM_NAME_LENGTH . ' characters';
+            
+            // 使用字符长度计算（中文/emoji算2，数字/字母算1）
+            if (CharLengthHelper::belowMinLength($name, self::MIN_ROOM_NAME_LENGTH)) {
+                $errors[] = '房间名称至少需要' . self::MIN_ROOM_NAME_LENGTH . '个字符';
             }
-            if (strlen($name) > self::MAX_ROOM_NAME_LENGTH) {
-                $errors[] = 'Room name cannot exceed ' . self::MAX_ROOM_NAME_LENGTH . ' characters';
+            if (CharLengthHelper::exceedsMaxLength($name, self::MAX_ROOM_NAME_LENGTH)) {
+                $errors[] = '房间名称不能超过' . self::MAX_ROOM_NAME_LENGTH . '个字符（中文/emoji算2个字符，数字/字母算1个字符）';
             }
             
             // 检查重复的房间名称
             if (ChatRoom::where('name', $name)->where('is_active', true)->exists()) {
-                $errors[] = 'A room with this name already exists';
+                $errors[] = '该房间名称已存在';
             }
         }
         
         // 如果提供了描述，验证描述
         if (!empty($data['description'])) {
             $description = trim($data['description']);
-            if (strlen($description) > self::MAX_ROOM_DESCRIPTION_LENGTH) {
-                $errors[] = 'Room description cannot exceed ' . self::MAX_ROOM_DESCRIPTION_LENGTH . ' characters';
+            if (mb_strlen($description, 'UTF-8') > self::MAX_ROOM_DESCRIPTION_LENGTH) {
+                $errors[] = '房间描述不能超过' . self::MAX_ROOM_DESCRIPTION_LENGTH . '个字符';
             }
         }
         
