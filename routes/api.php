@@ -70,3 +70,7 @@ require base_path('routes/api/nav.php');
 
 // 公开的工具路由
 require base_path('routes/api/tools.php');
+
+// 公开的笔记路由（需要在认证中间件组外定义）
+Route::get('notes/article/{slug}', [\App\Http\Controllers\Api\NoteController::class, 'getArticleBySlug']);
+Route::get('notes/wiki/articles', [\App\Http\Controllers\Api\NoteController::class, 'getAllWikiArticles']);

@@ -15,7 +15,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('notes', \App\Http\Controllers\Api\NoteController::class);
 });
 
-// 公开路由：通过 slug 获取文章
-Route::get('notes/article/{slug}', [\App\Http\Controllers\Api\NoteController::class, 'getArticleBySlug']);
-// 批量获取所有 wiki 文章（公开）
-Route::get('notes/wiki/articles', [\App\Http\Controllers\Api\NoteController::class, 'getAllWikiArticles']);
+// 注意：公开路由需要在 routes/api.php 中定义，因为此文件被包含在 auth:sanctum 中间件组内

@@ -9,6 +9,7 @@ use App\Models\Note\NoteLink;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class NoteController extends Controller
 {
@@ -92,18 +93,25 @@ class NoteController extends Controller
      */
     public function getAllWikiArticles(): JsonResponse
     {
-        $notes = Note::where('is_wiki', true)->get()->map(function ($note) {
-            return [
-                'title' => $note->title,
-                'slug' => $note->slug,
-                'content' => $note->content,
-                'content_markdown' => $note->content_markdown,
-            ];
-        });
+        try {
+            $notes = Note::where('is_wiki', true)->get()->map(function ($note) {
+                return [
+                    'title' => $note->title,
+                    'slug' => $note->slug,
+                    'content' => $note->content,
+                    'content_markdown' => $note->content_markdown,
+                ];
+            });
 
-        return $this->success([
-            'articles' => $notes,
-        ], 'All wiki articles retrieved successfully');
+            return $this->success([
+                'articles' => $notes,
+            ], 'All wiki articles retrieved successfully');
+        } catch (\Exception $e) {
+            Log::error('getAllWikiArticles error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->error('Failed to retrieve articles: ' . $e->getMessage(), [], 500);
+        }
     }
 
     /**
