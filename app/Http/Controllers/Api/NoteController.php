@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Note\NoteRequest;
 use App\Models\Note\Note;
+use App\Jobs\TriggerKnowledgeIndexBuildJob;
 use App\Models\Note\NoteLink;
 use App\Models\Note\NoteTag;
 use Illuminate\Http\Request;
@@ -134,6 +135,8 @@ class NoteController extends Controller
 
         $note->load('tags');
 
+        TriggerKnowledgeIndexBuildJob::dispatch();
+
         return $this->success(['note' => $note], 'Note created successfully', 201);
     }
 
@@ -163,6 +166,8 @@ class NoteController extends Controller
 
         $note->load('tags');
 
+        TriggerKnowledgeIndexBuildJob::dispatch();
+
         return $this->success(['note' => $note], 'Note updated successfully');
     }
 
@@ -173,6 +178,8 @@ class NoteController extends Controller
     {
         $note = $this->findUserNote($id);
         $note->delete();
+
+        TriggerKnowledgeIndexBuildJob::dispatch();
 
         return $this->success([], 'Note deleted successfully');
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Thing;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Thing\ItemRequest;
+use App\Jobs\TriggerKnowledgeIndexBuildJob;
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemCategory;
 use App\Services\ImageUploadService;
@@ -125,7 +126,9 @@ class ItemController extends Controller
 
             $this->processItemImages($request, $item);
             $this->handleTags($request, $item);
-            
+
+            TriggerKnowledgeIndexBuildJob::dispatch();
+
             return response()->json([
                 'message' => '物品创建成功',
                 'item' => $item->load(self::ITEM_RELATIONS)
@@ -159,7 +162,9 @@ class ItemController extends Controller
             
             $this->processItemImageUpdates($request, $item);
             $this->handleTags($request, $item);
-            
+
+            TriggerKnowledgeIndexBuildJob::dispatch();
+
             return response()->json([
                 'message' => '物品更新成功',
                 'item' => $item->load(self::ITEM_RELATIONS)
