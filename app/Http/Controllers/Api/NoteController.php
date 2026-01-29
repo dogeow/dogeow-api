@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Note\NoteRequest;
 use App\Models\Note\Note;
 use App\Models\Note\NoteLink;
+use App\Models\Note\NoteTag;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -53,13 +54,17 @@ class NoteController extends Controller
             });
 
         $links = NoteLink::with(['sourceNote', 'targetNote'])->get()->map(function ($link) {
+            // 检查关联的节点是否存在，如果不存在则跳过该链接
+            if (!$link->sourceNote || !$link->targetNote) {
+                return null;
+            }
             return [
                 'id' => $link->id,
                 'source' => $link->sourceNote->id,
                 'target' => $link->targetNote->id,
                 'type' => $link->type,
             ];
-        });
+        })->filter()->values(); // 过滤掉 null 并重新索引，保证返回数组
 
         return $this->success([
             'nodes' => $nodes,
@@ -124,6 +129,11 @@ class NoteController extends Controller
 
         $note = Note::create($data);
 
+        // 处理标签
+        $this->handleTags($request, $note);
+
+        $note->load('tags');
+
         return $this->success(['note' => $note], 'Note created successfully', 201);
     }
 
@@ -147,6 +157,11 @@ class NoteController extends Controller
         $validatedData = $this->validateUpdateData($request, $note);
         
         $note->update($validatedData);
+
+        // 处理标签
+        $this->handleTags($request, $note);
+
+        $note->load('tags');
 
         return $this->success(['note' => $note], 'Note updated successfully');
     }
@@ -201,9 +216,25 @@ class NoteController extends Controller
         $content = $request->content ?? '';
         $contentMarkdown = $request->content_markdown ?? '';
 
-        // 如果前端没有提供 markdown，使用 content 作为 markdown
+        // 如果提供了 JSON 格式的 content 但没有 markdown，尝试从 JSON 中提取文本作为 markdown
         if (empty($contentMarkdown) && !empty($content)) {
-            $contentMarkdown = $content;
+            // 检查是否是 JSON 格式
+            $trimmedContent = trim($content);
+            if (str_starts_with($trimmedContent, '{') || str_starts_with($trimmedContent, '[')) {
+                try {
+                    $parsedContent = json_decode($trimmedContent, true);
+                    if ($parsedContent) {
+                        // 从 JSON 中提取纯文本作为 markdown
+                        $contentMarkdown = $this->extractTextFromEditorJson($parsedContent);
+                    }
+                } catch (\Exception $e) {
+                    // 如果解析失败，保持为空
+                    $contentMarkdown = '';
+                }
+            } else {
+                // 如果不是 JSON 格式，直接使用 content 作为 markdown
+                $contentMarkdown = $content;
+            }
         }
 
         $data = [
@@ -234,6 +265,46 @@ class NoteController extends Controller
     }
 
     /**
+     * 从编辑器 JSON 中提取纯文本
+     */
+    private function extractTextFromEditorJson(array $jsonContent): string
+    {
+        $text = '';
+        
+        if (isset($jsonContent['content']) && is_array($jsonContent['content'])) {
+            foreach ($jsonContent['content'] as $node) {
+                $text .= $this->extractTextFromNode($node);
+            }
+        }
+        
+        return trim($text);
+    }
+
+    /**
+     * 从单个节点中提取文本
+     */
+    private function extractTextFromNode(array $node): string
+    {
+        $text = '';
+        
+        if (isset($node['type'])) {
+            if ($node['type'] === 'text' && isset($node['text'])) {
+                $text .= $node['text'];
+            } elseif (isset($node['content']) && is_array($node['content'])) {
+                foreach ($node['content'] as $childNode) {
+                    $text .= $this->extractTextFromNode($childNode);
+                }
+                // 在段落后添加换行
+                if ($node['type'] === 'paragraph') {
+                    $text .= "\n";
+                }
+            }
+        }
+        
+        return $text;
+    }
+
+    /**
      * 验证更新数据
      */
     private function validateUpdateData(Request $request, ?Note $note = null): array
@@ -259,7 +330,25 @@ class NoteController extends Controller
                     'content_markdown' => 'nullable|string',
                 ])['content_markdown'];
             } else {
-                $validatedData['content_markdown'] = $content ?: '';
+                // 如果没有提供 markdown，尝试从 JSON 中提取
+                $contentMarkdown = '';
+                if (!empty($content)) {
+                    $trimmedContent = trim($content);
+                    if (str_starts_with($trimmedContent, '{') || str_starts_with($trimmedContent, '[')) {
+                        try {
+                            $parsedContent = json_decode($trimmedContent, true);
+                            if ($parsedContent) {
+                                $contentMarkdown = $this->extractTextFromEditorJson($parsedContent);
+                            }
+                        } catch (\Exception $e) {
+                            // 如果解析失败，保持为空
+                            $contentMarkdown = '';
+                        }
+                    } else {
+                        $contentMarkdown = $content;
+                    }
+                }
+                $validatedData['content_markdown'] = $contentMarkdown;
             }
         }
         
@@ -336,5 +425,65 @@ class NoteController extends Controller
         $link->delete();
 
         return $this->success([], 'Link deleted successfully');
+    }
+
+    /**
+     * 处理标签关联
+     * 接收标签名称数组，查找或创建标签，然后关联到笔记
+     */
+    private function handleTags(Request $request, Note $note): void
+    {
+        if (!$request->has('tags')) {
+            return;
+        }
+
+        $tagNames = $request->input('tags', []);
+        
+        // 如果 tags 为空数组，清空所有标签关联
+        if (empty($tagNames)) {
+            $note->tags()->sync([]);
+            return;
+        }
+
+        // 确保是数组
+        if (!is_array($tagNames)) {
+            return;
+        }
+
+        // 过滤空值并去重
+        $tagNames = array_unique(array_filter(array_map('trim', $tagNames)));
+
+        if (empty($tagNames)) {
+            $note->tags()->sync([]);
+            return;
+        }
+
+        $userId = $note->user_id ?? Auth::id();
+        $tagIds = [];
+
+        // 对于每个标签名称，查找或创建标签
+        foreach ($tagNames as $tagName) {
+            if (empty($tagName)) {
+                continue;
+            }
+
+            // 查找或创建标签
+            // 注意：wiki 节点可能没有 user_id，这种情况下使用当前登录用户
+            /** @var NoteTag $tag */
+            $tag = NoteTag::firstOrCreate(
+                [
+                    'name' => $tagName,
+                    'user_id' => $userId,
+                ],
+                [
+                    'color' => '#3b82f6', // 默认蓝色
+                ]
+            );
+
+            $tagIds[] = $tag->id;
+        }
+
+        // 同步标签关联
+        $note->tags()->sync($tagIds);
     }
 }
