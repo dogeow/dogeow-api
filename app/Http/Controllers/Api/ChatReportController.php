@@ -145,18 +145,10 @@ class ChatReportController extends Controller
             $query->ofType($reportType);
         }
 
-        $reports = $query->paginate($perPage);
+        $paged = \Spatie\JsonApiPaginate\JsonApiPaginate::paginate($query);
 
-        return response()->json([
-            'reports' => $reports->items(),
-            'pagination' => [
-                'current_page' => $reports->currentPage(),
-                'last_page' => $reports->lastPage(),
-                'per_page' => $reports->perPage(),
-                'total' => $reports->total(),
-                'has_more_pages' => $reports->hasMorePages(),
-            ],
-        ]);
+        // Spatie 返回 JSON:API 格式（data/meta/links），直接返回给客户端
+        return response()->json($paged);
     }
 
     /**
@@ -197,18 +189,10 @@ class ChatReportController extends Controller
             $query->forRoom($roomId);
         }
 
-        $reports = $query->paginate($perPage);
+        $paged = \Spatie\JsonApiPaginate\JsonApiPaginate::paginate($query);
 
-        return response()->json([
-            'reports' => $reports->items(),
-            'pagination' => [
-                'current_page' => $reports->currentPage(),
-                'last_page' => $reports->lastPage(),
-                'per_page' => $reports->perPage(),
-                'total' => $reports->total(),
-                'has_more_pages' => $reports->hasMorePages(),
-            ],
-        ]);
+        // Spatie 返回 JSON:API 格式（data/meta/links），直接返回给客户端
+        return response()->json($paged);
     }
 
     /**
