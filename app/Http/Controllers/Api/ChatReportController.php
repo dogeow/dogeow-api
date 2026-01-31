@@ -147,8 +147,28 @@ class ChatReportController extends Controller
 
         $paged = \Spatie\JsonApiPaginate\JsonApiPaginate::paginate($query);
 
-        // Spatie 返回 JSON:API 格式（data/meta/links），直接返回给客户端
-        return response()->json($paged);
+        // Normalize pagination output into legacy structure
+        if (is_array($paged) && isset($paged['data'])) {
+            $data = $paged['data'];
+            $meta = $paged['meta'] ?? [];
+        } elseif (method_exists($paged, 'toArray')) {
+            $arr = $paged->toArray();
+            $data = $arr['data'] ?? ($paged->items() ?? []);
+            $meta = $arr['meta'] ?? [
+                'current_page' => $paged->currentPage() ?? null,
+                'per_page' => $paged->perPage() ?? null,
+                'total' => $paged->total() ?? null,
+            ];
+        } else {
+            // Fallback: try to treat as paginator-like
+            $data = $paged->items() ?? [];
+            $meta = [];
+        }
+
+        return response()->json([
+            'reports' => $data,
+            'pagination' => $meta,
+        ]);
     }
 
     /**
@@ -191,8 +211,28 @@ class ChatReportController extends Controller
 
         $paged = \Spatie\JsonApiPaginate\JsonApiPaginate::paginate($query);
 
-        // Spatie 返回 JSON:API 格式（data/meta/links），直接返回给客户端
-        return response()->json($paged);
+        // Normalize pagination output into legacy structure
+        if (is_array($paged) && isset($paged['data'])) {
+            $data = $paged['data'];
+            $meta = $paged['meta'] ?? [];
+        } elseif (method_exists($paged, 'toArray')) {
+            $arr = $paged->toArray();
+            $data = $arr['data'] ?? ($paged->items() ?? []);
+            $meta = $arr['meta'] ?? [
+                'current_page' => $paged->currentPage() ?? null,
+                'per_page' => $paged->perPage() ?? null,
+                'total' => $paged->total() ?? null,
+            ];
+        } else {
+            // Fallback: try to treat as paginator-like
+            $data = $paged->items() ?? [];
+            $meta = [];
+        }
+
+        return response()->json([
+            'reports' => $data,
+            'pagination' => $meta,
+        ]);
     }
 
     /**
