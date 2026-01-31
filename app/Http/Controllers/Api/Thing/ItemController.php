@@ -37,7 +37,7 @@ class ItemController extends Controller
             ->allowedFilters($this->getAllowedFilters())
             ->defaultSort('-created_at');
 
-        return response()->json($query->paginate(self::DEFAULT_PAGE_SIZE));
+        return \Spatie\JsonApiPaginate\JsonApiPaginate::paginate($query);
     }
 
     /**

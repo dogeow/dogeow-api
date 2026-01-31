@@ -145,17 +145,29 @@ class ChatReportController extends Controller
             $query->ofType($reportType);
         }
 
-        $reports = $query->paginate($perPage);
+        $paged = \Spatie\JsonApiPaginate\JsonApiPaginate::paginate($query);
+
+        // Normalize pagination output into legacy structure
+        if (is_array($paged) && isset($paged['data'])) {
+            $data = $paged['data'];
+            $meta = $paged['meta'] ?? [];
+        } elseif (method_exists($paged, 'toArray')) {
+            $arr = $paged->toArray();
+            $data = $arr['data'] ?? ($paged->items() ?? []);
+            $meta = $arr['meta'] ?? [
+                'current_page' => $paged->currentPage() ?? null,
+                'per_page' => $paged->perPage() ?? null,
+                'total' => $paged->total() ?? null,
+            ];
+        } else {
+            // Fallback: try to treat as paginator-like
+            $data = $paged->items() ?? [];
+            $meta = [];
+        }
 
         return response()->json([
-            'reports' => $reports->items(),
-            'pagination' => [
-                'current_page' => $reports->currentPage(),
-                'last_page' => $reports->lastPage(),
-                'per_page' => $reports->perPage(),
-                'total' => $reports->total(),
-                'has_more_pages' => $reports->hasMorePages(),
-            ],
+            'reports' => $data,
+            'pagination' => $meta,
         ]);
     }
 
@@ -197,17 +209,29 @@ class ChatReportController extends Controller
             $query->forRoom($roomId);
         }
 
-        $reports = $query->paginate($perPage);
+        $paged = \Spatie\JsonApiPaginate\JsonApiPaginate::paginate($query);
+
+        // Normalize pagination output into legacy structure
+        if (is_array($paged) && isset($paged['data'])) {
+            $data = $paged['data'];
+            $meta = $paged['meta'] ?? [];
+        } elseif (method_exists($paged, 'toArray')) {
+            $arr = $paged->toArray();
+            $data = $arr['data'] ?? ($paged->items() ?? []);
+            $meta = $arr['meta'] ?? [
+                'current_page' => $paged->currentPage() ?? null,
+                'per_page' => $paged->perPage() ?? null,
+                'total' => $paged->total() ?? null,
+            ];
+        } else {
+            // Fallback: try to treat as paginator-like
+            $data = $paged->items() ?? [];
+            $meta = [];
+        }
 
         return response()->json([
-            'reports' => $reports->items(),
-            'pagination' => [
-                'current_page' => $reports->currentPage(),
-                'last_page' => $reports->lastPage(),
-                'per_page' => $reports->perPage(),
-                'total' => $reports->total(),
-                'has_more_pages' => $reports->hasMorePages(),
-            ],
+            'reports' => $data,
+            'pagination' => $meta,
         ]);
     }
 
