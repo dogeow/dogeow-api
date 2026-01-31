@@ -201,15 +201,16 @@ class ChatService
      * @param int $perPage
      * @return LengthAwarePaginator
      */
-    public function getMessageHistoryPaginated(int $roomId, int $page = 1, int $perPage = self::DEFAULT_PAGE_SIZE): LengthAwarePaginator
+    public function getMessageHistoryPaginated(int $roomId, int $page = 1, int $perPage = self::DEFAULT_PAGE_SIZE)
     {
         // 确保页面大小不超过最大值
         $perPage = min($perPage, self::MAX_PAGE_SIZE);
         
-        return ChatMessage::with(['user:id,name,email'])
+        $query = ChatMessage::with(['user:id,name,email'])
             ->forRoom($roomId)
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage, ['*'], 'page', $page);
+            ->orderBy('created_at', 'desc');
+
+        return \Spatie\JsonApiPaginate\JsonApiPaginate::paginate($query);
     }
 
     /**

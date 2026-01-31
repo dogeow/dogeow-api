@@ -371,18 +371,10 @@ class ChatModerationController extends Controller
             $query->onUser($targetUserId);
         }
 
-        $actions = $query->paginate($perPage);
+        $paged = \Spatie\JsonApiPaginate\JsonApiPaginate::paginate($query);
 
-        return $this->success([
-            'moderation_actions' => $actions->items(),
-            'pagination' => [
-                'current_page' => $actions->currentPage(),
-                'last_page' => $actions->lastPage(),
-                'per_page' => $actions->perPage(),
-                'total' => $actions->total(),
-                'has_more_pages' => $actions->hasMorePages(),
-            ],
-        ], 'Moderation actions retrieved successfully');
+        // Spatie 返回 JSON:API 格式（data/meta/links），直接返回给客户端
+        return response()->json($paged);
     }
 
     /**
