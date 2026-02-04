@@ -37,7 +37,7 @@ class ItemController extends Controller
             ->allowedFilters($this->getAllowedFilters())
             ->defaultSort('-created_at');
 
-        return \Spatie\JsonApiPaginate\JsonApiPaginate::paginate($query);
+        return $query->jsonPaginate();
     }
 
     /**
@@ -47,9 +47,18 @@ class ItemController extends Controller
     {
         if (Auth::check()) {
             $query->where(fn($q) => $q->where('is_public', true)->orWhere('user_id', Auth::id()));
-        } else {
-            $query->where('is_public', true);
+            return;
         }
+
+        $query->where('is_public', true);
+    }
+
+    /**
+     * 获取请求限制
+     */
+    private function getRequestLimit(Request $request, int $default = self::DEFAULT_PAGE_SIZE): int
+    {
+        return (int) $request->get('limit', $default);
     }
 
 
@@ -197,7 +206,7 @@ class ItemController extends Controller
     public function search(Request $request)
     {
         $searchTerm = $request->get('q', '');
-        $limit = $request->get('limit', 10);
+        $limit = $this->getRequestLimit($request);
         
         if (empty($searchTerm)) {
             return response()->json([
@@ -207,31 +216,7 @@ class ItemController extends Controller
             ]);
         }
         
-        // 增强搜索：支持名称、描述、标签、分类
-        $query = Item::with(self::ITEM_RELATIONS)
-            ->where(function ($q) use ($searchTerm) {
-                // 搜索名称和描述
-                $q->where('name', 'like', "%{$searchTerm}%")
-                  ->orWhere('description', 'like', "%{$searchTerm}%")
-                  // 搜索分类名称
-                  ->orWhereHas('category', function($subQ) use ($searchTerm) {
-                      $subQ->where('name', 'like', "%{$searchTerm}%");
-                  })
-                  // 搜索标签名称
-                  ->orWhereHas('tags', function($subQ) use ($searchTerm) {
-                      $subQ->where('name', 'like', "%{$searchTerm}%");
-                  })
-                  // 搜索位置信息
-                  ->orWhereHas('spot', function($subQ) use ($searchTerm) {
-                      $subQ->where('name', 'like', "%{$searchTerm}%");
-                  })
-                  ->orWhereHas('spot.room', function($subQ) use ($searchTerm) {
-                      $subQ->where('name', 'like', "%{$searchTerm}%");
-                  })
-                  ->orWhereHas('spot.room.area', function($subQ) use ($searchTerm) {
-                      $subQ->where('name', 'like', "%{$searchTerm}%");
-                  });
-            });
+        $query = $this->buildSearchQuery($searchTerm);
         
         $this->buildVisibilityQuery($query);
         
@@ -253,7 +238,7 @@ class ItemController extends Controller
     public function searchSuggestions(Request $request)
     {
         $query = $request->get('q', '');
-        $limit = $request->get('limit', 5);
+        $limit = $this->getRequestLimit($request, 5);
         
         if (empty($query)) {
             return response()->json([]);
@@ -285,7 +270,7 @@ class ItemController extends Controller
             return response()->json([]);
         }
         
-        $limit = $request->get('limit', 10);
+        $limit = $this->getRequestLimit($request);
         
         $history = DB::table('thing_search_history')
             ->select('search_term', DB::raw('MAX(created_at) as last_searched'), DB::raw('COUNT(*) as search_count'))
@@ -333,6 +318,37 @@ class ItemController extends Controller
             // 记录失败不影响主要功能
             Log::warning('记录搜索历史失败: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * 构建增强搜索查询
+     */
+    private function buildSearchQuery(string $searchTerm)
+    {
+        return Item::with(self::ITEM_RELATIONS)
+            ->where(function ($q) use ($searchTerm) {
+                // 搜索名称和描述
+                $q->where('name', 'like', "%{$searchTerm}%")
+                  ->orWhere('description', 'like', "%{$searchTerm}%")
+                  // 搜索分类名称
+                  ->orWhereHas('category', function($subQ) use ($searchTerm) {
+                      $subQ->where('name', 'like', "%{$searchTerm}%");
+                  })
+                  // 搜索标签名称
+                  ->orWhereHas('tags', function($subQ) use ($searchTerm) {
+                      $subQ->where('name', 'like', "%{$searchTerm}%");
+                  })
+                  // 搜索位置信息
+                  ->orWhereHas('spot', function($subQ) use ($searchTerm) {
+                      $subQ->where('name', 'like', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('spot.room', function($subQ) use ($searchTerm) {
+                      $subQ->where('name', 'like', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('spot.room.area', function($subQ) use ($searchTerm) {
+                      $subQ->where('name', 'like', "%{$searchTerm}%");
+                  });
+            });
     }
 
     /**
@@ -527,29 +543,66 @@ class ItemController extends Controller
      */
     private function processItemImageUpdates(Request $request, Item $item): void
     {
-        // 图片同步：只保留 image_ids 中的图片，其余全部删除
-        if ($request->has('image_ids')) {
-            $keepIds = $request->input('image_ids', []);
-            $allIds = $item->images()->pluck('id')->toArray();
-            $deleteIds = array_diff($allIds, $keepIds);
-            
-            if (!empty($deleteIds)) {
-                $this->imageUploadService->deleteImagesByIds($deleteIds, $item);
-            }
+        $this->syncImagesByIds($request, $item);
+        $this->processImagePathsUpdate($request, $item);
+        $this->processImageOrderUpdate($request, $item);
+        $this->processPrimaryImageUpdate($request, $item);
+        $this->processImageDeletes($request, $item);
+    }
+
+    /**
+     * 同步图片集合（保留 image_ids，其余删除）
+     */
+    private function syncImagesByIds(Request $request, Item $item): void
+    {
+        if (!$request->has('image_ids')) {
+            return;
         }
-        
+
+        $keepIds = $request->input('image_ids', []);
+        $allIds = $item->images()->pluck('id')->toArray();
+        $deleteIds = array_diff($allIds, $keepIds);
+
+        if (!empty($deleteIds)) {
+            $this->imageUploadService->deleteImagesByIds($deleteIds, $item);
+        }
+    }
+
+    /**
+     * 处理图片路径更新
+     */
+    private function processImagePathsUpdate(Request $request, Item $item): void
+    {
         if ($request->has('image_paths')) {
             $this->imageUploadService->processImagePaths($request->image_paths, $item);
         }
-        
+    }
+
+    /**
+     * 处理图片排序更新
+     */
+    private function processImageOrderUpdate(Request $request, Item $item): void
+    {
         if ($request->has('image_order')) {
             $this->imageUploadService->updateImageOrder($request->image_order, $item);
         }
-        
+    }
+
+    /**
+     * 处理主图更新
+     */
+    private function processPrimaryImageUpdate(Request $request, Item $item): void
+    {
         if ($request->has('primary_image_id')) {
             $this->imageUploadService->setPrimaryImage($request->primary_image_id, $item);
         }
-        
+    }
+
+    /**
+     * 处理图片删除
+     */
+    private function processImageDeletes(Request $request, Item $item): void
+    {
         if ($request->has('delete_images')) {
             $this->imageUploadService->deleteImagesByIds($request->delete_images, $item);
         }

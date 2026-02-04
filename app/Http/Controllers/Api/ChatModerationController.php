@@ -17,21 +17,97 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use App\Models\User;
 
 class ChatModerationController extends Controller
 {
+    /**
+     * 获取活跃房间
+     */
+    private function findActiveRoom(int $roomId): ChatRoom
+    {
+        return ChatRoom::active()->findOrFail($roomId);
+    }
+
+    /**
+     * 获取当前操作员
+     */
+    private function getModerator(): User
+    {
+        return Auth::user();
+    }
+
+    /**
+     * 检查是否有房间管理权限
+     */
+    private function ensureCanModerate(User $moderator, ChatRoom $room, string $message): ?JsonResponse
+    {
+        if (!$moderator->canModerate($room)) {
+            return $this->error($message, [], 403);
+        }
+
+        return null;
+    }
+
+    /**
+     * 防止对自己执行操作
+     */
+    private function ensureNotSelfModeration(int $moderatorId, int $targetUserId, string $message): ?JsonResponse
+    {
+        if ($targetUserId === $moderatorId) {
+            return $this->error($message, [], 422);
+        }
+
+        return null;
+    }
+
+    /**
+     * 获取房间成员记录
+     */
+    private function findRoomUser(int $roomId, int $userId): ?ChatRoomUser
+    {
+        return ChatRoomUser::where('room_id', $roomId)
+            ->where('user_id', $userId)
+            ->first();
+    }
+
+    /**
+     * 统一记录错误并返回错误响应
+     */
+    private function logAndError(string $logMessage, \Throwable $e, array $context, string $userMessage, int $statusCode = 500): JsonResponse
+    {
+        \Log::error($logMessage, array_merge($context, [
+            'error' => $e->getMessage(),
+        ]));
+
+        return $this->error($userMessage, [], $statusCode);
+    }
+
+    /**
+     * 解析分页与筛选参数
+     */
+    private function parseModerationFilters(Request $request): array
+    {
+        return [
+            'per_page' => $request->get('per_page', 20),
+            'action_type' => $request->get('action_type'),
+            'target_user_id' => $request->get('target_user_id'),
+        ];
+    }
+
     /**
      * Delete a message (admin/moderator only).
      */
     public function deleteMessage(Request $request, int $roomId, int $messageId): JsonResponse
     {
-        $room = ChatRoom::active()->findOrFail($roomId);
+        $room = $this->findActiveRoom($roomId);
         $message = ChatMessage::where('room_id', $roomId)->findOrFail($messageId);
-        $moderator = Auth::user();
+        $moderator = $this->getModerator();
 
         // Check if user can moderate
-        if (!$moderator->canModerate($room)) {
-            return $this->error('You are not authorized to moderate this room', [], 403);
+        $guard = $this->ensureCanModerate($moderator, $room, 'You are not authorized to moderate this room');
+        if ($guard) {
+            return $guard;
         }
 
         $request->validate([
@@ -74,7 +150,16 @@ class ChatModerationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return $this->error('Failed to delete message', ['error' => $e->getMessage()], 500);
+            return $this->logAndError(
+                'Failed to delete message',
+                $e,
+                [
+                    'room_id' => $roomId,
+                    'message_id' => $messageId,
+                    'moderator_id' => $moderator->id,
+                ],
+                'Failed to delete message'
+            );
         }
     }
 
@@ -83,17 +168,19 @@ class ChatModerationController extends Controller
      */
     public function muteUser(Request $request, int $roomId, int $userId): JsonResponse
     {
-        $room = ChatRoom::active()->findOrFail($roomId);
-        $moderator = Auth::user();
+        $room = $this->findActiveRoom($roomId);
+        $moderator = $this->getModerator();
 
         // Check if user can moderate
-        if (!$moderator->canModerate($room)) {
-            return $this->error('You are not authorized to moderate this room', [], 403);
+        $guard = $this->ensureCanModerate($moderator, $room, 'You are not authorized to moderate this room');
+        if ($guard) {
+            return $guard;
         }
 
         // Prevent self-moderation
-        if ($userId === $moderator->id) {
-            return $this->error('You cannot mute yourself', [], 422);
+        $guard = $this->ensureNotSelfModeration($moderator->id, $userId, 'You cannot mute yourself');
+        if ($guard) {
+            return $guard;
         }
 
         $request->validate([
@@ -101,9 +188,7 @@ class ChatModerationController extends Controller
             'reason' => 'nullable|string|max:500',
         ]);
 
-        $roomUser = ChatRoomUser::where('room_id', $roomId)
-            ->where('user_id', $userId)
-            ->first();
+        $roomUser = $this->findRoomUser($roomId, $userId);
 
         if (!$roomUser) {
             return $this->error('User is not in this room', [], 404);
@@ -144,7 +229,16 @@ class ChatModerationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return $this->error('Failed to mute user', ['error' => $e->getMessage()], 500);
+            return $this->logAndError(
+                'Failed to mute user',
+                $e,
+                [
+                    'room_id' => $roomId,
+                    'target_user_id' => $userId,
+                    'moderator_id' => $moderator->id,
+                ],
+                'Failed to mute user'
+            );
         }
     }
 
@@ -153,21 +247,20 @@ class ChatModerationController extends Controller
      */
     public function unmuteUser(Request $request, int $roomId, int $userId): JsonResponse
     {
-        $room = ChatRoom::active()->findOrFail($roomId);
-        $moderator = Auth::user();
+        $room = $this->findActiveRoom($roomId);
+        $moderator = $this->getModerator();
 
         // Check if user can moderate
-        if (!$moderator->canModerate($room)) {
-            return $this->error('You are not authorized to moderate this room', [], 403);
+        $guard = $this->ensureCanModerate($moderator, $room, 'You are not authorized to moderate this room');
+        if ($guard) {
+            return $guard;
         }
 
         $request->validate([
             'reason' => 'nullable|string|max:500',
         ]);
 
-        $roomUser = ChatRoomUser::where('room_id', $roomId)
-            ->where('user_id', $userId)
-            ->first();
+        $roomUser = $this->findRoomUser($roomId, $userId);
 
         if (!$roomUser) {
             return $this->error('User is not in this room', [], 404);
@@ -206,7 +299,16 @@ class ChatModerationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return $this->error('Failed to unmute user', ['error' => $e->getMessage()], 500);
+            return $this->logAndError(
+                'Failed to unmute user',
+                $e,
+                [
+                    'room_id' => $roomId,
+                    'target_user_id' => $userId,
+                    'moderator_id' => $moderator->id,
+                ],
+                'Failed to unmute user'
+            );
         }
     }
 
@@ -215,17 +317,19 @@ class ChatModerationController extends Controller
      */
     public function banUser(Request $request, int $roomId, int $userId): JsonResponse
     {
-        $room = ChatRoom::active()->findOrFail($roomId);
-        $moderator = Auth::user();
+        $room = $this->findActiveRoom($roomId);
+        $moderator = $this->getModerator();
 
         // Check if user can moderate
-        if (!$moderator->canModerate($room)) {
-            return $this->error('You are not authorized to moderate this room', [], 403);
+        $guard = $this->ensureCanModerate($moderator, $room, 'You are not authorized to moderate this room');
+        if ($guard) {
+            return $guard;
         }
 
         // Prevent self-moderation
-        if ($userId === $moderator->id) {
-            return $this->error('You cannot ban yourself', [], 422);
+        $guard = $this->ensureNotSelfModeration($moderator->id, $userId, 'You cannot ban yourself');
+        if ($guard) {
+            return $guard;
         }
 
         $request->validate([
@@ -233,9 +337,7 @@ class ChatModerationController extends Controller
             'reason' => 'nullable|string|max:500',
         ]);
 
-        $roomUser = ChatRoomUser::where('room_id', $roomId)
-            ->where('user_id', $userId)
-            ->first();
+        $roomUser = $this->findRoomUser($roomId, $userId);
 
         if (!$roomUser) {
             return $this->error('User is not in this room', [], 404);
@@ -276,7 +378,16 @@ class ChatModerationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return $this->error('Failed to ban user', ['error' => $e->getMessage()], 500);
+            return $this->logAndError(
+                'Failed to ban user',
+                $e,
+                [
+                    'room_id' => $roomId,
+                    'target_user_id' => $userId,
+                    'moderator_id' => $moderator->id,
+                ],
+                'Failed to ban user'
+            );
         }
     }
 
@@ -285,21 +396,20 @@ class ChatModerationController extends Controller
      */
     public function unbanUser(Request $request, int $roomId, int $userId): JsonResponse
     {
-        $room = ChatRoom::active()->findOrFail($roomId);
-        $moderator = Auth::user();
+        $room = $this->findActiveRoom($roomId);
+        $moderator = $this->getModerator();
 
         // Check if user can moderate
-        if (!$moderator->canModerate($room)) {
-            return $this->error('You are not authorized to moderate this room', [], 403);
+        $guard = $this->ensureCanModerate($moderator, $room, 'You are not authorized to moderate this room');
+        if ($guard) {
+            return $guard;
         }
 
         $request->validate([
             'reason' => 'nullable|string|max:500',
         ]);
 
-        $roomUser = ChatRoomUser::where('room_id', $roomId)
-            ->where('user_id', $userId)
-            ->first();
+        $roomUser = $this->findRoomUser($roomId, $userId);
 
         if (!$roomUser) {
             return $this->error('User is not in this room', [], 404);
@@ -338,7 +448,16 @@ class ChatModerationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return $this->error('Failed to unban user', ['error' => $e->getMessage()], 500);
+            return $this->logAndError(
+                'Failed to unban user',
+                $e,
+                [
+                    'room_id' => $roomId,
+                    'target_user_id' => $userId,
+                    'moderator_id' => $moderator->id,
+                ],
+                'Failed to unban user'
+            );
         }
     }
 
@@ -347,31 +466,30 @@ class ChatModerationController extends Controller
      */
     public function getModerationActions(Request $request, int $roomId): JsonResponse
     {
-        $room = ChatRoom::active()->findOrFail($roomId);
-        $moderator = Auth::user();
+        $room = $this->findActiveRoom($roomId);
+        $moderator = $this->getModerator();
 
         // Check if user can moderate
-        if (!$moderator->canModerate($room)) {
-            return $this->error('You are not authorized to view moderation actions for this room', [], 403);
+        $guard = $this->ensureCanModerate($moderator, $room, 'You are not authorized to view moderation actions for this room');
+        if ($guard) {
+            return $guard;
         }
 
-        $perPage = $request->get('per_page', 20);
-        $actionType = $request->get('action_type');
-        $targetUserId = $request->get('target_user_id');
+        $filters = $this->parseModerationFilters($request);
 
         $query = ChatModerationAction::forRoom($roomId)
             ->with(['moderator:id,name,email', 'targetUser:id,name,email', 'message:id,message'])
             ->orderBy('created_at', 'desc');
 
-        if ($actionType) {
-            $query->ofType($actionType);
+        if ($filters['action_type']) {
+            $query->ofType($filters['action_type']);
         }
 
-        if ($targetUserId) {
-            $query->onUser($targetUserId);
+        if ($filters['target_user_id']) {
+            $query->onUser($filters['target_user_id']);
         }
 
-        $paged = \Spatie\JsonApiPaginate\JsonApiPaginate::paginate($query);
+        $paged = $query->jsonPaginate();
 
         // Spatie 返回 JSON:API 格式（data/meta/links），直接返回给客户端
         return response()->json($paged);
@@ -382,18 +500,19 @@ class ChatModerationController extends Controller
      */
     public function getUserModerationStatus(Request $request, int $roomId, int $userId): JsonResponse
     {
-        $room = ChatRoom::active()->findOrFail($roomId);
-        $moderator = Auth::user();
+        $room = $this->findActiveRoom($roomId);
+        $moderator = $this->getModerator();
 
         // Check if user can moderate
-        if (!$moderator->canModerate($room)) {
-            return $this->error('You are not authorized to view moderation status for this room', [], 403);
+        $guard = $this->ensureCanModerate($moderator, $room, 'You are not authorized to view moderation status for this room');
+        if ($guard) {
+            return $guard;
         }
 
-        $roomUser = ChatRoomUser::where('room_id', $roomId)
-            ->where('user_id', $userId)
-            ->with(['user:id,name,email', 'mutedByUser:id,name', 'bannedByUser:id,name'])
-            ->first();
+        $roomUser = $this->findRoomUser($roomId, $userId);
+        if ($roomUser) {
+            $roomUser->load(['user:id,name,email', 'mutedByUser:id,name', 'bannedByUser:id,name']);
+        }
 
         if (!$roomUser) {
             return $this->error('User is not in this room', [], 404);

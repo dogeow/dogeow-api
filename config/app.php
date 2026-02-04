@@ -123,6 +123,74 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Upload Configuration
+    |--------------------------------------------------------------------------
+    */
+    'upload' => [
+        'max_file_size' => 10 * 1024 * 1024, // 10MB
+        'allowed_extensions' => ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+        'default_extension' => 'jpg',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Image Configuration
+    |--------------------------------------------------------------------------
+    */
+    'image' => [
+        'thumbnail_size' => 200,
+        'compressed_max_size' => 800,
+        'quality' => [
+            'compressed' => 85,
+            'thumbnail' => 80,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cache Configuration
+    |--------------------------------------------------------------------------
+    */
+    'cache' => [
+        'default_ttl' => 3600, // 1 hour
+        'success_ttl' => 86400, // 24 hours
+        'error_ttl' => 1800, // 30 minutes
+        'prefixes' => [
+            'title_favicon' => 'title_favicon',
+            'chat_rooms' => 'chat_rooms',
+            'online_users' => 'online_users',
+            'user_activity' => 'user_activity',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validation Configuration
+    |--------------------------------------------------------------------------
+    */
+    'validation' => [
+        'user' => [
+            'name_max_length' => 255,
+            'password_min_length' => 8,
+        ],
+        'note' => [
+            'title_max_length' => 255,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | API Response Configuration
+    |--------------------------------------------------------------------------
+    */
+    'api' => [
+        'default_success_message' => 'Success',
+        'default_error_message' => 'An error occurred',
+        'include_debug_info' => env('APP_DEBUG', false),
+    ],
+
     'providers' => [
         // Laravel Framework Service Providers...
         Illuminate\Auth\AuthServiceProvider::class,

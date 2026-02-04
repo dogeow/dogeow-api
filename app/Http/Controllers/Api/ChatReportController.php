@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ChatMessage;
 use App\Models\ChatMessageReport;
 use App\Models\ChatRoom;
+use App\Models\User;
 use App\Services\ContentFilterService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,13 +24,57 @@ class ChatReportController extends Controller
     }
 
     /**
+     * 获取活跃房间
+     */
+    private function findActiveRoom(int $roomId): ChatRoom
+    {
+        return ChatRoom::active()->findOrFail($roomId);
+    }
+
+    /**
+     * 获取当前用户
+     */
+    private function getUser(): User
+    {
+        return Auth::user();
+    }
+
+    /**
+     * 检查是否有房间管理权限
+     */
+    private function ensureCanModerate(User $user, ChatRoom $room, string $message): ?JsonResponse
+    {
+        if (!$user->canModerate($room)) {
+            return response()->json([
+                'message' => $message
+            ], 403);
+        }
+
+        return null;
+    }
+
+    /**
+     * 检查是否是管理员
+     */
+    private function ensureAdmin(User $user, string $message): ?JsonResponse
+    {
+        if (!$user->hasRole('admin')) {
+            return response()->json([
+                'message' => $message
+            ], 403);
+        }
+
+        return null;
+    }
+
+    /**
      * Report a message.
      */
     public function reportMessage(Request $request, int $roomId, int $messageId): JsonResponse
     {
-        $room = ChatRoom::active()->findOrFail($roomId);
+        $room = $this->findActiveRoom($roomId);
         $message = ChatMessage::where('room_id', $roomId)->findOrFail($messageId);
-        $reporter = Auth::user();
+        $reporter = $this->getUser();
 
         // Prevent self-reporting
         if ($message->user_id === $reporter->id) {
@@ -69,31 +114,31 @@ class ChatReportController extends Controller
                 ], 422);
             }
 
-            DB::beginTransaction();
+            $report = DB::transaction(function () use ($messageId, $roomId, $reporter, $request, $message) {
+                // Create the report
+                $report = ChatMessageReport::create([
+                    'message_id' => $messageId,
+                    'reported_by' => $reporter->id,
+                    'room_id' => $roomId,
+                    'report_type' => $request->report_type,
+                    'reason' => $request->reason,
+                    'status' => ChatMessageReport::STATUS_PENDING,
+                    'metadata' => [
+                        'reporter_ip' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                        'message_content' => $message->message,
+                        'message_created_at' => $message->created_at->toISOString(),
+                    ],
+                ]);
 
-            // Create the report
-            $report = ChatMessageReport::create([
-                'message_id' => $messageId,
-                'reported_by' => $reporter->id,
-                'room_id' => $roomId,
-                'report_type' => $request->report_type,
-                'reason' => $request->reason,
-                'status' => ChatMessageReport::STATUS_PENDING,
-                'metadata' => [
-                    'reporter_ip' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                    'message_content' => $message->message,
-                    'message_created_at' => $message->created_at->toISOString(),
-                ],
-            ]);
+                // Load relationships
+                $report->load(['reporter:id,name,email', 'message.user:id,name,email']);
 
-            // Load relationships
-            $report->load(['reporter:id,name,email', 'message.user:id,name,email']);
+                // Check if this message should be auto-moderated based on report count
+                $this->checkAutoModeration($messageId, $roomId);
 
-            // Check if this message should be auto-moderated based on report count
-            $this->checkAutoModeration($messageId, $roomId);
-
-            DB::commit();
+                return $report;
+            });
 
             return response()->json([
                 'message' => 'Message reported successfully',
@@ -102,7 +147,6 @@ class ChatReportController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'message' => 'Failed to report message',
                 'error' => $e->getMessage()
@@ -115,17 +159,15 @@ class ChatReportController extends Controller
      */
     public function getRoomReports(Request $request, int $roomId): JsonResponse
     {
-        $room = ChatRoom::active()->findOrFail($roomId);
-        $user = Auth::user();
+        $room = $this->findActiveRoom($roomId);
+        $user = $this->getUser();
 
         // Check if user can moderate
-        if (!$user->canModerate($room)) {
-            return response()->json([
-                'message' => 'You are not authorized to view reports for this room'
-            ], 403);
+        $guard = $this->ensureCanModerate($user, $room, 'You are not authorized to view reports for this room');
+        if ($guard) {
+            return $guard;
         }
 
-        $perPage = $request->get('per_page', 20);
         $status = $request->get('status');
         $reportType = $request->get('report_type');
 
@@ -145,25 +187,8 @@ class ChatReportController extends Controller
             $query->ofType($reportType);
         }
 
-        $paged = \Spatie\JsonApiPaginate\JsonApiPaginate::paginate($query);
-
-        // Normalize pagination output into legacy structure
-        if (is_array($paged) && isset($paged['data'])) {
-            $data = $paged['data'];
-            $meta = $paged['meta'] ?? [];
-        } elseif (method_exists($paged, 'toArray')) {
-            $arr = $paged->toArray();
-            $data = $arr['data'] ?? ($paged->items() ?? []);
-            $meta = $arr['meta'] ?? [
-                'current_page' => $paged->currentPage() ?? null,
-                'per_page' => $paged->perPage() ?? null,
-                'total' => $paged->total() ?? null,
-            ];
-        } else {
-            // Fallback: try to treat as paginator-like
-            $data = $paged->items() ?? [];
-            $meta = [];
-        }
+        $paged = $query->jsonPaginate();
+        [$data, $meta] = $this->normalizePagination($paged);
 
         return response()->json([
             'reports' => $data,
@@ -176,15 +201,13 @@ class ChatReportController extends Controller
      */
     public function getAllReports(Request $request): JsonResponse
     {
-        $user = Auth::user();
+        $user = $this->getUser();
 
-        if (!$user->hasRole('admin')) {
-            return response()->json([
-                'message' => 'You are not authorized to view all reports'
-            ], 403);
+        $guard = $this->ensureAdmin($user, 'You are not authorized to view all reports');
+        if ($guard) {
+            return $guard;
         }
 
-        $perPage = $request->get('per_page', 20);
         $status = $request->get('status');
         $reportType = $request->get('report_type');
         $roomId = $request->get('room_id');
@@ -209,25 +232,8 @@ class ChatReportController extends Controller
             $query->forRoom($roomId);
         }
 
-        $paged = \Spatie\JsonApiPaginate\JsonApiPaginate::paginate($query);
-
-        // Normalize pagination output into legacy structure
-        if (is_array($paged) && isset($paged['data'])) {
-            $data = $paged['data'];
-            $meta = $paged['meta'] ?? [];
-        } elseif (method_exists($paged, 'toArray')) {
-            $arr = $paged->toArray();
-            $data = $arr['data'] ?? ($paged->items() ?? []);
-            $meta = $arr['meta'] ?? [
-                'current_page' => $paged->currentPage() ?? null,
-                'per_page' => $paged->perPage() ?? null,
-                'total' => $paged->total() ?? null,
-            ];
-        } else {
-            // Fallback: try to treat as paginator-like
-            $data = $paged->items() ?? [];
-            $meta = [];
-        }
+        $paged = $query->jsonPaginate();
+        [$data, $meta] = $this->normalizePagination($paged);
 
         return response()->json([
             'reports' => $data,
@@ -241,13 +247,12 @@ class ChatReportController extends Controller
     public function reviewReport(Request $request, int $reportId): JsonResponse
     {
         $report = ChatMessageReport::with(['room', 'message'])->findOrFail($reportId);
-        $reviewer = Auth::user();
+        $reviewer = $this->getUser();
 
         // Check if user can moderate
-        if (!$reviewer->canModerate($report->room)) {
-            return response()->json([
-                'message' => 'You are not authorized to review this report'
-            ], 403);
+        $guard = $this->ensureCanModerate($reviewer, $report->room, 'You are not authorized to review this report');
+        if ($guard) {
+            return $guard;
         }
 
         $request->validate([
@@ -325,22 +330,22 @@ class ChatReportController extends Controller
      */
     public function getReportStats(Request $request): JsonResponse
     {
-        $user = Auth::user();
+        $user = $this->getUser();
         $roomId = $request->get('room_id');
         $days = $request->get('days', 7);
 
         // Check permissions
         if ($roomId) {
-            $room = ChatRoom::active()->findOrFail($roomId);
-            if (!$user->canModerate($room)) {
-                return response()->json([
-                    'message' => 'You are not authorized to view stats for this room'
-                ], 403);
+            $room = $this->findActiveRoom($roomId);
+            $guard = $this->ensureCanModerate($user, $room, 'You are not authorized to view stats for this room');
+            if ($guard) {
+                return $guard;
             }
-        } elseif (!$user->hasRole('admin')) {
-            return response()->json([
-                'message' => 'You are not authorized to view global report stats'
-            ], 403);
+        } else {
+            $guard = $this->ensureAdmin($user, 'You are not authorized to view global report stats');
+            if ($guard) {
+                return $guard;
+            }
         }
 
         $query = ChatMessageReport::where('created_at', '>=', now()->subDays($days));
@@ -467,5 +472,31 @@ class ChatReportController extends Controller
                 $message->delete();
             }
         }
+    }
+
+    /**
+     * Normalize JsonApiPaginate output into a stable data/meta pair.
+     *
+     * @param mixed $paged
+     * @return array{0: mixed, 1: array}
+     */
+    private function normalizePagination($paged): array
+    {
+        if (is_array($paged) && isset($paged['data'])) {
+            return [$paged['data'], $paged['meta'] ?? []];
+        }
+
+        if (method_exists($paged, 'toArray')) {
+            $arr = $paged->toArray();
+            $data = $arr['data'] ?? ($paged->items() ?? []);
+            $meta = $arr['meta'] ?? [
+                'current_page' => $paged->currentPage() ?? null,
+                'per_page' => $paged->perPage() ?? null,
+                'total' => $paged->total() ?? null,
+            ];
+            return [$data, $meta];
+        }
+
+        return [$paged->items() ?? [], []];
     }
 }

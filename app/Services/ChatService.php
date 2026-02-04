@@ -12,8 +12,6 @@ use App\Utils\CharLengthHelper;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 
 class ChatService
 {
@@ -201,16 +199,13 @@ class ChatService
      * @param int $perPage
      * @return LengthAwarePaginator
      */
-    public function getMessageHistoryPaginated(int $roomId, int $page = 1, int $perPage = self::DEFAULT_PAGE_SIZE)
+    public function getMessageHistoryPaginated(int $roomId)
     {
-        // 确保页面大小不超过最大值
-        $perPage = min($perPage, self::MAX_PAGE_SIZE);
-        
         $query = ChatMessage::with(['user:id,name,email'])
             ->forRoom($roomId)
             ->orderBy('created_at', 'desc');
 
-        return \Spatie\JsonApiPaginate\JsonApiPaginate::paginate($query);
+        return $query->jsonPaginate();
     }
 
     /**
@@ -432,27 +427,27 @@ class ChatService
         }
         
         try {
-            DB::beginTransaction();
-            
-            $room = ChatRoom::create([
-                'name' => $validation['sanitized_data']['name'],
-                'description' => $validation['sanitized_data']['description'],
-                'created_by' => $createdBy,
-                'is_active' => true
-            ]);
-            
-            // 自动将创建者加入房间
-            ChatRoomUser::create([
-                'room_id' => $room->id,
-                'user_id' => $createdBy,
-                'joined_at' => now(),
-                'is_online' => true
-            ]);
-            
-            // 为房间创建创建系统消息
-            $this->createSystemMessage($room->id, "Room '{$room->name}' has been created", $createdBy);
-            
-            DB::commit();
+            $room = DB::transaction(function () use ($validation, $createdBy) {
+                $room = ChatRoom::create([
+                    'name' => $validation['sanitized_data']['name'],
+                    'description' => $validation['sanitized_data']['description'],
+                    'created_by' => $createdBy,
+                    'is_active' => true
+                ]);
+                
+                // 自动将创建者加入房间
+                ChatRoomUser::create([
+                    'room_id' => $room->id,
+                    'user_id' => $createdBy,
+                    'joined_at' => now(),
+                    'is_online' => true
+                ]);
+                
+                // 为房间创建创建系统消息
+                $this->createSystemMessage($room->id, "Room '{$room->name}' has been created", $createdBy);
+                
+                return $room;
+            });
             
             return [
                 'success' => true,
@@ -460,7 +455,6 @@ class ChatService
             ];
             
         } catch (\Exception $e) {
-            DB::rollBack();
             return [
                 'success' => false,
                 'errors' => ['Failed to create room: ' . $e->getMessage()]
@@ -540,18 +534,16 @@ class ChatService
         }
         
         try {
-            DB::beginTransaction();
-            
-            // 在删除前创建系统消息
-            $this->createSystemMessage($roomId, "Room '{$room->name}' is being deleted", $userId);
-            
-            // 软删除：标记为不活跃而不是硬删除，以保留消息历史
-            $room->update(['is_active' => false]);
-            
-            // 移除所有用户关联
-            ChatRoomUser::where('room_id', $roomId)->delete();
-            
-            DB::commit();
+            DB::transaction(function () use ($roomId, $room, $userId) {
+                // 在删除前创建系统消息
+                $this->createSystemMessage($roomId, "Room '{$room->name}' is being deleted", $userId);
+                
+                // 软删除：标记为不活跃而不是硬删除，以保留消息历史
+                $room->update(['is_active' => false]);
+                
+                // 移除所有用户关联
+                ChatRoomUser::where('room_id', $roomId)->delete();
+            });
             
             return [
                 'success' => true,
@@ -559,7 +551,6 @@ class ChatService
             ];
             
         } catch (\Exception $e) {
-            DB::rollBack();
             return [
                 'success' => false,
                 'errors' => ['Failed to delete room: ' . $e->getMessage()]

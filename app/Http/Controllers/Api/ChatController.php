@@ -14,7 +14,6 @@ use App\Services\ChatService;
 use App\Services\ChatCacheService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -23,9 +22,6 @@ class ChatController extends Controller
     protected ChatService $chatService;
     protected ChatCacheService $cacheService;
 
-    // 常量定义
-    private const DEFAULT_PAGE_SIZE = 50;
-    private const MAX_PAGE_SIZE = 100;
     private const RATE_LIMIT_MESSAGES_PER_MINUTE = 10;
     private const RATE_LIMIT_WINDOW_SECONDS = 60;
 
@@ -67,6 +63,15 @@ class ChatController extends Controller
     }
 
     /**
+     * 清理房间缓存并记录活动
+     */
+    private function clearCacheAndLogActivity(int $roomId, string $action, int $userId): void
+    {
+        $this->clearRoomCache($roomId);
+        $this->logRoomActivity($roomId, $action, $userId);
+    }
+
+    /**
      * 记录房间活动
      */
     private function logRoomActivity(int $roomId, string $action, int $userId): void
@@ -74,9 +79,44 @@ class ChatController extends Controller
         $this->cacheService->trackRoomActivity($roomId, $action, $userId);
     }
 
-    protected function getPagination(Request $request, int $defaultPerPage = self::DEFAULT_PAGE_SIZE, int $maxPerPage = self::MAX_PAGE_SIZE): array
+    /**
+     * 统一记录错误并返回错误响应
+     */
+    private function logAndError(string $logMessage, \Throwable $e, array $context, string $userMessage, int $statusCode = 500): JsonResponse
     {
-        return $this->getPaginationParams($request, $defaultPerPage, $maxPerPage);
+        Log::error($logMessage, array_merge($context, [
+            'error' => $e->getMessage(),
+        ]));
+
+        return $this->error($userMessage, [], $statusCode);
+    }
+
+    /**
+     * 规范化 roomId
+     */
+    private function normalizeRoomId($roomId): int
+    {
+        return (int) $roomId;
+    }
+
+    /**
+     * 获取活跃房间或抛出 404
+     */
+    private function findActiveRoom(int $roomId): ChatRoom
+    {
+        return ChatRoom::active()->findOrFail($roomId);
+    }
+
+    /**
+     * 确保用户已加入房间
+     */
+    private function ensureUserInRoom(int $roomId, int $userId, string $message, int $statusCode = 403): ?JsonResponse
+    {
+        if (!$this->isUserInRoom($roomId, $userId)) {
+            return $this->error($message, [], $statusCode);
+        }
+
+        return null;
     }
 
     /**
@@ -88,11 +128,12 @@ class ChatController extends Controller
             $rooms = $this->chatService->getActiveRooms();
             return $this->success(['rooms' => $rooms], 'Rooms retrieved successfully');
         } catch (\Throwable $e) {
-            Log::error('Failed to retrieve rooms', [
-                'error' => $e->getMessage(),
-                'user_id' => $this->getCurrentUserId()
-            ]);
-            return $this->error('Failed to retrieve rooms', [], 500);
+            return $this->logAndError(
+                'Failed to retrieve rooms',
+                $e,
+                ['user_id' => $this->getCurrentUserId()],
+                'Failed to retrieve rooms'
+            );
         }
     }
 
@@ -119,12 +160,15 @@ class ChatController extends Controller
 
             return $this->success(['room' => $result['room']], 'Room created successfully', 201);
         } catch (\Throwable $e) {
-            Log::error('Failed to create room', [
-                'error' => $e->getMessage(),
-                'user_id' => $this->getCurrentUserId(),
-                'room_name' => $request->name ?? 'unknown'
-            ]);
-            return $this->error('Failed to create room', [], 500);
+            return $this->logAndError(
+                'Failed to create room',
+                $e,
+                [
+                    'user_id' => $this->getCurrentUserId(),
+                    'room_name' => $request->name ?? 'unknown',
+                ],
+                'Failed to create room'
+            );
         }
     }
 
@@ -135,15 +179,14 @@ class ChatController extends Controller
     {
         try {
             $userId = $this->getCurrentUserId();
-            $roomId = (int)$roomId;
+            $roomId = $this->normalizeRoomId($roomId);
             $result = $this->chatService->joinRoom($roomId, $userId);
 
             if (empty($result['success'])) {
                 return $this->error('Failed to join room', $result['errors'] ?? []);
             }
 
-            $this->clearRoomCache($roomId);
-            $this->logRoomActivity($roomId, 'user_joined', $userId);
+            $this->clearCacheAndLogActivity($roomId, 'user_joined', $userId);
 
             Log::info('User joined room', [
                 'room_id' => $roomId,
@@ -155,12 +198,15 @@ class ChatController extends Controller
                 'room_user' => $result['room_user'],
             ], 'Successfully joined the room');
         } catch (\Throwable $e) {
-            Log::error('Failed to join room', [
-                'error' => $e->getMessage(),
-                'room_id' => $roomId,
-                'user_id' => $this->getCurrentUserId()
-            ]);
-            return $this->error('Failed to join room', [], 500);
+            return $this->logAndError(
+                'Failed to join room',
+                $e,
+                [
+                    'room_id' => $roomId,
+                    'user_id' => $this->getCurrentUserId(),
+                ],
+                'Failed to join room'
+            );
         }
     }
 
@@ -171,15 +217,14 @@ class ChatController extends Controller
     {
         try {
             $userId = $this->getCurrentUserId();
-            $roomId = (int)$roomId;
+            $roomId = $this->normalizeRoomId($roomId);
             $result = $this->chatService->leaveRoom($roomId, $userId);
 
             if (empty($result['success'])) {
                 return $this->error('Failed to leave room', $result['errors'] ?? []);
             }
 
-            $this->clearRoomCache($roomId);
-            $this->logRoomActivity($roomId, 'user_left', $userId);
+            $this->clearCacheAndLogActivity($roomId, 'user_left', $userId);
 
             Log::info('User left room', [
                 'room_id' => $roomId,
@@ -188,12 +233,15 @@ class ChatController extends Controller
 
             return $this->success([], $result['message'] ?? 'Left room');
         } catch (\Throwable $e) {
-            Log::error('Failed to leave room', [
-                'error' => $e->getMessage(),
-                'room_id' => $roomId,
-                'user_id' => $this->getCurrentUserId()
-            ]);
-            return $this->error('Failed to leave room', [], 500);
+            return $this->logAndError(
+                'Failed to leave room',
+                $e,
+                [
+                    'room_id' => $roomId,
+                    'user_id' => $this->getCurrentUserId(),
+                ],
+                'Failed to leave room'
+            );
         }
     }
 
@@ -204,7 +252,7 @@ class ChatController extends Controller
     {
         try {
             $userId = $this->getCurrentUserId();
-            $roomId = (int)$roomId;
+            $roomId = $this->normalizeRoomId($roomId);
             $result = $this->chatService->deleteRoom($roomId, $userId);
 
             if (empty($result['success'])) {
@@ -219,12 +267,15 @@ class ChatController extends Controller
 
             return $this->success([], $result['message'] ?? 'Room deleted');
         } catch (\Throwable $e) {
-            Log::error('Failed to delete room', [
-                'error' => $e->getMessage(),
-                'room_id' => $roomId,
-                'user_id' => $this->getCurrentUserId()
-            ]);
-            return $this->error('Failed to delete room', [], 500);
+            return $this->logAndError(
+                'Failed to delete room',
+                $e,
+                [
+                    'room_id' => $roomId,
+                    'user_id' => $this->getCurrentUserId(),
+                ],
+                'Failed to delete room'
+            );
         }
     }
 
@@ -235,45 +286,26 @@ class ChatController extends Controller
     {
         try {
             $userId = $this->getCurrentUserId();
-            $roomId = (int)$roomId;
+            $roomId = $this->normalizeRoomId($roomId);
+            $room = $this->findActiveRoom($roomId);
 
-            $room = ChatRoom::active()->findOrFail($roomId);
-
-            if (!$this->isUserInRoom($roomId, $userId)) {
-                return $this->error('You must join the room to view messages', [], 403);
+            $guard = $this->ensureUserInRoom($roomId, $userId, 'You must join the room to view messages');
+            if ($guard) {
+                return $guard;
             }
 
-            [$page, $perPage] = $this->getPagination($request);
-
-            if ($page === 1) {
-                $messages = $this->chatService->getRecentMessages($roomId, $perPage);
-                return $this->success([
-                    'messages' => $messages,
-                    'pagination' => [
-                        'current_page' => 1,
-                        'has_more_pages' => $messages->count() === $perPage,
-                    ],
-                ], 'Messages retrieved successfully');
-            } else {
-                $paginated = $this->chatService->getMessageHistoryPaginated($roomId, $page, $perPage);
-                return $this->success([
-                    'messages' => array_reverse($paginated->items()),
-                    'pagination' => [
-                        'current_page' => $paginated->currentPage(),
-                        'last_page' => $paginated->lastPage(),
-                        'per_page' => $paginated->perPage(),
-                        'total' => $paginated->total(),
-                        'has_more_pages' => $paginated->hasMorePages(),
-                    ],
-                ], 'Messages retrieved successfully');
-            }
+            $paginated = $this->chatService->getMessageHistoryPaginated($roomId);
+            return response()->json($paginated);
         } catch (\Throwable $e) {
-            Log::error('Failed to retrieve messages', [
-                'error' => $e->getMessage(),
-                'room_id' => $roomId,
-                'user_id' => $this->getCurrentUserId()
-            ]);
-            return $this->error('Failed to retrieve messages', [], 500);
+            return $this->logAndError(
+                'Failed to retrieve messages',
+                $e,
+                [
+                    'room_id' => $roomId,
+                    'user_id' => $this->getCurrentUserId(),
+                ],
+                'Failed to retrieve messages'
+            );
         }
     }
 
@@ -284,9 +316,8 @@ class ChatController extends Controller
     {
         try {
             $userId = $this->getCurrentUserId();
-            $roomId = (int)$roomId;
-
-            $room = ChatRoom::active()->findOrFail($roomId);
+            $roomId = $this->normalizeRoomId($roomId);
+            $room = $this->findActiveRoom($roomId);
 
             $roomUser = $this->fetchRoomUser($roomId, $userId);
             if (!$roomUser || !$roomUser->is_online) {
@@ -318,7 +349,6 @@ class ChatController extends Controller
 
             $this->clearRoomCache($roomId);
             $this->cacheService->invalidateMessageHistory($roomId);
-
             $this->logRoomActivity($roomId, 'message_sent', $userId);
 
             broadcast(new MessageSent($result['message']));
@@ -331,30 +361,44 @@ class ChatController extends Controller
             ]);
 
             return $this->success([
-                'data' => [
-                    'id' => $result['message']->id,
-                    'room_id' => $result['message']->room_id,
-                    'user_id' => $result['message']->user_id,
-                    'message' => $result['message']->message,
-                    'message_type' => $result['message']->message_type,
-                    'created_at' => $result['message']->created_at->toISOString(),
-                    'user' => [
-                        'id' => $result['message']->user->id,
-                        'name' => $result['message']->user->name,
-                        'email' => $result['message']->user->email,
-                    ],
-                    'mentions' => $result['mentions'],
-                ],
+                'data' => $this->buildMessageResponse($result),
             ], 'Message sent successfully', 201);
         } catch (\Throwable $e) {
-            Log::error('Failed to send message', [
-                'error' => $e->getMessage(),
-                'room_id' => $roomId,
-                'user_id' => $this->getCurrentUserId()
-            ]);
-            return $this->error('Failed to send message', [], 500);
+            return $this->logAndError(
+                'Failed to send message',
+                $e,
+                [
+                    'room_id' => $roomId,
+                    'user_id' => $this->getCurrentUserId(),
+                ],
+                'Failed to send message'
+            );
         }
     }
+
+    /**
+     * 构建消息返回结构
+     */
+    private function buildMessageResponse(array $result): array
+    {
+        $message = $result['message'];
+
+        return [
+            'id' => $message->id,
+            'room_id' => $message->room_id,
+            'user_id' => $message->user_id,
+            'message' => $message->message,
+            'message_type' => $message->message_type,
+            'created_at' => $message->created_at->toISOString(),
+            'user' => [
+                'id' => $message->user->id,
+                'name' => $message->user->name,
+                'email' => $message->user->email,
+            ],
+            'mentions' => $result['mentions'],
+        ];
+    }
+
 
     /**
      * 检查用户权限（禁言/封禁）
@@ -415,10 +459,10 @@ class ChatController extends Controller
     {
         try {
             $userId = $this->getCurrentUserId();
-            $roomId = (int)$roomId;
+            $roomId = $this->normalizeRoomId($roomId);
             $messageId = (int)$messageId;
 
-            $room = ChatRoom::active()->findOrFail($roomId);
+            $room = $this->findActiveRoom($roomId);
             $message = ChatMessage::where('room_id', $roomId)->findOrFail($messageId);
 
             $canDelete = $message->user_id === $userId || $room->created_by === $userId;
@@ -443,13 +487,16 @@ class ChatController extends Controller
             return $this->success([], 'Message deleted successfully');
         } catch (\Throwable $e) {
             DB::rollBack();
-            Log::error('Failed to delete message', [
-                'error' => $e->getMessage(),
-                'message_id' => $messageId,
-                'room_id' => $roomId,
-                'user_id' => $this->getCurrentUserId()
-            ]);
-            return $this->error('Failed to delete message', [], 500);
+            return $this->logAndError(
+                'Failed to delete message',
+                $e,
+                [
+                    'message_id' => $messageId,
+                    'room_id' => $roomId,
+                    'user_id' => $this->getCurrentUserId(),
+                ],
+                'Failed to delete message'
+            );
         }
     }
 
@@ -460,12 +507,12 @@ class ChatController extends Controller
     {
         try {
             $userId = $this->getCurrentUserId();
-            $roomId = (int)$roomId;
+            $roomId = $this->normalizeRoomId($roomId);
+            $room = $this->findActiveRoom($roomId);
 
-            $room = ChatRoom::active()->findOrFail($roomId);
-
-            if (!$this->isUserInRoom($roomId, $userId)) {
-                return $this->error('You must join the room to view online users', [], 403);
+            $guard = $this->ensureUserInRoom($roomId, $userId, 'You must join the room to view online users');
+            if ($guard) {
+                return $guard;
             }
 
             $onlineUsers = $this->chatService->getOnlineUsers($roomId);
@@ -475,12 +522,15 @@ class ChatController extends Controller
                 'count' => $onlineUsers->count(),
             ], 'Online users retrieved successfully');
         } catch (\Throwable $e) {
-            Log::error('Failed to retrieve online users', [
-                'error' => $e->getMessage(),
-                'room_id' => $roomId,
-                'user_id' => $this->getCurrentUserId()
-            ]);
-            return $this->error('Failed to retrieve online users', [], 500);
+            return $this->logAndError(
+                'Failed to retrieve online users',
+                $e,
+                [
+                    'room_id' => $roomId,
+                    'user_id' => $this->getCurrentUserId(),
+                ],
+                'Failed to retrieve online users'
+            );
         }
     }
 
@@ -491,9 +541,8 @@ class ChatController extends Controller
     {
         try {
             $userId = $this->getCurrentUserId();
-            $roomId = (int)$roomId;
-
-            $room = ChatRoom::active()->findOrFail($roomId);
+            $roomId = $this->normalizeRoomId($roomId);
+            $room = $this->findActiveRoom($roomId);
 
             $result = $this->chatService->processHeartbeat($roomId, $userId);
 
@@ -505,12 +554,15 @@ class ChatController extends Controller
                 'last_seen_at' => $result['last_seen_at'],
             ], 'Status updated successfully');
         } catch (\Throwable $e) {
-            Log::error('Failed to update user status', [
-                'error' => $e->getMessage(),
-                'room_id' => $roomId,
-                'user_id' => $this->getCurrentUserId()
-            ]);
-            return $this->error('Failed to update status', [], 500);
+            return $this->logAndError(
+                'Failed to update user status',
+                $e,
+                [
+                    'room_id' => $roomId,
+                    'user_id' => $this->getCurrentUserId(),
+                ],
+                'Failed to update status'
+            );
         }
     }
 
@@ -535,11 +587,12 @@ class ChatController extends Controller
                 'cleaned_users_count' => $result['cleaned_count'],
             ], $result['message'] ?? 'Cleanup done');
         } catch (\Throwable $e) {
-            Log::error('Failed to cleanup disconnected users', [
-                'error' => $e->getMessage(),
-                'initiated_by' => $this->getCurrentUserId()
-            ]);
-            return $this->error('Failed to cleanup disconnected users', [], 500);
+            return $this->logAndError(
+                'Failed to cleanup disconnected users',
+                $e,
+                ['initiated_by' => $this->getCurrentUserId()],
+                'Failed to cleanup disconnected users'
+            );
         }
     }
 
@@ -550,9 +603,8 @@ class ChatController extends Controller
     {
         try {
             $userId = $this->getCurrentUserId();
-            $roomId = (int)$roomId;
-
-            $room = ChatRoom::active()->findOrFail($roomId);
+            $roomId = $this->normalizeRoomId($roomId);
+            $room = $this->findActiveRoom($roomId);
 
             $roomUser = $this->fetchRoomUser($roomId, $userId);
 
@@ -571,12 +623,15 @@ class ChatController extends Controller
                 'is_inactive' => $roomUser->isInactive(),
             ], 'User presence status retrieved successfully');
         } catch (\Throwable $e) {
-            Log::error('Failed to get user presence status', [
-                'error' => $e->getMessage(),
-                'room_id' => $roomId,
-                'user_id' => $this->getCurrentUserId()
-            ]);
-            return $this->error('Failed to get user presence status', [], 500);
+            return $this->logAndError(
+                'Failed to get user presence status',
+                $e,
+                [
+                    'room_id' => $roomId,
+                    'user_id' => $this->getCurrentUserId(),
+                ],
+                'Failed to get user presence status'
+            );
         }
     }
 }

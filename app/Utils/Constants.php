@@ -4,22 +4,13 @@ namespace App\Utils;
 
 class Constants
 {
-    /**
-     * 获取分页配置
-     */
-    public static function pagination(?string $key = null): mixed
-    {
-        $config = config('app_constants.pagination');
-
-        return $key ? ($config[$key] ?? null) : $config;
-    }
 
     /**
      * 获取聊天配置
      */
     public static function chat(?string $section = null, ?string $key = null): mixed
     {
-        $config = config('app_constants.chat');
+        $config = config('chat');
 
         if ($section && $key) {
             return $config[$section][$key] ?? null;
@@ -37,7 +28,7 @@ class Constants
      */
     public static function upload(?string $key = null): mixed
     {
-        $config = config('app_constants.upload');
+        $config = config('app.upload');
 
         return $key ? ($config[$key] ?? null) : $config;
     }
@@ -47,7 +38,7 @@ class Constants
      */
     public static function image(?string $key = null): mixed
     {
-        $config = config('app_constants.image');
+        $config = config('app.image');
 
         return $key ? ($config[$key] ?? null) : $config;
     }
@@ -57,7 +48,7 @@ class Constants
      */
     public static function cache(?string $key = null): mixed
     {
-        $config = config('app_constants.cache');
+        $config = config('app.cache');
 
         return $key ? ($config[$key] ?? null) : $config;
     }
@@ -67,7 +58,7 @@ class Constants
      */
     public static function validation(?string $section = null, ?string $key = null): mixed
     {
-        $config = config('app_constants.validation');
+        $config = config('app.validation');
 
         if ($section && $key) {
             return $config[$section][$key] ?? null;
@@ -85,7 +76,7 @@ class Constants
      */
     public static function api(?string $key = null): mixed
     {
-        $config = config('app_constants.api');
+        $config = config('app.api');
 
         return $key ? ($config[$key] ?? null) : $config;
     }
@@ -99,16 +90,6 @@ class Constants
     public static function chatRoomNameMaxLength(): int
     {
         return self::chat('room', 'name_max_length');
-    }
-
-    public static function defaultPerPage(): int
-    {
-        return self::pagination('default_per_page');
-    }
-
-    public static function maxPerPage(): int
-    {
-        return self::pagination('max_per_page');
     }
 
     public static function maxFileSize(): int
