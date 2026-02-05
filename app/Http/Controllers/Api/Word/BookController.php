@@ -46,6 +46,7 @@ class BookController extends Controller
         $perPage = $request->input('per_page', 20);
 
         $query = $book->words()
+            ->with('educationLevels')
             ->orderBy('word_book_word.sort_order')
             ->orderBy('words.id');
 

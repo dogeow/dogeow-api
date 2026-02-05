@@ -23,6 +23,13 @@ class WordResource extends JsonResource
             'difficulty' => $this->difficulty,
             'frequency' => $this->frequency,
             'books' => $this->whenLoaded('books', fn() => BookResource::collection($this->books)),
+            'education_levels' => $this->whenLoaded('educationLevels', function () {
+                return $this->educationLevels->map(fn($level) => [
+                    'id' => $level->id,
+                    'code' => $level->code,
+                    'name' => $level->name,
+                ]);
+            }),
         ];
     }
 }

@@ -48,6 +48,15 @@ class Word extends Model
     }
 
     /**
+     * 单词所属的教育级别（多对多）
+     */
+    public function educationLevels(): BelongsToMany
+    {
+        return $this->belongsToMany(EducationLevel::class, 'word_education_level', 'word_id', 'education_level_id')
+            ->withTimestamps();
+    }
+
+    /**
      * 根据单词内容查找或创建单词
      */
     public static function findOrCreateByContent(string $content, array $attributes = []): self

@@ -50,6 +50,7 @@ class LearningController extends Controller
 
         // 获取未学习的单词（通过多对多关系查询）
         $words = $book->words()
+            ->with('educationLevels')
             ->whereNotIn('words.id', $learnedWordIds)
             ->limit($dailyCount)
             ->get();

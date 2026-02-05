@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Word\EducationLevel;
 use App\Models\Word\Word;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
@@ -158,6 +159,9 @@ class FetchWordFromIcibaCommand extends Command
                     ],
                     'example_sentences' => $newExamples,
                 ]);
+
+                // 关联教育级别（从单词书推断）
+                $this->syncEducationLevels($word);
                 
                 $this->newLine();
                 $this->info("✓ {$word->content} [{$source}]");
@@ -221,26 +225,43 @@ class FetchWordFromIcibaCommand extends Command
             // 解析音标
             $phonetic = $wordData['usphone'] ?? $wordData['ukphone'] ?? null;
 
-            // 解析释义
-            $meanings = [];
+            // 解析释义（按词性分组）
+            $meaningsByPos = [];
             foreach ($wordData['trs'] ?? [] as $tr) {
+                $pos = $tr['pos'] ?? ''; // 词性
                 $items = $tr['tr'][0]['l']['i'] ?? [];
                 if (is_array($items)) {
+                    $meaningItems = [];
                     foreach ($items as $item) {
                         if (is_string($item) && trim($item)) {
-                            $meanings[] = trim($item);
+                            $meaningItems[] = trim($item);
+                        }
+                    }
+                    if (!empty($meaningItems)) {
+                        $meaningText = implode('；', array_unique($meaningItems));
+                        if ($pos) {
+                            $meaningsByPos[$pos][] = $meaningText;
+                        } else {
+                            $meaningsByPos[''][] = $meaningText;
                         }
                     }
                 }
             }
 
-            $zhMeaning = implode('；', array_unique(array_slice($meanings, 0, 5)));
+            // 格式化释义：按词性分行
+            $zhMeaningParts = [];
+            foreach ($meaningsByPos as $pos => $meanings) {
+                $posLabel = $pos ? $pos . '. ' : '';
+                $meaningText = implode('；', array_unique($meanings));
+                $zhMeaningParts[] = $posLabel . $meaningText;
+            }
+            $zhMeaning = implode("\n", array_slice($zhMeaningParts, 0, 5));
             
             if (empty($zhMeaning)) {
                 return null;
             }
 
-            // 解析例句
+            // 解析例句（优先使用双语例句）
             $examples = [];
             foreach (array_slice($data['blng_sents_part']['sentence-pair'] ?? [], 0, 2) as $sent) {
                 if (!empty($sent['sentence']) && !empty($sent['sentence-translation'])) {
@@ -251,6 +272,14 @@ class FetchWordFromIcibaCommand extends Command
                 }
             }
 
+            // 如果没有双语例句，尝试从网页获取
+            if (empty($examples)) {
+                $webExamples = $this->fetchExamplesFromYoudaoWeb($word);
+                if (!empty($webExamples)) {
+                    $examples = $webExamples;
+                }
+            }
+
             return [
                 'phonetic' => $phonetic,
                 'zh_meaning' => $zhMeaning,
@@ -258,6 +287,74 @@ class FetchWordFromIcibaCommand extends Command
             ];
         } catch (\Exception $e) {
             return null;
+        }
+    }
+
+    /**
+     * 从有道网页获取例句
+     */
+    private function fetchExamplesFromYoudaoWeb(string $word): array
+    {
+        try {
+            $url = 'https://dict.youdao.com/result?word=' . urlencode($word) . '&lang=en';
+            $response = Http::timeout(10)
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                ])
+                ->get($url);
+
+            if (!$response->successful()) {
+                return [];
+            }
+
+            $html = $response->body();
+            $examples = [];
+
+            // 使用正则表达式提取例句
+            // 匹配例句结构：<span class="example">英文</span> <span class="trans">中文</span>
+            preg_match_all(
+                '/<span[^>]*class="[^"]*example[^"]*"[^>]*>(.*?)<\/span>\s*<span[^>]*class="[^"]*trans[^"]*"[^>]*>(.*?)<\/span>/is',
+                $html,
+                $matches,
+                PREG_SET_ORDER
+            );
+
+            foreach (array_slice($matches, 0, 2) as $match) {
+                $en = strip_tags(trim($match[1] ?? ''));
+                $zh = strip_tags(trim($match[2] ?? ''));
+                if ($en && $zh) {
+                    $examples[] = [
+                        'en' => $en,
+                        'zh' => $zh,
+                    ];
+                }
+            }
+
+            // 如果上面的正则没匹配到，尝试另一种格式
+            if (empty($examples)) {
+                preg_match_all(
+                    '/<div[^>]*class="[^"]*example[^"]*"[^>]*>.*?<span[^>]*>(.*?)<\/span>.*?<span[^>]*>(.*?)<\/span>.*?<\/div>/is',
+                    $html,
+                    $matches2,
+                    PREG_SET_ORDER
+                );
+
+                foreach (array_slice($matches2, 0, 2) as $match) {
+                    $en = strip_tags(trim($match[1] ?? ''));
+                    $zh = strip_tags(trim($match[2] ?? ''));
+                    if ($en && $zh) {
+                        $examples[] = [
+                            'en' => $en,
+                            'zh' => $zh,
+                        ];
+                    }
+                }
+            }
+
+            return $examples;
+        } catch (\Exception $e) {
+            Log::warning("从有道网页获取例句失败: {$word}", ['error' => $e->getMessage()]);
+            return [];
         }
     }
 
@@ -335,6 +432,39 @@ class FetchWordFromIcibaCommand extends Command
             ];
         } catch (\Exception $e) {
             return [];
+        }
+    }
+
+    /**
+     * 根据单词书关联教育级别
+     */
+    private function syncEducationLevels(Word $word): void
+    {
+        $books = $word->books;
+        $levelCodes = [];
+
+        foreach ($books as $book) {
+            $bookName = strtolower($book->name);
+            
+            // 根据单词书名称推断教育级别
+            if (str_contains($bookName, '小学') || str_contains($bookName, 'primary')) {
+                // 小学不设置级别
+            } elseif (str_contains($bookName, '初中') || str_contains($bookName, 'junior')) {
+                $levelCodes[] = 'junior_high';
+            } elseif (str_contains($bookName, '高中') || str_contains($bookName, 'senior')) {
+                $levelCodes[] = 'senior_high';
+            } elseif (str_contains($bookName, '四级') || str_contains($bookName, 'cet4') || str_contains($bookName, '4')) {
+                $levelCodes[] = 'cet4';
+            } elseif (str_contains($bookName, '六级') || str_contains($bookName, 'cet6') || str_contains($bookName, '6')) {
+                $levelCodes[] = 'cet6';
+            } elseif (str_contains($bookName, '考研') || str_contains($bookName, 'postgraduate')) {
+                $levelCodes[] = 'postgraduate';
+            }
+        }
+
+        if (!empty($levelCodes)) {
+            $levelIds = EducationLevel::whereIn('code', array_unique($levelCodes))->pluck('id');
+            $word->educationLevels()->sync($levelIds);
         }
     }
 }
