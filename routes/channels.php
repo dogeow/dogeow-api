@@ -6,10 +6,8 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
 
-// Chat room channels for real-time messaging
+// 聊天房间频道，用于实时消息通信
 Broadcast::channel('chat.room.{roomId}', function ($user, $roomId) {
-    // Users can join any chat room if they are authenticated
-    // Additional room-specific authorization can be added here
     return [
         'id' => $user->id,
         'name' => $user->name,
@@ -17,10 +15,8 @@ Broadcast::channel('chat.room.{roomId}', function ($user, $roomId) {
     ];
 });
 
-// Presence channels for real-time user status tracking
+// 聊天房间的 presence 频道，用于实时跟踪在线用户状态
 Broadcast::channel('chat.room.{roomId}.presence', function ($user, $roomId) {
-    // Users can join presence channels if they are authenticated
-    // This allows real-time tracking of who is currently in the room
     return [
         'id' => $user->id,
         'name' => $user->name,
@@ -29,7 +25,7 @@ Broadcast::channel('chat.room.{roomId}.presence', function ($user, $roomId) {
     ];
 });
 
-// Private user channels for notifications
+// 用户私有频道，用于发送通知
 Broadcast::channel('user.{userId}', function ($user, $userId) {
     return (int) $user->id === (int) $userId;
 });

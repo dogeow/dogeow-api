@@ -1,0 +1,32 @@
+<?php
+
+use App\Http\Controllers\Api\Word\BookController;
+use App\Http\Controllers\Api\Word\CheckInController;
+use App\Http\Controllers\Api\Word\LearningController;
+use App\Http\Controllers\Api\Word\SettingController;
+use Illuminate\Support\Facades\Route;
+
+Route::prefix('word')->name('word.')->group(function () {
+    // 单词书
+    Route::get('books', [BookController::class, 'index']);
+    Route::get('books/{id}', [BookController::class, 'show']);
+    Route::get('books/{id}/words', [BookController::class, 'words']);
+    
+    // 学习
+    Route::get('daily', [LearningController::class, 'getDailyWords']);
+    Route::get('review', [LearningController::class, 'getReviewWords']);
+    Route::post('mark/{id}', [LearningController::class, 'markWord']);
+    Route::get('progress', [LearningController::class, 'getProgress']);
+    
+    // 单词管理
+    Route::patch('{id}', [LearningController::class, 'updateWord']);
+    
+    // 打卡
+    Route::post('check-in', [CheckInController::class, 'checkIn']);
+    Route::get('calendar/{year}/{month}', [CheckInController::class, 'getCalendar']);
+    Route::get('stats', [CheckInController::class, 'getStats']);
+    
+    // 设置
+    Route::get('settings', [SettingController::class, 'show']);
+    Route::put('settings', [SettingController::class, 'update']);
+});

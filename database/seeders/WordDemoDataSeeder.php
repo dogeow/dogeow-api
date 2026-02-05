@@ -24,6 +24,7 @@ class WordDemoDataSeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
         
         // 清空现有数据
+        DB::table('word_book_word')->truncate();
         Word::truncate();
         Book::truncate();
         Category::truncate();
@@ -127,9 +128,7 @@ class WordDemoDataSeeder extends Seeder
         $this->command->info('正在生成单词数据，这可能需要一些时间...');
         
         $faker = Faker::create('en_US');
-        $wordData = [];
         $totalWords = 0;
-        $batchSize = 1000; // 每批插入1000条记录
         
         // 准备单词源数据（可以从文件或API获取真实单词）
         $baseWords = $this->getBaseWords();
@@ -150,12 +149,13 @@ class WordDemoDataSeeder extends Seeder
             $wordCount = $book['word_count'];
             $this->command->info("正在为《{$book['name']}》生成 {$wordCount} 个单词...");
             
-            $bookWords = [];
+            $bookModel = Book::find($book['id']);
+            $wordIdsToAttach = [];
             
             for ($i = 0; $i < $wordCount; $i++) {
                 // 使用基础单词库，如果用完则随机生成
                 $wordIndex = ($totalWords + $i) % $baseWordCount;
-                $word = $baseWords[$wordIndex];
+                $wordContent = $baseWords[$wordIndex];
                 
                 // 生成中英文释义和例句
                 $definitions = [];
@@ -173,57 +173,42 @@ class WordDemoDataSeeder extends Seeder
                     ];
                 }
                 
-                // 随机选择音标或生成一个
-                $phoneticUK = $phoneticFormats[array_rand($phoneticFormats)];
+                // 随机选择音标
                 $phoneticUS = $phoneticFormats[array_rand($phoneticFormats)];
                 
-                $bookWords[] = [
-                    'word_book_id' => $book['id'],
-                    'content' => $word,
-                    'phonetic_uk' => $phoneticUK,
-                    'phonetic_us' => $phoneticUS,
-                    'explanation' => json_encode([
-                        'en' => implode("\n", $definitions),
-                        'zh' => implode("\n", array_map(function() use ($faker) {
-                            return $faker->sentence(rand(3, 8));
-                        }, range(1, $definitionCount)))
-                    ]),
-                    'example_sentences' => json_encode($examples),
-                    'synonyms' => implode(',', array_map(function() use ($baseWords) {
-                        return $baseWords[array_rand($baseWords)];
-                    }, range(0, rand(0, 3)))),
-                    'antonyms' => implode(',', array_map(function() use ($baseWords) {
-                        return $baseWords[array_rand($baseWords)];
-                    }, range(0, rand(0, 2)))),
-                    'difficulty' => rand(1, 5),
-                    'frequency' => rand(1, 5),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-                
-                // 当达到批量大小时，执行插入
-                if (count($bookWords) >= $batchSize) {
-                    Word::insert($bookWords);
-                    $this->command->info("已插入 " . count($bookWords) . " 个单词");
-                    $wordData = array_merge($wordData, $bookWords);
-                    $bookWords = [];
-                }
+                // 创建或获取单词（全局唯一）
+                $word = Word::firstOrCreate(
+                    ['content' => $wordContent],
+                    [
+                        'phonetic_us' => $phoneticUS,
+                        'explanation' => [
+                            'en' => implode("\n", $definitions),
+                            'zh' => implode("\n", array_map(function() use ($faker) {
+                                return $faker->sentence(rand(3, 8));
+                            }, range(1, rand(1, 4))))
+                        ],
+                        'example_sentences' => $examples,
+                        'difficulty' => rand(1, 5),
+                        'frequency' => rand(1, 5),
+                    ]
+                );
+
+                $wordIdsToAttach[] = $word->id;
             }
             
-            // 插入剩余的单词
-            if (count($bookWords) > 0) {
-                Word::insert($bookWords);
-                $this->command->info("已插入 " . count($bookWords) . " 个单词");
-                $wordData = array_merge($wordData, $bookWords);
+            // 批量关联单词到书籍
+            foreach (array_chunk($wordIdsToAttach, 500) as $chunk) {
+                $bookModel->words()->syncWithoutDetaching($chunk);
             }
             
             // 更新单词书的总单词数
-            Book::where('id', $book['id'])->update(['total_words' => $wordCount]);
+            $bookModel->updateWordCount();
             
             $totalWords += $wordCount;
+            $this->command->info("已为《{$book['name']}》关联 {$wordCount} 个单词");
         }
         
-        $this->command->info("总共生成了 {$totalWords} 个单词");
+        $this->command->info("总共处理了 {$totalWords} 个单词关联");
     }
     
     /**

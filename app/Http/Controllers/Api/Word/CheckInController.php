@@ -1,0 +1,151 @@
+<?php
+
+namespace App\Http\Controllers\Api\Word;
+
+use App\Http\Controllers\Controller;
+use App\Models\Word\CheckIn;
+use App\Models\Word\UserWord;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+
+class CheckInController extends Controller
+{
+    /**
+     * 打卡
+     */
+    public function checkIn(): JsonResponse
+    {
+        $user = Auth::user();
+        $today = now()->toDateString();
+
+        // 检查今天是否已打卡
+        $checkIn = CheckIn::where('user_id', $user->id)
+            ->where('check_in_date', $today)
+            ->first();
+
+        if ($checkIn) {
+            return response()->json([
+                'message' => '今天已经打卡过了',
+                'check_in' => $checkIn,
+            ]);
+        }
+
+        // 统计今日学习数据
+        $todayStart = now()->startOfDay();
+        $todayEnd = now()->endOfDay();
+
+        $newWordsCount = UserWord::where('user_id', $user->id)
+            ->whereBetween('created_at', [$todayStart, $todayEnd])
+            ->where('status', '!=', 0)
+            ->count();
+
+        $reviewWordsCount = UserWord::where('user_id', $user->id)
+            ->whereBetween('last_review_at', [$todayStart, $todayEnd])
+            ->where('status', '!=', 0)
+            ->count();
+
+        // 创建打卡记录
+        $checkIn = CheckIn::create([
+            'user_id' => $user->id,
+            'check_in_date' => $today,
+            'new_words_count' => $newWordsCount,
+            'review_words_count' => $reviewWordsCount,
+            'study_duration' => 0, // 前端可以传入学习时长
+        ]);
+
+        return response()->json([
+            'message' => '打卡成功',
+            'check_in' => $checkIn,
+        ]);
+    }
+
+    /**
+     * 获取打卡日历
+     */
+    public function getCalendar(int $year, int $month): JsonResponse
+    {
+        $user = Auth::user();
+
+        $startDate = now()->setYear($year)->setMonth($month)->startOfMonth();
+        $endDate = now()->setYear($year)->setMonth($month)->endOfMonth();
+
+        $checkIns = CheckIn::where('user_id', $user->id)
+            ->whereBetween('check_in_date', [$startDate, $endDate])
+            ->get()
+            ->keyBy(fn ($item) => $item->check_in_date->toDateString());
+
+        // 生成该月所有日期的打卡状态
+        $calendar = [];
+        $currentDate = $startDate->copy();
+        while ($currentDate->lte($endDate)) {
+            $dateStr = $currentDate->toDateString();
+            $calendar[] = [
+                'date' => $dateStr,
+                'checked' => $checkIns->has($dateStr),
+                'new_words_count' => $checkIns->get($dateStr)?->new_words_count ?? 0,
+                'review_words_count' => $checkIns->get($dateStr)?->review_words_count ?? 0,
+            ];
+            $currentDate->addDay();
+        }
+
+        return response()->json([
+            'year' => $year,
+            'month' => $month,
+            'calendar' => $calendar,
+        ]);
+    }
+
+    /**
+     * 获取统计数据
+     */
+    public function getStats(): JsonResponse
+    {
+        $user = Auth::user();
+
+        // 已打卡天数
+        $checkInDays = CheckIn::where('user_id', $user->id)
+            ->distinct('check_in_date')
+            ->count('check_in_date');
+
+        // 已学单词数
+        $learnedWordsCount = UserWord::where('user_id', $user->id)
+            ->where('status', '!=', 0)
+            ->distinct('word_id')
+            ->count('word_id');
+
+        // 总单词数（当前学习的单词书）
+        $setting = \App\Models\Word\UserSetting::where('user_id', $user->id)->first();
+        $totalWords = 0;
+        $progressPercentage = 0;
+
+        if ($setting && $setting->current_book_id) {
+            $book = \App\Models\Word\Book::find($setting->current_book_id);
+            if ($book) {
+                $totalWords = $book->total_words;
+                $learnedInBook = UserWord::where('user_id', $user->id)
+                    ->where('word_book_id', $setting->current_book_id)
+                    ->where('status', '!=', 0)
+                    ->distinct('word_id')
+                    ->count('word_id');
+                
+                if ($totalWords > 0) {
+                    $progressPercentage = round(($learnedInBook / $totalWords) * 100, 2);
+                }
+            }
+        }
+
+        // 今日是否已打卡
+        $todayCheckedIn = CheckIn::where('user_id', $user->id)
+            ->where('check_in_date', now()->toDateString())
+            ->exists();
+
+        return response()->json([
+            'check_in_days' => $checkInDays,
+            'learned_words_count' => $learnedWordsCount,
+            'total_words' => $totalWords,
+            'progress_percentage' => $progressPercentage,
+            'today_checked_in' => $todayCheckedIn,
+        ]);
+    }
+}
