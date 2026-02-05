@@ -7,6 +7,7 @@ use App\Models\Word\Word;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class FetchWordFromIcibaCommand extends Command
 {
@@ -440,31 +441,43 @@ class FetchWordFromIcibaCommand extends Command
      */
     private function syncEducationLevels(Word $word): void
     {
-        $books = $word->books;
-        $levelCodes = [];
-
-        foreach ($books as $book) {
-            $bookName = strtolower($book->name);
-            
-            // 根据单词书名称推断教育级别
-            if (str_contains($bookName, '小学') || str_contains($bookName, 'primary')) {
-                // 小学不设置级别
-            } elseif (str_contains($bookName, '初中') || str_contains($bookName, 'junior')) {
-                $levelCodes[] = 'junior_high';
-            } elseif (str_contains($bookName, '高中') || str_contains($bookName, 'senior')) {
-                $levelCodes[] = 'senior_high';
-            } elseif (str_contains($bookName, '四级') || str_contains($bookName, 'cet4') || str_contains($bookName, '4')) {
-                $levelCodes[] = 'cet4';
-            } elseif (str_contains($bookName, '六级') || str_contains($bookName, 'cet6') || str_contains($bookName, '6')) {
-                $levelCodes[] = 'cet6';
-            } elseif (str_contains($bookName, '考研') || str_contains($bookName, 'postgraduate')) {
-                $levelCodes[] = 'postgraduate';
-            }
+        // 检查表是否存在
+        if (!\Illuminate\Support\Facades\Schema::hasTable('word_education_levels')) {
+            return;
         }
 
-        if (!empty($levelCodes)) {
-            $levelIds = EducationLevel::whereIn('code', array_unique($levelCodes))->pluck('id');
-            $word->educationLevels()->sync($levelIds);
+        try {
+            $books = $word->books;
+            $levelCodes = [];
+
+            foreach ($books as $book) {
+                $bookName = strtolower($book->name);
+                
+                // 根据单词书名称推断教育级别
+                if (str_contains($bookName, '小学') || str_contains($bookName, 'primary')) {
+                    // 小学不设置级别
+                } elseif (str_contains($bookName, '初中') || str_contains($bookName, 'junior')) {
+                    $levelCodes[] = 'junior_high';
+                } elseif (str_contains($bookName, '高中') || str_contains($bookName, 'senior')) {
+                    $levelCodes[] = 'senior_high';
+                } elseif (str_contains($bookName, '四级') || str_contains($bookName, 'cet4') || str_contains($bookName, '4')) {
+                    $levelCodes[] = 'cet4';
+                } elseif (str_contains($bookName, '六级') || str_contains($bookName, 'cet6') || str_contains($bookName, '6')) {
+                    $levelCodes[] = 'cet6';
+                } elseif (str_contains($bookName, '考研') || str_contains($bookName, 'postgraduate')) {
+                    $levelCodes[] = 'postgraduate';
+                }
+            }
+
+            if (!empty($levelCodes)) {
+                $levelIds = EducationLevel::whereIn('code', array_unique($levelCodes))->pluck('id');
+                if ($levelIds->isNotEmpty()) {
+                    $word->educationLevels()->sync($levelIds);
+                }
+            }
+        } catch (\Exception $e) {
+            // 静默失败，不影响主流程
+            Log::warning("关联教育级别失败: {$word->content}", ['error' => $e->getMessage()]);
         }
     }
 }
