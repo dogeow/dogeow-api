@@ -16,6 +16,7 @@ Route::prefix('word')->name('word.')->group(function () {
     Route::get('daily', [LearningController::class, 'getDailyWords']);
     Route::get('review', [LearningController::class, 'getReviewWords']);
     Route::post('mark/{id}', [LearningController::class, 'markWord']);
+    Route::post('simple/{id}', [LearningController::class, 'markWordAsSimple']);
     Route::get('progress', [LearningController::class, 'getProgress']);
     
     // 单词管理

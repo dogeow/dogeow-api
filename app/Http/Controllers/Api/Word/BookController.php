@@ -36,7 +36,7 @@ class BookController extends Controller
 
     /**
      * 获取单词书中的单词列表
-     * 支持筛选：all=全部, mastered=已掌握, difficult=困难词
+     * 支持筛选：all=全部, mastered=已掌握, difficult=困难词, simple=简单词
      */
     public function words(Request $request, int $id): AnonymousResourceCollection
     {
@@ -70,6 +70,16 @@ class BookController extends Controller
                     ->where('user_words.user_id', $userId)
                     ->where('user_words.word_book_id', $id)
                     ->where('user_words.status', 3);
+            });
+        } elseif ($filter === 'simple') {
+            // 简单词：status = 4
+            $query->whereExists(function ($q) use ($userId, $id) {
+                $q->selectRaw('1')
+                    ->from('user_words')
+                    ->whereColumn('user_words.word_id', 'words.id')
+                    ->where('user_words.user_id', $userId)
+                    ->where('user_words.word_book_id', $id)
+                    ->where('user_words.status', 4);
             });
         }
 

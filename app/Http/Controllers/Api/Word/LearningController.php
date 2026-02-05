@@ -75,9 +75,9 @@ class LearningController extends Controller
 
         $reviewCount = $setting->daily_new_words * $setting->review_multiplier;
 
-        // 获取需要复习的单词（下次复习时间已到）
+        // 获取需要复习的单词（下次复习时间已到，排除简单词 status=4）
         $userWords = UserWord::where('user_id', $user->id)
-            ->where('status', '!=', 0) // 已学习过的
+            ->whereNotIn('status', [0, 4]) // 已学习且非简单词
             ->where('next_review_at', '<=', now())
             ->with(['word.educationLevels'])
             ->orderBy('next_review_at')
@@ -143,6 +143,47 @@ class LearningController extends Controller
     }
 
     /**
+     * 标记为简单词（已会，不再出现在每日新词和复习中）
+     */
+    public function markWordAsSimple(int $id): JsonResponse
+    {
+        $user = Auth::user();
+        $word = Word::findOrFail($id);
+        $setting = UserSetting::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'daily_new_words' => 10,
+                'review_multiplier' => 2,
+                'is_auto_pronounce' => true,
+            ]
+        );
+
+        $bookId = $setting->current_book_id;
+        if (!$bookId) {
+            return response()->json(['message' => '请先选择单词书'], 422);
+        }
+
+        $userWord = UserWord::firstOrCreate(
+            [
+                'user_id' => $user->id,
+                'word_id' => $word->id,
+                'word_book_id' => $bookId,
+            ],
+            [
+                'status' => 4, // 简单词
+                'stage' => 0,
+                'ease_factor' => 2.50,
+            ]
+        );
+
+        $userWord->status = 4;
+        $userWord->next_review_at = null; // 永不进入复习
+        $userWord->save();
+
+        return response()->json(['message' => '已设为简单词']);
+    }
+
+    /**
      * 获取学习进度统计
      */
     public function getProgress(): JsonResponse
@@ -164,6 +205,7 @@ class LearningController extends Controller
                 'learned_words' => 0,
                 'mastered_words' => 0,
                 'difficult_words' => 0,
+                'simple_words' => 0,
                 'progress_percentage' => 0,
             ]);
         }
@@ -186,6 +228,11 @@ class LearningController extends Controller
             ->where('status', 3)
             ->count();
 
+        $simpleWords = UserWord::where('user_id', $user->id)
+            ->where('word_book_id', $bookId)
+            ->where('status', 4)
+            ->count();
+
         $progressPercentage = $totalWords > 0 
             ? round(($learnedWords / $totalWords) * 100, 2) 
             : 0;
@@ -195,6 +242,7 @@ class LearningController extends Controller
             'learned_words' => $learnedWords,
             'mastered_words' => $masteredWords,
             'difficult_words' => $difficultWords,
+            'simple_words' => $simpleWords,
             'progress_percentage' => $progressPercentage,
         ]);
     }
