@@ -440,41 +440,21 @@ class FetchWordFromIcibaCommand extends Command
         }
 
         try {
-            // 确保加载 books 关系
-            if (!$word->relationLoaded('books')) {
-                $word->load('books');
-            }
-            
-            $books = $word->books;
-            $levelCodes = [];
+            // 从单词书关联的教育级别获取（word_books -> word_book_education_level -> word_education_levels）
+            $word->load('books.educationLevels');
 
-            foreach ($books as $book) {
-                $bookName = strtolower($book->name);
-                
-                // 根据单词书名称推断教育级别
-                if (str_contains($bookName, '小学') || str_contains($bookName, 'primary')) {
-                    // 小学不设置级别
-                } elseif (str_contains($bookName, '初中') || str_contains($bookName, 'junior')) {
-                    $levelCodes[] = 'junior_high';
-                } elseif (str_contains($bookName, '高中') || str_contains($bookName, 'senior')) {
-                    $levelCodes[] = 'senior_high';
-                } elseif (str_contains($bookName, '四级') || str_contains($bookName, 'cet4') || str_contains($bookName, '4')) {
-                    $levelCodes[] = 'cet4';
-                } elseif (str_contains($bookName, '六级') || str_contains($bookName, 'cet6') || str_contains($bookName, '6')) {
-                    $levelCodes[] = 'cet6';
-                } elseif (str_contains($bookName, '考研') || str_contains($bookName, 'postgraduate')) {
-                    $levelCodes[] = 'postgraduate';
+            $levelIds = [];
+            foreach ($word->books as $book) {
+                foreach ($book->educationLevels as $level) {
+                    $levelIds[] = $level->id;
                 }
             }
+            $levelIds = array_values(array_unique($levelIds));
 
-            if (!empty($levelCodes)) {
-                $levelIds = EducationLevel::whereIn('code', array_unique($levelCodes))->pluck('id');
-                if ($levelIds->isNotEmpty()) {
-                    $word->educationLevels()->sync($levelIds);
-                    $this->line("  教育级别: " . implode(', ', array_unique($levelCodes)));
-                } else {
-                    $this->warn("  警告: 未找到匹配的教育级别: " . implode(', ', array_unique($levelCodes)));
-                }
+            if (!empty($levelIds)) {
+                $word->educationLevels()->sync($levelIds);
+                $levelNames = EducationLevel::whereIn('id', $levelIds)->pluck('name')->all();
+                $this->line("  教育级别: " . implode(', ', $levelNames));
             } else {
                 $this->line("  教育级别: 无（小学或未匹配）");
             }

@@ -47,6 +47,19 @@ class Book extends Model
     }
 
     /**
+     * 单词书所属的教育级别（多对多）
+     */
+    public function educationLevels(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            EducationLevel::class,
+            'word_book_education_level',
+            'word_book_id',
+            'education_level_id'
+        )->withTimestamps();
+    }
+
+    /**
      * 更新单词数量统计
      */
     public function updateWordCount(): void

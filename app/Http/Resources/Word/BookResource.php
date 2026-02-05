@@ -22,6 +22,13 @@ class BookResource extends JsonResource
             'total_words' => $this->total_words,
             'sort_order' => $this->sort_order,
             'category' => $this->whenLoaded('category'),
+            'education_levels' => $this->whenLoaded('educationLevels', function () {
+                return $this->educationLevels->map(fn($level) => [
+                    'id' => $level->id,
+                    'code' => $level->code,
+                    'name' => $level->name,
+                ]);
+            }),
         ];
     }
 }

@@ -33,4 +33,17 @@ class EducationLevel extends Model
         return $this->belongsToMany(Word::class, 'word_education_level', 'education_level_id', 'word_id')
             ->withTimestamps();
     }
+
+    /**
+     * 关联的单词书（多对多）
+     */
+    public function books(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Book::class,
+            'word_book_education_level',
+            'education_level_id',
+            'word_book_id'
+        )->withTimestamps();
+    }
 }
