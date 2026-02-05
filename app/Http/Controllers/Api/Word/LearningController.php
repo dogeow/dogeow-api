@@ -79,7 +79,7 @@ class LearningController extends Controller
         $userWords = UserWord::where('user_id', $user->id)
             ->where('status', '!=', 0) // 已学习过的
             ->where('next_review_at', '<=', now())
-            ->with('word')
+            ->with(['word.educationLevels'])
             ->orderBy('next_review_at')
             ->limit($reviewCount)
             ->get();

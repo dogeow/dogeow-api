@@ -59,7 +59,7 @@ class FetchWordFromIcibaCommand extends Command
             return Command::SUCCESS;
         }
 
-        $words = $query->limit($limit)->get();
+        $words = $query->with('books')->limit($limit)->get();
         $this->info("开始处理 {$words->count()} 个单词...");
         $this->newLine();
 
@@ -226,37 +226,30 @@ class FetchWordFromIcibaCommand extends Command
             // 解析音标
             $phonetic = $wordData['usphone'] ?? $wordData['ukphone'] ?? null;
 
-            // 解析释义（按词性分组）
-            $meaningsByPos = [];
-            foreach ($wordData['trs'] ?? [] as $tr) {
-                $pos = $tr['pos'] ?? ''; // 词性
+            // 解析释义（按词性分行）
+            // 有道API返回的数据中，每个 trs 项代表一个词性，词性信息包含在翻译文本中
+            $zhMeaningParts = [];
+            foreach (array_slice($wordData['trs'] ?? [], 0, 5) as $tr) {
                 $items = $tr['tr'][0]['l']['i'] ?? [];
                 if (is_array($items)) {
-                    $meaningItems = [];
                     foreach ($items as $item) {
                         if (is_string($item) && trim($item)) {
-                            $meaningItems[] = trim($item);
-                        }
-                    }
-                    if (!empty($meaningItems)) {
-                        $meaningText = implode('；', array_unique($meaningItems));
-                        if ($pos) {
-                            $meaningsByPos[$pos][] = $meaningText;
-                        } else {
-                            $meaningsByPos[''][] = $meaningText;
+                            $text = trim($item);
+                            // 如果文本已经包含词性（如 "art. 这；那"），直接使用
+                            // 否则尝试从 pos 字段获取词性
+                            if (!preg_match('/^[a-z]+\.\s+/i', $text)) {
+                                $pos = $tr['pos'] ?? '';
+                                if ($pos) {
+                                    $text = $pos . '. ' . $text;
+                                }
+                            }
+                            $zhMeaningParts[] = $text;
                         }
                     }
                 }
             }
-
-            // 格式化释义：按词性分行
-            $zhMeaningParts = [];
-            foreach ($meaningsByPos as $pos => $meanings) {
-                $posLabel = $pos ? $pos . '. ' : '';
-                $meaningText = implode('；', array_unique($meanings));
-                $zhMeaningParts[] = $posLabel . $meaningText;
-            }
-            $zhMeaning = implode("\n", array_slice($zhMeaningParts, 0, 5));
+            
+            $zhMeaning = implode("\n", array_unique($zhMeaningParts));
             
             if (empty($zhMeaning)) {
                 return null;
@@ -447,6 +440,11 @@ class FetchWordFromIcibaCommand extends Command
         }
 
         try {
+            // 确保加载 books 关系
+            if (!$word->relationLoaded('books')) {
+                $word->load('books');
+            }
+            
             $books = $word->books;
             $levelCodes = [];
 
@@ -473,10 +471,16 @@ class FetchWordFromIcibaCommand extends Command
                 $levelIds = EducationLevel::whereIn('code', array_unique($levelCodes))->pluck('id');
                 if ($levelIds->isNotEmpty()) {
                     $word->educationLevels()->sync($levelIds);
+                    $this->line("  教育级别: " . implode(', ', array_unique($levelCodes)));
+                } else {
+                    $this->warn("  警告: 未找到匹配的教育级别: " . implode(', ', array_unique($levelCodes)));
                 }
+            } else {
+                $this->line("  教育级别: 无（小学或未匹配）");
             }
         } catch (\Exception $e) {
-            // 静默失败，不影响主流程
+            // 记录错误但不中断主流程
+            $this->warn("  警告: 关联教育级别失败: {$e->getMessage()}");
             Log::warning("关联教育级别失败: {$word->content}", ['error' => $e->getMessage()]);
         }
     }
