@@ -3,7 +3,7 @@
 namespace Tests\Unit\Services;
 
 use Tests\TestCase;
-use App\Services\ItemImageManagementService;
+use App\Services\File\ItemImageManagementService;
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemImage;
 use Illuminate\Support\Facades\Storage;

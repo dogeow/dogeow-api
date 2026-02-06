@@ -3,8 +3,8 @@
 namespace Tests\Feature\Controllers;
 
 use App\Models\User;
-use App\Services\FileStorageService;
-use App\Services\ImageProcessingService;
+use App\Services\File\FileStorageService;
+use App\Services\File\ImageProcessingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;

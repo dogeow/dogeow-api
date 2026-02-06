@@ -1,9 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Api\AuthController;
 
-use App\Http\Controllers\UploadController;
+use App\Http\Controllers\Api\UploadController;
 
 // 公开路由
 require base_path('routes/api/public.php');
@@ -28,7 +28,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // 引入各个项目的路由文件
     require base_path('routes/api/chat.php');
     require base_path('routes/api/game.php');
-    require base_path('routes/api/home.php');
     require base_path('routes/api/item.php');
     require base_path('routes/api/location.php');
     require base_path('routes/api/note.php');

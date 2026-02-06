@@ -7,7 +7,7 @@ use App\Http\Requests\Thing\LocationRequest;
 use App\Models\Thing\Area;
 use App\Models\Thing\Room;
 use App\Models\Thing\Spot;
-use App\Services\LocationTreeService;
+use App\Services\Location\LocationTreeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;

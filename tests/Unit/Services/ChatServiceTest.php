@@ -2,13 +2,13 @@
 
 namespace Tests\Unit\Services;
 
-use App\Models\ChatMessage;
-use App\Models\ChatRoom;
-use App\Models\ChatRoomUser;
+use App\Models\Chat\ChatMessage;
+use App\Models\Chat\ChatRoom;
+use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
-use App\Services\ChatCacheService;
-use App\Services\ChatPaginationService;
-use App\Services\ChatService;
+use App\Services\Chat\ChatCacheService;
+use App\Services\Chat\ChatPaginationService;
+use App\Services\Chat\ChatService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;

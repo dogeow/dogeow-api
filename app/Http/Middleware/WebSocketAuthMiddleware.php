@@ -11,36 +11,42 @@ use Symfony\Component\HttpFoundation\Response;
 class WebSocketAuthMiddleware
 {
     /**
-     * Handle an incoming request for WebSocket authentication.
+     * 处理 WebSocket 认证请求。
      *
+     * @param  \Illuminate\Http\Request  $request
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Check for token in query parameters (for WebSocket connections)
-        $token = $request->query('token') ?? $request->bearerToken();
-        
+        // 优先从 query 参数获取 token，其次获取 Bearer Token
+        $token = $request->query('token');
         if (!$token) {
-            return response()->json(['error' => 'Unauthorized - No token provided'], 401);
+            $token = $request->bearerToken();
         }
 
-        // Validate the token using Sanctum
+        if (!$token) {
+            return response()->json(['error' => '未授权：缺少 token'], 401);
+        }
+
+        // 通过 Sanctum 查找并验证 AccessToken
         $accessToken = PersonalAccessToken::findToken($token);
-        
+
         if (!$accessToken || !$accessToken->tokenable) {
-            return response()->json(['error' => 'Unauthorized - Invalid token'], 401);
+            return response()->json(['error' => '未授权：Token 无效'], 401);
         }
 
-        // Check if token has expired
+        // 检查 Token 是否过期
         if ($accessToken->expires_at && $accessToken->expires_at->isPast()) {
-            return response()->json(['error' => 'Unauthorized - Token expired'], 401);
+            return response()->json(['error' => '未授权：Token 已过期'], 401);
         }
 
-        // Set the authenticated user
+        // 设置已认证用户
         Auth::setUser($accessToken->tokenable);
-        
-        // Update last used timestamp
-        $accessToken->forceFill(['last_used_at' => now()])->save();
+
+        // 更新 Token 最后活动时间
+        $accessToken->forceFill([
+            'last_used_at' => now(),
+        ])->save();
 
         return $next($request);
     }

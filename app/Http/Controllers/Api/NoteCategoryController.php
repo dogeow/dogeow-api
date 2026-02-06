@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 class NoteCategoryController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * 获取所有笔记分类列表
      */
     public function index(): JsonResponse
     {
@@ -23,7 +23,7 @@ class NoteCategoryController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * 新建笔记分类
      */
     public function store(NoteCategoryRequest $request): JsonResponse
     {
@@ -37,7 +37,7 @@ class NoteCategoryController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * 获取指定的笔记分类
      */
     public function show(string $id): JsonResponse
     {
@@ -49,7 +49,7 @@ class NoteCategoryController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * 更新指定的笔记分类
      */
     public function update(NoteCategoryRequest $request, string $id): JsonResponse
     {
@@ -62,14 +62,14 @@ class NoteCategoryController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * 删除指定的笔记分类
      */
     public function destroy(string $id): JsonResponse
     {
         $category = NoteCategory::where('user_id', Auth::id())
             ->findOrFail($id);
-            
-        // 分类下的笔记会自动设置分类为null（由于外键约束nullOnDelete）
+
+        // 分类下的所有笔记会自动将分类设置为 null（因为外键约束为 nullOnDelete）
         $category->delete();
 
         return response()->json(null, 204);

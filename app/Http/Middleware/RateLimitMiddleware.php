@@ -4,48 +4,67 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 use Symfony\Component\HttpFoundation\Response;
 
 class RateLimitMiddleware
 {
     /**
-     * Handle an incoming request.
+     * 处理传入的请求。
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @param  string  $maxAttempts
+     * @param  string  $decayMinutes
+     * @return \Symfony\Component\HttpFoundation\Response
      */
     public function handle(Request $request, Closure $next, string $maxAttempts = '60', string $decayMinutes = '1'): Response
     {
         $key = $this->resolveRequestSignature($request);
-        
-        if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+
+        $max = (int) $maxAttempts;
+        $decay = (int) $decayMinutes * 60;
+
+        if (RateLimiter::tooManyAttempts($key, $max)) {
+            $retryAfter = RateLimiter::availableIn($key);
+
             return response()->json([
                 'message' => '请求过于频繁，请稍后再试',
-                'retry_after' => RateLimiter::availableIn($key)
-            ], 429);
+                'retry_after' => $retryAfter,
+            ], Response::HTTP_TOO_MANY_REQUESTS)->withHeaders([
+                'Retry-After' => $retryAfter,
+                'X-RateLimit-Limit' => $max,
+                'X-RateLimit-Remaining' => 0,
+            ]);
         }
-        
-        RateLimiter::hit($key, $decayMinutes * 60);
-        
+
+        RateLimiter::hit($key, $decay);
+
+        /** @var \Symfony\Component\HttpFoundation\Response $response */
         $response = $next($request);
-        
-        // 添加限流头部信息
-        $response->headers->set('X-RateLimit-Limit', $maxAttempts);
-        $response->headers->set('X-RateLimit-Remaining', RateLimiter::remaining($key, $maxAttempts));
-        
+
+        // 设置限流相关头部信息
+        $remaining = RateLimiter::remaining($key, $max);
+
+        $response->headers->set('X-RateLimit-Limit', (string) $max);
+        $response->headers->set('X-RateLimit-Remaining', (string) max(0, $remaining));
+        $response->headers->set('X-RateLimit-Reset', (string) (time() + RateLimiter::availableIn($key)));
+
         return $response;
     }
-    
+
     /**
-     * Resolve the request signature.
+     * 根据用户或 IP 获取限流标识 key。
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return string
      */
     protected function resolveRequestSignature(Request $request): string
     {
-        $user = $request->user();
-        
-        if ($user) {
-            return 'rate_limit:user:' . $user->id;
+        if ($user = $request->user()) {
+            return 'rate_limit:user:' . $user->getAuthIdentifier();
         }
-        
+
         return 'rate_limit:ip:' . $request->ip();
     }
-} 
+}

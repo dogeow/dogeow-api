@@ -2,39 +2,47 @@
 
 namespace App\Console\Commands;
 
-use App\Models\ChatRoomUser;
+use App\Models\Chat\ChatRoomUser;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
 class CleanupDisconnectedChatUsers extends Command
 {
     /**
-     * The name and signature of the console command.
+     * 命令名称及参数配置
+     *
+     * @var string
+     *
+     * 调用示例:
+     * php artisan chat:cleanup-disconnected --minutes=10
+     * 
+     * 参数说明:
+     * --minutes  指定聊天室用户的非活跃时间阈值（分钟），达到该时长未活跃的用户会被标记为离线。默认为5分钟。
+     */
+    protected $signature = 'chat:cleanup-disconnected {--minutes=5 : 用户多久未活跃（分钟）后被标记为离线，默认5分钟}';
+
+    /**
+     * 命令描述
      *
      * @var string
      */
-    protected $signature = 'chat:cleanup-disconnected {--minutes=5 : Minutes of inactivity before marking user as offline}';
+    protected $description = '清理指定分钟未活跃的聊天室用户（将其状态标记为离线）';
 
     /**
-     * The console command description.
+     * 执行控制台命令
      *
-     * @var string
-     */
-    protected $description = 'Cleanup disconnected chat users who have been inactive for specified minutes';
-
-    /**
-     * Execute the console command.
+     * @return int
      */
     public function handle(): int
     {
         $inactiveMinutes = (int) $this->option('minutes');
 
-        $this->info("Starting cleanup of users inactive for {$inactiveMinutes} minutes...");
+        $this->info("开始清理未活跃超过 {$inactiveMinutes} 分钟的聊天室用户...");
 
         try {
             DB::beginTransaction();
 
-            // Find users who haven't been seen for the specified time
+            // 查询指定分钟内未活跃的在线用户
             $inactiveUsers = ChatRoomUser::online()
                 ->inactiveSince($inactiveMinutes)
                 ->with(['user:id,name', 'room:id,name'])
@@ -42,20 +50,20 @@ class CleanupDisconnectedChatUsers extends Command
 
             $cleanedCount = 0;
             foreach ($inactiveUsers as $roomUser) {
-                $this->line("Marking {$roomUser->user->name} as offline in room '{$roomUser->room->name}'");
+                $this->line("将用户 {$roomUser->user->name} 标记为在房间 '{$roomUser->room->name}' 离线");
                 $roomUser->markAsOffline();
                 $cleanedCount++;
             }
 
             DB::commit();
 
-            $this->info("Cleanup completed successfully. Marked {$cleanedCount} users as offline.");
+            $this->info("清理完成，共有 {$cleanedCount} 名用户被标记为离线。");
 
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->error("Failed to cleanup disconnected users: {$e->getMessage()}");
+            $this->error("清理异常：" . $e->getMessage());
             return Command::FAILURE;
         }
     }

@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Services;
 
-use App\Services\FileStorageService;
+use App\Services\File\FileStorageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;

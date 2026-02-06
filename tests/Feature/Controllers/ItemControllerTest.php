@@ -5,7 +5,7 @@ namespace Tests\Feature\Controllers;
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemCategory;
 use App\Models\User;
-use App\Services\ImageUploadService;
+use App\Services\File\ImageUploadService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;

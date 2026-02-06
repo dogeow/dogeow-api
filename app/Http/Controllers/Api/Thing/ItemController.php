@@ -7,7 +7,7 @@ use App\Http\Requests\Thing\ItemRequest;
 use App\Jobs\TriggerKnowledgeIndexBuildJob;
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemCategory;
-use App\Services\ImageUploadService;
+use App\Services\File\ImageUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;

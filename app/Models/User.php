@@ -109,7 +109,7 @@ class User extends Authenticatable
      */
     public function createdRooms()
     {
-        return $this->hasMany(ChatRoom::class, 'created_by');
+        return $this->hasMany(\App\Models\Chat\ChatRoom::class, 'created_by');
     }
 
     /**
@@ -117,7 +117,7 @@ class User extends Authenticatable
      */
     public function joinedRooms()
     {
-        return $this->belongsToMany(ChatRoom::class, 'chat_room_users', 'user_id', 'room_id')
+        return $this->belongsToMany(\App\Models\Chat\ChatRoom::class, 'chat_room_users', 'user_id', 'room_id')
             ->withPivot(['joined_at', 'last_seen_at', 'is_online'])
             ->withTimestamps();
     }
@@ -127,7 +127,7 @@ class User extends Authenticatable
      */
     public function chatMessages()
     {
-        return $this->hasMany(ChatMessage::class);
+        return $this->hasMany(\App\Models\Chat\ChatMessage::class);
     }
 
     /**

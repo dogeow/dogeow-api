@@ -5,7 +5,7 @@ namespace Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\ChatMessage>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Chat\ChatMessage>
  */
 class ChatMessageFactory extends Factory
 {
@@ -17,10 +17,10 @@ class ChatMessageFactory extends Factory
     public function definition(): array
     {
         return [
-            'room_id' => \App\Models\ChatRoom::factory(),
+            'room_id' => \App\Models\Chat\ChatRoom:factory(),
             'user_id' => \App\Models\User::factory(),
             'message' => $this->faker->sentence(),
-            'message_type' => \App\Models\ChatMessage::TYPE_TEXT,
+            'message_type' => \App\Models\Chat\ChatMessage::TYPE_TEXT,
         ];
     }
 
@@ -30,7 +30,7 @@ class ChatMessageFactory extends Factory
     public function textMessage(): static
     {
         return $this->state(fn (array $attributes) => [
-            'message_type' => \App\Models\ChatMessage::TYPE_TEXT,
+            'message_type' => \App\Models\Chat\ChatMessage::TYPE_TEXT,
             'message' => $this->faker->sentence(),
         ]);
     }
@@ -41,7 +41,7 @@ class ChatMessageFactory extends Factory
     public function systemMessage(): static
     {
         return $this->state(fn (array $attributes) => [
-            'message_type' => \App\Models\ChatMessage::TYPE_SYSTEM,
+            'message_type' => \App\Models\Chat\ChatMessage::TYPE_SYSTEM,
             'message' => $this->faker->randomElement([
                 'User joined the room',
                 'User left the room',

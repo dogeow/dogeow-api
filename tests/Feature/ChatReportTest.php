@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\ChatMessage;
-use App\Models\ChatMessageReport;
-use App\Models\ChatRoom;
+use App\Models\Chat\ChatMessage;
+use App\Models\Chat\ChatMessageReport;
+use App\Models\Chat\ChatRoom;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;

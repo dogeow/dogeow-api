@@ -4,11 +4,11 @@ namespace Tests\Feature;
 
 use App\Events\Chat\MessageDeleted;
 use App\Events\Chat\MessageSent;
-use App\Models\ChatMessage;
-use App\Models\ChatRoom;
-use App\Models\ChatRoomUser;
+use App\Models\Chat\ChatMessage;
+use App\Models\Chat\ChatRoom;
+use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
-use App\Services\ChatService;
+use App\Services\Chat\ChatService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
@@ -233,7 +233,7 @@ class ChatControllerTest extends TestCase
         $this->markTestSkipped('Rate limiting test needs to be fixed');
         
         // Mock the content filter service to allow all messages
-        $this->mock(\App\Services\ContentFilterService::class, function ($mock) {
+        $this->mock(\App\Services\Chat\ContentFilterService::class, function ($mock) {
             $mock->shouldReceive('processMessage')->andReturn([
                 'allowed' => true,
                 'filtered_message' => 'Test message',

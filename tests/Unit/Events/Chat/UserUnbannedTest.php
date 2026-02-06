@@ -3,7 +3,7 @@
 namespace Tests\Unit\Events\Chat;
 
 use App\Events\Chat\UserUnbanned;
-use App\Models\ChatRoom;
+use App\Models\Chat\ChatRoom;
 use App\Models\User;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Foundation\Testing\RefreshDatabase;

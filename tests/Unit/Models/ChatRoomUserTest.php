@@ -2,8 +2,8 @@
 
 namespace Tests\Unit\Models;
 
-use App\Models\ChatRoom;
-use App\Models\ChatRoomUser;
+use App\Models\Chat\ChatRoom;
+use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;

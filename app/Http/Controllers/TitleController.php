@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\WebPageService;
-use App\Services\CacheService;
+use App\Services\Web\WebPageService;
+use App\Services\Cache\CacheService;
 use Illuminate\Http\Request;
 
 class TitleController extends Controller
@@ -16,7 +16,7 @@ class TitleController extends Controller
     public function fetch(Request $request)
     {
         $url = $request->query('url');
-        if (!$url) {
+        if (empty($url)) {
             return $this->error('缺少url参数', [], 400);
         }
 
@@ -24,9 +24,12 @@ class TitleController extends Controller
         $cachedData = $this->cacheService->get($url);
         if ($cachedData !== null) {
             // 如果缓存存在错误数据，返回错误响应
-            if (isset($cachedData['error'])) {
+            if (!empty($cachedData['error'])) {
                 $statusCode = $cachedData['status_code'] ?? 500;
-                return $this->error($cachedData['error'] ?? '请求失败', $cachedData['details'] ?? [], $statusCode);
+                $details = is_array($cachedData['details'] ?? null)
+                    ? $cachedData['details']
+                    : [ 'details' => $cachedData['details'] ?? '' ];
+                return $this->error($cachedData['error'] ?? '请求失败', $details, $statusCode);
             }
             // 如果缓存存在成功数据，返回成功响应
             return $this->success($cachedData);
@@ -37,14 +40,15 @@ class TitleController extends Controller
             $data = $this->webPageService->fetchContent($url);
             $this->cacheService->putSuccess($url, $data);
             return $this->success($data);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            $errorMessage = $e->getMessage();
             $errorData = [
                 'error' => '请求异常',
-                'details' => $e->getMessage(),
+                'details' => [ 'message' => $errorMessage ],
                 'status_code' => 500
             ];
             $this->cacheService->putError($url, $errorData);
-            return $this->error('请求异常', ['details' => $e->getMessage()], 500);
+            return $this->error('请求异常', ['details' => $errorMessage], 500);
         }
     }
 }

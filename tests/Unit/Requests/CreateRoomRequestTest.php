@@ -3,7 +3,7 @@
 namespace Tests\Unit\Requests;
 
 use App\Http\Requests\Chat\CreateRoomRequest;
-use App\Models\ChatRoom;
+use App\Models\Chat\ChatRoom;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Validator;
 use Tests\TestCase;

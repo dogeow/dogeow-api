@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Services;
 
-use App\Services\WebPageService;
+use App\Services\Web\WebPageService;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 

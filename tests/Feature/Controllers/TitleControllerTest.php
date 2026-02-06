@@ -3,8 +3,8 @@
 namespace Tests\Feature\Controllers;
 
 use Tests\TestCase;
-use App\Services\WebPageService;
-use App\Services\CacheService;
+use App\Services\Web\WebPageService;
+use App\Services\Cache\CacheService;
 use Mockery;
 
 class TitleControllerTest extends TestCase

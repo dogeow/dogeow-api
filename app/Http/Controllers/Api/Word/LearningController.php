@@ -9,7 +9,7 @@ use App\Models\Word\Book;
 use App\Models\Word\UserSetting;
 use App\Models\Word\UserWord;
 use App\Models\Word\Word;
-use App\Services\EbbinghausService;
+use App\Services\Word\EbbinghausService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Auth;
@@ -22,7 +22,7 @@ class LearningController extends Controller
     ) {}
 
     /**
-     * 获取今日学习单词
+     * 获取今日学习单词（包含复习词和新词）
      */
     public function getDailyWords(): AnonymousResourceCollection
     {
@@ -42,20 +42,37 @@ class LearningController extends Controller
 
         $book = Book::findOrFail($setting->current_book_id);
         $dailyCount = $setting->daily_new_words;
+        $reviewCount = $setting->daily_new_words * $setting->review_multiplier;
 
-        // 获取用户已学习的单词ID（该单词书下的）
+        // 1. 先获取需要复习的单词（优先，限制在当前单词书）
+        $reviewUserWords = UserWord::where('user_id', $user->id)
+            ->where('word_book_id', $book->id)
+            ->whereNotIn('status', [0, 4]) // 已学习且非简单词
+            ->where('next_review_at', '<=', now())
+            ->with(['word.educationLevels'])
+            ->orderBy('next_review_at')
+            ->limit($reviewCount)
+            ->get();
+
+        $reviewWords = $reviewUserWords->map(fn($userWord) => $userWord->word)->filter();
+
+        // 2. 获取用户已学习的单词ID（该单词书下的）
         $learnedWordIds = UserWord::where('user_id', $user->id)
             ->where('word_book_id', $book->id)
-            ->pluck('word_id');
+            ->pluck('word_id')
+            ->unique();
 
-        // 获取未学习的单词（通过多对多关系查询）
-        $words = $book->words()
+        // 3. 获取未学习的新单词（排除已学习的，包括复习词）
+        $newWords = $book->words()
             ->with('educationLevels')
             ->whereNotIn('words.id', $learnedWordIds)
             ->limit($dailyCount)
             ->get();
 
-        return WordResource::collection($words);
+        // 4. 合并：复习词在前，新词在后
+        $allWords = $reviewWords->merge($newWords);
+
+        return WordResource::collection($allWords);
     }
 
     /**

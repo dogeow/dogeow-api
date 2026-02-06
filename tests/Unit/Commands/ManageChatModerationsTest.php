@@ -2,9 +2,9 @@
 
 namespace Tests\Unit\Commands;
 
-use App\Console\Commands\ManageChatModerations;
-use App\Models\ChatRoom;
-use App\Models\ChatRoomUser;
+use App\Console\Commands\Chat\ManageChatModerations;
+use App\Models\Chat\ChatRoom;
+use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;

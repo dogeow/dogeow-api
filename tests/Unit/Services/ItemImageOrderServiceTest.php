@@ -3,7 +3,7 @@
 namespace Tests\Unit\Services;
 
 use Tests\TestCase;
-use App\Services\ItemImageOrderService;
+use App\Services\File\ItemImageOrderService;
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemImage;
 use Illuminate\Foundation\Testing\RefreshDatabase;

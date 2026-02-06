@@ -2,10 +2,10 @@
 
 namespace Tests\Unit;
 
-use App\Models\ChatMessage;
-use App\Models\ChatRoom;
+use App\Models\Chat\ChatMessage;
+use App\Models\Chat\ChatRoom;
 use App\Models\User;
-use App\Services\ContentFilterService;
+use App\Services\Chat\ContentFilterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;

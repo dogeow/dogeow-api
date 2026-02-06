@@ -3,8 +3,8 @@
 namespace Tests\Unit\Commands;
 
 use Tests\TestCase;
-use App\Console\Commands\WarmChatCache;
-use App\Services\ChatCacheService;
+use App\Console\Commands\Chat\WarmChatCache;
+use App\Services\Chat\ChatCacheService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Exception;
 use ReflectionClass;

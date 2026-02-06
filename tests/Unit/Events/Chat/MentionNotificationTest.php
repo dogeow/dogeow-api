@@ -3,8 +3,8 @@
 namespace Tests\Unit\Events\Chat;
 
 use App\Events\Chat\MentionNotification;
-use App\Models\ChatMessage;
-use App\Models\ChatRoom;
+use App\Models\Chat\ChatMessage;
+use App\Models\Chat\ChatRoom;
 use App\Models\User;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\PrivateChannel;

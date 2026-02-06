@@ -1,8 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\ChatController;
-use App\Http\Controllers\Api\ChatModerationController;
+use App\Http\Controllers\Api\Chat\ChatController;
+use App\Http\Controllers\Api\Chat\ChatModerationController;
 
 Route::prefix('chat')->group(function () {
     // Room management endpoints
@@ -42,16 +42,16 @@ Route::prefix('chat')->group(function () {
     // Reporting endpoints
     Route::prefix('reports')->group(function () {
         // Report messages
-        Route::post('/rooms/{roomId}/messages/{messageId}', [App\Http\Controllers\Api\ChatReportController::class, 'reportMessage']);
+        Route::post('/rooms/{roomId}/messages/{messageId}', [App\Http\Controllers\Api\Chat\ChatReportController::class, 'reportMessage']);
         
         // View reports (moderators only)
-        Route::get('/rooms/{roomId}', [App\Http\Controllers\Api\ChatReportController::class, 'getRoomReports']);
-        Route::get('/', [App\Http\Controllers\Api\ChatReportController::class, 'getAllReports']);
+        Route::get('/rooms/{roomId}', [App\Http\Controllers\Api\Chat\ChatReportController::class, 'getRoomReports']);
+        Route::get('/', [App\Http\Controllers\Api\Chat\ChatReportController::class, 'getAllReports']);
         
         // Review reports (moderators only)
-        Route::post('/{reportId}/review', [App\Http\Controllers\Api\ChatReportController::class, 'reviewReport']);
+        Route::post('/{reportId}/review', [App\Http\Controllers\Api\Chat\ChatReportController::class, 'reviewReport']);
         
         // Report statistics
-        Route::get('/stats', [App\Http\Controllers\Api\ChatReportController::class, 'getReportStats']);
+        Route::get('/stats', [App\Http\Controllers\Api\Chat\ChatReportController::class, 'getReportStats']);
     });
 });

@@ -3,8 +3,8 @@
 use Illuminate\Support\Facades\Route;
 
 // Auth
-Route::post('/login', [App\Http\Controllers\AuthController::class, 'login']);
-Route::post('/register', [App\Http\Controllers\AuthController::class, 'register']);
+Route::post('/login', [App\Http\Controllers\Api\AuthController::class, 'login']);
+Route::post('/register', [App\Http\Controllers\Api\AuthController::class, 'register']);
 
 // Client info
 Route::get('/client-basic-info', [App\Http\Controllers\Api\ClientInfoController::class, 'getBasicInfo']);
@@ -21,8 +21,8 @@ Route::prefix('musics')->group(function () {
 });
 
 // Public notes
-Route::get('notes/article/{slug}', [\App\Http\Controllers\Api\NoteController::class, 'getArticleBySlug']);
-Route::get('notes/wiki/articles', [\App\Http\Controllers\Api\NoteController::class, 'getAllWikiArticles']);
+Route::get('notes/article/{slug}', [\App\Http\Controllers\Api\Note\NoteController::class, 'getArticleBySlug']);
+Route::get('notes/wiki/articles', [\App\Http\Controllers\Api\Note\NoteController::class, 'getAllWikiArticles']);
 
 // Public nav/tools
 require base_path('routes/api/nav.php');

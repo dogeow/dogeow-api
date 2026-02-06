@@ -3,9 +3,9 @@
 namespace Tests\Unit\Controllers;
 
 use Tests\TestCase;
-use App\Http\Controllers\TitleController;
-use App\Services\WebPageService;
-use App\Services\CacheService;
+use App\Http\Controllers\Api\TitleController;
+use App\Services\Web\WebPageService;
+use App\Services\Cache\CacheService;
 use Illuminate\Http\Request;
 use Mockery;
 

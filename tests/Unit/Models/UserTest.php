@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Models;
 
-use App\Models\ChatRoom;
+use App\Models\Chat\ChatRoom;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

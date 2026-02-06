@@ -17,7 +17,6 @@ class TriggerKnowledgeIndexBuildJob implements ShouldQueue, ShouldBeUnique
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 2;
-
     public int $timeout = 300;
 
     /** 唯一锁持有时间（秒），避免重复入队 */
@@ -37,31 +36,33 @@ class TriggerKnowledgeIndexBuildJob implements ShouldQueue, ShouldBeUnique
     public function handle(): void
     {
         $url = config('services.knowledge.build_index_url');
-        if (empty($url)) {
-            Log::warning('KnowledgeIndexBuild: KNOWLEDGE_BUILD_INDEX_URL 未配置，跳过构建');
+
+        if (!$url) {
+            Log::warning('KnowledgeIndexBuild: 构建接口 URL 未配置，跳过构建');
             return;
         }
 
         try {
-            $response = Http::timeout($this->timeout)
-                ->post($url, ['force' => true]);
+            $response = Http::timeout($this->timeout)->post($url, [
+                'force' => true,
+            ]);
 
             if ($response->successful()) {
                 $updatedAt = now()->toIso8601String();
                 broadcast(new KnowledgeIndexUpdated($updatedAt));
-                Log::info('KnowledgeIndexBuild: 知识库索引已触发更新', [
+                Log::info('KnowledgeIndexBuild: 索引构建已触发', [
                     'url' => $url,
                     'updated_at' => $updatedAt,
                 ]);
             } else {
-                Log::warning('KnowledgeIndexBuild: 构建接口返回非成功', [
+                Log::warning('KnowledgeIndexBuild: 构建接口响应异常', [
                     'url' => $url,
                     'status' => $response->status(),
                     'body' => $response->body(),
                 ]);
             }
         } catch (\Throwable $e) {
-            Log::error('KnowledgeIndexBuild: 请求构建接口失败', [
+            Log::error('KnowledgeIndexBuild: 构建接口请求失败', [
                 'url' => $url,
                 'message' => $e->getMessage(),
             ]);
@@ -69,6 +70,9 @@ class TriggerKnowledgeIndexBuildJob implements ShouldQueue, ShouldBeUnique
         }
     }
 
+    /**
+     * @return string
+     */
     public function uniqueId(): string
     {
         return 'knowledge-index-build';

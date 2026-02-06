@@ -4,7 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemImage;
-use App\Services\ImageUploadService;
+use App\Services\File\ImageUploadService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;

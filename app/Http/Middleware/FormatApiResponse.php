@@ -16,53 +16,44 @@ class FormatApiResponse
     {
         $response = $next($request);
 
-        // 只处理 JSON 响应
-        if (!$response instanceof JsonResponse) {
-            return $response;
-        }
-
-        // 只处理 API 路由
-        if (!$request->is('api/*')) {
+        // 仅格式化 API 路径下的 JSON 响应
+        if (
+            !$request->is('api/*') ||
+            !$response instanceof JsonResponse
+        ) {
             return $response;
         }
 
         $data = $response->getData(true);
         $statusCode = $response->getStatusCode();
 
-        // 如果响应已经有标准格式，直接返回
-        if (isset($data['success']) || isset($data['message'])) {
+        // 已含有标准格式字段，跳过格式化
+        if (array_key_exists('success', $data) || array_key_exists('message', $data)) {
             return $response;
         }
 
-        // 格式化响应
-        $formattedData = $this->formatResponse($data, $statusCode);
-        
-        return response()->json($formattedData, $statusCode);
+        return response()->json(
+            $this->formatResponse($data, $statusCode),
+            $statusCode
+        );
     }
 
     /**
-     * 格式化响应数据
+     * 标准化响应结构
      */
     private function formatResponse(array $data, int $statusCode): array
     {
-        $isSuccess = $statusCode >= 200 && $statusCode < 300;
-        
-        $formatted = [
-            'success' => $isSuccess,
+        $success = $statusCode >= 200 && $statusCode < 300;
+
+        return [
+            'success' => $success,
             'message' => $this->getDefaultMessage($statusCode),
+            $success ? 'data' : 'errors' => $data,
         ];
-
-        if ($isSuccess) {
-            $formatted['data'] = $data;
-        } else {
-            $formatted['errors'] = $data;
-        }
-
-        return $formatted;
     }
 
     /**
-     * 获取默认消息
+     * 获取响应默认消息
      */
     private function getDefaultMessage(int $statusCode): string
     {

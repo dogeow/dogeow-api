@@ -2,7 +2,7 @@
 
 namespace App\Events\Chat;
 
-use App\Models\ChatMessage;
+use App\Models\Chat\ChatMessage;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;

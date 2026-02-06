@@ -6,6 +6,7 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -24,12 +25,12 @@ class ApiExceptionHandler
         }
 
         return match (true) {
-            $exception instanceof ValidationException => self::handleValidationException($exception),
-            $exception instanceof ModelNotFoundException => self::handleModelNotFoundException($exception),
-            $exception instanceof NotFoundHttpException => self::handleNotFoundHttpException(),
-            $exception instanceof AuthenticationException => self::handleAuthenticationException($exception),
-            $exception instanceof HttpException => self::handleHttpException($exception),
-            default => self::handleGenericException($exception),
+            $exception instanceof ValidationException       => self::handleValidationException($exception),
+            $exception instanceof ModelNotFoundException    => self::handleModelNotFoundException($exception),
+            $exception instanceof NotFoundHttpException     => self::handleNotFoundHttpException(),
+            $exception instanceof AuthenticationException   => self::handleAuthenticationException($exception),
+            $exception instanceof HttpException             => self::handleHttpException($exception),
+            default                                         => self::handleGenericException($exception),
         };
     }
 
@@ -40,8 +41,8 @@ class ApiExceptionHandler
     {
         return response()->json([
             'success' => false,
-            'message' => 'Validation failed',
-            'errors' => $exception->errors(),
+            'message' => __('Validation failed'),
+            'errors'  => $exception->errors(),
         ], 422);
     }
 
@@ -51,10 +52,10 @@ class ApiExceptionHandler
     private static function handleModelNotFoundException(ModelNotFoundException $exception): JsonResponse
     {
         $model = class_basename($exception->getModel());
-        
+
         return response()->json([
             'success' => false,
-            'message' => "{$model} not found",
+            'message' => __("{$model} not found"),
         ], 404);
     }
 
@@ -65,7 +66,7 @@ class ApiExceptionHandler
     {
         return response()->json([
             'success' => false,
-            'message' => 'Resource not found',
+            'message' => __('Resource not found'),
         ], 404);
     }
 
@@ -76,7 +77,7 @@ class ApiExceptionHandler
     {
         return response()->json([
             'success' => false,
-            'message' => 'Unauthenticated',
+            'message' => __('Unauthenticated'),
         ], 401);
     }
 
@@ -87,7 +88,7 @@ class ApiExceptionHandler
     {
         return response()->json([
             'success' => false,
-            'message' => $exception->getMessage() ?: 'HTTP Error',
+            'message' => $exception->getMessage() ?: __('HTTP Error'),
         ], $exception->getStatusCode());
     }
 
@@ -96,9 +97,8 @@ class ApiExceptionHandler
      */
     private static function handleGenericException(Throwable $exception): JsonResponse
     {
-        $message = app()->environment('production') 
-            ? 'Internal server error' 
-            : $exception->getMessage();
+        $isProd = app()->environment('production');
+        $message = $isProd ? __('Internal server error') : $exception->getMessage();
 
         $data = [
             'success' => false,
@@ -106,12 +106,14 @@ class ApiExceptionHandler
         ];
 
         // 在非生产环境中添加调试信息
-        if (!app()->environment('production')) {
+        if (!$isProd) {
             $data['debug'] = [
                 'exception' => get_class($exception),
-                'file' => $exception->getFile(),
-                'line' => $exception->getLine(),
-                'trace' => $exception->getTraceAsString(),
+                'file'      => $exception->getFile(),
+                'line'      => $exception->getLine(),
+                'trace'     => collect($exception->getTrace())
+                    ->map(fn ($item) => Arr::only($item, ['file', 'line', 'function', 'class']))
+                    ->all(),
             ];
         }
 
