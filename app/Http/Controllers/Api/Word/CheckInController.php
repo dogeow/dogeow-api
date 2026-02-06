@@ -13,13 +13,24 @@ class CheckInController extends Controller
 {
     /**
      * 打卡
+     * 优先使用前端传来的 local_date（用户本地日期），避免服务端 UTC 导致跨日显示错误
      */
-    public function checkIn(): JsonResponse
+    public function checkIn(\Illuminate\Http\Request $request): JsonResponse
     {
         $user = Auth::user();
-        $today = now()->toDateString();
 
-        // 检查今天是否已打卡
+        $localDate = $request->input('local_date');
+        if ($localDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $localDate)) {
+            $today = \Carbon\Carbon::parse($localDate)->toDateString();
+            $todayStart = \Carbon\Carbon::parse($localDate)->startOfDay();
+            $todayEnd = \Carbon\Carbon::parse($localDate)->endOfDay();
+        } else {
+            $today = now()->toDateString();
+            $todayStart = now()->startOfDay();
+            $todayEnd = now()->endOfDay();
+        }
+
+        // 检查该日期是否已打卡
         $checkIn = CheckIn::where('user_id', $user->id)
             ->where('check_in_date', $today)
             ->first();
@@ -31,10 +42,7 @@ class CheckInController extends Controller
             ]);
         }
 
-        // 统计今日学习数据
-        $todayStart = now()->startOfDay();
-        $todayEnd = now()->endOfDay();
-
+        // 统计该日期学习数据（按服务端时区统计 created_at/last_review_at，仅作参考）
         $newWordsCount = UserWord::where('user_id', $user->id)
             ->whereBetween('created_at', [$todayStart, $todayEnd])
             ->where('status', '!=', 0)

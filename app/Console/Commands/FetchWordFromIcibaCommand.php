@@ -112,8 +112,21 @@ class FetchWordFromIcibaCommand extends Command
                 $examples = $youdaoData['examples'];
                 $source = '有道';
             }
+
+            // 2. 如果有道 API 失败（如返回错误词条、超时），尝试有道结果页抓取（与网易词典一致）
+            if (empty($zhMeaning)) {
+                $webData = $this->fetchMeaningFromYoudaoWeb($word->content);
+                if ($webData) {
+                    $phonetic = $phonetic ?: ($webData['phonetic'] ?? null);
+                    $zhMeaning = $webData['zh_meaning'];
+                    $source = '有道(网页)';
+                    if (empty($examples)) {
+                        $examples = $this->fetchExamplesFromYoudaoWeb($word->content);
+                    }
+                }
+            }
             
-            // 2. 如果有道失败，尝试本地词典 + Free Dictionary
+            // 3. 仍无中文释义时，尝试本地词典 + Free Dictionary
             if (empty($zhMeaning)) {
                 $localMeaning = $this->localDict[strtolower($word->content)] ?? null;
                 $apiData = $this->fetchFromFreeDictionary($word->content);
@@ -352,19 +365,103 @@ class FetchWordFromIcibaCommand extends Command
         }
     }
 
-    private function fetchFromFreeDictionary(string $word): array
+    /**
+     * 有道 API 失败时，从有道结果页抓取简明释义和音标（与网易词典一致）
+     */
+    private function fetchMeaningFromYoudaoWeb(string $word): ?array
     {
         try {
-            $response = Http::timeout(10)
-                ->get("https://api.dictionaryapi.dev/api/v2/entries/en/" . urlencode($word));
+            $url = 'https://dict.youdao.com/result?word=' . urlencode($word) . '&lang=en';
+            $response = Http::timeout(12)
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                ])
+                ->get($url);
 
             if (!$response->successful()) {
+                return null;
+            }
+
+            $html = $response->body();
+
+            // 验证页面是否包含当前单词（避免返回了错误词条）
+            if (stripos($html, 'word=' . urlencode($word)) === false && !preg_match('/' . preg_quote($word, '/') . '/i', $html)) {
+                return null;
+            }
+
+            $phonetic = null;
+            $zhMeaningParts = [];
+
+            // 提取音标：英/ baɪk / 美/ baɪk /
+            if (preg_match('/美\/\s*([^\/\s\[\]]+)\s*\//u', $html, $m)) {
+                $phonetic = trim($m[1], '/ ');
+            }
+            if (!$phonetic && preg_match('/英\/\s*([^\/\s\[\]]+)\s*\//u', $html, $m)) {
+                $phonetic = trim($m[1], '/ ');
+            }
+
+            // 提取简明释义：词性. 释义（支持 n. v. adj. adv. 等及中文词性）
+            if (preg_match_all('/(?:^|>)\s*([nvas]\.|名词|动词|形容词|副词|介词|代词|数词|量词|连词|叹词|冠词)\s*[.．]?\s*([^<]{2,}?)(?=<|$)/u', $html, $matches, PREG_SET_ORDER)) {
+                foreach ($matches as $m) {
+                    $pos = trim($m[1]);
+                    $def = trim(preg_replace('/\s+/', ' ', $m[2]));
+                    if (mb_strlen($def) > 1 && mb_strlen($def) < 500) {
+                        $line = $pos . ' ' . $def;
+                        if (!in_array($line, $zhMeaningParts, true)) {
+                            $zhMeaningParts[] = $line;
+                        }
+                    }
+                }
+            }
+
+            // 若上面未匹配到，尝试更宽松的 n. xxx 格式（常见于简明区块）
+            if (empty($zhMeaningParts) && preg_match_all('/([nvas]\.)\s*([^<]+?)(?:<|$)/u', $html, $matches, PREG_SET_ORDER)) {
+                foreach (array_slice($matches, 0, 8) as $m) {
+                    $def = trim(preg_replace('/\s+/', ' ', $m[2]));
+                    if (mb_strlen($def) > 1 && mb_strlen($def) < 500) {
+                        $line = $m[1] . ' ' . $def;
+                        if (!in_array($line, $zhMeaningParts, true)) {
+                            $zhMeaningParts[] = $line;
+                        }
+                    }
+                }
+            }
+
+            $zhMeaning = implode("\n", array_slice($zhMeaningParts, 0, 6));
+            if (empty($zhMeaning)) {
+                return null;
+            }
+
+            return [
+                'phonetic' => $phonetic,
+                'zh_meaning' => $zhMeaning,
+            ];
+        } catch (\Exception $e) {
+            Log::warning("从有道网页获取释义失败: {$word}", ['error' => $e->getMessage()]);
+
+            return null;
+        }
+    }
+
+    private function fetchFromFreeDictionary(string $word): array
+    {
+        $url = 'https://api.dictionaryapi.dev/api/v2/entries/en/' . urlencode($word);
+        try {
+            $response = Http::timeout(15)
+                ->retry(2, 500)
+                ->get($url);
+
+            if (!$response->successful()) {
+                Log::warning('Free Dictionary 请求失败', ['word' => $word, 'status' => $response->status()]);
+
                 return [];
             }
 
             $data = $response->json();
             
             if (empty($data) || !is_array($data) || isset($data['title'])) {
+                Log::debug('Free Dictionary 返回无数据或错误', ['word' => $word, 'title' => is_array($data) ? ($data['title'] ?? null) : null]);
+
                 return [];
             }
 
