@@ -8,6 +8,7 @@ use App\Jobs\TriggerKnowledgeIndexBuildJob;
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemCategory;
 use App\Services\File\ImageUploadService;
+use App\Services\Thing\ItemSearchService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,8 @@ class ItemController extends Controller
     private const ITEM_RELATIONS = ['user', 'images', 'category', 'spot.room.area', 'tags'];
 
     public function __construct(
-        private readonly ImageUploadService $imageUploadService
+        private readonly ImageUploadService $imageUploadService,
+        private readonly ItemSearchService $itemSearchService
     ) {}
 
     /**
@@ -128,8 +130,11 @@ class ItemController extends Controller
     public function store(ItemRequest $request)
     {
         return DB::transaction(function () use ($request) {
+            $validated = $request->validated();
+            $validated['quantity'] ??= 1;
+
             $item = Item::create([
-                ...$request->validated(),
+                ...$validated,
                 'user_id' => Auth::id()
             ]);
 
@@ -216,14 +221,14 @@ class ItemController extends Controller
             ]);
         }
         
-        $query = $this->buildSearchQuery($searchTerm);
+        $query = $this->itemSearchService->buildSearchQuery($searchTerm, self::ITEM_RELATIONS);
         
         $this->buildVisibilityQuery($query);
         
         $results = $query->limit($limit)->get();
         
         // 记录搜索历史
-        $this->recordSearchHistory($searchTerm, $results->count(), $request);
+        $this->itemSearchService->recordSearchHistory($searchTerm, $results->count(), $request);
         
         return response()->json([
             'search_term' => $searchTerm,
@@ -240,23 +245,7 @@ class ItemController extends Controller
         $query = $request->get('q', '');
         $limit = $this->getRequestLimit($request, 5);
         
-        if (empty($query)) {
-            return response()->json([]);
-        }
-        
-        // 基于用户搜索历史的建议
-        $suggestions = DB::table('thing_search_history')
-            ->select('search_term', DB::raw('COUNT(*) as frequency'))
-            ->where('search_term', 'like', "%{$query}%")
-            ->when(Auth::check(), function($q) {
-                return $q->where('user_id', Auth::id());
-            })
-            ->groupBy('search_term')
-            ->orderBy('frequency', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->limit($limit)
-            ->get()
-            ->pluck('search_term');
+        $suggestions = $this->itemSearchService->getSuggestions($query, $limit);
         
         return response()->json($suggestions);
     }
@@ -271,14 +260,7 @@ class ItemController extends Controller
         }
         
         $limit = $this->getRequestLimit($request);
-        
-        $history = DB::table('thing_search_history')
-            ->select('search_term', DB::raw('MAX(created_at) as last_searched'), DB::raw('COUNT(*) as search_count'))
-            ->where('user_id', Auth::id())
-            ->groupBy('search_term')
-            ->orderBy('last_searched', 'desc')
-            ->limit($limit)
-            ->get();
+        $history = $this->itemSearchService->getUserHistory(Auth::id(), $limit);
         
         return response()->json($history);
     }
@@ -292,63 +274,9 @@ class ItemController extends Controller
             return response()->json(['message' => '未登录'], 401);
         }
         
-        DB::table('thing_search_history')
-            ->where('user_id', Auth::id())
-            ->delete();
+        $this->itemSearchService->clearUserHistory(Auth::id());
         
         return response()->json(['message' => '搜索历史已清除']);
-    }
-
-    /**
-     * 记录搜索历史
-     */
-    private function recordSearchHistory(string $searchTerm, int $resultsCount, Request $request): void
-    {
-        try {
-            DB::table('thing_search_history')->insert([
-                'user_id' => Auth::id(),
-                'search_term' => $searchTerm,
-                'results_count' => $resultsCount,
-                'filters' => json_encode($request->except(['q', 'limit'])),
-                'ip_address' => $request->ip(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        } catch (\Exception $e) {
-            // 记录失败不影响主要功能
-            Log::warning('记录搜索历史失败: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * 构建增强搜索查询
-     */
-    private function buildSearchQuery(string $searchTerm)
-    {
-        return Item::with(self::ITEM_RELATIONS)
-            ->where(function ($q) use ($searchTerm) {
-                // 搜索名称和描述
-                $q->where('name', 'like', "%{$searchTerm}%")
-                  ->orWhere('description', 'like', "%{$searchTerm}%")
-                  // 搜索分类名称
-                  ->orWhereHas('category', function($subQ) use ($searchTerm) {
-                      $subQ->where('name', 'like', "%{$searchTerm}%");
-                  })
-                  // 搜索标签名称
-                  ->orWhereHas('tags', function($subQ) use ($searchTerm) {
-                      $subQ->where('name', 'like', "%{$searchTerm}%");
-                  })
-                  // 搜索位置信息
-                  ->orWhereHas('spot', function($subQ) use ($searchTerm) {
-                      $subQ->where('name', 'like', "%{$searchTerm}%");
-                  })
-                  ->orWhereHas('spot.room', function($subQ) use ($searchTerm) {
-                      $subQ->where('name', 'like', "%{$searchTerm}%");
-                  })
-                  ->orWhereHas('spot.room.area', function($subQ) use ($searchTerm) {
-                      $subQ->where('name', 'like', "%{$searchTerm}%");
-                  });
-            });
     }
 
     /**
@@ -510,18 +438,16 @@ class ItemController extends Controller
         }
         
         $category = ItemCategory::find($value);
-        
         if (!$category) {
             return $query->where('category_id', $value);
         }
         
+        $categoryIds = [$value];
         if ($category->isParent()) {
-            $childCategoryIds = $category->children()->pluck('id')->toArray();
-            $allCategoryIds = array_merge([$value], $childCategoryIds);
-            return $query->whereIn('category_id', $allCategoryIds);
+            $categoryIds = array_merge($categoryIds, $category->children()->pluck('id')->toArray());
         }
         
-        return $query->where('category_id', $value);
+        return $query->whereIn('category_id', $categoryIds);
     }
 
     /**
@@ -615,6 +541,8 @@ class ItemController extends Controller
     {
         if ($request->has('tags')) {
             $item->tags()->sync($request->tags ?? []);
+        } elseif ($request->has('tag_ids')) {
+            $item->tags()->sync($request->tag_ids ?? []);
         }
     }
 }

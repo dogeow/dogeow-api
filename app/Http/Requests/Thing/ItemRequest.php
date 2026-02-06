@@ -24,7 +24,7 @@ class ItemRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'nullable|integer|min:1',
             'status' => 'nullable|string|in:active,inactive,expired',
             'expiry_date' => 'nullable|date',
             'purchase_date' => 'nullable|date',
