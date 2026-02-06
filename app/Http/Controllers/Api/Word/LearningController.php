@@ -27,20 +27,16 @@ class LearningController extends Controller
     public function getDailyWords(): AnonymousResourceCollection
     {
         $user = Auth::user();
-        $setting = UserSetting::firstOrCreate(
-            ['user_id' => $user->id],
-            [
-                'daily_new_words' => 10,
-                'review_multiplier' => 2,
-                'is_auto_pronounce' => true,
-            ]
-        );
+        $setting = $this->getUserSetting($user->id);
 
         if (!$setting->current_book_id) {
             return WordResource::collection(collect());
         }
 
-        $book = Book::findOrFail($setting->current_book_id);
+        $book = Book::find($setting->current_book_id);
+        if (!$book) {
+            return WordResource::collection(collect());
+        }
         $dailyCount = $setting->daily_new_words;
         $reviewCount = $setting->daily_new_words * $setting->review_multiplier;
 
@@ -81,14 +77,7 @@ class LearningController extends Controller
     public function getReviewWords(): AnonymousResourceCollection
     {
         $user = Auth::user();
-        $setting = UserSetting::firstOrCreate(
-            ['user_id' => $user->id],
-            [
-                'daily_new_words' => 10,
-                'review_multiplier' => 2,
-                'is_auto_pronounce' => true,
-            ]
-        );
+        $setting = $this->getUserSetting($user->id);
 
         $reviewCount = $setting->daily_new_words * $setting->review_multiplier;
 
@@ -115,14 +104,7 @@ class LearningController extends Controller
         $remembered = $request->validated()['remembered'];
 
         $word = Word::findOrFail($id);
-        $setting = UserSetting::firstOrCreate(
-            ['user_id' => $user->id],
-            [
-                'daily_new_words' => 10,
-                'review_multiplier' => 2,
-                'is_auto_pronounce' => true,
-            ]
-        );
+        $setting = $this->getUserSetting($user->id);
 
         // 从用户设置中获取当前单词书ID
         $bookId = $setting->current_book_id;
@@ -154,9 +136,7 @@ class LearningController extends Controller
             $userWord->save();
         });
 
-        return response()->json([
-            'message' => '单词标记成功',
-        ]);
+        return $this->success([], '单词标记成功');
     }
 
     /**
@@ -166,18 +146,11 @@ class LearningController extends Controller
     {
         $user = Auth::user();
         $word = Word::findOrFail($id);
-        $setting = UserSetting::firstOrCreate(
-            ['user_id' => $user->id],
-            [
-                'daily_new_words' => 10,
-                'review_multiplier' => 2,
-                'is_auto_pronounce' => true,
-            ]
-        );
+        $setting = $this->getUserSetting($user->id);
 
         $bookId = $setting->current_book_id;
         if (!$bookId) {
-            return response()->json(['message' => '请先选择单词书'], 422);
+            return $this->error('请先选择单词书', [], 422);
         }
 
         $userWord = UserWord::firstOrCreate(
@@ -197,7 +170,7 @@ class LearningController extends Controller
         $userWord->next_review_at = null; // 永不进入复习
         $userWord->save();
 
-        return response()->json(['message' => '已设为简单词']);
+        return $this->success([], '已设为简单词');
     }
 
     /**
@@ -206,18 +179,11 @@ class LearningController extends Controller
     public function getProgress(): JsonResponse
     {
         $user = Auth::user();
-        $setting = UserSetting::firstOrCreate(
-            ['user_id' => $user->id],
-            [
-                'daily_new_words' => 10,
-                'review_multiplier' => 2,
-                'is_auto_pronounce' => true,
-            ]
-        );
+        $setting = $this->getUserSetting($user->id);
 
         $bookId = $setting->current_book_id;
         if (!$bookId) {
-            return response()->json([
+            return $this->success([
                 'total_words' => 0,
                 'learned_words' => 0,
                 'mastered_words' => 0,
@@ -227,7 +193,10 @@ class LearningController extends Controller
             ]);
         }
 
-        $book = Book::findOrFail($bookId);
+        $book = Book::find($bookId);
+        if (!$book) {
+            return $this->error('单词书不存在', [], 404);
+        }
         $totalWords = $book->total_words;
 
         $learnedWords = UserWord::where('user_id', $user->id)
@@ -254,7 +223,7 @@ class LearningController extends Controller
             ? round(($learnedWords / $totalWords) * 100, 2) 
             : 0;
 
-        return response()->json([
+        return $this->success([
             'total_words' => $totalWords,
             'learned_words' => $learnedWords,
             'mastered_words' => $masteredWords,
@@ -283,9 +252,23 @@ class LearningController extends Controller
 
         $word->update($validated);
 
-        return response()->json([
-            'message' => '单词更新成功',
+        return $this->success([
             'word' => new WordResource($word),
-        ]);
+        ], '单词更新成功');
+    }
+
+    /**
+     * 获取用户设置
+     */
+    private function getUserSetting(int $userId): UserSetting
+    {
+        return UserSetting::firstOrCreate(
+            ['user_id' => $userId],
+            [
+                'daily_new_words' => 10,
+                'review_multiplier' => 2,
+                'is_auto_pronounce' => true,
+            ]
+        );
     }
 }
