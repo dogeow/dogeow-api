@@ -181,12 +181,9 @@ class WordDemoDataSeeder extends Seeder
                     ['content' => $wordContent],
                     [
                         'phonetic_us' => $phoneticUS,
-                        'explanation' => [
-                            'en' => implode("\n", $definitions),
-                            'zh' => implode("\n", array_map(function() use ($faker) {
-                                return $faker->sentence(rand(3, 8));
-                            }, range(1, rand(1, 4))))
-                        ],
+                        'explanation' => implode("\n", array_map(function() use ($faker) {
+                            return $faker->sentence(rand(3, 8));
+                        }, range(1, rand(1, 4)))),
                         'example_sentences' => $examples,
                         'difficulty' => rand(1, 5),
                         'frequency' => rand(1, 5),

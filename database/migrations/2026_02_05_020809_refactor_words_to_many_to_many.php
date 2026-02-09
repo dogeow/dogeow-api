@@ -55,10 +55,9 @@ return new class extends Migration
             
             foreach ($words as $w) {
                 $score = 0;
-                $explanation = json_decode($w->explanation ?? '{}', true);
                 
                 // 有中文释义加分
-                if (!empty($explanation['zh']) && !str_starts_with($explanation['zh'] ?? '', '【英】')) {
+                if (!empty($w->explanation) && !str_starts_with($w->explanation ?? '', '【英】')) {
                     $score += 10;
                 }
                 // 有音标加分

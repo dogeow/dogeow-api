@@ -271,15 +271,15 @@ class LearningController extends Controller
     {
         $word = Word::findOrFail($id);
 
-        $validated = request()->validate([
-            'explanation' => 'sometimes|array',
-            'explanation.zh' => 'sometimes|string',
-            'explanation.en' => 'sometimes|string',
+        $rules = [
             'example_sentences' => 'sometimes|array',
             'example_sentences.*.en' => 'required_with:example_sentences|string',
             'example_sentences.*.zh' => 'sometimes|string',
             'phonetic_us' => 'sometimes|string|nullable',
-        ]);
+            'explanation' => 'sometimes|string|nullable',
+        ];
+
+        $validated = request()->validate($rules);
 
         $word->update($validated);
 

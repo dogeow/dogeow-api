@@ -26,13 +26,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/upload/images', [UploadController::class, 'uploadBatchImages']);
     
     // 引入各个项目的路由文件
-    require base_path('routes/api/chat.php');
-    require base_path('routes/api/game.php');
-    require base_path('routes/api/item.php');
-    require base_path('routes/api/location.php');
-    require base_path('routes/api/note.php');
-    require base_path('routes/api/profile.php');
-    require base_path('routes/api/todo.php');
-    require base_path('routes/api/word.php');
+    require base_path('routes/api/chat.php'); // 聊天室
+    require base_path('routes/api/game.php'); // 游戏
+    require base_path('routes/api/item.php'); // 物品
+    require base_path('routes/api/location.php'); // 地点
+    require base_path('routes/api/note.php'); // 笔记
+    require base_path('routes/api/profile.php'); // 个人资料
+    require base_path('routes/api/todo.php'); // 待办事项
+    require base_path('routes/api/word.php'); // 单词
 
 });

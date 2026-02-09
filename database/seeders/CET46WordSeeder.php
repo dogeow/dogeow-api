@@ -71,7 +71,7 @@ class CET46WordSeeder extends Seeder
                 ['content' => $content],
                 [
                     'phonetic_us' => $wordData['phonetic_us'] ?? null,
-                    'explanation' => ['zh' => $wordData['meaning'] ?? '', 'en' => ''],
+                    'explanation' => $wordData['meaning'] ?? '',
                     'example_sentences' => [],
                     'difficulty' => $book->difficulty,
                     'frequency' => 3,

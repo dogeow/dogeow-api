@@ -25,7 +25,6 @@ class Word extends Model
     protected function casts(): array
     {
         return [
-            'explanation' => 'array',
             'example_sentences' => 'array',
             'difficulty' => 'integer',
             'frequency' => 'integer',

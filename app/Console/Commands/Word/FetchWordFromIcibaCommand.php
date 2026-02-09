@@ -45,9 +45,8 @@ class FetchWordFromIcibaCommand extends Command
         if (!$force) {
             $query->where(function ($q) {
                 $q->whereNull('explanation')
-                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(explanation, '$.zh')) = ''")
-                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(explanation, '$.zh')) LIKE '%【英】%'")
-                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(explanation, '$.zh')) IS NULL");
+                    ->orWhere('explanation', '')
+                    ->orWhere('explanation', 'LIKE', '%【英】%');
             });
         }
 
@@ -172,13 +171,9 @@ class FetchWordFromIcibaCommand extends Command
                     $newExamples = $examples;
                 }
 
-                $explanation = $word->explanation ?? [];
                 $word->update([
                     'phonetic_us' => $phonetic ?? $word->phonetic_us,
-                    'explanation' => [
-                        'zh' => $zhMeaning ?: ($explanation['zh'] ?? ''),
-                        'en' => $enMeaning,
-                    ],
+                    'explanation' => $zhMeaning ?: $word->explanation,
                     'example_sentences' => $newExamples,
                 ]);
                 $this->syncEducationLevels($word);
