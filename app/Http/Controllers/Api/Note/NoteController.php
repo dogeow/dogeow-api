@@ -7,7 +7,7 @@ use App\Http\Requests\Note\NoteRequest;
 use App\Models\Note\Note;
 use App\Jobs\TriggerKnowledgeIndexBuildJob;
 use App\Models\Note\NoteLink;
-use App\Models\Note\NoteTag;
+use App\Services\Note\NoteContentService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -15,6 +15,10 @@ use Illuminate\Support\Facades\Log;
 
 class NoteController extends Controller
 {
+    public function __construct(
+        private readonly NoteContentService $noteContentService
+    ) {}
+
     /**
      * Display a listing of the resource.
      */
@@ -97,13 +101,15 @@ class NoteController extends Controller
      */
     public function store(NoteRequest $request): JsonResponse
     {
-        $data = $this->prepareNoteData($request);
+        $data = $this->prepareNoteData($request->validated());
         $data['user_id'] = $this->getCurrentUserId();
 
         $note = Note::create($data);
 
         // 处理标签
-        $this->handleTags($request, $note);
+        if ($request->has('tags')) {
+            $this->noteContentService->handleTags($note, $request->input('tags'));
+        }
 
         $note->load('tags');
 
@@ -134,7 +140,9 @@ class NoteController extends Controller
         $note->update($validatedData);
 
         // 处理标签
-        $this->handleTags($request, $note);
+        if ($request->has('tags')) {
+            $this->noteContentService->handleTags($note, $request->input('tags'));
+        }
 
         $note->load('tags');
 
@@ -266,37 +274,34 @@ class NoteController extends Controller
     /**
      * 准备笔记数据
      */
-    private function prepareNoteData(NoteRequest $request): array
+    private function prepareNoteData(array $input): array
     {
-        $content = $request->content ?? '';
-        $contentMarkdown = $request->content_markdown ?? '';
+        $content = $input['content'] ?? '';
+        $contentMarkdown = $input['content_markdown'] ?? '';
 
         // 如果提供了 JSON 格式的 content 但没有 markdown，尝试从 JSON 中提取文本作为 markdown
         if (empty($contentMarkdown)) {
-            $contentMarkdown = $this->deriveMarkdownFromContent($content);
+            $contentMarkdown = $this->noteContentService->deriveMarkdownFromContent($content);
         }
 
         $data = [
-            'title' => $request->title,
+            'title' => $input['title'] ?? '',
             'content' => $content,
             'content_markdown' => $contentMarkdown,
-            'is_draft' => $request->is_draft ?? false,
+            'is_draft' => $input['is_draft'] ?? false,
         ];
 
-        // 添加 wiki 相关字段
-        if ($request->has('slug')) {
-            $data['slug'] = $request->slug;
-        }
-        if ($request->has('summary')) {
-            $data['summary'] = $request->summary;
-        }
-        if ($request->has('is_wiki')) {
-            $data['is_wiki'] = $request->is_wiki;
+        // 处理 wiki 相关字段
+        $wikiFields = ['slug', 'summary', 'is_wiki'];
+        foreach ($wikiFields as $field) {
+            if (isset($input[$field])) {
+                $data[$field] = $input[$field];
+            }
         }
 
         // 如果没有提供 slug 且是 wiki 节点，从 title 生成
-        if (($request->is_wiki ?? false) && empty($data['slug'])) {
-            $data['slug'] = Note::normalizeSlug($request->title);
+        if (($data['is_wiki'] ?? false) && empty($data['slug'])) {
+            $data['slug'] = Note::normalizeSlug($data['title']);
             $data['slug'] = Note::ensureUniqueSlug($data['slug']);
         }
 
@@ -304,130 +309,35 @@ class NoteController extends Controller
     }
 
     /**
-     * 从编辑器 JSON 中提取纯文本
-     */
-    private function extractTextFromEditorJson(array $jsonContent): string
-    {
-        $text = '';
-        
-        if (isset($jsonContent['content']) && is_array($jsonContent['content'])) {
-            foreach ($jsonContent['content'] as $node) {
-                $text .= $this->extractTextFromNode($node);
-            }
-        }
-        
-        return trim($text);
-    }
-
-    /**
-     * 从单个节点中提取文本
-     */
-    private function extractTextFromNode(array $node): string
-    {
-        $text = '';
-        
-        if (isset($node['type'])) {
-            if ($node['type'] === 'text' && isset($node['text'])) {
-                $text .= $node['text'];
-            } elseif (isset($node['content']) && is_array($node['content'])) {
-                foreach ($node['content'] as $childNode) {
-                    $text .= $this->extractTextFromNode($childNode);
-                }
-                // 在段落后添加换行
-                if ($node['type'] === 'paragraph') {
-                    $text .= "\n";
-                }
-            }
-        }
-        
-        return $text;
-    }
-
-    /**
-     * 从 content 生成 markdown（优先解析编辑器 JSON）
-     */
-    private function deriveMarkdownFromContent(?string $content): string
-    {
-        if (empty($content)) {
-            return '';
-        }
-
-        $trimmedContent = trim($content);
-        if ($this->isJsonLike($trimmedContent)) {
-            $parsedContent = json_decode($trimmedContent, true);
-            if (is_array($parsedContent)) {
-                return $this->extractTextFromEditorJson($parsedContent);
-            }
-            return '';
-        }
-
-        return $content;
-    }
-
-    /**
-     * 简单判断字符串是否可能为 JSON
-     */
-    private function isJsonLike(string $content): bool
-    {
-        return str_starts_with($content, '{') || str_starts_with($content, '[');
-    }
-
-    /**
      * 验证更新数据
      */
-    private function validateUpdateData(Request $request, ?Note $note = null): array
+    private function validateUpdateData(Request $request, Note $note): array
     {
-        $validatedData = [];
+        $rules = [
+            'title' => 'sometimes|required|string|max:255',
+            'content' => 'sometimes|nullable|string',
+            'content_markdown' => 'sometimes|nullable|string',
+            'is_draft' => 'sometimes|boolean',
+            'slug' => 'sometimes|nullable|string|max:255',
+            'summary' => 'sometimes|nullable|string',
+            'is_wiki' => 'sometimes|boolean',
+        ];
+
+        $validatedData = $request->validate($rules);
         
-        if ($request->has('title')) {
-            $validatedData['title'] = $request->validate([
-                'title' => 'required|string|max:255',
-            ])['title'];
-        }
-        
-        if ($request->has('content')) {
-            $content = $request->validate([
-                'content' => 'nullable|string',
-            ])['content'];
-            
-            $validatedData['content'] = $content;
-            
-            // 处理 markdown 内容
-            if ($request->has('content_markdown')) {
-                $validatedData['content_markdown'] = $request->validate([
-                    'content_markdown' => 'nullable|string',
-                ])['content_markdown'];
-            } else {
-                // 如果没有提供 markdown，尝试从 JSON 中提取
-                $validatedData['content_markdown'] = $this->deriveMarkdownFromContent($content);
-            }
-        }
-        
-        if ($request->has('is_draft')) {
-            $validatedData['is_draft'] = $request->validate([
-                'is_draft' => 'boolean',
-            ])['is_draft'];
+        // 处理内容为空的情况（处理 Middleware 转换空字符串为 null 的情况）
+        if ($request->has('content') && is_null($validatedData['content'] ?? null)) {
+            $validatedData['content'] = '';
         }
 
-        // 添加 wiki 相关字段
-        if ($request->has('slug')) {
-            $validatedData['slug'] = $request->validate([
-                'slug' => 'nullable|string|max:255',
-            ])['slug'];
-        }
-        if ($request->has('summary')) {
-            $validatedData['summary'] = $request->validate([
-                'summary' => 'nullable|string',
-            ])['summary'];
-        }
-        if ($request->has('is_wiki')) {
-            $validatedData['is_wiki'] = $request->validate([
-                'is_wiki' => 'boolean',
-            ])['is_wiki'];
+        // 如果更新了内容但没有提供 markdown，尝试自动生成
+        if (isset($validatedData['content']) && !isset($validatedData['content_markdown'])) {
+            $validatedData['content_markdown'] = $this->noteContentService->deriveMarkdownFromContent($validatedData['content']);
         }
 
         // 如果更新了 title 但没有提供 slug，且是 wiki 节点，重新生成 slug
-        if (isset($validatedData['title']) && !isset($validatedData['slug']) && $note && $note->is_wiki) {
+        $isWiki = $validatedData['is_wiki'] ?? $note->is_wiki;
+        if (isset($validatedData['title']) && !isset($validatedData['slug']) && $isWiki) {
             $validatedData['slug'] = Note::normalizeSlug($validatedData['title']);
             $validatedData['slug'] = Note::ensureUniqueSlug($validatedData['slug'], $note->id);
         }
@@ -478,76 +388,4 @@ class NoteController extends Controller
         return $this->success([], 'Link deleted successfully');
     }
 
-    /**
-     * 处理标签关联
-     * 接收标签名称数组，查找或创建标签，然后关联到笔记
-     */
-    private function handleTags(Request $request, Note $note): void
-    {
-        if (!$request->has('tags')) {
-            return;
-        }
-
-        $tagNames = $request->input('tags', []);
-        $normalized = $this->normalizeTagNames($tagNames);
-
-        // 如果 tags 为空数组或处理后为空，清空所有标签关联
-        if (empty($normalized)) {
-            $note->tags()->sync([]);
-            return;
-        }
-
-        $tagIds = $this->resolveTagIds($normalized, $note);
-        $note->tags()->sync($tagIds);
-    }
-
-    /**
-     * 规范化标签名称输入
-     *
-     * @param mixed $tagNames
-     * @return array
-     */
-    private function normalizeTagNames($tagNames): array
-    {
-        if (empty($tagNames)) {
-            return [];
-        }
-
-        if (!is_array($tagNames)) {
-            return [];
-        }
-
-        return array_values(array_unique(array_filter(array_map('trim', $tagNames))));
-    }
-
-    /**
-     * 根据标签名称获取或创建标签 ID
-     */
-    private function resolveTagIds(array $tagNames, Note $note): array
-    {
-        $userId = $note->user_id ?? Auth::id();
-        $tagIds = [];
-
-        foreach ($tagNames as $tagName) {
-            if (empty($tagName)) {
-                continue;
-            }
-
-            // 注意：wiki 节点可能没有 user_id，这种情况下使用当前登录用户
-            /** @var NoteTag $tag */
-            $tag = NoteTag::firstOrCreate(
-                [
-                    'name' => $tagName,
-                    'user_id' => $userId,
-                ],
-                [
-                    'color' => '#3b82f6', // 默认蓝色
-                ]
-            );
-
-            $tagIds[] = $tag->id;
-        }
-
-        return $tagIds;
-    }
 }
