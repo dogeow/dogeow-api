@@ -15,9 +15,14 @@ Route::prefix('word')->name('word.')->group(function () {
     // 学习
     Route::get('daily', [LearningController::class, 'getDailyWords']);
     Route::get('review', [LearningController::class, 'getReviewWords']);
+    Route::get('fill-blank', [LearningController::class, 'getFillBlankWords']);
     Route::post('mark/{id}', [LearningController::class, 'markWord']);
     Route::post('simple/{id}', [LearningController::class, 'markWordAsSimple']);
     Route::get('progress', [LearningController::class, 'getProgress']);
+
+    // 搜索和创建单词
+    Route::get('search/{keyword}', [LearningController::class, 'searchWord']);
+    Route::post('create', [LearningController::class, 'createWord']);
     
     // 单词管理
     Route::patch('{id}', [LearningController::class, 'updateWord']);

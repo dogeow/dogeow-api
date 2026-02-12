@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Word;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Word\CreateWordRequest;
 use App\Http\Requests\Word\MarkWordRequest;
 use App\Http\Resources\Word\WordResource;
 use App\Models\Word\Book;
@@ -255,6 +256,92 @@ class LearningController extends Controller
         return $this->success([
             'word' => new WordResource($word),
         ], '单词更新成功');
+    }
+
+    /**
+     * 搜索单词
+     */
+    public function searchWord(string $keyword): JsonResponse
+    {
+        $keyword = trim($keyword);
+
+        if (empty($keyword)) {
+            return $this->error('请输入搜索关键词', [], 422);
+        }
+
+        // 精确搜索
+        $word = Word::query()
+            ->where('content', $keyword)
+            ->with('educationLevels')
+            ->first();
+
+        if ($word) {
+            return $this->success([
+                'found' => true,
+                'word' => new WordResource($word),
+            ]);
+        }
+
+        // 未找到
+        return $this->success([
+            'found' => false,
+            'keyword' => $keyword,
+        ]);
+    }
+
+    /**
+     * 创建新单词
+     */
+    public function createWord(CreateWordRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+
+        $word = Word::create([
+            'content' => $validated['content'],
+            'phonetic_us' => $validated['phonetic_us'] ?? null,
+            'explanation' => $validated['explanation'] ?? null,
+            'example_sentences' => $validated['example_sentences'] ?? [],
+            'difficulty' => 1,
+            'frequency' => 1,
+        ]);
+
+        return $this->success([
+            'word' => new WordResource($word->fresh(['educationLevels'])),
+        ], '单词创建成功');
+    }
+
+    /**
+     * 获取填空练习单词（只从已学过且有例句的单词中获取）
+     */
+    public function getFillBlankWords(): AnonymousResourceCollection
+    {
+        $user = Auth::user();
+        $setting = $this->getUserSetting($user->id);
+
+        // 获取练习数量，默认为每日新词数量
+        $count = $setting->daily_new_words;
+
+        // 获取已学习的单词（排除未学习和简单词，且必须有例句）
+        $userWords = UserWord::where('user_id', $user->id)
+            ->whereNotIn('status', [0, 4]) // 排除未学习和简单词
+            ->with(['word.educationLevels'])
+            ->get();
+
+        // 过滤出有例句的单词
+        $wordsWithExamples = $userWords->filter(function ($userWord) {
+            return $userWord->word
+                && $userWord->word->example_sentences
+                && is_array($userWord->word->example_sentences)
+                && count($userWord->word->example_sentences) > 0;
+        });
+
+        // 随机选择指定数量的单词
+        $selectedWords = $wordsWithExamples
+            ->shuffle()
+            ->take($count)
+            ->map(fn($userWord) => $userWord->word);
+
+        return WordResource::collection($selectedWords);
     }
 
     /**
