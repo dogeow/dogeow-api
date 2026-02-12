@@ -24,6 +24,10 @@ Route::prefix('word')->name('word.')->group(function () {
     
     // 打卡
     Route::post('check-in', [CheckInController::class, 'checkIn']);
+    // 整年日历
+    Route::get('calendar/year/{year}', [CheckInController::class, 'getCalendarYear']);
+    // 最近 365 天
+    Route::get('calendar/last365', [CheckInController::class, 'getCalendarLast365']);
     Route::get('calendar/{year}/{month}', [CheckInController::class, 'getCalendar']);
     Route::get('stats', [CheckInController::class, 'getStats']);
     

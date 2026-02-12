@@ -105,6 +105,75 @@ class CheckInController extends Controller
     }
 
     /**
+     * 获取整年打卡日历
+     */
+    public function getCalendarYear(int $year): JsonResponse
+    {
+        $user = Auth::user();
+
+        $startDate = now()->setYear($year)->startOfYear();
+        $endDate = now()->setYear($year)->endOfYear();
+
+        $checkIns = CheckIn::where('user_id', $user->id)
+            ->whereBetween('check_in_date', [$startDate, $endDate])
+            ->get()
+            ->keyBy(fn ($item) => $item->check_in_date->toDateString());
+
+        $calendar = [];
+        $currentDate = $startDate->copy();
+        while ($currentDate->lte($endDate)) {
+            $dateStr = $currentDate->toDateString();
+            $calendar[] = [
+                'date' => $dateStr,
+                'checked' => $checkIns->has($dateStr),
+                'new_words_count' => $checkIns->get($dateStr)?->new_words_count ?? 0,
+                'review_words_count' => $checkIns->get($dateStr)?->review_words_count ?? 0,
+            ];
+            $currentDate->addDay();
+        }
+
+        return response()->json([
+            'year' => $year,
+            'calendar' => $calendar,
+        ]);
+    }
+
+    /**
+     * 获取最近 365 天的打卡日历（包含今天）
+     */
+    public function getCalendarLast365(): JsonResponse
+    {
+        $user = Auth::user();
+
+        $endDate = now()->endOfDay();
+        $startDate = now()->startOfDay()->subDays(364); // 共 365 天
+
+        $checkIns = CheckIn::where('user_id', $user->id)
+            ->whereBetween('check_in_date', [$startDate, $endDate])
+            ->get()
+            ->keyBy(fn ($item) => $item->check_in_date->toDateString());
+
+        $calendar = [];
+        $currentDate = $startDate->copy();
+        while ($currentDate->lte($endDate)) {
+            $dateStr = $currentDate->toDateString();
+            $calendar[] = [
+                'date' => $dateStr,
+                'checked' => $checkIns->has($dateStr),
+                'new_words_count' => $checkIns->get($dateStr)?->new_words_count ?? 0,
+                'review_words_count' => $checkIns->get($dateStr)?->review_words_count ?? 0,
+            ];
+            $currentDate->addDay();
+        }
+
+        return response()->json([
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
+            'calendar' => $calendar,
+        ]);
+    }
+
+    /**
      * 获取统计数据
      */
     public function getStats(): JsonResponse
