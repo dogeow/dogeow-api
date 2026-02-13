@@ -2,10 +2,11 @@
 
 namespace App\Models\Chat;
 
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Carbon\Carbon;
 
 class ChatRoomUser extends Model
 {
@@ -139,7 +140,7 @@ class ChatRoomUser extends Model
      */
     public function isInactive($minutes = 5): bool
     {
-        if (!$this->last_seen_at) {
+        if (! $this->last_seen_at) {
             return true;
         }
 
@@ -151,7 +152,7 @@ class ChatRoomUser extends Model
      */
     public function isMuted(): bool
     {
-        if (!$this->is_muted) {
+        if (! $this->is_muted) {
             return false;
         }
 
@@ -163,6 +164,7 @@ class ChatRoomUser extends Model
                 'muted_until' => null,
                 'muted_by' => null,
             ]);
+
             return false;
         }
 
@@ -174,7 +176,7 @@ class ChatRoomUser extends Model
      */
     public function isBanned(): bool
     {
-        if (!$this->is_banned) {
+        if (! $this->is_banned) {
             return false;
         }
 
@@ -186,6 +188,7 @@ class ChatRoomUser extends Model
                 'banned_until' => null,
                 'banned_by' => null,
             ]);
+
             return false;
         }
 
@@ -256,6 +259,6 @@ class ChatRoomUser extends Model
      */
     public function canSendMessages(): bool
     {
-        return !$this->isMuted() && !$this->isBanned();
+        return ! $this->isMuted() && ! $this->isBanned();
     }
 }

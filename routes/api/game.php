@@ -1,8 +1,58 @@
 <?php
 
+use App\Http\Controllers\Api\Game\CharacterController;
+use App\Http\Controllers\Api\Game\CombatController;
+use App\Http\Controllers\Api\Game\InventoryController;
+use App\Http\Controllers\Api\Game\MapController;
+use App\Http\Controllers\Api\Game\ShopController;
+use App\Http\Controllers\Api\Game\SkillController;
 use App\Http\Controllers\Api\Thing\GameController;
 use Illuminate\Support\Facades\Route;
 
-// 游戏
+// 原有游戏路由
 Route::apiResource('games', GameController::class);
-Route::get('games/{game}/play', [GameController::class, 'play']); 
+Route::get('games/{game}/play', [GameController::class, 'play']);
+
+// RPG游戏路由
+Route::prefix('rpg')->group(function () {
+    // 角色相关
+    Route::get('/characters', [CharacterController::class, 'index']);
+    Route::get('/character', [CharacterController::class, 'show']);
+    Route::post('/character', [CharacterController::class, 'store']);
+    Route::put('/character/stats', [CharacterController::class, 'allocateStats']);
+    Route::get('/character/detail', [CharacterController::class, 'detail']);
+
+    // 背包相关
+    Route::get('/inventory', [InventoryController::class, 'index']);
+    Route::post('/inventory/equip', [InventoryController::class, 'equip']);
+    Route::post('/inventory/unequip', [InventoryController::class, 'unequip']);
+    Route::post('/inventory/sell', [InventoryController::class, 'sell']);
+    Route::post('/inventory/move', [InventoryController::class, 'move']);
+    Route::post('/inventory/sort', [InventoryController::class, 'sort']);
+    Route::post('/inventory/use-potion', [InventoryController::class, 'usePotion']);
+
+    // 商店相关
+    Route::get('/shop', [ShopController::class, 'index']);
+    Route::post('/shop/buy', [ShopController::class, 'buy']);
+    Route::post('/shop/sell', [ShopController::class, 'sell']);
+
+    // 技能相关
+    Route::get('/skills', [SkillController::class, 'index']);
+    Route::post('/skills/learn', [SkillController::class, 'learn']);
+
+    // 地图相关
+    Route::get('/maps', [MapController::class, 'index']);
+    Route::get('/maps/current', [MapController::class, 'current']);
+    Route::post('/maps/{map}/enter', [MapController::class, 'enter']);
+    Route::post('/maps/{map}/teleport', [MapController::class, 'teleport']);
+    Route::post('/maps/{map}/unlock', [MapController::class, 'unlock']);
+
+    // 战斗相关
+    Route::get('/combat/status', [CombatController::class, 'status']);
+    Route::post('/combat/start', [CombatController::class, 'start']);
+    Route::post('/combat/stop', [CombatController::class, 'stop']);
+    Route::post('/combat/execute', [CombatController::class, 'execute'])->middleware('combat.rate');
+    Route::get('/combat/logs', [CombatController::class, 'logs']);
+    Route::get('/combat/stats', [CombatController::class, 'stats']);
+    Route::post('/combat/potion-settings', [CombatController::class, 'updatePotionSettings']);
+});

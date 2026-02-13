@@ -12,21 +12,23 @@ abstract class Controller
     protected function success(array $data = [], string $message = 'Success', int $code = 200): JsonResponse
     {
         $response = ['message' => $message];
-        if (!empty($data)) {
+        if (! empty($data)) {
             $response = array_merge($response, $data);
         }
+
         return response()->json($response, $code);
     }
 
     /**
      * 返回错误响应
      */
-    protected function error(string $message, array $errors = [], int $code = 422): JsonResponse
+    protected function error(string $message, array $data = [], int $code = 422): JsonResponse
     {
         $response = ['message' => $message];
-        if (!empty($errors)) {
-            $response['errors'] = $errors;
+        if (! empty($data)) {
+            $response = array_merge($response, $data);
         }
+
         return response()->json($response, $code);
     }
 
@@ -38,7 +40,6 @@ abstract class Controller
         return $this->error($message, $errors, $code);
     }
 
-
     /**
      * 获取当前认证用户ID
      */
@@ -46,5 +47,4 @@ abstract class Controller
     {
         return auth()->id();
     }
-
 }

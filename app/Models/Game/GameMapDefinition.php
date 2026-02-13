@@ -1,0 +1,71 @@
+<?php
+
+namespace App\Models\Game;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class GameMapDefinition extends Model
+{
+    protected $fillable = [
+        'name',
+        'act',
+        'min_level',
+        'max_level',
+        'monster_ids',
+        'has_teleport',
+        'teleport_cost',
+        'background',
+        'description',
+        'is_active',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'monster_ids' => 'array',
+            'has_teleport' => 'boolean',
+            'is_active' => 'boolean',
+        ];
+    }
+
+    /**
+     * 获取地图进度记录
+     */
+    public function characterMaps(): HasMany
+    {
+        return $this->hasMany(GameCharacterMap::class, 'map_id');
+    }
+
+    /**
+     * 获取地图中的怪物列表
+     */
+    public function getMonsters(): array
+    {
+        if (empty($this->monster_ids)) {
+            return [];
+        }
+
+        return GameMonsterDefinition::query()
+            ->whereIn('id', $this->monster_ids)
+            ->where('is_active', true)
+            ->get()
+            ->all();
+    }
+
+    /**
+     * 检查角色等级是否可以进入
+     */
+    public function canEnter(int $level): bool
+    {
+        return $level >= $this->min_level;
+    }
+
+    /**
+     * 获取推荐等级描述
+     */
+    public function getLevelRangeText(): string
+    {
+        return "Lv.{$this->min_level}-{$this->max_level}";
+    }
+}

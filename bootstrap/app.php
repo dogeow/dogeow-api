@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'websocket.auth' => \App\Http\Middleware\WebSocketAuthMiddleware::class,
+            'combat.rate' => \App\Http\Middleware\CombatRateLimit::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
