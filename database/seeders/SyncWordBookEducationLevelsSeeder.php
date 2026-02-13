@@ -25,6 +25,9 @@ class SyncWordBookEducationLevelsSeeder extends Seeder
             $bookName = strtolower($book->name);
             $levelIds = [];
 
+            if (str_contains($bookName, '小学') || str_contains($bookName, 'primary') || str_contains($bookName, 'elementary')) {
+                $levelIds[] = $levels->get('primary')?->id;
+            }
             if (str_contains($bookName, '初中') || str_contains($bookName, 'junior')) {
                 $levelIds[] = $levels->get('junior_high')?->id;
             }
@@ -39,6 +42,18 @@ class SyncWordBookEducationLevelsSeeder extends Seeder
             }
             if (str_contains($bookName, '考研') || str_contains($bookName, 'postgraduate')) {
                 $levelIds[] = $levels->get('postgraduate')?->id;
+            }
+            if (str_contains($bookName, '雅思') || str_contains($bookName, 'ielts')) {
+                $levelIds[] = $levels->get('ielts')?->id;
+            }
+            if (str_contains($bookName, '托福') || str_contains($bookName, 'toefl')) {
+                $levelIds[] = $levels->get('toefl')?->id;
+            }
+            if (str_contains($bookName, '专四') || str_contains($bookName, 'tem4')) {
+                $levelIds[] = $levels->get('tem4')?->id;
+            }
+            if (str_contains($bookName, '专八') || str_contains($bookName, 'tem8')) {
+                $levelIds[] = $levels->get('tem8')?->id;
             }
 
             $levelIds = array_filter(array_unique($levelIds));

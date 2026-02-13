@@ -26,6 +26,8 @@ class CreateWordRequest extends FormRequest
             'example_sentences' => 'nullable|array',
             'example_sentences.*.en' => 'required_with:example_sentences|string',
             'example_sentences.*.zh' => 'nullable|string',
+            'education_level_codes' => 'nullable|array',
+            'education_level_codes.*' => 'string|in:primary,junior_high,senior_high,cet4,cet6,postgraduate,ielts,toefl,tem4,tem8',
         ];
     }
 

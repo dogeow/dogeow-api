@@ -7,6 +7,7 @@ use App\Http\Requests\Word\CreateWordRequest;
 use App\Http\Requests\Word\MarkWordRequest;
 use App\Http\Resources\Word\WordResource;
 use App\Models\Word\Book;
+use App\Models\Word\EducationLevel;
 use App\Models\Word\UserSetting;
 use App\Models\Word\UserWord;
 use App\Models\Word\Word;
@@ -290,7 +291,7 @@ class LearningController extends Controller
     }
 
     /**
-     * 创建新单词
+     * 创建新单词；若传入 education_level_codes，则按 AI 判断的级别关联教育级别并加入对应单词书
      */
     public function createWord(CreateWordRequest $request): JsonResponse
     {
@@ -304,6 +305,25 @@ class LearningController extends Controller
             'difficulty' => 1,
             'frequency' => 1,
         ]);
+
+        $codes = $validated['education_level_codes'] ?? [];
+        if (!empty($codes)) {
+            $levelIds = EducationLevel::whereIn('code', $codes)->pluck('id')->all();
+            if (!empty($levelIds)) {
+                $word->educationLevels()->sync($levelIds);
+                $books = Book::whereHas('educationLevels', fn ($q) => $q->whereIn('word_education_levels.id', $levelIds))->get();
+                foreach ($books as $book) {
+                    if ($book->words()->where('word_id', $word->id)->exists()) {
+                        continue;
+                    }
+                    $maxOrder = (int) DB::table('word_book_word')
+                        ->where('word_book_id', $book->id)
+                        ->max('sort_order');
+                    $book->words()->attach($word->id, ['sort_order' => $maxOrder + 1]);
+                    $book->updateWordCount();
+                }
+            }
+        }
 
         return $this->success([
             'word' => new WordResource($word->fresh(['educationLevels'])),

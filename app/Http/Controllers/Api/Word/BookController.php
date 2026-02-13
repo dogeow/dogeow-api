@@ -37,6 +37,7 @@ class BookController extends Controller
     /**
      * 获取单词书中的单词列表
      * 支持筛选：all=全部, mastered=已掌握, difficult=困难词, simple=简单词
+     * 支持 keyword：按单词内容模糊搜索
      */
     public function words(Request $request, int $id): AnonymousResourceCollection
     {
@@ -44,11 +45,16 @@ class BookController extends Controller
         $userId = auth()->id();
         $filter = $request->input('filter', 'all');
         $perPage = $request->input('per_page', 20);
+        $keyword = $request->input('keyword');
 
         $query = $book->words()
             ->with('educationLevels')
             ->orderBy('word_book_word.sort_order')
             ->orderBy('words.id');
+
+        if ($keyword !== null && $keyword !== '') {
+            $query->where('words.content', 'like', '%' . trim($keyword) . '%');
+        }
 
         // 根据筛选条件联表查询用户单词状态
         if ($filter === 'mastered') {
