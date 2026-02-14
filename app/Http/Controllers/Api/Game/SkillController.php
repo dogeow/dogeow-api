@@ -65,9 +65,10 @@ class SkillController extends Controller
         }
 
         // 学习技能
-        $character->skills()->create([
+        $characterSkill = $character->skills()->create([
             'skill_id' => $skill->id,
         ]);
+        $characterSkill->load('skill');
 
         $character->skill_points--;
         $character->save();
@@ -75,6 +76,7 @@ class SkillController extends Controller
         return $this->success([
             'character' => $character,
             'skill_points' => $character->skill_points,
+            'character_skill' => $characterSkill,
         ], '技能学习成功');
     }
 

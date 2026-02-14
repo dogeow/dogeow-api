@@ -20,6 +20,7 @@ Route::prefix('rpg')->group(function () {
     Route::get('/characters', [CharacterController::class, 'index']);
     Route::get('/character', [CharacterController::class, 'show']);
     Route::post('/character', [CharacterController::class, 'store']);
+    Route::delete('/character', [CharacterController::class, 'destroy']);
     Route::put('/character/stats', [CharacterController::class, 'allocateStats']);
     Route::put('/character/difficulty', [CharacterController::class, 'updateDifficulty']);
     Route::get('/character/detail', [CharacterController::class, 'detail']);

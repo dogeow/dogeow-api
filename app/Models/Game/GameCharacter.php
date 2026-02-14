@@ -15,7 +15,7 @@ class GameCharacter extends Model
         'class',
         'level',
         'experience',
-        'gold',
+        'copper',
         'strength',
         'dexterity',
         'vitality',
@@ -32,6 +32,16 @@ class GameCharacter extends Model
         'hp_potion_threshold',
         'auto_use_mp_potion',
         'mp_potion_threshold',
+        'combat_monster_id',
+        'combat_monster_level',
+        'combat_monster_hp',
+        'combat_monster_max_hp',
+        'combat_total_damage_dealt',
+        'combat_total_damage_taken',
+        'combat_rounds',
+        'combat_skills_used',
+        'combat_skill_cooldowns',
+        'combat_started_at',
     ];
 
     protected function casts(): array
@@ -41,6 +51,9 @@ class GameCharacter extends Model
             'last_combat_at' => 'datetime',
             'auto_use_hp_potion' => 'boolean',
             'auto_use_mp_potion' => 'boolean',
+            'combat_skills_used' => 'array',
+            'combat_skill_cooldowns' => 'array',
+            'combat_started_at' => 'datetime',
         ];
     }
 
@@ -256,6 +269,32 @@ class GameCharacter extends Model
     }
 
     /**
+     * 是否处于一场战斗的进行中（有当前怪物且怪物未死）
+     */
+    public function hasActiveCombat(): bool
+    {
+        return $this->combat_monster_id !== null
+            && (int) $this->combat_monster_hp > 0;
+    }
+
+    /**
+     * 清除当前战斗状态（战斗结束或停止时调用）
+     */
+    public function clearCombatState(): void
+    {
+        $this->combat_monster_id = null;
+        $this->combat_monster_level = null;
+        $this->combat_monster_hp = null;
+        $this->combat_monster_max_hp = null;
+        $this->combat_total_damage_dealt = 0;
+        $this->combat_total_damage_taken = 0;
+        $this->combat_rounds = 0;
+        $this->combat_skills_used = null;
+        $this->combat_skill_cooldowns = null;
+        $this->combat_started_at = null;
+    }
+
+    /**
      * 计算最大生命值
      */
     public function getMaxHp(): int
@@ -447,6 +486,56 @@ class GameCharacter extends Model
             'defense' => $this->getDefense(),
             'crit_rate' => $this->getCritRate(),
             'crit_damage' => $this->getCritDamage(),
+        ];
+    }
+
+    /**
+     * 获取战斗属性明细（基础 + 装备），用于前端展示来源
+     *
+     * @return array<string, array{base: int|float, equipment: float, total: int|float}>
+     */
+    public function getCombatStatsBreakdown(): array
+    {
+        $baseAttack = match ($this->class) {
+            'warrior' => $this->strength * 2,
+            'mage' => $this->energy * 2,
+            'ranger' => $this->dexterity * 2,
+            default => $this->strength,
+        };
+        $equipAttack = $this->getEquipmentBonus('attack');
+
+        $baseDefense = (int) ($this->vitality * 0.5 + $this->dexterity * 0.3);
+        $equipDefense = $this->getEquipmentBonus('defense');
+
+        $baseCritRate = $this->dexterity * 0.01;
+        $equipCritRate = $this->getEquipmentBonus('crit_rate');
+        $totalCritRate = min(0.10, $baseCritRate + $equipCritRate);
+
+        $baseCritDamage = 1.5;
+        $equipCritDamage = $this->getEquipmentBonus('crit_damage');
+        $totalCritDamage = $baseCritDamage + $equipCritDamage;
+
+        return [
+            'attack' => [
+                'base' => (int) $baseAttack,
+                'equipment' => (float) $equipAttack,
+                'total' => $this->getAttack(),
+            ],
+            'defense' => [
+                'base' => $baseDefense,
+                'equipment' => (float) $equipDefense,
+                'total' => $this->getDefense(),
+            ],
+            'crit_rate' => [
+                'base' => round($baseCritRate, 4),
+                'equipment' => (float) $equipCritRate,
+                'total' => round($totalCritRate, 4),
+            ],
+            'crit_damage' => [
+                'base' => $baseCritDamage,
+                'equipment' => (float) $equipCritDamage,
+                'total' => round($totalCritDamage, 4),
+            ],
         ];
     }
 

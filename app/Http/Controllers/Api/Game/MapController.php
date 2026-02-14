@@ -91,20 +91,13 @@ class MapController extends Controller
             return $this->error("需要等级 {$map->min_level} 才能传送到该地图");
         }
 
-        // 检查金币
-        if ($character->gold < $map->teleport_cost) {
-            return $this->error("金币不足，传送需要 {$map->teleport_cost} 金币");
-        }
-
-        // 扣除金币并传送，自动开始战斗
-        $character->gold -= $map->teleport_cost;
+        // 直接传送到地图，自动开始战斗（无传送费用）
         $character->current_map_id = $mapId;
         $character->is_fighting = true;  // 传送后自动开始战斗
         $character->save();
 
         return $this->success([
             'character' => $character->fresh('currentMap'),
-            'gold_cost' => $map->teleport_cost,
         ], "已传送到 {$map->name}");
     }
 

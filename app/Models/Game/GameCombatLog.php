@@ -16,8 +16,9 @@ class GameCombatLog extends Model
         'victory',
         'loot_dropped',
         'experience_gained',
-        'gold_gained',
+        'copper_gained',
         'duration_seconds',
+        'skills_used',
     ];
 
     protected function casts(): array
@@ -25,6 +26,7 @@ class GameCombatLog extends Model
         return [
             'victory' => 'boolean',
             'loot_dropped' => 'array',
+            'skills_used' => 'array',
         ];
     }
 

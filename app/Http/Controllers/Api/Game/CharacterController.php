@@ -16,7 +16,7 @@ class CharacterController extends Controller
     {
         $characters = GameCharacter::query()
             ->where('user_id', $request->user()->id)
-            ->get(['id', 'name', 'class', 'level', 'experience', 'gold', 'is_fighting', 'difficulty_tier']);
+            ->get(['id', 'name', 'class', 'level', 'experience', 'copper', 'is_fighting', 'difficulty_tier']);
 
         return $this->success([
             'characters' => $characters,
@@ -44,7 +44,9 @@ class CharacterController extends Controller
 
         return $this->success([
             'character' => $character,
+            'experience_table' => GameCharacter::EXPERIENCE_TABLE,
             'combat_stats' => $character->getCombatStats(),
+            'stats_breakdown' => $character->getCombatStatsBreakdown(),
             'equipped_items' => $character->getEquippedItems(),
             'current_hp' => $character->getCurrentHp(),
             'current_mana' => $character->getCurrentMana(),
@@ -78,7 +80,7 @@ class CharacterController extends Controller
             'class' => $validated['class'],
             'level' => 1,
             'experience' => 0,
-            'gold' => 100,
+            'copper' => 0,
             'strength' => $baseStats['strength'],
             'dexterity' => $baseStats['dexterity'],
             'vitality' => $baseStats['vitality'],
@@ -100,49 +102,32 @@ class CharacterController extends Controller
             ]);
         }
 
-        // 给予初始装备
-        $starterItems = [
-            'weapon' => ['warrior' => 1, 'mage' => 7, 'ranger' => 13], // 新手剑/法杖/弓
-            'helmet' => 19, // 布帽
-            'armor' => 25, // 布衣
-            'gloves' => 37, // 布手套
-            'boots' => 43, // 布鞋
-            'belt' => 55, // 布腰带
-            'ring1' => 67, // 铜戒指
-            'ring2' => 67, // 铜戒指
-            'amulet' => 76, // 木制护符
-        ];
-
-        foreach ($starterItems as $slot => $itemIds) {
-            if (is_array($itemIds)) {
-                // 根据职业选择武器
-                $itemId = $itemIds[$validated['class']] ?? $itemIds['warrior'];
-            } else {
-                $itemId = $itemIds;
-            }
-
-            $itemDef = \App\Models\Game\GameItemDefinition::find($itemId);
-            if ($itemDef) {
-                $item = GameItem::create([
-                    'character_id' => $character->id,
-                    'item_definition_id' => $itemId,
-                    'slot_index' => null,
-                ]);
-
-                // 装备到对应槽位
-                $equipment = $character->equipment()->where('slot', $slot)->first();
-                if ($equipment) {
-                    $equipment->update(['game_item_id' => $item->id]);
-                }
-            }
-        }
-
         return $this->success([
             'character' => $character->fresh(['equipment', 'skills', 'currentMap']),
             'combat_stats' => $character->getCombatStats(),
+            'stats_breakdown' => $character->getCombatStatsBreakdown(),
             'current_hp' => $character->getCurrentHp(),
             'current_mana' => $character->getCurrentMana(),
         ], '角色创建成功', 201);
+    }
+
+    /**
+     * 删除角色（仅限本人，关联数据由外键级联删除）
+     */
+    public function destroy(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'character_id' => 'required|integer|exists:game_characters,id',
+        ]);
+
+        $character = GameCharacter::query()
+            ->where('id', $validated['character_id'])
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $character->delete();
+
+        return $this->success(null, '角色已删除');
     }
 
     /**
@@ -182,6 +167,7 @@ class CharacterController extends Controller
         return $this->success([
             'character' => $character,
             'combat_stats' => $character->getCombatStats(),
+            'stats_breakdown' => $character->getCombatStatsBreakdown(),
             'current_hp' => $character->getCurrentHp(),
             'current_mana' => $character->getCurrentMana(),
         ], '属性分配成功');
@@ -260,6 +246,7 @@ class CharacterController extends Controller
             'skills' => $skills,
             'available_skills' => $availableSkills,
             'combat_stats' => $character->getCombatStats(),
+            'stats_breakdown' => $character->getCombatStatsBreakdown(),
             'current_hp' => $character->getCurrentHp(),
             'current_mana' => $character->getCurrentMana(),
         ]);

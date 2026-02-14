@@ -7,6 +7,7 @@ use App\Models\Game\GameCharacter;
 use App\Models\Game\GameItem;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class InventoryController extends Controller
 {
@@ -123,9 +124,10 @@ class InventoryController extends Controller
 
         return $this->success([
             'equipped_item' => $item->fresh()->load('definition'),
-            'equipped_slot' => $slot, // 返回装备到的槽位
+            'equipped_slot' => $slot,
             'unequipped_item' => $oldItem ? $oldItem->load('definition') : null,
             'combat_stats' => $character->fresh()->getCombatStats(),
+            'stats_breakdown' => $character->fresh()->getCombatStatsBreakdown(),
         ], '装备成功');
     }
 
@@ -166,6 +168,7 @@ class InventoryController extends Controller
         return $this->success([
             'item' => $item,
             'combat_stats' => $character->fresh()->getCombatStats(),
+            'stats_breakdown' => $character->fresh()->getCombatStatsBreakdown(),
         ], '卸下装备成功');
     }
 
@@ -202,13 +205,13 @@ class InventoryController extends Controller
             return $this->error('物品数量不足');
         }
 
-        // 计算售价
+        // 计算售价（铜币，与商店一致 1银=100铜）
         $basePrice = $item->definition->base_stats['price'] ?? 10;
         $qualityMultiplier = GameItem::QUALITY_MULTIPLIERS[$item->quality] ?? 1.0;
-        $sellPrice = (int) ($basePrice * $qualityMultiplier * $quantity * 0.5);
+        $sellPrice = (int) ($basePrice * $qualityMultiplier * $quantity * 0.5 * 100);
 
-        // 更新金币
-        $character->gold += $sellPrice;
+        // 更新铜币
+        $character->copper += $sellPrice;
         $character->save();
 
         // 减少或删除物品
@@ -220,7 +223,7 @@ class InventoryController extends Controller
         }
 
         return $this->success([
-            'gold' => $character->gold,
+            'copper' => $character->copper,
             'sell_price' => $sellPrice,
         ], '出售成功');
     }
@@ -275,6 +278,7 @@ class InventoryController extends Controller
     public function usePotion(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'character_id' => 'required|integer|exists:game_characters,id',
             'item_id' => 'required|integer|exists:game_items,id',
         ]);
 
@@ -283,6 +287,7 @@ class InventoryController extends Controller
         $item = GameItem::query()
             ->where('id', $validated['item_id'])
             ->where('character_id', $character->id)
+            ->where('is_in_storage', false)
             ->with('definition')
             ->first();
 
@@ -306,13 +311,36 @@ class InventoryController extends Controller
         $hpRestore = $baseStats['max_hp'] ?? $baseStats['restore_amount'] ?? 0;
         $manaRestore = $baseStats['max_mana'] ?? 0;
 
-        // 恢复HP/Mana
-        if ($hpRestore > 0) {
-            $character->restoreHp($hpRestore);
+        $definitionName = $item->definition->name;
+        $itemId = (int) $item->getRawOriginal('id');
+        $quantity = (int) $item->quantity;
+
+        $affected = 0;
+        DB::transaction(function () use ($character, $itemId, $quantity, $hpRestore, $manaRestore, &$affected) {
+            // 恢复HP/Mana
+            if ($hpRestore > 0) {
+                $character->restoreHp($hpRestore);
+            }
+            if ($manaRestore > 0) {
+                $character->restoreMana($manaRestore);
+            }
+
+            // 直接对 game_items 表扣减数量或删除（按 id + character_id 双重条件，避免误删）
+            $query = DB::table('game_items')
+                ->where('id', $itemId)
+                ->where('character_id', $character->id);
+            if ($quantity > 1) {
+                $affected = $query->decrement('quantity', 1);
+            } else {
+                $affected = $query->delete();
+            }
+        });
+
+        if ($affected === 0) {
+            return $this->error('消耗药品失败，请重试');
         }
-        if ($manaRestore > 0) {
-            $character->restoreMana($manaRestore);
-        }
+
+        $character->refresh();
 
         // 构建恢复消息
         $restoreText = [];
@@ -324,21 +352,12 @@ class InventoryController extends Controller
         }
         $restoreMessage = implode('和', $restoreText);
 
-        // 减少或删除药品
-        if ($item->quantity > 1) {
-            $item->quantity--;
-            $item->save();
-        } else {
-            $item->delete();
-        }
-
         return $this->success([
-            'character' => $character->fresh(),
+            'character' => $character,
+            'combat_stats' => $character->getCombatStats(),
             'current_hp' => $character->getCurrentHp(),
             'current_mana' => $character->getCurrentMana(),
-            'max_hp' => $character->getMaxHp(),
-            'max_mana' => $character->getMaxMana(),
-            'message' => "使用{$item->definition->name}成功，恢复了 {$restoreMessage}",
+            'message' => "使用{$definitionName}成功，恢复了 {$restoreMessage}",
         ], '使用药品成功');
     }
 

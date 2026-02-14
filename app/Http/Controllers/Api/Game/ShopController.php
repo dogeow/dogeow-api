@@ -18,17 +18,20 @@ class ShopController extends Controller
     {
         $character = $this->getCharacter($request);
 
-        // 获取所有符合等级要求的药品（固定显示）
-        $fixedPotions = GameItemDefinition::query()
+        // 药品按 sub_type（hp/mp）各只显示一瓶：取玩家可用的最高等级那种
+        $potionDefinitions = GameItemDefinition::query()
             ->where('is_active', true)
             ->where('type', 'potion')
             ->where('required_level', '<=', $character->level)
-            ->orderBy('required_level')
+            ->orderBy('sub_type')
+            ->orderByDesc('required_level')
             ->get();
 
-        // 为每个药品生成随机属性和价格
+        $fixedPotions = $potionDefinitions->unique('sub_type')->values();
+
         $fixedPotionItems = $fixedPotions->map(function ($definition) {
             $randomStats = $this->generateRandomStats($definition);
+            $buyPrice = $this->calculateBuyPrice($definition, $randomStats);
 
             return [
                 'id' => $definition->id,
@@ -42,7 +45,8 @@ class ShopController extends Controller
                 'required_energy' => $definition->required_energy,
                 'icon' => $definition->icon,
                 'description' => $definition->description,
-                'buy_price' => $this->calculateBuyPrice($definition, $randomStats),
+                'buy_price' => $buyPrice,
+                'sell_price' => (int) floor($buyPrice * 0.3),
             ];
         });
 
@@ -83,7 +87,7 @@ class ShopController extends Controller
 
         return $this->success([
             'items' => $shopItems,
-            'player_gold' => $character->gold,
+            'player_copper' => $character->copper,
         ]);
     }
 
@@ -203,9 +207,9 @@ class ShopController extends Controller
         // 计算总价
         $totalPrice = $this->calculateBuyPrice($definition, $randomStats) * $quantity;
 
-        // 检查金币是否足够
-        if ($character->gold < $totalPrice) {
-            return $this->error("金币不足，需要 {$totalPrice} 金币");
+        // 检查铜币是否足够
+        if ($character->copper < $totalPrice) {
+            return $this->error('货币不足');
         }
 
         // 检查背包空间
@@ -264,16 +268,16 @@ class ShopController extends Controller
             }
         }
 
-        // 扣除金币
-        $character->gold -= $totalPrice;
+        // 扣除铜币
+        $character->copper -= $totalPrice;
         $character->save();
 
         return $this->success([
-            'gold' => $character->gold,
+            'copper' => $character->copper,
             'total_price' => $totalPrice,
             'quantity' => $quantity,
             'item_name' => $definition->name,
-        ], "购买成功，消耗 {$totalPrice} 金币");
+        ], '购买成功');
     }
 
     /**
@@ -317,8 +321,8 @@ class ShopController extends Controller
         // 计算售价
         $sellPrice = $this->calculateItemSellPrice($item) * $quantity;
 
-        // 更新金币
-        $character->gold += $sellPrice;
+        // 更新铜币
+        $character->copper += $sellPrice;
         $character->save();
 
         // 减少或删除物品
@@ -330,11 +334,11 @@ class ShopController extends Controller
         }
 
         return $this->success([
-            'gold' => $character->gold,
+            'copper' => $character->copper,
             'sell_price' => $sellPrice,
             'quantity' => $quantity,
             'item_name' => $item->definition->name,
-        ], "出售成功，获得 {$sellPrice} 金币");
+        ], '出售成功');
     }
 
     /**
@@ -399,7 +403,7 @@ class ShopController extends Controller
             $statsPrice += $statValue;
         }
 
-        return (int) (($typeBasePrice + $statsPrice) * $levelMultiplier);
+        return (int) (($typeBasePrice + $statsPrice) * $levelMultiplier * 100); // 价格单位为铜币（1银=100铜）
     }
 
     /**

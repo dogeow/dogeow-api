@@ -14,6 +14,7 @@ use App\Models\Game\GameMapDefinition;
 use App\Models\Game\GameMonsterDefinition;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Throwable;
 
 class CombatController extends Controller
 {
@@ -22,19 +23,23 @@ class CombatController extends Controller
      */
     public function status(Request $request): JsonResponse
     {
-        $character = $this->getCharacter($request);
+        try {
+            $character = $this->getCharacter($request);
 
-        // 初始化HP/Mana（如果需要）
-        $character->initializeHpMana();
+            // 初始化HP/Mana（如果需要）
+            $character->initializeHpMana();
 
-        return $this->success([
-            'is_fighting' => $character->is_fighting,
-            'current_map' => $character->currentMap,
-            'combat_stats' => $character->getCombatStats(),
-            'current_hp' => $character->getCurrentHp(),
-            'current_mana' => $character->getCurrentMana(),
-            'last_combat_at' => $character->last_combat_at,
-        ]);
+            return $this->success([
+                'is_fighting' => $character->is_fighting,
+                'current_map' => $character->currentMap,
+                'combat_stats' => $character->getCombatStats(),
+                'current_hp' => $character->getCurrentHp(),
+                'current_mana' => $character->getCurrentMana(),
+                'last_combat_at' => $character->last_combat_at,
+            ]);
+        } catch (Throwable $e) {
+            return $this->error('获取战斗状态失败', ['error' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -42,24 +47,29 @@ class CombatController extends Controller
      */
     public function start(StartCombatRequest $request): JsonResponse
     {
-        $character = $this->getCharacter($request);
+        try {
+            $character = $this->getCharacter($request);
 
-        if (! $character->current_map_id) {
-            return $this->error('请先选择一个地图');
+            if (empty($character->current_map_id)) {
+                return $this->error('请先选择一个地图');
+            }
+
+            if ($character->is_fighting) {
+                return $this->error('已经在战斗中');
+            }
+
+            $character->fill([
+                'is_fighting' => true,
+                'last_combat_at' => now(),
+            ])->save();
+
+            return $this->success([
+                'is_fighting' => true,
+                'message' => '开始自动战斗',
+            ]);
+        } catch (Throwable $e) {
+            return $this->error('启动战斗失败', ['error' => $e->getMessage()]);
         }
-
-        if ($character->is_fighting) {
-            return $this->error('已经在战斗中');
-        }
-
-        $character->is_fighting = true;
-        $character->last_combat_at = now();
-        $character->save();
-
-        return $this->success([
-            'is_fighting' => true,
-            'message' => '开始自动战斗',
-        ]);
     }
 
     /**
@@ -67,15 +77,19 @@ class CombatController extends Controller
      */
     public function stop(Request $request): JsonResponse
     {
-        $character = $this->getCharacter($request);
+        try {
+            $character = $this->getCharacter($request);
 
-        $character->is_fighting = false;
-        $character->save();
+            $character->clearCombatState();
+            $character->update(['is_fighting' => false]);
 
-        return $this->success([
-            'is_fighting' => false,
-            'message' => '停止自动战斗',
-        ]);
+            return $this->success([
+                'is_fighting' => false,
+                'message' => '停止自动战斗',
+            ]);
+        } catch (Throwable $e) {
+            return $this->error('停止战斗失败', ['error' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -83,95 +97,421 @@ class CombatController extends Controller
      */
     public function updatePotionSettings(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'auto_use_hp_potion' => 'nullable|boolean',
             'hp_potion_threshold' => 'nullable|integer|min:1|max:100',
             'auto_use_mp_potion' => 'nullable|boolean',
             'mp_potion_threshold' => 'nullable|integer|min:1|max:100',
         ]);
+        try {
+            $character = $this->getCharacter($request);
 
-        $character = $this->getCharacter($request);
+            foreach (['auto_use_hp_potion', 'hp_potion_threshold', 'auto_use_mp_potion', 'mp_potion_threshold'] as $key) {
+                if (array_key_exists($key, $validated)) {
+                    $character->$key = $validated[$key];
+                }
+            }
+            $character->save();
 
-        if ($request->has('auto_use_hp_potion')) {
-            $character->auto_use_hp_potion = $request->boolean('auto_use_hp_potion');
+            return $this->success([
+                'character' => $character->toArray(),
+            ], '药水设置已更新');
+        } catch (Throwable $e) {
+            return $this->error('更新药水自动使用设置失败', ['error' => $e->getMessage()]);
         }
-        if ($request->has('hp_potion_threshold')) {
-            $character->hp_potion_threshold = $request->integer('hp_potion_threshold');
-        }
-        if ($request->has('auto_use_mp_potion')) {
-            $character->auto_use_mp_potion = $request->boolean('auto_use_mp_potion');
-        }
-        if ($request->has('mp_potion_threshold')) {
-            $character->mp_potion_threshold = $request->integer('mp_potion_threshold');
-        }
-
-        $character->save();
-
-        return $this->success([
-            'character' => $character->toArray(),
-        ], '药水设置已更新');
     }
 
     /**
-     * 执行一次战斗（由前端定时调用或后端队列处理）
+     * 执行一回合战斗（每次请求只打一回合，怪物需多次请求才死）
      */
     public function execute(Request $request): JsonResponse
     {
-        $character = $this->getCharacter($request);
+        try {
+            $character = $this->getCharacter($request);
 
-        if (! $character->is_fighting || ! $character->current_map_id) {
-            return $this->error('当前不在战斗状态');
-        }
+            if (!$character->is_fighting || !$character->current_map_id) {
+                return $this->error('当前不在战斗状态');
+            }
 
-        // 检查角色血量，如果血量不足则自动停止战斗
-        $character->initializeHpMana();
-        $currentHp = $character->getCurrentHp();
+            $character->initializeHpMana();
+            $currentHp = $character->getCurrentHp();
 
-        if ($currentHp <= 0) {
-            // 自动停止战斗
-            $character->is_fighting = false;
+            if ($currentHp <= 0) {
+                $character->clearCombatState();
+                $character->update(['is_fighting' => false]);
+                return $this->error('角色血量不足，已自动停止战斗', [
+                    'auto_stopped' => true,
+                    'current_hp' => $currentHp,
+                ]);
+            }
+
+            $map = $character->currentMap;
+            if (!$map) {
+                return $this->error('地图不存在');
+            }
+
+            // 把怪物获取与初始化逻辑提取到单独方法
+            [
+                $monster,
+                $monsterLevel,
+                $monsterStats,
+                $monsterHp,
+                $monsterMaxHp
+            ] = $this->prepareMonsterInfo($character, $map);
+
+            if (!$monster) {
+                return $this->error('当前战斗怪物不存在，已清除状态');
+            }
+            if ($monster === 'no-monster') {
+                // 地图没有怪，停止
+                $character->update(['is_fighting' => false]);
+                return $this->error('该地图没有怪物，已自动停止战斗，请选择其他地图', [
+                    'auto_stopped' => true,
+                ]);
+            }
+
+            [
+                'roundResult' => $roundResult,
+                'currentRound' => $currentRound,
+                'requestedSkillIds' => $requestedSkillIds
+            ] = $this->prepareRoundAndProcess(
+                $request,
+                $character,
+                $monster,
+                $monsterLevel,
+                $monsterStats,
+                $monsterHp,
+                $monsterMaxHp
+            );
+
+            // 统一存储逻辑
+            $this->persistCombatState($character, $roundResult, $currentRound);
+
+            // 战胜逻辑
+            if ($roundResult['victory']) {
+                return $this->handleVictory(
+                    $character,
+                    $map,
+                    $monster,
+                    $monsterLevel,
+                    $monsterMaxHp,
+                    $currentRound,
+                    $monsterStats,
+                    $roundResult,
+                    $monsterHp
+                );
+            }
+
+            // 失败逻辑
+            if ($roundResult['defeat']) {
+                return $this->handleDefeat(
+                    $character,
+                    $map,
+                    $monster,
+                    $monsterLevel,
+                    $monsterMaxHp,
+                    $currentRound,
+                    $roundResult,
+                    $monsterHp
+                );
+            }
+
+            // 普通回合（怪未死，角色未死）
+            $character->combat_monster_hp = max(0, $roundResult['new_monster_hp']);
             $character->save();
+            $result = [
+                'victory' => false,
+                'defeat' => false,
+                'monster' => [
+                    'name' => $monster->name,
+                    'type' => $monster->type,
+                    'level' => $monsterLevel,
+                    'hp' => max(0, $roundResult['new_monster_hp']),
+                    'max_hp' => $monsterMaxHp,
+                ],
+                'monster_hp_before_round' => $monsterHp,
+                'damage_dealt' => $roundResult['round_damage_dealt'],
+                'damage_taken' => $roundResult['round_damage_taken'],
+                'rounds' => $currentRound,
+                'experience_gained' => 0,
+                'copper_gained' => 0,
+                'loot' => [],
+                'skills_used' => $roundResult['skills_used_this_round'],
+                'character' => $character->fresh()->toArray(),
+            ];
+            broadcast(new GameCombatUpdate($character->id, $result));
 
-            return $this->error('角色血量不足，已自动停止战斗', [
-                'auto_stopped' => true,
-                'current_hp' => $currentHp,
-            ]);
+            return $this->success($result);
+
+        } catch (Throwable $e) {
+            return $this->error('战斗执行失败', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * 提取：怪物获取与初始化相关
+     */
+    private function prepareMonsterInfo(GameCharacter $character, GameMapDefinition $map)
+    {
+        // 复用变量约定
+        $monster = null;
+        $monsterLevel = null;
+        $monsterStats = null;
+        $monsterHp = null;
+        $monsterMaxHp = null;
+
+        if ($character->hasActiveCombat()) {
+            $monster = GameMonsterDefinition::query()->find($character->combat_monster_id);
+            if (!$monster) {
+                $character->clearCombatState();
+                return [null, null, null, null, null];
+            }
+            $monsterLevel = (int) $character->combat_monster_level;
+            $monsterStats = $monster->getCombatStats($monsterLevel);
+            $monsterHp = (int) $character->combat_monster_hp;
+            $monsterMaxHp = (int) $character->combat_monster_max_hp;
+            return [$monster, $monsterLevel, $monsterStats, $monsterHp, $monsterMaxHp];
+        } else {
+            $monsters = $map->getMonsters();
+            if (empty($monsters)) {
+                return ['no-monster', null, null, null, null];
+            }
+            $monster = $monsters[array_rand($monsters)];
+            $monsterLevel = rand(
+                max($map->min_level, $monster->level - 3),
+                min($map->max_level, $monster->level + 3)
+            );
+            $monsterStats = $monster->getCombatStats($monsterLevel);
+            $difficulty = $character->getDifficultyMultipliers();
+            $monsterMaxHp = (int) ($monsterStats['hp'] * $difficulty['monster_hp']);
+            $monsterHp = $monsterMaxHp;
+
+            // 角色 combat 状态初始化
+            $character->combat_monster_id = $monster->id;
+            $character->combat_monster_level = $monsterLevel;
+            $character->combat_monster_hp = $monsterHp;
+            $character->combat_monster_max_hp = $monsterMaxHp;
+            $character->combat_total_damage_dealt = 0;
+            $character->combat_total_damage_taken = 0;
+            $character->combat_rounds = 0;
+            $character->combat_skills_used = null;
+            $character->combat_skill_cooldowns = null;
+            $character->combat_started_at = now();
+
+            return [$monster, $monsterLevel, $monsterStats, $monsterHp, $monsterMaxHp];
+        }
+    }
+
+    /**
+     * 提取：回合数据准备与处理
+     */
+    private function prepareRoundAndProcess(
+        Request $request,
+        GameCharacter $character,
+        GameMonsterDefinition $monster,
+        $monsterLevel,
+        $monsterStats,
+        $monsterHp,
+        $monsterMaxHp
+    ) {
+        $currentRound = (int) $character->combat_rounds + 1;
+        $skillCooldowns = $character->combat_skill_cooldowns ?? [];
+        $skillsUsedAggregated = $character->combat_skills_used ?? [];
+$requestedSkillIds = $request->input('skill_ids');
+            if (!is_array($requestedSkillIds)) {
+                $single = $request->input('skill_id');
+                $requestedSkillIds = $single !== null ? [(int) $single] : [];
+            } else {
+                $requestedSkillIds = array_map('intval', array_values($requestedSkillIds));
+            }
+
+            $roundResult = $this->processOneRound(
+                $character,
+                $monster,
+                $monsterLevel,
+                $monsterStats,
+                $monsterHp,
+                $monsterMaxHp,
+                $currentRound,
+                $skillCooldowns,
+                $skillsUsedAggregated,
+                $requestedSkillIds
+            );
+
+        return [
+            'roundResult' => $roundResult,
+            'currentRound' => $currentRound,
+            'requestedSkillIds' => $requestedSkillIds,
+        ];
+    }
+
+    /**
+     * 提取：统一本轮伤害、法力等持久化赋值
+     */
+    private function persistCombatState(GameCharacter $character, array $roundResult, int $currentRound)
+    {
+        $character->current_hp = max(0, $roundResult['new_char_hp']);
+        $character->current_mana = max(0, $roundResult['new_char_mana']);
+        $character->combat_total_damage_dealt += $roundResult['round_damage_dealt'];
+        $character->combat_total_damage_taken += $roundResult['round_damage_taken'];
+        $character->combat_rounds = $currentRound;
+        $character->combat_skills_used = $roundResult['new_skills_aggregated'];
+        $character->combat_skill_cooldowns = $roundResult['new_cooldowns'];
+    }
+
+    /**
+     * 提取：胜利胜出后的业务处理
+     */
+    private function handleVictory(
+        GameCharacter $character,
+        GameMapDefinition $map,
+        GameMonsterDefinition $monster,
+        int $monsterLevel,
+        int $monsterMaxHp,
+        int $currentRound,
+        array $monsterStats,
+        array $roundResult,
+        int $monsterHpBeforeRound
+    ): JsonResponse {
+        $difficulty = $character->getDifficultyMultipliers();
+        $experienceGained = (int) ($monsterStats['experience'] * $difficulty['reward']);
+        $lootResult = $monster->generateLoot($character->level);
+        $copperGained = (int) (($lootResult['copper'] ?? 0) * $difficulty['reward']);
+        $character->addExperience($experienceGained);
+        $character->copper += $copperGained;
+
+        $loot = [];
+        if (isset($lootResult['item'])) {
+            $item = $this->createItem($character, $lootResult['item']);
+            $item ? $loot['item'] = $item : $loot += ['item_lost' => true, 'item_lost_reason' => '背包已满'];
+        }
+        if (isset($lootResult['potion'])) {
+            $potion = $this->createPotion($character, $lootResult['potion']);
+            if ($potion) {
+                $loot['potion'] = $potion;
+            }
+        }
+        if (rand(1, 200) <= 1) {
+            $gem = $this->createGem($character, $character->level);
+            if ($gem) {
+                $loot['gem'] = $gem;
+            }
+        }
+        $loot['copper'] = $copperGained;
+
+        $charStats = $character->getCombatStats();
+        $potionUsed = $this->tryAutoUsePotions($character, $roundResult['new_char_hp'], $roundResult['new_char_mana'], $charStats);
+        if (!empty($potionUsed)) {
+            $loot['potion_used'] = $potionUsed;
         }
 
-        $map = $character->currentMap;
-        if (! $map) {
-            return $this->error('地图不存在');
+        $startTime = $character->combat_started_at ?? now();
+        $combatLog = GameCombatLog::create([
+            'character_id' => $character->id,
+            'map_id' => $map->id,
+            'monster_id' => $monster->id,
+            'damage_dealt' => $character->combat_total_damage_dealt,
+            'damage_taken' => $character->combat_total_damage_taken,
+            'victory' => true,
+            'loot_dropped' => !empty($loot) ? $loot : null,
+            'experience_gained' => $experienceGained,
+            'copper_gained' => $copperGained,
+            'duration_seconds' => $startTime->diffInSeconds(now()),
+            'skills_used' => $roundResult['new_skills_aggregated'],
+        ]);
+
+        $character->clearCombatState();
+        $character->save();
+
+        $result = [
+            'victory' => true,
+            'defeat' => false,
+            'auto_stopped' => false,
+            'monster' => [
+                'name' => $monster->name,
+                'type' => $monster->type,
+                'level' => $monsterLevel,
+                'hp' => 0,
+                'max_hp' => $monsterMaxHp,
+            ],
+            'monster_hp_before_round' => $monsterHpBeforeRound,
+            'damage_dealt' => $character->combat_total_damage_dealt,
+            'damage_taken' => $character->combat_total_damage_taken,
+            'rounds' => $currentRound,
+            'experience_gained' => $experienceGained,
+            'copper_gained' => $copperGained,
+            'loot' => $loot,
+            'skills_used' => $roundResult['new_skills_aggregated'],
+            'character' => $character->fresh()->toArray(),
+            'combat_log_id' => $combatLog->id,
+        ];
+        broadcast(new GameCombatUpdate($character->id, $result));
+        if (!empty($loot)) {
+            broadcast(new GameLootDropped($character->id, $loot));
         }
 
-        // 获取地图中实际存在且启用的怪物，并随机选择一个
-        $monsters = $map->getMonsters();
-        if (empty($monsters)) {
-            $character->is_fighting = false;
-            $character->save();
+        return $this->success($result);
+    }
 
-            return $this->error('该地图没有怪物，已自动停止战斗，请选择其他地图', [
-                'auto_stopped' => true,
-            ]);
-        }
+    /**
+     * 提取：失败后的业务处理
+     */
+    private function handleDefeat(
+        GameCharacter $character,
+        GameMapDefinition $map,
+        GameMonsterDefinition $monster,
+        int $monsterLevel,
+        int $monsterMaxHp,
+        int $currentRound,
+        array $roundResult,
+        int $monsterHpBeforeRound
+    ): JsonResponse {
+        $copperLoss = (int) ($character->copper * 0.1);
+        $character->copper -= $copperLoss;
+        $character->current_hp = max(1, $roundResult['new_char_hp']);
+        $character->is_fighting = false;
 
-        $monster = $monsters[array_rand($monsters)];
+        $startTime = $character->combat_started_at ?? now();
+        $combatLog = GameCombatLog::create([
+            'character_id' => $character->id,
+            'map_id' => $map->id,
+            'monster_id' => $monster->id,
+            'damage_dealt' => $character->combat_total_damage_dealt,
+            'damage_taken' => $character->combat_total_damage_taken,
+            'victory' => false,
+            'loot_dropped' => null,
+            'experience_gained' => 0,
+            'copper_gained' => 0,
+            'duration_seconds' => $startTime->diffInSeconds(now()),
+            'skills_used' => $roundResult['new_skills_aggregated'],
+        ]);
 
-        // 执行战斗
-        $result = $this->processCombat($character, $monster, $map);
+        $character->clearCombatState();
+        $character->save();
 
-        // 广播战斗更新
-        broadcast(new GameCombatUpdate(
-            $character->id,
-            $result
-        ));
-
-        // 如果有掉落，广播掉落事件
-        if (! empty($result['loot'])) {
-            broadcast(new GameLootDropped(
-                $character->id,
-                $result['loot']
-            ));
-        }
+        $result = [
+            'victory' => false,
+            'defeat' => true,
+            'auto_stopped' => true,
+            'monster' => [
+                'name' => $monster->name,
+                'type' => $monster->type,
+                'level' => $monsterLevel,
+                'hp' => max(0, $roundResult['new_monster_hp']),
+                'max_hp' => $monsterMaxHp,
+            ],
+            'monster_hp_before_round' => $monsterHpBeforeRound,
+            'damage_dealt' => $character->combat_total_damage_dealt,
+            'damage_taken' => $character->combat_total_damage_taken,
+            'rounds' => $currentRound,
+            'experience_gained' => 0,
+            'copper_gained' => 0,
+            'loot' => [],
+            'skills_used' => $roundResult['new_skills_aggregated'],
+            'character' => $character->fresh()->toArray(),
+            'combat_log_id' => $combatLog->id,
+        ];
+        broadcast(new GameCombatUpdate($character->id, $result));
 
         return $this->success($result);
     }
@@ -181,15 +521,19 @@ class CombatController extends Controller
      */
     public function logs(Request $request): JsonResponse
     {
-        $character = $this->getCharacter($request);
+        try {
+            $character = $this->getCharacter($request);
 
-        $logs = $character->combatLogs()
-            ->with(['monster', 'map'])
-            ->orderByDesc('created_at')
-            ->limit(50)
-            ->get();
+            $logs = $character->combatLogs()
+                ->with(['monster', 'map'])
+                ->orderByDesc('created_at')
+                ->limit(50)
+                ->get();
 
-        return $this->success(['logs' => $logs]);
+            return $this->success(['logs' => $logs]);
+        } catch (Throwable $e) {
+            return $this->error('获取战斗日志失败', ['error' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -197,226 +541,133 @@ class CombatController extends Controller
      */
     public function stats(Request $request): JsonResponse
     {
-        $character = $this->getCharacter($request);
+        try {
+            $character = $this->getCharacter($request);
+            $combatLogs = $character->combatLogs();
 
-        $stats = [
-            'total_battles' => $character->combatLogs()->count(),
-            'total_victories' => $character->combatLogs()->where('victory', true)->count(),
-            'total_defeats' => $character->combatLogs()->where('victory', false)->count(),
-            'total_damage_dealt' => $character->combatLogs()->sum('damage_dealt'),
-            'total_damage_taken' => $character->combatLogs()->sum('damage_taken'),
-            'total_experience_gained' => $character->combatLogs()->sum('experience_gained'),
-            'total_gold_gained' => $character->combatLogs()->sum('gold_gained'),
-            'total_items_looted' => $character->combatLogs()
-                ->whereNotNull('loot_dropped')
-                ->count(),
-        ];
+            $stats = [
+                'total_battles' => $combatLogs->count(),
+                'total_victories' => (clone $combatLogs)->where('victory', true)->count(),
+                'total_defeats' => (clone $combatLogs)->where('victory', false)->count(),
+                'total_damage_dealt' => $combatLogs->sum('damage_dealt'),
+                'total_damage_taken' => $combatLogs->sum('damage_taken'),
+                'total_experience_gained' => $combatLogs->sum('experience_gained'),
+                'total_copper_gained' => $combatLogs->sum('copper_gained'),
+                'total_items_looted' => (clone $combatLogs)->whereNotNull('loot_dropped')->count(),
+            ];
 
-        return $this->success(['stats' => $stats]);
+            return $this->success(['stats' => $stats]);
+        } catch (Throwable $e) {
+            return $this->error('获取战斗统计失败', ['error' => $e->getMessage()]);
+        }
     }
 
     /**
-     * 处理战斗逻辑
+     * 处理一回合战斗：角色攻击一次，怪物若未死则还击一次。
+     * 仅当传入 requestedSkillIds 且角色拥有该技能、法力与冷却满足时才会施放技能（按数组顺序取第一个可用的），否则普通攻击。
+     *
+     * @param  array<int>  $requestedSkillIds 本回合允许施放的技能 id 列表，按顺序尝试，用第一个可用的
+     * @param  array<int, array{skill_id: int, name: string, icon: string|null, use_count: int}>  $skillsUsedAggregated
+     * @return array{round_damage_dealt: int, round_damage_taken: int, new_monster_hp: int, new_char_hp: int, new_char_mana: int, victory: bool, defeat: bool, skills_used_this_round: array, new_cooldowns: array, new_skills_aggregated: array}
      */
-    private function processCombat(GameCharacter $character, GameMonsterDefinition $monster, GameMapDefinition $map): array
-    {
-        $startTime = now();
-
-        // 初始化HP/Mana（如果是新角色）
+    private function processOneRound(
+        GameCharacter $character,
+        GameMonsterDefinition $monster,
+        int $monsterLevel,
+        array $monsterStats,
+        int $monsterHp,
+        int $monsterMaxHp,
+        int $currentRound,
+        array $skillCooldowns,
+        array $skillsUsedAggregated,
+        array $requestedSkillIds = []
+    ): array {
         $character->initializeHpMana();
 
-        // 获取角色当前和最大战斗属性
         $charStats = $character->getCombatStats();
         $charHp = $character->getCurrentHp();
-        $charMaxHp = $charStats['max_hp'];
+        $currentMana = $character->getCurrentMana();
         $charAttack = $charStats['attack'];
         $charDefense = $charStats['defense'];
         $charCritRate = $charStats['crit_rate'];
         $charCritDamage = $charStats['crit_damage'];
 
-        // 难度倍率（普通/困难/高手/大师/痛苦1-6）：怪物生命、怪物伤害、奖励分开
         $difficulty = $character->getDifficultyMultipliers();
-        $monsterHpMult = $difficulty['monster_hp'];
-        $monsterDmgMult = $difficulty['monster_damage'];
-        $rewardMult = $difficulty['reward'];
+        $monsterAttack = (int) ($monsterStats['attack'] * $difficulty['monster_damage']);
+        $monsterDefense = (int) ($monsterStats['defense'] * $difficulty['monster_damage']);
 
-        // 根据地图等级范围确定怪物等级
-        $monsterLevel = rand(
-            max($map->min_level, $monster->level - 3),
-            min($map->max_level, $monster->level + 3)
-        );
-        $monsterStats = $monster->getCombatStats($monsterLevel);
-        $monsterHp = (int) ($monsterStats['hp'] * $monsterHpMult);
-        $monsterAttack = (int) ($monsterStats['attack'] * $monsterDmgMult);
-        $monsterDefense = (int) ($monsterStats['defense'] * $monsterDmgMult);
-
-        $totalDamageDealt = 0;
-        $totalDamageTaken = 0;
-        $rounds = 0;
-        $maxRounds = 100;
-
-        // 获取角色的主动技能（所有已学习的主动技能）
         $activeSkills = $character->skills()
             ->whereHas('skill', fn ($q) => $q->where('type', 'active'))
             ->with('skill')
             ->get();
 
-        $skillCooldowns = [];
-        $currentMana = $character->getCurrentMana();
-        $charMaxMana = $charStats['max_mana'];
+        $isCrit = (rand(1, 100) / 100) <= $charCritRate;
+        $baseDamage = max(1, $charAttack - $monsterDefense * 0.5);
+        $skillDamage = 0;
+        $skillsUsedThisRound = [];
+        $newCooldowns = $skillCooldowns;
 
-        // 战斗循环
-        while ($charHp > 0 && $monsterHp > 0 && $rounds < $maxRounds) {
-            $rounds++;
-
-            // 角色攻击
-            $isCrit = (rand(1, 100) / 100) <= $charCritRate;
-            $baseDamage = max(1, $charAttack - $monsterDefense * 0.5);
-
-            // 尝试使用技能
-            $skillDamage = 0;
-            $skillUsed = null;
-
+        foreach ($requestedSkillIds as $rid) {
             foreach ($activeSkills as $charSkill) {
-                $skillId = $charSkill->skill_id;
-                $cooldownEnd = $skillCooldowns[$skillId] ?? 0;
+                if ($charSkill->skill_id !== $rid) {
+                    continue;
+                }
                 $skill = $charSkill->skill;
-
-                // 使用技能定义中的基础伤害和魔法消耗
-                if ($currentMana >= $skill->mana_cost && $cooldownEnd <= $rounds) {
+                $cooldownEnd = $newCooldowns[$rid] ?? 0;
+                if ($currentMana >= $skill->mana_cost && $cooldownEnd <= $currentRound) {
                     $skillDamage = $skill->damage;
                     $currentMana -= $skill->mana_cost;
-                    $skillCooldowns[$skillId] = $rounds + (int) $skill->cooldown;
-                    $skillUsed = $skill->name;
-                    break;
+                    $newCooldowns[$rid] = $currentRound + (int) $skill->cooldown;
+                    $skillsUsedThisRound[] = [
+                        'skill_id' => $skill->id,
+                        'name' => $skill->name,
+                        'icon' => $skill->icon,
+                    ];
+                    break 2;
                 }
-            }
-
-            // 计算总伤害
-            if ($skillDamage > 0) {
-                $damage = (int) ($baseDamage + $skillDamage);
-            } else {
-                $damage = (int) ($baseDamage * ($isCrit ? $charCritDamage : 1));
-            }
-
-            $monsterHp -= $damage;
-            $totalDamageDealt += $damage;
-
-            // 怪物还击
-            if ($monsterHp > 0) {
-                $monsterDamage = (int) max(1, $monsterAttack - $charDefense * 0.3);
-                $charHp -= $monsterDamage;
-                $totalDamageTaken += $monsterDamage;
+                break;
             }
         }
 
-        // 战斗结果
-        $victory = $charHp > 0 && $monsterHp <= 0;
-        $loot = [];
-        $experienceGained = 0;
-        $goldGained = 0;
+        $damage = $skillDamage > 0
+            ? (int) ($baseDamage + $skillDamage)
+            : (int) ($baseDamage * ($isCrit ? $charCritDamage : 1));
 
-        if ($victory) {
-            // 计算经验与金币（应用难度奖励倍率）
-            $experienceGained = (int) ($monsterStats['experience'] * $rewardMult);
+        $monsterHp -= $damage;
+        $roundDamageDealt = $damage;
+        $roundDamageTaken = 0;
 
-            // 生成掉落
-            $lootResult = $monster->generateLoot($character->level);
-            $goldGained = (int) (($lootResult['gold'] ?? 0) * $rewardMult);
-
-            // 添加经验和金币
-            $levelUpResult = $character->addExperience($experienceGained);
-            $character->gold += $goldGained;
-
-            // 保存当前HP/Mana
-            $character->current_hp = max(0, $charHp);
-            $character->current_mana = max(0, $currentMana);
-            $character->save();
-
-            // 处理物品掉落
-            if (isset($lootResult['item'])) {
-                $item = $this->createItem($character, $lootResult['item']);
-                if ($item) {
-                    $loot['item'] = $item;
-                } else {
-                    // 背包满了，记录掉落丢失
-                    $loot['item_lost'] = true;
-                    $loot['item_lost_reason'] = '背包已满';
-                }
-            }
-
-            // 处理药水掉落
-            if (isset($lootResult['potion'])) {
-                $potion = $this->createPotion($character, $lootResult['potion']);
-                if ($potion) {
-                    $loot['potion'] = $potion;
-                }
-            }
-
-            // 处理宝石掉落（小概率）
-            if (rand(1, 100) <= 15) { // 15% 掉落率
-                $gem = $this->createGem($character, $character->level);
-                if ($gem) {
-                    $loot['gem'] = $gem;
-                }
-            }
-
-            $loot['gold'] = $goldGained;
-
-            // 自动使用药水
-            $potionUsed = $this->tryAutoUsePotions($character, $charHp, $currentMana, $charStats);
-            if (! empty($potionUsed)) {
-                $loot['potion_used'] = $potionUsed;
-                // 重新获取角色状态（可能已经更新）
-                $charHp = $character->getCurrentHp();
-                $currentMana = $character->getCurrentMana();
-            }
-        } else {
-            // 战败惩罚：损失部分金币
-            $goldLoss = (int) ($character->gold * 0.1);
-            $character->gold -= $goldLoss;
-
-            // 保存当前HP/Mana（战败时至少保留1点HP）
-            $character->current_hp = max(1, $charHp);
-            $character->current_mana = max(0, $currentMana);
-
-            // 战败时自动停止战斗
-            $character->is_fighting = false;
-            $character->save();
+        if ($monsterHp > 0) {
+            $monsterDamage = (int) max(1, $monsterAttack - $charDefense * 0.3);
+            $charHp -= $monsterDamage;
+            $roundDamageTaken = $monsterDamage;
         }
 
-        // 记录战斗日志
-        $combatLog = GameCombatLog::create([
-            'character_id' => $character->id,
-            'map_id' => $map->id,
-            'monster_id' => $monster->id,
-            'damage_dealt' => (int) $totalDamageDealt,
-            'damage_taken' => (int) $totalDamageTaken,
-            'victory' => $victory,
-            'loot_dropped' => ! empty($loot) ? $loot : null,
-            'experience_gained' => $experienceGained,
-            'gold_gained' => $goldGained,
-            'duration_seconds' => $startTime->diffInSeconds(now()),
-        ]);
+        foreach ($skillsUsedThisRound as $entry) {
+            $id = $entry['skill_id'];
+            if (!isset($skillsUsedAggregated[$id])) {
+                $skillsUsedAggregated[$id] = [
+                    'skill_id' => $entry['skill_id'],
+                    'name' => $entry['name'],
+                    'icon' => $entry['icon'] ?? null,
+                    'use_count' => 0,
+                ];
+            }
+            $skillsUsedAggregated[$id]['use_count']++;
+        }
+        $newSkillsAggregated = array_values($skillsUsedAggregated);
 
         return [
-            'victory' => $victory,
-            'defeat' => ! $victory,
-            'auto_stopped' => ! $victory, // 战败时自动停止
-            'monster' => [
-                'name' => $monster->name,
-                'type' => $monster->type,
-                'level' => $monsterLevel,
-            ],
-            'damage_dealt' => (int) $totalDamageDealt,
-            'damage_taken' => (int) $totalDamageTaken,
-            'rounds' => $rounds,
-            'experience_gained' => $experienceGained,
-            'gold_gained' => $goldGained,
-            'loot' => $loot,
-            // 不返回模型对象，而是返回数组（包含 current_hp/current_mana）
-            'character' => $character->toArray(),
-            'combat_log_id' => $combatLog->id,
+            'round_damage_dealt' => $roundDamageDealt,
+            'round_damage_taken' => $roundDamageTaken,
+            'new_monster_hp' => max(0, $monsterHp),
+            'new_char_hp' => $charHp,
+            'new_char_mana' => $currentMana,
+            'victory' => $monsterHp <= 0,
+            'defeat' => $charHp <= 0,
+            'skills_used_this_round' => $skillsUsedThisRound,
+            'new_cooldowns' => $newCooldowns,
+            'new_skills_aggregated' => $newSkillsAggregated,
         ];
     }
 
@@ -425,7 +676,7 @@ class CombatController extends Controller
      */
     private function createItem(GameCharacter $character, array $itemData): ?GameItem
     {
-        // 查找符合条件的物品定义
+        // 查找物品定义
         $definition = GameItemDefinition::query()
             ->where('type', $itemData['type'])
             ->where('required_level', '<=', $itemData['level'])
@@ -433,28 +684,25 @@ class CombatController extends Controller
             ->inRandomOrder()
             ->first();
 
-        if (! $definition) {
+        if (!$definition) {
             return null;
         }
 
         // 检查背包空间
-        $inventoryCount = $character->items()->where('is_in_storage', false)->count();
-        if ($inventoryCount >= InventoryController::INVENTORY_SIZE) {
+        if ($character->items()->where('is_in_storage', false)->count() >= InventoryController::INVENTORY_SIZE) {
             return null;
         }
 
-        // 生成随机属性
-        $stats = [];
         $quality = $itemData['quality'];
         $qualityMultiplier = GameItem::QUALITY_MULTIPLIERS[$quality];
-
+        $stats = [];
         foreach ($definition->base_stats ?? [] as $stat => $value) {
-            $stats[$stat] = (int) ($value * $qualityMultiplier * (0.8 + rand(0, 40) / 100));
+            $stats[$stat] = (int)($value * $qualityMultiplier * (0.8 + rand(0, 40) / 100));
         }
 
-        // 生成词缀（魔法及以上品质）
+        // 词缀与插槽
         $affixes = [];
-        $sockets = 0; // 宝石插槽
+        $sockets = 0;
         if ($quality !== 'common') {
             $affixCount = match ($quality) {
                 'magic' => rand(1, 2),
@@ -463,7 +711,6 @@ class CombatController extends Controller
                 'mythic' => rand(4, 5),
                 default => 0,
             };
-
             $possibleAffixes = [
                 ['attack' => rand(5, 20)],
                 ['defense' => rand(3, 15)],
@@ -472,11 +719,9 @@ class CombatController extends Controller
                 ['max_hp' => rand(20, 100)],
                 ['max_mana' => rand(10, 50)],
             ];
-
             shuffle($possibleAffixes);
             $affixes = array_slice($possibleAffixes, 0, $affixCount);
 
-            // 高品质装备获得宝石插槽（仅装备类型）
             if (in_array($definition->type, ['weapon', 'helmet', 'armor', 'gloves', 'boots', 'belt', 'ring', 'amulet'])) {
                 $sockets = match ($quality) {
                     'magic' => rand(0, 1),
@@ -488,7 +733,6 @@ class CombatController extends Controller
             }
         }
 
-        // 创建物品
         $item = GameItem::create([
             'character_id' => $character->id,
             'definition_id' => $definition->id,
@@ -500,7 +744,6 @@ class CombatController extends Controller
             'slot_index' => $this->findEmptySlot($character),
             'sockets' => $sockets,
         ]);
-
         return $item->load('definition');
     }
 
@@ -509,7 +752,6 @@ class CombatController extends Controller
      */
     private function createPotion(GameCharacter $character, array $potionData): ?GameItem
     {
-        // 暗黑2风格药水系统
         $potionConfigs = [
             'hp' => [
                 'minor' => ['name' => '轻型生命药水', 'restore' => 50],
@@ -524,37 +766,26 @@ class CombatController extends Controller
                 'full' => ['name' => '超重型法力药水', 'restore' => 240],
             ],
         ];
-
-        $type = $potionData['sub_type']; // hp 或 mp
-        $level = $potionData['level']; // minor, light, medium, full
-
-        if (! isset($potionConfigs[$type][$level])) {
-            return null;
-        }
-
+        $type = $potionData['sub_type'];
+        $level = $potionData['level'];
+        if (!isset($potionConfigs[$type][$level])) return null;
         $config = $potionConfigs[$type][$level];
-
-        // 检查背包中是否已有相同药水，可叠加
         $statKey = $type === 'hp' ? 'max_hp' : 'max_mana';
 
+        // 可叠加
         $existingPotion = $character->items()
             ->whereHas('definition', function ($query) use ($type) {
-                $query->where('type', 'potion')
-                    ->where('sub_type', $type);
+                $query->where('type', 'potion')->where('sub_type', $type);
             })
             ->where('is_in_storage', false)
             ->first();
-
         if ($existingPotion) {
-            $existingPotion->quantity += 1;
-            $existingPotion->save();
-
+            $existingPotion->increment('quantity');
             return $existingPotion->load('definition');
         }
 
         // 检查背包空间
-        $inventoryCount = $character->items()->where('is_in_storage', false)->count();
-        if ($inventoryCount >= InventoryController::INVENTORY_SIZE) {
+        if ($character->items()->where('is_in_storage', false)->count() >= InventoryController::INVENTORY_SIZE) {
             return null;
         }
 
@@ -565,7 +796,7 @@ class CombatController extends Controller
             ->whereJsonContains('gem_stats->restore', $config['restore'])
             ->first();
 
-        if (! $definition) {
+        if (!$definition) {
             $definition = GameItemDefinition::create([
                 'name' => $config['name'],
                 'type' => 'potion',
@@ -576,14 +807,13 @@ class CombatController extends Controller
                 'required_dexterity' => 0,
                 'required_energy' => 0,
                 'icon' => 'potion',
-                'description' => "恢复{$config['restore']}点".($type === 'hp' ? '生命值' : '法力值'),
+                'description' => "恢复{$config['restore']}点" . ($type === 'hp' ? '生命值' : '法力值'),
                 'is_active' => true,
                 'sockets' => 0,
                 'gem_stats' => ['restore' => $config['restore']],
             ]);
         }
 
-        // 创建药水物品
         $potion = GameItem::create([
             'character_id' => $character->id,
             'definition_id' => $definition->id,
@@ -604,7 +834,6 @@ class CombatController extends Controller
      */
     private function createGem(GameCharacter $character, int $level): ?GameItem
     {
-        // 宝石属性类型
         $gemTypes = [
             ['attack' => rand(5, 15), 'name' => '攻击宝石'],
             ['defense' => rand(3, 10), 'name' => '防御宝石'],
@@ -618,13 +847,11 @@ class CombatController extends Controller
         $gemStats = $selectedGem;
         unset($gemStats['name']);
 
-        // 检查背包空间
-        $inventoryCount = $character->items()->where('is_in_storage', false)->count();
-        if ($inventoryCount >= InventoryController::INVENTORY_SIZE) {
+        if ($character->items()->where('is_in_storage', false)->count() >= InventoryController::INVENTORY_SIZE) {
             return null;
         }
 
-        // 创建宝石定义（临时创建，实际应用中应该有预设的宝石定义表）
+        // 简单定义，实际应用请以预设表为准
         $definition = GameItemDefinition::create([
             'name' => $selectedGem['name'],
             'type' => 'gem',
@@ -641,7 +868,6 @@ class CombatController extends Controller
             'gem_stats' => $gemStats,
         ]);
 
-        // 创建宝石物品
         $gem = GameItem::create([
             'character_id' => $character->id,
             'definition_id' => $definition->id,
@@ -653,7 +879,6 @@ class CombatController extends Controller
             'slot_index' => $this->findEmptySlot($character),
             'sockets' => 0,
         ]);
-
         return $gem->load('definition');
     }
 
@@ -664,7 +889,7 @@ class CombatController extends Controller
     {
         $used = [];
 
-        // 检查HP药水
+        // HP药水
         if ($character->auto_use_hp_potion) {
             $hpPercent = ($currentHp / $charStats['max_hp']) * 100;
             if ($hpPercent <= $character->hp_potion_threshold) {
@@ -675,13 +900,12 @@ class CombatController extends Controller
                         'name' => $potion->definition->name,
                         'restored' => $potion->definition->base_stats['max_hp'] ?? 0,
                     ];
-                    // 更新当前HP
                     $currentHp = $character->getCurrentHp();
                 }
             }
         }
 
-        // 检查MP药水
+        // MP药水
         if ($character->auto_use_mp_potion) {
             $mpPercent = ($currentMana / $charStats['max_mana']) * 100;
             if ($mpPercent <= $character->mp_potion_threshold) {
@@ -704,15 +928,16 @@ class CombatController extends Controller
      */
     private function findBestPotion(GameCharacter $character, string $type): ?GameItem
     {
+        $statKey = $type === 'hp' ? 'max_hp' : 'max_mana';
         return $character->items()
             ->where('is_in_storage', false)
             ->whereHas('definition', function ($query) use ($type) {
                 $query->where('type', 'potion')
-                    ->where('sub_type', $type);
+                      ->where('sub_type', $type);
             })
             ->with('definition')
             ->get()
-            ->sortByDesc(fn ($item) => $item->definition->base_stats[$type === 'hp' ? 'max_hp' : 'max_mana'] ?? 0)
+            ->sortByDesc(fn($item) => $item->definition->base_stats[$statKey] ?? 0)
             ->first();
     }
 
@@ -732,13 +957,7 @@ class CombatController extends Controller
             $character->restoreMana($manaRestored);
         }
 
-        // 消耗药水
-        if ($potion->quantity > 1) {
-            $potion->quantity--;
-            $potion->save();
-        } else {
-            $potion->delete();
-        }
+        $potion->quantity > 1 ? $potion->decrement('quantity') : $potion->delete();
     }
 
     /**
@@ -753,7 +972,7 @@ class CombatController extends Controller
             ->toArray();
 
         for ($i = 0; $i < InventoryController::INVENTORY_SIZE; $i++) {
-            if (! in_array($i, $usedSlots)) {
+            if (!in_array($i, $usedSlots)) {
                 return $i;
             }
         }
@@ -770,59 +989,50 @@ class CombatController extends Controller
             'item_id' => 'required|integer|exists:game_items,id',
         ]);
 
-        $character = $this->getCharacter($request);
+        try {
+            $character = $this->getCharacter($request);
 
-        // 查找药品
-        $item = $character->items()
-            ->where('id', $validated['item_id'])
-            ->where('is_in_storage', false)
-            ->with('definition')
-            ->first();
+            $item = $character->items()
+                ->where('id', $validated['item_id'])
+                ->where('is_in_storage', false)
+                ->with('definition')
+                ->first();
 
-        if (! $item) {
-            return $this->error('物品不存在');
+            if (!$item) {
+                return $this->error('物品不存在');
+            }
+            if ($item->definition->type !== 'potion') {
+                return $this->error('该物品不是药品');
+            }
+            if ($item->quantity < 1) {
+                return $this->error('药品数量不足');
+            }
+
+            $stats = $item->definition->base_stats ?? [];
+            $hpRestored = $stats['max_hp'] ?? 0;
+            $manaRestored = $stats['max_mana'] ?? 0;
+
+            if ($hpRestored > 0) {
+                $character->restoreHp($hpRestored);
+            }
+            if ($manaRestored > 0) {
+                $character->restoreMana($manaRestored);
+            }
+
+            $item->quantity > 1 ? $item->decrement('quantity') : $item->delete();
+
+            return $this->success([
+                'current_hp' => $character->getCurrentHp(),
+                'current_mana' => $character->getCurrentMana(),
+                'max_hp' => $character->getMaxHp(),
+                'max_mana' => $character->getMaxMana(),
+                'message' => $hpRestored > 0 && $manaRestored > 0
+                    ? "恢复了 {$hpRestored} 点生命值和 {$manaRestored} 点法力值"
+                    : ($hpRestored > 0 ? "恢复了 {$hpRestored} 点生命值" : "恢复了 {$manaRestored} 点法力值"),
+            ], '药品使用成功');
+        } catch (Throwable $e) {
+            return $this->error('使用药品失败', ['error' => $e->getMessage()]);
         }
-
-        // 检查是否为药品
-        if ($item->definition->type !== 'potion') {
-            return $this->error('该物品不是药品');
-        }
-
-        // 检查数量
-        if ($item->quantity < 1) {
-            return $this->error('药品数量不足');
-        }
-
-        // 获取药品效果
-        $stats = $item->definition->base_stats ?? [];
-        $hpRestored = $stats['max_hp'] ?? 0;
-        $manaRestored = $stats['max_mana'] ?? 0;
-
-        // 恢复HP/Mana
-        if ($hpRestored > 0) {
-            $character->restoreHp($hpRestored);
-        }
-        if ($manaRestored > 0) {
-            $character->restoreMana($manaRestored);
-        }
-
-        // 消耗药品
-        if ($item->quantity > 1) {
-            $item->quantity--;
-            $item->save();
-        } else {
-            $item->delete();
-        }
-
-        return $this->success([
-            'current_hp' => $character->getCurrentHp(),
-            'current_mana' => $character->getCurrentMana(),
-            'max_hp' => $character->getMaxHp(),
-            'max_mana' => $character->getMaxMana(),
-            'message' => $hpRestored > 0 && $manaRestored > 0
-                ? "恢复了 {$hpRestored} 点生命值和 {$manaRestored} 点法力值"
-                : ($hpRestored > 0 ? "恢复了 {$hpRestored} 点生命值" : "恢复了 {$manaRestored} 点法力值"),
-        ], '药品使用成功');
     }
 
     /**
@@ -830,7 +1040,7 @@ class CombatController extends Controller
      */
     private function getCharacter(Request $request): GameCharacter
     {
-        $characterId = $request->query('character_id') ?: $request->input('character_id');
+        $characterId = $request->query('character_id') ?? $request->input('character_id');
 
         $query = GameCharacter::query()
             ->where('user_id', $request->user()->id);

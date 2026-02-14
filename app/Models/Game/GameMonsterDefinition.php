@@ -131,13 +131,12 @@ class GameMonsterDefinition extends Model
 
         $typeMultiplier = self::TYPE_MULTIPLIERS[$this->type] ?? 1.0;
 
-        // 金币掉落概率逻辑
-        $goldDropChance = $dropTable['gold_chance'] ?? 0.7; // 默认70%的掉落概率
-        if ($this->rollChance($goldDropChance)) {
-            // 仅在成功概率判定时生成金币
-            $goldBase = $dropTable['gold_base'] ?? max(1, $this->level * 10); // 至少1金币
-            $goldRange = $dropTable['gold_range'] ?? max(0, $this->level * 5);
-            $loot['gold'] = random_int($goldBase, $goldBase + $goldRange);
+        // 铜币掉落：drop_table 的 gold_base / gold_range 直接表示铜币区间（如 8、7 表示 8～15 铜）
+        $copperChance = $dropTable['gold_chance'] ?? 0.7;
+        if ($this->rollChance($copperChance)) {
+            $base = (int) ($dropTable['gold_base'] ?? max(1, $this->level));
+            $range = (int) ($dropTable['gold_range'] ?? max(0, (int) ($this->level / 2)));
+            $loot['copper'] = random_int($base, $base + $range);
         }
 
         // 药水掉落（暗黑2风格：简单直接）

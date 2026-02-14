@@ -13,8 +13,6 @@ class GameMapDefinition extends Model
         'min_level',
         'max_level',
         'monster_ids',
-        'has_teleport',
-        'teleport_cost',
         'background',
         'description',
         'is_active',
@@ -24,7 +22,6 @@ class GameMapDefinition extends Model
     {
         return [
             'monster_ids' => 'array',
-            'has_teleport' => 'boolean',
             'is_active' => 'boolean',
         ];
     }

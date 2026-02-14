@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GameItem extends GameItemDefinition
 {
+    protected $table = 'game_items';
+
     protected $fillable = [
         'character_id',
         'definition_id',
