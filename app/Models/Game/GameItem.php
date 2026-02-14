@@ -3,6 +3,7 @@
 namespace App\Models\Game;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GameItem extends GameItemDefinition
 {
@@ -15,6 +16,7 @@ class GameItem extends GameItemDefinition
         'is_in_storage',
         'quantity',
         'slot_index',
+        'sockets',
     ];
 
     protected function casts(): array
@@ -67,14 +69,31 @@ class GameItem extends GameItemDefinition
     }
 
     /**
-     * 获取完整属性（基础 + 随机词缀）
+     * 获取装备上的宝石
+     */
+    public function gems(): HasMany
+    {
+        return $this->hasMany(GameItemGem::class, 'item_id')->orderBy('socket_index');
+    }
+
+    /**
+     * 获取完整属性（基础 + 随机词缀 + 宝石）
      */
     public function getTotalStats(): array
     {
         $stats = $this->stats ?? [];
 
+        // 添加随机词缀属性
         foreach ($this->affixes ?? [] as $affix) {
             foreach ($affix as $key => $value) {
+                $stats[$key] = ($stats[$key] ?? 0) + $value;
+            }
+        }
+
+        // 添加宝石属性
+        foreach ($this->gems ?? [] as $gem) {
+            $gemStats = $gem->getGemStats();
+            foreach ($gemStats as $key => $value) {
                 $stats[$key] = ($stats[$key] ?? 0) + $value;
             }
         }

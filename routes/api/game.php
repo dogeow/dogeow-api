@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Game\CharacterController;
 use App\Http\Controllers\Api\Game\CombatController;
+use App\Http\Controllers\Api\Game\GemController;
 use App\Http\Controllers\Api\Game\InventoryController;
 use App\Http\Controllers\Api\Game\MapController;
 use App\Http\Controllers\Api\Game\ShopController;
@@ -39,6 +40,11 @@ Route::prefix('rpg')->group(function () {
     // 技能相关
     Route::get('/skills', [SkillController::class, 'index']);
     Route::post('/skills/learn', [SkillController::class, 'learn']);
+
+    // 宝石相关
+    Route::post('/gems/socket', [GemController::class, 'socket']);
+    Route::post('/gems/unsocket', [GemController::class, 'unsocket']);
+    Route::get('/gems', [GemController::class, 'getGems']);
 
     // 地图相关
     Route::get('/maps', [MapController::class, 'index']);

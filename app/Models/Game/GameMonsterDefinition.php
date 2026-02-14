@@ -34,6 +34,7 @@ class GameMonsterDefinition extends Model
 
     public const TYPES = ['normal', 'elite', 'boss'];
 
+    // 类型倍率
     public const TYPE_MULTIPLIERS = [
         'normal' => 0.1,
         'elite' => 0.25,
@@ -53,9 +54,11 @@ class GameMonsterDefinition extends Model
      */
     public function getHpAtLevel(int $level): int
     {
-        $baseMultiplier = self::TYPE_MULTIPLIERS[$this->type] ?? 1.0;
-
-        return (int) (($this->hp_base + $this->hp_per_level * ($level - $this->level)) * $baseMultiplier);
+        return $this->calculateStatAtLevel(
+            $level,
+            $this->hp_base,
+            $this->hp_per_level
+        );
     }
 
     /**
@@ -63,9 +66,11 @@ class GameMonsterDefinition extends Model
      */
     public function getAttackAtLevel(int $level): int
     {
-        $baseMultiplier = self::TYPE_MULTIPLIERS[$this->type] ?? 1.0;
-
-        return (int) (($this->attack_base + $this->attack_per_level * ($level - $this->level)) * $baseMultiplier);
+        return $this->calculateStatAtLevel(
+            $level,
+            $this->attack_base,
+            $this->attack_per_level
+        );
     }
 
     /**
@@ -73,9 +78,11 @@ class GameMonsterDefinition extends Model
      */
     public function getDefenseAtLevel(int $level): int
     {
-        $baseMultiplier = self::TYPE_MULTIPLIERS[$this->type] ?? 1.0;
-
-        return (int) (($this->defense_base + $this->defense_per_level * ($level - $this->level)) * $baseMultiplier);
+        return $this->calculateStatAtLevel(
+            $level,
+            $this->defense_base,
+            $this->defense_per_level
+        );
     }
 
     /**
@@ -83,9 +90,22 @@ class GameMonsterDefinition extends Model
      */
     public function getExperienceAtLevel(int $level): int
     {
-        $baseMultiplier = self::TYPE_MULTIPLIERS[$this->type] ?? 1.0;
+        return $this->calculateStatAtLevel(
+            $level,
+            $this->experience_base,
+            $this->experience_per_level
+        );
+    }
 
-        return (int) (($this->experience_base + $this->experience_per_level * ($level - $this->level)) * $baseMultiplier);
+    /**
+     * 通用方法：获取指定等级的属性
+     */
+    private function calculateStatAtLevel(int $level, float $base, float $perLevel): int
+    {
+        $baseMultiplier = self::TYPE_MULTIPLIERS[$this->type] ?? 1.0;
+        $computedLevel = max($level, $this->level); // 防止负数等级
+
+        return (int) (($base + $perLevel * ($computedLevel - $this->level)) * $baseMultiplier);
     }
 
     /**
@@ -109,23 +129,35 @@ class GameMonsterDefinition extends Model
         $loot = [];
         $dropTable = $this->drop_table ?? [];
 
-        // 基础金币掉落
-        $goldBase = $dropTable['gold_base'] ?? ($this->level * 10);
-        $goldRange = $dropTable['gold_range'] ?? ($this->level * 5);
-        $loot['gold'] = rand($goldBase, $goldBase + $goldRange);
-
         $typeMultiplier = self::TYPE_MULTIPLIERS[$this->type] ?? 1.0;
 
-        // 药水掉落概率（比装备高）
-        $potionDropChance = ($dropTable['potion_chance'] ?? 0.15) * $typeMultiplier;
-        if (rand(1, 100) <= $potionDropChance * 100) {
-            // 随机选择药水类型
-            $potionType = rand(1, 100) <= 60 ? 'hp' : 'mp';
+        // 金币掉落概率逻辑
+        $goldDropChance = $dropTable['gold_chance'] ?? 0.7; // 默认70%的掉落概率
+        if ($this->rollChance($goldDropChance)) {
+            // 仅在成功概率判定时生成金币
+            $goldBase = $dropTable['gold_base'] ?? max(1, $this->level * 10); // 至少1金币
+            $goldRange = $dropTable['gold_range'] ?? max(0, $this->level * 5);
+            $loot['gold'] = random_int($goldBase, $goldBase + $goldRange);
+        }
+
+        // 药水掉落（暗黑2风格：简单直接）
+        $potionDropChance = ($dropTable['potion_chance'] ?? 0.25) * $typeMultiplier;
+        if ($this->rollChance($potionDropChance)) {
+            // 简单药水系统：hp 或 mp
+            $potionType = $this->weightedRandom(['hp' => 0.6, 'mp' => 0.4]);
+
+            // 根据怪物等级决定药水等级
+            $potionLevel = match (true) {
+                $this->level <= 10 => 'minor',      // 轻型药水
+                $this->level <= 30 => 'light',       // 普通药水
+                $this->level <= 60 => 'medium',      // 重型药水
+                default => 'full',                     // 超重型药水
+            };
+
             $loot['potion'] = [
                 'type' => 'potion',
                 'sub_type' => $potionType,
-                'quality' => 'common',
-                'level' => min($characterLevel, $this->level + 2),
+                'level' => $potionLevel,
             ];
         }
 
@@ -133,7 +165,7 @@ class GameMonsterDefinition extends Model
         $dropChance = $dropTable['item_chance'] ?? 0.1;
         $actualDropChance = $dropChance * $typeMultiplier;
 
-        if (rand(1, 100) <= $actualDropChance * 100) {
+        if ($this->rollChance($actualDropChance)) {
             // 随机选择物品类型
             $itemTypes = $dropTable['item_types'] ?? ['weapon', 'helmet', 'armor', 'gloves', 'boots'];
             $itemType = $itemTypes[array_rand($itemTypes)];
@@ -156,7 +188,7 @@ class GameMonsterDefinition extends Model
      */
     private function generateItemQuality(float $typeMultiplier): string
     {
-        $roll = rand(1, 100) * $typeMultiplier;
+        $roll = mt_rand(1, 10000) / 100 * $typeMultiplier;
 
         return match (true) {
             $roll >= 99 => 'mythic',
@@ -165,5 +197,35 @@ class GameMonsterDefinition extends Model
             $roll >= 60 => 'magic',
             default => 'common',
         };
+    }
+
+    /**
+     * 随机概率判断
+     */
+    private function rollChance(float $chance): bool
+    {
+        // $chance是0~1，例如0.12就是12%概率
+        return mt_rand() / mt_getrandmax() < $chance;
+    }
+
+    /**
+     * 加权随机选择
+     */
+    private function weightedRandom(array $weights)
+    {
+        $sum = array_sum($weights);
+        if ($sum <= 0) {
+            return array_key_first($weights); // fallback
+        }
+        $rand = mt_rand() / mt_getrandmax() * $sum;
+        $cumulative = 0;
+        foreach ($weights as $key => $weight) {
+            $cumulative += $weight;
+            if ($rand <= $cumulative) {
+                return $key;
+            }
+        }
+
+        return array_key_last($weights); // fallback
     }
 }

@@ -10,17 +10,7 @@ class GameCharacterMap extends Model
     protected $fillable = [
         'character_id',
         'map_id',
-        'unlocked',
-        'teleport_unlocked',
     ];
-
-    protected function casts(): array
-    {
-        return [
-            'unlocked' => 'boolean',
-            'teleport_unlocked' => 'boolean',
-        ];
-    }
 
     /**
      * 获取所属角色

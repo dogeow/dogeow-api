@@ -275,12 +275,14 @@ class CombatController extends Controller
             foreach ($activeSkills as $charSkill) {
                 $skillId = $charSkill->skill_id;
                 $cooldownEnd = $skillCooldowns[$skillId] ?? 0;
+                $skill = $charSkill->skill;
 
-                if ($currentMana >= $charSkill->getManaCost() && $cooldownEnd <= $rounds) {
-                    $skillDamage = $charSkill->getDamage();
-                    $currentMana -= $charSkill->getManaCost();
-                    $skillCooldowns[$skillId] = $rounds + (int) $charSkill->skill->cooldown;
-                    $skillUsed = $charSkill->skill->name;
+                // 使用技能定义中的基础伤害和魔法消耗
+                if ($currentMana >= $skill->mana_cost && $cooldownEnd <= $rounds) {
+                    $skillDamage = $skill->damage;
+                    $currentMana -= $skill->mana_cost;
+                    $skillCooldowns[$skillId] = $rounds + (int) $skill->cooldown;
+                    $skillUsed = $skill->name;
                     break;
                 }
             }
@@ -343,6 +345,14 @@ class CombatController extends Controller
                 $potion = $this->createPotion($character, $lootResult['potion']);
                 if ($potion) {
                     $loot['potion'] = $potion;
+                }
+            }
+
+            // 处理宝石掉落（小概率）
+            if (rand(1, 100) <= 15) { // 15% 掉落率
+                $gem = $this->createGem($character, $character->level);
+                if ($gem) {
+                    $loot['gem'] = $gem;
                 }
             }
 
@@ -439,6 +449,7 @@ class CombatController extends Controller
 
         // 生成词缀（魔法及以上品质）
         $affixes = [];
+        $sockets = 0; // 宝石插槽
         if ($quality !== 'common') {
             $affixCount = match ($quality) {
                 'magic' => rand(1, 2),
@@ -459,6 +470,17 @@ class CombatController extends Controller
 
             shuffle($possibleAffixes);
             $affixes = array_slice($possibleAffixes, 0, $affixCount);
+
+            // 高品质装备获得宝石插槽（仅装备类型）
+            if (in_array($definition->type, ['weapon', 'helmet', 'armor', 'gloves', 'boots', 'belt', 'ring', 'amulet'])) {
+                $sockets = match ($quality) {
+                    'magic' => rand(0, 1),
+                    'rare' => rand(1, 2),
+                    'legendary' => rand(2, 3),
+                    'mythic' => rand(3, 4),
+                    default => 0,
+                };
+            }
         }
 
         // 创建物品
@@ -471,32 +493,49 @@ class CombatController extends Controller
             'is_in_storage' => false,
             'quantity' => 1,
             'slot_index' => $this->findEmptySlot($character),
+            'sockets' => $sockets,
         ]);
 
         return $item->load('definition');
     }
 
     /**
-     * 创建掉落药水
+     * 创建掉落药水（暗黑2风格：简单分级）
      */
     private function createPotion(GameCharacter $character, array $potionData): ?GameItem
     {
-        // 查找符合条件的药水定义
-        $definition = GameItemDefinition::query()
-            ->where('type', 'potion')
-            ->where('sub_type', $potionData['sub_type'])
-            ->where('required_level', '<=', $potionData['level'])
-            ->where('is_active', true)
-            ->orderByDesc('required_level')
-            ->first();
+        // 暗黑2风格药水系统
+        $potionConfigs = [
+            'hp' => [
+                'minor' => ['name' => '轻型生命药水', 'restore' => 50],
+                'light' => ['name' => '生命药水', 'restore' => 100],
+                'medium' => ['name' => '重型生命药水', 'restore' => 200],
+                'full' => ['name' => '超重型生命药水', 'restore' => 400],
+            ],
+            'mp' => [
+                'minor' => ['name' => '轻型法力药水', 'restore' => 30],
+                'light' => ['name' => '法力药水', 'restore' => 60],
+                'medium' => ['name' => '重型法力药水', 'restore' => 120],
+                'full' => ['name' => '超重型法力药水', 'restore' => 240],
+            ],
+        ];
 
-        if (! $definition) {
+        $type = $potionData['sub_type']; // hp 或 mp
+        $level = $potionData['level']; // minor, light, medium, full
+
+        if (! isset($potionConfigs[$type][$level])) {
             return null;
         }
 
-        // 检查背包中是否已有相同药水，如果有则叠加
+        $config = $potionConfigs[$type][$level];
+
+        // 检查背包中是否已有相同药水，可叠加
+        $statKey = $type === 'hp' ? 'max_hp' : 'max_mana';
+
         $existingPotion = $character->items()
-            ->where('definition_id', $definition->id)
+            ->where('type', 'potion')
+            ->where('sub_type', $type)
+            ->whereJsonContains('gem_stats->restore', $config['restore'])
             ->where('is_in_storage', false)
             ->first();
 
@@ -513,7 +552,32 @@ class CombatController extends Controller
             return null;
         }
 
-        // 创建新药水
+        // 查找或创建药水定义
+        $definition = GameItemDefinition::query()
+            ->where('type', 'potion')
+            ->where('sub_type', $type)
+            ->whereJsonContains('gem_stats->restore', $config['restore'])
+            ->first();
+
+        if (! $definition) {
+            $definition = GameItemDefinition::create([
+                'name' => $config['name'],
+                'type' => 'potion',
+                'sub_type' => $type,
+                'base_stats' => [$statKey => $config['restore']],
+                'required_level' => 1,
+                'required_strength' => 0,
+                'required_dexterity' => 0,
+                'required_energy' => 0,
+                'icon' => 'potion',
+                'description' => "恢复{$config['restore']}点".($type === 'hp' ? '生命值' : '法力值'),
+                'is_active' => true,
+                'sockets' => 0,
+                'gem_stats' => ['restore' => $config['restore']],
+            ]);
+        }
+
+        // 创建药水物品
         $potion = GameItem::create([
             'character_id' => $character->id,
             'definition_id' => $definition->id,
@@ -523,9 +587,68 @@ class CombatController extends Controller
             'is_in_storage' => false,
             'quantity' => 1,
             'slot_index' => $this->findEmptySlot($character),
+            'sockets' => 0,
         ]);
 
         return $potion->load('definition');
+    }
+
+    /**
+     * 创建掉落宝石
+     */
+    private function createGem(GameCharacter $character, int $level): ?GameItem
+    {
+        // 宝石属性类型
+        $gemTypes = [
+            ['attack' => rand(5, 15), 'name' => '攻击宝石'],
+            ['defense' => rand(3, 10), 'name' => '防御宝石'],
+            ['max_hp' => rand(20, 50), 'name' => '生命宝石'],
+            ['max_mana' => rand(10, 30), 'name' => '法力宝石'],
+            ['crit_rate' => rand(1, 3) / 100, 'name' => '暴击宝石'],
+            ['crit_damage' => rand(5, 15) / 100, 'name' => '暴伤宝石'],
+        ];
+
+        $selectedGem = $gemTypes[array_rand($gemTypes)];
+        $gemStats = $selectedGem;
+        unset($gemStats['name']);
+
+        // 检查背包空间
+        $inventoryCount = $character->items()->where('is_in_storage', false)->count();
+        if ($inventoryCount >= InventoryController::INVENTORY_SIZE) {
+            return null;
+        }
+
+        // 创建宝石定义（临时创建，实际应用中应该有预设的宝石定义表）
+        $definition = GameItemDefinition::create([
+            'name' => $selectedGem['name'],
+            'type' => 'gem',
+            'sub_type' => null,
+            'base_stats' => [],
+            'required_level' => 1,
+            'required_strength' => 0,
+            'required_dexterity' => 0,
+            'required_energy' => 0,
+            'icon' => 'gem',
+            'description' => '可镶嵌到装备上，提升属性',
+            'is_active' => true,
+            'sockets' => 0,
+            'gem_stats' => $gemStats,
+        ]);
+
+        // 创建宝石物品
+        $gem = GameItem::create([
+            'character_id' => $character->id,
+            'definition_id' => $definition->id,
+            'quality' => 'common',
+            'stats' => [],
+            'affixes' => [],
+            'is_in_storage' => false,
+            'quantity' => 1,
+            'slot_index' => $this->findEmptySlot($character),
+            'sockets' => 0,
+        ]);
+
+        return $gem->load('definition');
     }
 
     /**

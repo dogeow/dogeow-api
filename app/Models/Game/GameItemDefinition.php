@@ -18,6 +18,8 @@ class GameItemDefinition extends Model
         'icon',
         'description',
         'is_active',
+        'sockets',
+        'gem_stats',
     ];
 
     protected function casts(): array
@@ -25,6 +27,7 @@ class GameItemDefinition extends Model
         return [
             'base_stats' => 'array',
             'is_active' => 'boolean',
+            'gem_stats' => 'array',
         ];
     }
 
@@ -38,6 +41,7 @@ class GameItemDefinition extends Model
         'ring',
         'amulet',
         'potion',
+        'gem',
     ];
 
     public const SUB_TYPES = [

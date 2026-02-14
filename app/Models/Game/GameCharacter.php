@@ -160,6 +160,7 @@ class GameCharacter extends Model
     // 每级属性点奖励
     public const STAT_POINTS_PER_LEVEL = 5;
 
+    // 技能点数
     public const SKILL_POINTS_PER_LEVEL = 1;
 
     // 职业基础属性
@@ -319,12 +320,12 @@ class GameCharacter extends Model
      */
     public function getCritRate(): float
     {
-        $baseCrit = $this->dexterity * 0.1;
+        $baseCrit = $this->dexterity * 0.01; // 每点敏捷增加1%暴击率
 
         // 加上装备加成
         $equipmentBonus = $this->getEquipmentBonus('crit_rate');
 
-        return min(0.75, $baseCrit + $equipmentBonus);
+        return min(0.10, $baseCrit + $equipmentBonus); // 最高10%暴击率
     }
 
     /**

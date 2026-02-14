@@ -54,8 +54,6 @@ class MapController extends Controller
         if (! $progress) {
             $character->mapProgress()->create([
                 'map_id' => $mapId,
-                'unlocked' => true,
-                'teleport_unlocked' => false,
             ]);
         }
 
@@ -78,11 +76,9 @@ class MapController extends Controller
         $character = $this->getCharacter($request);
         $map = GameMapDefinition::findOrFail($mapId);
 
-        // 检查传送点是否已解锁
-        $progress = $character->mapProgress()->where('map_id', $mapId)->first();
-
-        if (! $progress || ! $progress->teleport_unlocked) {
-            return $this->error('该地图的传送点尚未解锁');
+        // 检查等级要求
+        if (! $map->canEnter($character->level)) {
+            return $this->error("需要等级 {$map->min_level} 才能传送到该地图");
         }
 
         // 检查金币
@@ -103,38 +99,16 @@ class MapController extends Controller
     }
 
     /**
-     * 解锁地图
+     * 解锁地图（已废弃 - 地图无需解锁）
+     *
+     * @deprecated 地图系统不再需要解锁机制
      */
     public function unlock(Request $request, int $mapId): JsonResponse
     {
-        $character = $this->getCharacter($request);
+        // 地图无需解锁，直接返回成功
         $map = GameMapDefinition::findOrFail($mapId);
 
-        // 检查等级要求
-        if (! $map->canEnter($character->level)) {
-            return $this->error("需要等级 {$map->min_level} 才能解锁该地图");
-        }
-
-        // 检查是否已解锁
-        $progress = $character->mapProgress()->where('map_id', $mapId)->first();
-
-        if ($progress && $progress->unlocked) {
-            return $this->error('该地图已解锁');
-        }
-
-        // 创建或更新进度
-        if ($progress) {
-            $progress->unlocked = true;
-            $progress->save();
-        } else {
-            $character->mapProgress()->create([
-                'map_id' => $mapId,
-                'unlocked' => true,
-                'teleport_unlocked' => false,
-            ]);
-        }
-
-        return $this->success([], "已解锁 {$map->name}");
+        return $this->success([], "地图 {$map->name} 无需解锁");
     }
 
     /**

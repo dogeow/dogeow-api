@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\Game;
 
 use App\Http\Controllers\Controller;
 use App\Models\Game\GameCharacter;
-use App\Models\Game\GameCharacterSkill;
 use App\Models\Game\GameSkillDefinition;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -65,90 +64,18 @@ class SkillController extends Controller
             return $this->error('已经学习了该技能');
         }
 
-        // 学习技能（直接学习到最高等级）
-        $characterSkill = $character->skills()->create([
+        // 学习技能
+        $character->skills()->create([
             'skill_id' => $skill->id,
-            'level' => $skill->max_level,
         ]);
 
         $character->skill_points--;
         $character->save();
 
         return $this->success([
-            'character_skill' => $characterSkill->load('skill'),
+            'character' => $character,
             'skill_points' => $character->skill_points,
         ], '技能学习成功');
-    }
-
-    /**
-     * 装备技能到技能槽
-     */
-    public function slot(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'skill_id' => 'required|integer|exists:game_character_skills,id',
-            'slot_index' => 'required|integer|min:1|max:6',
-        ]);
-
-        $character = $this->getCharacter($request);
-
-        $characterSkill = GameCharacterSkill::query()
-            ->where('id', $validated['skill_id'])
-            ->where('character_id', $character->id)
-            ->first();
-
-        if (! $characterSkill) {
-            return $this->error('技能不存在');
-        }
-
-        // 检查技能类型（只有主动技能可以装备到槽位）
-        if ($characterSkill->skill->type !== 'active') {
-            return $this->error('只有主动技能可以装备');
-        }
-
-        // 检查槽位是否已被占用
-        $existingSkill = $character->skills()
-            ->where('slot_index', $validated['slot_index'])
-            ->where('id', '!=', $characterSkill->id)
-            ->first();
-
-        if ($existingSkill) {
-            $existingSkill->slot_index = null;
-            $existingSkill->save();
-        }
-
-        $characterSkill->slot_index = $validated['slot_index'];
-        $characterSkill->save();
-
-        return $this->success([
-            'character_skill' => $characterSkill->fresh('skill'),
-        ], '技能装备成功');
-    }
-
-    /**
-     * 卸下技能
-     */
-    public function unslot(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'skill_id' => 'required|integer|exists:game_character_skills,id',
-        ]);
-
-        $character = $this->getCharacter($request);
-
-        $characterSkill = GameCharacterSkill::query()
-            ->where('id', $validated['skill_id'])
-            ->where('character_id', $character->id)
-            ->first();
-
-        if (! $characterSkill) {
-            return $this->error('技能不存在');
-        }
-
-        $characterSkill->slot_index = null;
-        $characterSkill->save();
-
-        return $this->success([], '技能卸下成功');
     }
 
     /**

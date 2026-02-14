@@ -92,12 +92,13 @@ class CharacterController extends Controller
             $character->equipment()->create(['slot' => $slot]);
         }
 
-        // 解锁初始地图
-        $character->mapProgress()->create([
-            'map_id' => 1,
-            'unlocked' => true,
-            'teleport_unlocked' => true,
-        ]);
+        // 解锁初始地图 - 使用数据库中实际存在的第一张地图
+        $firstMap = \App\Models\Game\GameMapDefinition::orderBy('id')->first();
+        if ($firstMap) {
+            $character->mapProgress()->create([
+                'map_id' => $firstMap->id,
+            ]);
+        }
 
         // 给予初始装备
         $starterItems = [
@@ -162,7 +163,10 @@ class CharacterController extends Controller
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 
-        $totalPoints = array_sum($validated);
+        $totalPoints = ($validated['strength'] ?? 0) +
+                     ($validated['dexterity'] ?? 0) +
+                     ($validated['vitality'] ?? 0) +
+                     ($validated['energy'] ?? 0);
 
         if ($totalPoints > $character->stat_points) {
             return $this->error('属性点不足');
