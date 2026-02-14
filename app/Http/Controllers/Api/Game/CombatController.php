@@ -533,9 +533,10 @@ class CombatController extends Controller
         $statKey = $type === 'hp' ? 'max_hp' : 'max_mana';
 
         $existingPotion = $character->items()
-            ->where('type', 'potion')
-            ->where('sub_type', $type)
-            ->whereJsonContains('gem_stats->restore', $config['restore'])
+            ->whereHas('definition', function ($query) use ($type) {
+                $query->where('type', 'potion')
+                    ->where('sub_type', $type);
+            })
             ->where('is_in_storage', false)
             ->first();
 

@@ -12,42 +12,165 @@ use Illuminate\Http\Request;
 class ShopController extends Controller
 {
     /**
-     * 获取商店物品列表
+     * 获取商店物品列表（随机物品，随机属性）
      */
     public function index(Request $request): JsonResponse
     {
         $character = $this->getCharacter($request);
 
-        // 获取所有可购买的物品定义
-        $items = GameItemDefinition::query()
+        // 获取所有符合等级要求的药品（固定显示）
+        $fixedPotions = GameItemDefinition::query()
             ->where('is_active', true)
+            ->where('type', 'potion')
+            ->where('required_level', '<=', $character->level)
+            ->orderBy('required_level')
+            ->get();
+
+        // 为每个药品生成随机属性和价格
+        $fixedPotionItems = $fixedPotions->map(function ($definition) {
+            $randomStats = $this->generateRandomStats($definition);
+
+            return [
+                'id' => $definition->id,
+                'name' => $definition->name,
+                'type' => $definition->type,
+                'sub_type' => $definition->sub_type,
+                'base_stats' => $randomStats,
+                'required_level' => $definition->required_level,
+                'required_strength' => $definition->required_strength,
+                'required_dexterity' => $definition->required_dexterity,
+                'required_energy' => $definition->required_energy,
+                'icon' => $definition->icon,
+                'description' => $definition->description,
+                'buy_price' => $this->calculateBuyPrice($definition, $randomStats),
+            ];
+        });
+
+        // 获取所有非药品的物品定义
+        $equipmentDefinitions = GameItemDefinition::query()
+            ->where('is_active', true)
+            ->where('type', '!=', 'potion')
             ->orderBy('type')
             ->orderBy('required_level')
             ->get();
 
-        // 为每个物品计算价格
-        $shopItems = $items->map(function ($item) {
+        // 随机选择 6-12 件装备
+        $shopSize = rand(6, 12);
+        $selectedEquipments = $equipmentDefinitions->shuffle()->take($shopSize);
+
+        // 为每个装备生成随机属性和价格
+        $randomEquipmentItems = $selectedEquipments->map(function ($definition) {
+            $randomStats = $this->generateRandomStats($definition);
+
             return [
-                'id' => $item->id,
-                'name' => $item->name,
-                'type' => $item->type,
-                'sub_type' => $item->sub_type,
-                'base_stats' => $item->base_stats,
-                'required_level' => $item->required_level,
-                'required_strength' => $item->required_strength,
-                'required_dexterity' => $item->required_dexterity,
-                'required_energy' => $item->required_energy,
-                'icon' => $item->icon,
-                'description' => $item->description,
-                'buy_price' => $this->calculateBuyPrice($item),
-                'sell_price' => $this->calculateSellPrice($item),
+                'id' => $definition->id,
+                'name' => $definition->name,
+                'type' => $definition->type,
+                'sub_type' => $definition->sub_type,
+                'base_stats' => $randomStats,
+                'required_level' => $definition->required_level,
+                'required_strength' => $definition->required_strength,
+                'required_dexterity' => $definition->required_dexterity,
+                'required_energy' => $definition->required_energy,
+                'icon' => $definition->icon,
+                'description' => $definition->description,
+                'buy_price' => $this->calculateBuyPrice($definition, $randomStats),
             ];
         });
+
+        // 合并固定药品和随机装备
+        $shopItems = $fixedPotionItems->concat($randomEquipmentItems);
 
         return $this->success([
             'items' => $shopItems,
             'player_gold' => $character->gold,
         ]);
+    }
+
+    /**
+     * 生成随机属性
+     */
+    private function generateRandomStats(GameItemDefinition $definition): array
+    {
+        $stats = [];
+        $type = $definition->type;
+
+        // 根据物品类型生成不同的随机属性
+        switch ($type) {
+            case 'weapon':
+                $stats['attack'] = rand(5, 15) + $definition->required_level * 2;
+                if (rand(1, 100) <= 30) {
+                    $stats['crit_rate'] = rand(1, 10) / 100;
+                }
+                if (rand(1, 100) <= 20) {
+                    $stats['crit_damage'] = rand(20, 50);
+                }
+                break;
+
+            case 'helmet':
+            case 'armor':
+                $stats['defense'] = rand(3, 10) + $definition->required_level;
+                $stats['max_hp'] = rand(10, 30) + $definition->required_level * 5;
+                if (rand(1, 100) <= 25) {
+                    $stats['crit_rate'] = rand(1, 5) / 100;
+                }
+                break;
+
+            case 'gloves':
+                $stats['attack'] = rand(2, 6) + $definition->required_level;
+                $stats['crit_rate'] = rand(2, 8) / 100;
+                break;
+
+            case 'boots':
+                $stats['defense'] = rand(1, 5) + $definition->required_level;
+                $stats['max_hp'] = rand(5, 20) + $definition->required_level * 3;
+                if (rand(1, 100) <= 30) {
+                    $stats['dexterity'] = rand(1, 3);
+                }
+                break;
+
+            case 'belt':
+                $stats['max_hp'] = rand(15, 40) + $definition->required_level * 4;
+                $stats['max_mana'] = rand(10, 30) + $definition->required_level * 3;
+                break;
+
+            case 'ring':
+                $ringStats = ['attack', 'defense', 'max_hp', 'max_mana', 'crit_rate', 'strength', 'dexterity', 'energy'];
+                $selectedStat = $ringStats[array_rand($ringStats)];
+                if ($selectedStat === 'crit_rate') {
+                    $stats[$selectedStat] = rand(1, 8) / 100;
+                } else {
+                    $stats[$selectedStat] = rand(3, 12) + $definition->required_level * 2;
+                }
+                // 戒指可能有两条属性
+                if (rand(1, 100) <= 40) {
+                    $secondStat = $ringStats[array_rand($ringStats)];
+                    if ($secondStat === 'crit_rate') {
+                        $stats[$secondStat] = rand(1, 5) / 100;
+                    } else {
+                        $stats[$secondStat] = rand(2, 8) + $definition->required_level;
+                    }
+                }
+                break;
+
+            case 'amulet':
+                $stats['max_hp'] = rand(20, 50) + $definition->required_level * 5;
+                $stats['max_mana'] = rand(15, 40) + $definition->required_level * 4;
+                if (rand(1, 100) <= 30) {
+                    $stats['defense'] = rand(5, 15);
+                }
+                break;
+
+            case 'potion':
+                $potionTypes = ['hp', 'mp'];
+                $potionType = $potionTypes[array_rand($potionTypes)];
+                $restoreAmount = rand(30, 100) + $definition->required_level * 10;
+                $stats[$potionType === 'hp' ? 'max_hp' : 'max_mana'] = $restoreAmount;
+                $stats['restore'] = $restoreAmount;
+                break;
+        }
+
+        return $stats;
     }
 
     /**
@@ -74,8 +197,11 @@ class ShopController extends Controller
             return $this->error("需要等级 {$definition->required_level}");
         }
 
+        // 生成随机属性（与商店显示一致）
+        $randomStats = $this->generateRandomStats($definition);
+
         // 计算总价
-        $totalPrice = $this->calculateBuyPrice($definition) * $quantity;
+        $totalPrice = $this->calculateBuyPrice($definition, $randomStats) * $quantity;
 
         // 检查金币是否足够
         if ($character->gold < $totalPrice) {
@@ -109,7 +235,7 @@ class ShopController extends Controller
                     'character_id' => $character->id,
                     'definition_id' => $definition->id,
                     'quality' => 'common',
-                    'stats' => $definition->base_stats,
+                    'stats' => $randomStats,
                     'affixes' => [],
                     'is_in_storage' => false,
                     'quantity' => $quantity,
@@ -129,7 +255,7 @@ class ShopController extends Controller
                     'character_id' => $character->id,
                     'definition_id' => $definition->id,
                     'quality' => 'common',
-                    'stats' => $definition->base_stats,
+                    'stats' => $randomStats,
                     'affixes' => [],
                     'is_in_storage' => false,
                     'quantity' => 1,
@@ -231,7 +357,7 @@ class ShopController extends Controller
     /**
      * 计算购买价格
      */
-    private function calculateBuyPrice(GameItemDefinition $item): int
+    private function calculateBuyPrice(GameItemDefinition $item, array $stats = []): int
     {
         // 基础价格来自 base_stats 中的 price 字段，如果没有则根据属性计算
         $basePrice = $item->base_stats['price'] ?? 0;
@@ -241,7 +367,6 @@ class ShopController extends Controller
         }
 
         // 根据物品类型和属性计算价格
-        $stats = $item->base_stats ?? [];
         $levelMultiplier = 1 + ($item->required_level * 0.5);
 
         // 基础价格根据类型
@@ -264,10 +389,9 @@ class ShopController extends Controller
             $statValue = match ($stat) {
                 'attack' => $value * 5,
                 'defense' => $value * 4,
-                'max_hp' => $value * 0.5,
-                'max_mana' => $value * 0.6,
+                'max_hp', 'max_mana' => $value * 0.5,
                 'crit_rate' => $value * 100,
-                'crit_damage' => $value * 80,
+                'crit_damage' => $value * 2,
                 'strength', 'dexterity', 'vitality', 'energy' => $value * 10,
                 'all_stats' => $value * 40,
                 default => $value * 2,
