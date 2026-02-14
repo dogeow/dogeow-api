@@ -450,6 +450,30 @@ class GameCharacter extends Model
     }
 
     /**
+     * 根据当前总经验重算等级（兜底：经验已达标但等级未更新的情况）
+     * 在获取角色详情时调用，确保等级与经验一致。
+     */
+    public function reconcileLevelFromExperience(): bool
+    {
+        $levelsGained = 0;
+
+        while ($this->experience >= $this->getExperienceToNextLevel()) {
+            $this->level++;
+            $this->skill_points += self::SKILL_POINTS_PER_LEVEL;
+            $this->stat_points += self::STAT_POINTS_PER_LEVEL;
+            $levelsGained++;
+        }
+
+        if ($levelsGained > 0) {
+            $this->save();
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * 添加经验值（自动升级）
      */
     public function addExperience(int $amount): array

@@ -16,10 +16,15 @@ class CharacterController extends Controller
     {
         $characters = GameCharacter::query()
             ->where('user_id', $request->user()->id)
-            ->get(['id', 'name', 'class', 'level', 'experience', 'copper', 'is_fighting', 'difficulty_tier']);
+            ->get();
+
+        foreach ($characters as $character) {
+            $character->reconcileLevelFromExperience();
+        }
 
         return $this->success([
-            'characters' => $characters,
+            'characters' => $characters->map(fn ($c) => $c->only(['id', 'name', 'class', 'level', 'experience', 'copper', 'is_fighting', 'difficulty_tier'])),
+            'experience_table' => GameCharacter::EXPERIENCE_TABLE,
         ]);
     }
 
@@ -41,6 +46,9 @@ class CharacterController extends Controller
         if (! $character) {
             return $this->success(['character' => null]);
         }
+
+        // 根据当前经验重算等级，避免经验已达标但等级未更新的情况
+        $character->reconcileLevelFromExperience();
 
         return $this->success([
             'character' => $character,
