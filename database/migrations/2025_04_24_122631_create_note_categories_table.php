@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('note_categories', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('user_id')->index();
             $table->string('name');
             $table->string('description')->nullable();
             $table->timestamps();
@@ -22,7 +22,7 @@ return new class extends Migration
         
         // 给笔记表添加分类ID字段
         Schema::table('notes', function (Blueprint $table) {
-            $table->foreignId('note_category_id')->nullable()->after('user_id')->constrained('note_categories')->nullOnDelete();
+            $table->unsignedBigInteger('note_category_id')->nullable()->after('user_id')->index();
         });
     }
 
@@ -32,7 +32,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('notes', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('note_category_id');
+            $table->dropColumn('note_category_id');
         });
         
         Schema::dropIfExists('note_categories');

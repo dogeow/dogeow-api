@@ -21,8 +21,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('game_items', function (Blueprint $table) {
-            $table->foreign('definition_id')->references('id')->on('game_item_definitions');
-        });
+        // 项目不在数据库层使用外键，不恢复外键约束
     }
 };

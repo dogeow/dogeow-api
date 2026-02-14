@@ -11,7 +11,7 @@ return new class extends Migration
         // 游戏角色表
         Schema::create('game_characters', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('user_id')->index();
             $table->string('name', 32);
             $table->enum('class', ['warrior', 'mage', 'ranger'])->default('warrior');
             $table->unsignedTinyInteger('level')->default(1);
@@ -57,8 +57,8 @@ return new class extends Migration
         // 游戏物品实例（玩家背包/仓库）
         Schema::create('game_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('character_id')->constrained('game_characters')->cascadeOnDelete();
-            $table->foreignId('definition_id')->constrained('game_item_definitions');
+            $table->unsignedBigInteger('character_id')->index();
+            $table->unsignedBigInteger('definition_id')->index();
             $table->enum('quality', ['common', 'magic', 'rare', 'legendary', 'mythic'])->default('common');
             $table->json('stats')->nullable();
             $table->json('affixes')->nullable();
@@ -71,12 +71,12 @@ return new class extends Migration
         // 角色装备槽位
         Schema::create('game_equipment', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('character_id')->constrained('game_characters')->cascadeOnDelete();
+            $table->unsignedBigInteger('character_id')->index();
             $table->enum('slot', [
                 'weapon', 'helmet', 'armor', 'gloves', 'boots',
                 'belt', 'ring1', 'ring2', 'amulet',
             ]);
-            $table->foreignId('item_id')->nullable()->constrained('game_items')->nullOnDelete();
+            $table->unsignedBigInteger('item_id')->nullable()->index();
             $table->timestamps();
 
             $table->unique(['character_id', 'slot']);
@@ -104,8 +104,8 @@ return new class extends Migration
         // 角色已学技能
         Schema::create('game_character_skills', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('character_id')->constrained('game_characters')->cascadeOnDelete();
-            $table->foreignId('skill_id')->constrained('game_skill_definitions');
+            $table->unsignedBigInteger('character_id')->index();
+            $table->unsignedBigInteger('skill_id')->index();
             $table->unsignedTinyInteger('level')->default(1);
             $table->unsignedTinyInteger('slot_index')->nullable();
             $table->timestamps();
@@ -132,8 +132,8 @@ return new class extends Migration
         // 角色地图进度
         Schema::create('game_character_maps', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('character_id')->constrained('game_characters')->cascadeOnDelete();
-            $table->foreignId('map_id')->constrained('game_map_definitions');
+            $table->unsignedBigInteger('character_id')->index();
+            $table->unsignedBigInteger('map_id')->index();
             $table->boolean('unlocked')->default(false);
             $table->boolean('teleport_unlocked')->default(false);
             $table->timestamps();
@@ -164,9 +164,9 @@ return new class extends Migration
         // 战斗日志
         Schema::create('game_combat_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('character_id')->constrained('game_characters')->cascadeOnDelete();
-            $table->foreignId('map_id')->constrained('game_map_definitions');
-            $table->foreignId('monster_id')->constrained('game_monster_definitions');
+            $table->unsignedBigInteger('character_id')->index();
+            $table->unsignedBigInteger('map_id')->index();
+            $table->unsignedBigInteger('monster_id')->index();
             $table->unsignedInteger('damage_dealt')->default(0);
             $table->unsignedInteger('damage_taken')->default(0);
             $table->boolean('victory')->default(true);

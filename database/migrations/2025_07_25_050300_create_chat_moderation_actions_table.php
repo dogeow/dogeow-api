@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('chat_moderation_actions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('room_id')->constrained('chat_rooms')->onDelete('cascade');
-            $table->foreignId('moderator_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('target_user_id')->nullable()->constrained('users')->onDelete('cascade');
-            $table->foreignId('message_id')->nullable()->constrained('chat_messages')->onDelete('cascade');
+            $table->unsignedBigInteger('room_id')->index();
+            $table->unsignedBigInteger('moderator_id')->index();
+            $table->unsignedBigInteger('target_user_id')->nullable()->index();
+            $table->unsignedBigInteger('message_id')->nullable()->index();
             $table->enum('action_type', ['delete_message', 'mute_user', 'unmute_user', 'timeout_user', 'ban_user', 'unban_user']);
             $table->text('reason')->nullable();
             $table->json('metadata')->nullable(); // Store additional data like timeout duration

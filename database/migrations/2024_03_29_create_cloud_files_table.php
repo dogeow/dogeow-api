@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('extension', 20)->nullable();
             $table->unsignedBigInteger('size')->default(0);
             $table->unsignedBigInteger('parent_id')->nullable();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('user_id')->index();
             $table->boolean('is_folder')->default(false);
             $table->text('description')->nullable();
             $table->timestamps();

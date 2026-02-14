@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('user_words', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->comment('用户ID');
-            $table->foreignId('word_id')->comment('单词ID');
-            $table->foreignId('word_book_id')->comment('单词书ID');
+            $table->unsignedBigInteger('user_id')->comment('用户ID');
+            $table->unsignedBigInteger('word_id')->comment('单词ID');
+            $table->unsignedBigInteger('word_book_id')->comment('单词书ID');
             $table->integer('status')->default(0)->comment('学习状态: 0=未学习, 1=学习中, 2=已掌握, 3=困难词');
             $table->integer('review_count')->default(0)->comment('复习次数');
             $table->integer('correct_count')->default(0)->comment('正确次数');

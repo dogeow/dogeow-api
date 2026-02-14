@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('chat_messages', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('room_id')->constrained('chat_rooms')->onDelete('cascade');
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->unsignedBigInteger('room_id')->index();
+            $table->unsignedBigInteger('user_id')->index();
             $table->text('message');
             $table->enum('message_type', ['text', 'system'])->default('text');
             $table->timestamps();

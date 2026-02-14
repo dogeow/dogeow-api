@@ -27,8 +27,7 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id');
             $table->timestamps();
             
-            // 添加外键约束
-            $table->foreign('parent_id')->references('id')->on('thing_item_categories')->onDelete('cascade');
+            $table->index('parent_id');
         });
     }
 

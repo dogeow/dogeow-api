@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('nav_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('nav_category_id')->comment('导航分类ID');
+            $table->unsignedBigInteger('nav_category_id')->comment('导航分类ID')->index();
             $table->string('name', 50)->comment('导航名称');
             $table->string('url', 255)->comment('链接地址');
             $table->string('icon', 100)->nullable()->comment('图标');

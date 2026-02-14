@@ -41,9 +41,6 @@ return new class extends Migration
                 }
                 
                 DB::statement('ALTER TABLE notes MODIFY COLUMN user_id BIGINT UNSIGNED NULL');
-                
-                // 重新添加外键约束
-                DB::statement('ALTER TABLE notes ADD CONSTRAINT notes_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE');
             }
         } else {
             // sqlite 环境：跳过原生 ALTER 操作（测试环境兼容）

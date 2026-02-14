@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('chat_room_users', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('room_id')->constrained('chat_rooms')->onDelete('cascade');
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->unsignedBigInteger('room_id')->index();
+            $table->unsignedBigInteger('user_id')->index();
             $table->timestamp('joined_at')->nullable();
             $table->timestamp('last_seen_at')->nullable();
             $table->boolean('is_online')->default(false);

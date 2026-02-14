@@ -32,17 +32,6 @@ return new class extends Migration
             $table->text('description')->nullable()->comment('关联描述');
             $table->timestamps();
 
-            // 外键约束
-            $table->foreign('item_id')
-                ->references('id')
-                ->on('thing_items')
-                ->onDelete('cascade');
-
-            $table->foreign('related_item_id')
-                ->references('id')
-                ->on('thing_items')
-                ->onDelete('cascade');
-
             // 索引
             $table->index('item_id');
             $table->index('related_item_id');

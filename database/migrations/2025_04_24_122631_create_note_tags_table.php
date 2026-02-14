@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('note_tags', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('user_id')->index();
             $table->string('name');
             $table->string('color')->default('#3b82f6'); // 默认蓝色
             $table->timestamps();
@@ -23,8 +23,8 @@ return new class extends Migration
         // 创建笔记与标签的多对多关联表
         Schema::create('note_note_tag', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('note_id')->constrained()->onDelete('cascade');
-            $table->foreignId('note_tag_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('note_id')->index();
+            $table->unsignedBigInteger('note_tag_id')->index();
             $table->timestamps();
             
             // 确保一个笔记不会重复添加同一个标签

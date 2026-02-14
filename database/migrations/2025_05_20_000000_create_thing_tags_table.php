@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('thing_tags', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('user_id')->index();
             $table->string('name');
             $table->string('color')->default('#3b82f6'); // 默认蓝色
             $table->timestamps();
@@ -23,8 +23,8 @@ return new class extends Migration
         // 创建物品与标签的多对多关联表
         Schema::create('thing_item_tag', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('item_id')->references('id')->on('thing_items')->onDelete('cascade');
-            $table->foreignId('thing_tag_id')->references('id')->on('thing_tags')->onDelete('cascade');
+            $table->unsignedBigInteger('item_id')->index();
+            $table->unsignedBigInteger('thing_tag_id')->index();
             $table->timestamps();
             
             // 确保一个物品不会重复添加同一个标签

@@ -16,8 +16,8 @@ return new class extends Migration
             $table->timestamp('muted_until')->nullable()->after('is_muted');
             $table->boolean('is_banned')->default(false)->after('muted_until');
             $table->timestamp('banned_until')->nullable()->after('is_banned');
-            $table->foreignId('muted_by')->nullable()->constrained('users')->onDelete('set null')->after('banned_until');
-            $table->foreignId('banned_by')->nullable()->constrained('users')->onDelete('set null')->after('muted_by');
+            $table->unsignedBigInteger('muted_by')->nullable()->index()->after('banned_until');
+            $table->unsignedBigInteger('banned_by')->nullable()->index()->after('muted_by');
         });
     }
 
@@ -27,8 +27,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('chat_room_users', function (Blueprint $table) {
-            $table->dropForeign(['muted_by']);
-            $table->dropForeign(['banned_by']);
             $table->dropColumn([
                 'is_muted',
                 'muted_until',

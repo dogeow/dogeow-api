@@ -31,12 +31,6 @@ return new class extends Migration
             $table->string('ip_address', 45)->nullable()->comment('IP地址');
             $table->timestamps();
 
-            // 外键约束
-            $table->foreign('user_id')
-                ->references('id')
-                ->on('users')
-                ->onDelete('cascade');
-
             // 索引
             $table->index('user_id');
             $table->index('search_term');

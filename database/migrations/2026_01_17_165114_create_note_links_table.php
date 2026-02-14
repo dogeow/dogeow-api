@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('note_links', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('source_id')->constrained('notes')->onDelete('cascade');
-            $table->foreignId('target_id')->constrained('notes')->onDelete('cascade');
+            $table->unsignedBigInteger('source_id')->index();
+            $table->unsignedBigInteger('target_id')->index();
             $table->string('type')->nullable();
             $table->timestamps();
             

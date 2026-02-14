@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('chat_message_reports', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('message_id')->nullable()->constrained('chat_messages')->onDelete('set null');
-            $table->foreignId('reported_by')->constrained('users')->onDelete('cascade');
-            $table->foreignId('room_id')->constrained('chat_rooms')->onDelete('cascade');
+            $table->unsignedBigInteger('message_id')->nullable()->index();
+            $table->unsignedBigInteger('reported_by')->index();
+            $table->unsignedBigInteger('room_id')->index();
             $table->enum('report_type', [
                 'inappropriate_content',
                 'spam',
@@ -28,7 +28,7 @@ return new class extends Migration
             ]);
             $table->text('reason')->nullable();
             $table->enum('status', ['pending', 'reviewed', 'resolved', 'dismissed'])->default('pending');
-            $table->foreignId('reviewed_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->unsignedBigInteger('reviewed_by')->nullable()->index();
             $table->timestamp('reviewed_at')->nullable();
             $table->text('review_notes')->nullable();
             $table->json('metadata')->nullable(); // Store additional context
