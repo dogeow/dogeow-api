@@ -23,13 +23,23 @@ class MapController extends Controller
             ->orderBy('min_level')
             ->get();
 
+        $mapsWithMonsters = $maps->map(function (GameMapDefinition $map) {
+            $arr = $map->toArray();
+            $arr['monsters'] = array_values(array_map(
+                fn ($m) => $m->toArray(),
+                $map->getMonsters()
+            ));
+
+            return $arr;
+        });
+
         $progress = $character->mapProgress()
             ->with('map')
             ->get()
             ->keyBy('map_id');
 
         return $this->success([
-            'maps' => $maps,
+            'maps' => $mapsWithMonsters,
             'progress' => $progress,
             'current_map_id' => $character->current_map_id,
         ]);

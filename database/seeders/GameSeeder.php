@@ -223,48 +223,47 @@ class GameSeeder extends Seeder
     private function seedSkillDefinitions(): void
     {
         $skills = [
-            // 战士技能
-            ['name' => '重击', 'description' => '强力一击，造成额外伤害', 'type' => 'active', 'class_restriction' => 'warrior', 'base_damage' => 20, 'damage_per_level' => 10, 'mana_cost' => 10, 'mana_cost_per_level' => 2, 'cooldown' => 3],
-            ['name' => '战吼', 'description' => '发出怒吼，提升攻击力', 'type' => 'active', 'class_restriction' => 'warrior', 'base_damage' => 0, 'damage_per_level' => 0, 'mana_cost' => 15, 'mana_cost_per_level' => 3, 'cooldown' => 10, 'effects' => ['buff_attack' => 10, 'duration' => 5]],
-            ['name' => '铁壁', 'description' => '被动提升防御力', 'type' => 'passive', 'class_restriction' => 'warrior', 'base_damage' => 0, 'damage_per_level' => 0, 'mana_cost' => 0, 'mana_cost_per_level' => 0, 'cooldown' => 0, 'effects' => ['defense_bonus' => 5]],
-            ['name' => '旋风斩', 'description' => '旋转攻击周围所有敌人', 'type' => 'active', 'class_restriction' => 'warrior', 'base_damage' => 35, 'damage_per_level' => 15, 'mana_cost' => 25, 'mana_cost_per_level' => 4, 'cooldown' => 6],
-            ['name' => '狂暴', 'description' => '进入狂暴状态，大幅提升攻击力', 'type' => 'active', 'class_restriction' => 'warrior', 'base_damage' => 0, 'damage_per_level' => 0, 'mana_cost' => 40, 'mana_cost_per_level' => 5, 'cooldown' => 30, 'effects' => ['buff_attack' => 50, 'duration' => 10]],
-            ['name' => '钢铁之躯', 'description' => '被动提升生命值和防御力', 'type' => 'passive', 'class_restriction' => 'warrior', 'base_damage' => 0, 'damage_per_level' => 0, 'mana_cost' => 0, 'mana_cost_per_level' => 0, 'cooldown' => 0, 'effects' => ['hp_bonus' => 100, 'defense_bonus' => 10]],
-            ['name' => '斩杀', 'description' => '对低血量敌人造成巨额伤害', 'type' => 'active', 'class_restriction' => 'warrior', 'base_damage' => 50, 'damage_per_level' => 25, 'mana_cost' => 30, 'mana_cost_per_level' => 5, 'cooldown' => 8, 'effects' => ['execute_threshold' => 0.3, 'execute_multiplier' => 2.0]],
+            // 战士技能（仅保留当前表字段：name, description, type, class_restriction, mana_cost, cooldown, effects）
+            ['name' => '重击', 'description' => '强力一击，造成额外伤害', 'type' => 'active', 'class_restriction' => 'warrior', 'mana_cost' => 10, 'cooldown' => 3, 'effects' => ['base_damage' => 20]],
+            ['name' => '战吼', 'description' => '发出怒吼，提升攻击力', 'type' => 'active', 'class_restriction' => 'warrior', 'mana_cost' => 15, 'cooldown' => 10, 'effects' => ['buff_attack' => 10, 'duration' => 5]],
+            ['name' => '铁壁', 'description' => '被动提升防御力', 'type' => 'passive', 'class_restriction' => 'warrior', 'mana_cost' => 0, 'cooldown' => 0, 'effects' => ['defense_bonus' => 5]],
+            ['name' => '旋风斩', 'description' => '旋转攻击周围所有敌人', 'type' => 'active', 'class_restriction' => 'warrior', 'mana_cost' => 25, 'cooldown' => 6, 'effects' => ['base_damage' => 35]],
+            ['name' => '狂暴', 'description' => '进入狂暴状态，大幅提升攻击力', 'type' => 'active', 'class_restriction' => 'warrior', 'mana_cost' => 40, 'cooldown' => 30, 'effects' => ['buff_attack' => 50, 'duration' => 10]],
+            ['name' => '钢铁之躯', 'description' => '被动提升生命值和防御力', 'type' => 'passive', 'class_restriction' => 'warrior', 'mana_cost' => 0, 'cooldown' => 0, 'effects' => ['hp_bonus' => 100, 'defense_bonus' => 10]],
+            ['name' => '斩杀', 'description' => '对低血量敌人造成巨额伤害', 'type' => 'active', 'class_restriction' => 'warrior', 'mana_cost' => 30, 'cooldown' => 8, 'effects' => ['base_damage' => 50, 'execute_threshold' => 0.3, 'execute_multiplier' => 2.0]],
 
             // 法师技能
-            ['name' => '火球术', 'description' => '发射火球，造成魔法伤害', 'type' => 'active', 'class_restriction' => 'mage', 'base_damage' => 30, 'damage_per_level' => 15, 'mana_cost' => 15, 'mana_cost_per_level' => 3, 'cooldown' => 2],
-            ['name' => '冰霜新星', 'description' => '释放冰霜，造成范围伤害', 'type' => 'active', 'class_restriction' => 'mage', 'base_damage' => 25, 'damage_per_level' => 12, 'mana_cost' => 20, 'mana_cost_per_level' => 4, 'cooldown' => 5],
-            ['name' => '魔力涌动', 'description' => '被动提升法力上限', 'type' => 'passive', 'class_restriction' => 'mage', 'base_damage' => 0, 'damage_per_level' => 0, 'mana_cost' => 0, 'mana_cost_per_level' => 0, 'cooldown' => 0, 'effects' => ['mana_bonus' => 20]],
-            ['name' => '雷击', 'description' => '召唤闪电，瞬间造成高额伤害', 'type' => 'active', 'class_restriction' => 'mage', 'base_damage' => 45, 'damage_per_level' => 20, 'mana_cost' => 25, 'mana_cost_per_level' => 5, 'cooldown' => 4],
-            ['name' => '魔法护盾', 'description' => '用法力值吸收伤害', 'type' => 'active', 'class_restriction' => 'mage', 'base_damage' => 0, 'damage_per_level' => 0, 'mana_cost' => 35, 'mana_cost_per_level' => 6, 'cooldown' => 15, 'effects' => ['shield' => 100, 'duration' => 8]],
-            ['name' => '奥术智慧', 'description' => '被动提升魔法攻击力', 'type' => 'passive', 'class_restriction' => 'mage', 'base_damage' => 0, 'damage_per_level' => 0, 'mana_cost' => 0, 'mana_cost_per_level' => 0, 'cooldown' => 0, 'effects' => ['spell_power_bonus' => 15]],
-            ['name' => '陨石术', 'description' => '召唤陨石从天而降', 'type' => 'active', 'class_restriction' => 'mage', 'base_damage' => 80, 'damage_per_level' => 30, 'mana_cost' => 60, 'mana_cost_per_level' => 8, 'cooldown' => 12],
-            ['name' => '法力燃烧', 'description' => '燃烧敌人法力并造成伤害', 'type' => 'active', 'class_restriction' => 'mage', 'base_damage' => 20, 'damage_per_level' => 10, 'mana_cost' => 15, 'mana_cost_per_level' => 3, 'cooldown' => 6, 'effects' => ['mana_burn' => 50]],
+            ['name' => '火球术', 'description' => '发射火球，造成魔法伤害', 'type' => 'active', 'class_restriction' => 'mage', 'mana_cost' => 15, 'cooldown' => 2, 'effects' => ['base_damage' => 30]],
+            ['name' => '冰霜新星', 'description' => '释放冰霜，造成范围伤害', 'type' => 'active', 'class_restriction' => 'mage', 'mana_cost' => 20, 'cooldown' => 5, 'effects' => ['base_damage' => 25]],
+            ['name' => '魔力涌动', 'description' => '被动提升法力上限', 'type' => 'passive', 'class_restriction' => 'mage', 'mana_cost' => 0, 'cooldown' => 0, 'effects' => ['mana_bonus' => 20]],
+            ['name' => '雷击', 'description' => '召唤闪电，瞬间造成高额伤害', 'type' => 'active', 'class_restriction' => 'mage', 'mana_cost' => 25, 'cooldown' => 4, 'effects' => ['base_damage' => 45]],
+            ['name' => '魔法护盾', 'description' => '用法力值吸收伤害', 'type' => 'active', 'class_restriction' => 'mage', 'mana_cost' => 35, 'cooldown' => 15, 'effects' => ['shield' => 100, 'duration' => 8]],
+            ['name' => '奥术智慧', 'description' => '被动提升魔法攻击力', 'type' => 'passive', 'class_restriction' => 'mage', 'mana_cost' => 0, 'cooldown' => 0, 'effects' => ['spell_power_bonus' => 15]],
+            ['name' => '陨石术', 'description' => '召唤陨石从天而降', 'type' => 'active', 'class_restriction' => 'mage', 'mana_cost' => 60, 'cooldown' => 12, 'effects' => ['base_damage' => 80]],
+            ['name' => '法力燃烧', 'description' => '燃烧敌人法力并造成伤害', 'type' => 'active', 'class_restriction' => 'mage', 'mana_cost' => 15, 'cooldown' => 6, 'effects' => ['base_damage' => 20, 'mana_burn' => 50]],
 
             // 游侠技能
-            ['name' => '穿刺射击', 'description' => '精准射击，高暴击', 'type' => 'active', 'class_restriction' => 'ranger', 'base_damage' => 25, 'damage_per_level' => 12, 'mana_cost' => 12, 'mana_cost_per_level' => 2, 'cooldown' => 2, 'effects' => ['crit_bonus' => 0.2]],
-            ['name' => '多重射击', 'description' => '同时射出多支箭', 'type' => 'active', 'class_restriction' => 'ranger', 'base_damage' => 15, 'damage_per_level' => 8, 'mana_cost' => 18, 'mana_cost_per_level' => 3, 'cooldown' => 4],
-            ['name' => '鹰眼', 'description' => '被动提升暴击率', 'type' => 'passive', 'class_restriction' => 'ranger', 'base_damage' => 0, 'damage_per_level' => 0, 'mana_cost' => 0, 'mana_cost_per_level' => 0, 'cooldown' => 0, 'effects' => ['crit_rate_bonus' => 0.03]],
-            ['name' => '毒箭', 'description' => '射出毒箭，持续造成伤害', 'type' => 'active', 'class_restriction' => 'ranger', 'base_damage' => 20, 'damage_per_level' => 10, 'mana_cost' => 15, 'mana_cost_per_level' => 3, 'cooldown' => 5, 'effects' => ['dot' => 15, 'dot_duration' => 5]],
-            ['name' => '闪避', 'description' => '提升闪避率', 'type' => 'active', 'class_restriction' => 'ranger', 'base_damage' => 0, 'damage_per_level' => 0, 'mana_cost' => 20, 'mana_cost_per_level' => 4, 'cooldown' => 12, 'effects' => ['dodge_bonus' => 0.3, 'duration' => 6]],
-            ['name' => '致命瞄准', 'description' => '被动提升暴击伤害', 'type' => 'passive', 'class_restriction' => 'ranger', 'base_damage' => 0, 'damage_per_level' => 0, 'mana_cost' => 0, 'mana_cost_per_level' => 0, 'cooldown' => 0, 'effects' => ['crit_damage_bonus' => 0.15]],
-            ['name' => '箭雨', 'description' => '从天而降的箭雨', 'type' => 'active', 'class_restriction' => 'ranger', 'base_damage' => 40, 'damage_per_level' => 18, 'mana_cost' => 45, 'mana_cost_per_level' => 6, 'cooldown' => 10],
-            ['name' => '暗影步', 'description' => '瞬间移动到敌人身后', 'type' => 'active', 'class_restriction' => 'ranger', 'base_damage' => 30, 'damage_per_level' => 15, 'mana_cost' => 25, 'mana_cost_per_level' => 4, 'cooldown' => 8, 'effects' => ['backstab_bonus' => 1.5]],
+            ['name' => '穿刺射击', 'description' => '精准射击，高暴击', 'type' => 'active', 'class_restriction' => 'ranger', 'mana_cost' => 12, 'cooldown' => 2, 'effects' => ['base_damage' => 25, 'crit_bonus' => 0.2]],
+            ['name' => '多重射击', 'description' => '同时射出多支箭', 'type' => 'active', 'class_restriction' => 'ranger', 'mana_cost' => 18, 'cooldown' => 4, 'effects' => ['base_damage' => 15]],
+            ['name' => '鹰眼', 'description' => '被动提升暴击率', 'type' => 'passive', 'class_restriction' => 'ranger', 'mana_cost' => 0, 'cooldown' => 0, 'effects' => ['crit_rate_bonus' => 0.03]],
+            ['name' => '毒箭', 'description' => '射出毒箭，持续造成伤害', 'type' => 'active', 'class_restriction' => 'ranger', 'mana_cost' => 15, 'cooldown' => 5, 'effects' => ['base_damage' => 20, 'dot' => 15, 'dot_duration' => 5]],
+            ['name' => '闪避', 'description' => '提升闪避率', 'type' => 'active', 'class_restriction' => 'ranger', 'mana_cost' => 20, 'cooldown' => 12, 'effects' => ['dodge_bonus' => 0.3, 'duration' => 6]],
+            ['name' => '致命瞄准', 'description' => '被动提升暴击伤害', 'type' => 'passive', 'class_restriction' => 'ranger', 'mana_cost' => 0, 'cooldown' => 0, 'effects' => ['crit_damage_bonus' => 0.15]],
+            ['name' => '箭雨', 'description' => '从天而降的箭雨', 'type' => 'active', 'class_restriction' => 'ranger', 'mana_cost' => 45, 'cooldown' => 10, 'effects' => ['base_damage' => 40]],
+            ['name' => '暗影步', 'description' => '瞬间移动到敌人身后', 'type' => 'active', 'class_restriction' => 'ranger', 'mana_cost' => 25, 'cooldown' => 8, 'effects' => ['base_damage' => 30, 'backstab_bonus' => 1.5]],
 
             // 通用技能
-            ['name' => '治疗术', 'description' => '恢复生命值', 'type' => 'active', 'class_restriction' => 'all', 'base_damage' => -30, 'damage_per_level' => -10, 'mana_cost' => 20, 'mana_cost_per_level' => 3, 'cooldown' => 8, 'effects' => ['heal' => true]],
-            ['name' => '力量强化', 'description' => '被动提升力量', 'type' => 'passive', 'class_restriction' => 'all', 'base_damage' => 0, 'damage_per_level' => 0, 'mana_cost' => 0, 'mana_cost_per_level' => 0, 'cooldown' => 0, 'effects' => ['strength_bonus' => 2]],
-            ['name' => '敏捷强化', 'description' => '被动提升敏捷', 'type' => 'passive', 'class_restriction' => 'all', 'base_damage' => 0, 'damage_per_level' => 0, 'mana_cost' => 0, 'mana_cost_per_level' => 0, 'cooldown' => 0, 'effects' => ['dexterity_bonus' => 2]],
-            ['name' => '体力强化', 'description' => '被动提升体力', 'type' => 'passive', 'class_restriction' => 'all', 'base_damage' => 0, 'damage_per_level' => 0, 'mana_cost' => 0, 'mana_cost_per_level' => 0, 'cooldown' => 0, 'effects' => ['vitality_bonus' => 2]],
-            ['name' => '能量强化', 'description' => '被动提升能量', 'type' => 'passive', 'class_restriction' => 'all', 'base_damage' => 0, 'damage_per_level' => 0, 'mana_cost' => 0, 'mana_cost_per_level' => 0, 'cooldown' => 0, 'effects' => ['energy_bonus' => 2]],
-            ['name' => '吸血', 'description' => '攻击时回复生命值', 'type' => 'passive', 'class_restriction' => 'all', 'base_damage' => 0, 'damage_per_level' => 0, 'mana_cost' => 0, 'mana_cost_per_level' => 0, 'cooldown' => 0, 'effects' => ['life_steal' => 0.05]],
-            ['name' => '回蓝', 'description' => '被动手动回复法力值', 'type' => 'passive', 'class_restriction' => 'all', 'base_damage' => 0, 'damage_per_level' => 0, 'mana_cost' => 0, 'mana_cost_per_level' => 0, 'cooldown' => 0, 'effects' => ['mana_regen' => 2]],
+            ['name' => '治疗术', 'description' => '恢复生命值', 'type' => 'active', 'class_restriction' => 'all', 'mana_cost' => 20, 'cooldown' => 8, 'effects' => ['heal' => true, 'base_damage' => -30]],
+            ['name' => '力量强化', 'description' => '被动提升力量', 'type' => 'passive', 'class_restriction' => 'all', 'mana_cost' => 0, 'cooldown' => 0, 'effects' => ['strength_bonus' => 2]],
+            ['name' => '敏捷强化', 'description' => '被动提升敏捷', 'type' => 'passive', 'class_restriction' => 'all', 'mana_cost' => 0, 'cooldown' => 0, 'effects' => ['dexterity_bonus' => 2]],
+            ['name' => '体力强化', 'description' => '被动提升体力', 'type' => 'passive', 'class_restriction' => 'all', 'mana_cost' => 0, 'cooldown' => 0, 'effects' => ['vitality_bonus' => 2]],
+            ['name' => '能量强化', 'description' => '被动提升能量', 'type' => 'passive', 'class_restriction' => 'all', 'mana_cost' => 0, 'cooldown' => 0, 'effects' => ['energy_bonus' => 2]],
+            ['name' => '吸血', 'description' => '攻击时回复生命值', 'type' => 'passive', 'class_restriction' => 'all', 'mana_cost' => 0, 'cooldown' => 0, 'effects' => ['life_steal' => 0.05]],
+            ['name' => '回蓝', 'description' => '被动手动回复法力值', 'type' => 'passive', 'class_restriction' => 'all', 'mana_cost' => 0, 'cooldown' => 0, 'effects' => ['mana_regen' => 2]],
         ];
 
         foreach ($skills as $skill) {
             GameSkillDefinition::create(array_merge($skill, [
-                'max_level' => 10,
                 'icon' => 'skill_'.strtolower(str_replace(' ', '_', $skill['name'])).'.png',
                 'is_active' => true,
             ]));

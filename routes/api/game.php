@@ -21,6 +21,7 @@ Route::prefix('rpg')->group(function () {
     Route::get('/character', [CharacterController::class, 'show']);
     Route::post('/character', [CharacterController::class, 'store']);
     Route::put('/character/stats', [CharacterController::class, 'allocateStats']);
+    Route::put('/character/difficulty', [CharacterController::class, 'updateDifficulty']);
     Route::get('/character/detail', [CharacterController::class, 'detail']);
 
     // 背包相关

@@ -16,7 +16,7 @@ class CharacterController extends Controller
     {
         $characters = GameCharacter::query()
             ->where('user_id', $request->user()->id)
-            ->get(['id', 'name', 'class', 'level', 'experience', 'gold', 'is_fighting']);
+            ->get(['id', 'name', 'class', 'level', 'experience', 'gold', 'is_fighting', 'difficulty_tier']);
 
         return $this->success([
             'characters' => $characters,
@@ -185,6 +185,30 @@ class CharacterController extends Controller
             'current_hp' => $character->getCurrentHp(),
             'current_mana' => $character->getCurrentMana(),
         ], '属性分配成功');
+    }
+
+    /**
+     * 更新难度（普通/专家/地狱1/地狱2...）
+     */
+    public function updateDifficulty(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'character_id' => 'sometimes|integer|exists:game_characters,id',
+            'difficulty_tier' => 'required|integer|min:0|max:9',
+        ]);
+
+        $query = GameCharacter::query()->where('user_id', $request->user()->id);
+        if (isset($validated['character_id'])) {
+            $query->where('id', $validated['character_id']);
+        }
+        $character = $query->firstOrFail();
+
+        $character->difficulty_tier = $validated['difficulty_tier'];
+        $character->save();
+
+        return $this->success([
+            'character' => $character,
+        ], '难度已更新');
     }
 
     /**

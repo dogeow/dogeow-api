@@ -42,12 +42,19 @@ class GameMapDefinition extends Model
      */
     public function getMonsters(): array
     {
-        if (empty($this->monster_ids)) {
+        $ids = $this->monster_ids;
+        if (empty($ids) || ! is_array($ids)) {
+            return [];
+        }
+
+        $ids = array_map('intval', array_values($ids));
+        $ids = array_filter($ids, fn ($id) => $id > 0);
+        if (empty($ids)) {
             return [];
         }
 
         return GameMonsterDefinition::query()
-            ->whereIn('id', $this->monster_ids)
+            ->whereIn('id', array_values(array_unique($ids)))
             ->where('is_active', true)
             ->get()
             ->all();

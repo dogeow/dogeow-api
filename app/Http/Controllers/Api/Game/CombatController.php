@@ -143,19 +143,18 @@ class CombatController extends Controller
             return $this->error('地图不存在');
         }
 
-        // 获取怪物列表并随机选择一个
-        $monsterIds = $map->monster_ids ?? [];
-        if (empty($monsterIds)) {
-            return $this->error('该地图没有怪物');
+        // 获取地图中实际存在且启用的怪物，并随机选择一个
+        $monsters = $map->getMonsters();
+        if (empty($monsters)) {
+            $character->is_fighting = false;
+            $character->save();
+
+            return $this->error('该地图没有怪物，已自动停止战斗，请选择其他地图', [
+                'auto_stopped' => true,
+            ]);
         }
 
-        // 根据角色等级选择合适等级的怪物
-        $monsterId = $monsterIds[array_rand($monsterIds)];
-        $monster = GameMonsterDefinition::find($monsterId);
-
-        if (! $monster) {
-            return $this->error('怪物不存在');
-        }
+        $monster = $monsters[array_rand($monsters)];
 
         // 执行战斗
         $result = $this->processCombat($character, $monster, $map);
@@ -235,15 +234,21 @@ class CombatController extends Controller
         $charCritRate = $charStats['crit_rate'];
         $charCritDamage = $charStats['crit_damage'];
 
+        // 难度倍率（普通/困难/高手/大师/痛苦1-6）：怪物生命、怪物伤害、奖励分开
+        $difficulty = $character->getDifficultyMultipliers();
+        $monsterHpMult = $difficulty['monster_hp'];
+        $monsterDmgMult = $difficulty['monster_damage'];
+        $rewardMult = $difficulty['reward'];
+
         // 根据地图等级范围确定怪物等级
         $monsterLevel = rand(
             max($map->min_level, $monster->level - 3),
             min($map->max_level, $monster->level + 3)
         );
         $monsterStats = $monster->getCombatStats($monsterLevel);
-        $monsterHp = $monsterStats['hp'];
-        $monsterAttack = $monsterStats['attack'];
-        $monsterDefense = $monsterStats['defense'];
+        $monsterHp = (int) ($monsterStats['hp'] * $monsterHpMult);
+        $monsterAttack = (int) ($monsterStats['attack'] * $monsterDmgMult);
+        $monsterDefense = (int) ($monsterStats['defense'] * $monsterDmgMult);
 
         $totalDamageDealt = 0;
         $totalDamageTaken = 0;
@@ -312,12 +317,12 @@ class CombatController extends Controller
         $goldGained = 0;
 
         if ($victory) {
-            // 计算经验
-            $experienceGained = $monsterStats['experience'];
+            // 计算经验与金币（应用难度奖励倍率）
+            $experienceGained = (int) ($monsterStats['experience'] * $rewardMult);
 
             // 生成掉落
             $lootResult = $monster->generateLoot($character->level);
-            $goldGained = $lootResult['gold'] ?? 0;
+            $goldGained = (int) (($lootResult['gold'] ?? 0) * $rewardMult);
 
             // 添加经验和金币
             $levelUpResult = $character->addExperience($experienceGained);

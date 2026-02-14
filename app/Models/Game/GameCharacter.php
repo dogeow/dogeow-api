@@ -25,6 +25,7 @@ class GameCharacter extends Model
         'current_map_id',
         'is_fighting',
         'last_combat_at',
+        'difficulty_tier',
         'current_hp',
         'current_mana',
         'auto_use_hp_potion',
@@ -339,6 +340,31 @@ class GameCharacter extends Model
         $equipmentBonus = $this->getEquipmentBonus('crit_damage');
 
         return $baseCritDamage + $equipmentBonus;
+    }
+
+    /**
+     * 难度倍率：普通/困难/高手/大师/痛苦1-6（表格数据）
+     * 怪物生命、怪物伤害、金币与经验分别使用对应加成。
+     *
+     * @return array{monster_hp: float, monster_damage: float, reward: float}
+     */
+    public function getDifficultyMultipliers(): array
+    {
+        $tier = (int) ($this->difficulty_tier ?? 0);
+        $table = [
+            0 => ['monster_hp' => 1.0, 'monster_damage' => 1.0, 'reward' => 1.0],       // 普通
+            1 => ['monster_hp' => 3.0, 'monster_damage' => 2.3, 'reward' => 1.75],      // 困难 +200% hp, +130% dmg, +75%
+            2 => ['monster_hp' => 4.3, 'monster_damage' => 2.69, 'reward' => 2.0],     // 高手 +330%, +169%, +100%
+            3 => ['monster_hp' => 6.45, 'monster_damage' => 3.2, 'reward' => 3.0],    // 大师 +545%, +220%, +200%
+            4 => ['monster_hp' => 9.98, 'monster_damage' => 3.85, 'reward' => 4.0],    // 痛苦1
+            5 => ['monster_hp' => 15.82, 'monster_damage' => 4.71, 'reward' => 5.0],  // 痛苦2
+            6 => ['monster_hp' => 25.46, 'monster_damage' => 5.82, 'reward' => 6.5],   // 痛苦3
+            7 => ['monster_hp' => 41.36, 'monster_damage' => 7.28, 'reward' => 9.0],   // 痛苦4
+            8 => ['monster_hp' => 67.59, 'monster_damage' => 9.16, 'reward' => 12.5],  // 痛苦5
+            9 => ['monster_hp' => 110.88, 'monster_damage' => 11.6, 'reward' => 17.0], // 痛苦6
+        ];
+
+        return $table[$tier] ?? $table[0];
     }
 
     /**
