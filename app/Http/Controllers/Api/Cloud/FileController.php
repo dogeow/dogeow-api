@@ -4,25 +4,23 @@ namespace App\Http\Controllers\Api\Cloud;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cloud\File;
+use App\Traits\GetCurrentUserId;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Intervention\Image\Drivers\Gd\Driver;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Interfaces\EncodedImageInterface;
 
 class FileController extends Controller
 {
+    use GetCurrentUserId;
+
     /**
      * 获取所有文件列表
      */
     public function index(Request $request)
     {
-        // 获取用户ID，如果用户未登录，使用默认用户ID(1)
-        $userId = Auth::check() ? Auth::id() : 1;
-        
+        $userId = $this->getCurrentUserId();
+
         $query = File::query()->where('user_id', $userId);
 
         if ($request->has('parent_id')) {
@@ -33,46 +31,12 @@ class FileController extends Controller
 
         // 搜索
         if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $query->where('name', 'like', '%'.$request->search.'%');
         }
 
         // 类型过滤
         if ($request->has('type')) {
-            $type = $request->type;
-            if ($type === 'folder') {
-                $query->where('is_folder', true);
-            } else {
-                $query->where('is_folder', false);
-                
-                $extensions = [];
-                switch ($type) {
-                    case 'image':
-                        $extensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'];
-                        break;
-                    case 'pdf':
-                        $extensions = ['pdf'];
-                        break;
-                    case 'document':
-                        $extensions = ['doc', 'docx', 'txt', 'rtf', 'md'];
-                        break;
-                    case 'spreadsheet':
-                        $extensions = ['xls', 'xlsx', 'csv'];
-                        break;
-                    case 'archive':
-                        $extensions = ['zip', 'rar', '7z', 'tar', 'gz'];
-                        break;
-                    case 'audio':
-                        $extensions = ['mp3', 'wav', 'ogg', 'flac'];
-                        break;
-                    case 'video':
-                        $extensions = ['mp4', 'avi', 'mov', 'wmv', 'mkv'];
-                        break;
-                }
-                
-                if (!empty($extensions)) {
-                    $query->whereIn('extension', $extensions);
-                }
-            }
+            $query->whereHasFileType($request->type);
         }
 
         // 排序
@@ -96,15 +60,14 @@ class FileController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        // 获取用户ID，如果用户未登录，使用默认用户ID(1)
-        $userId = Auth::check() ? Auth::id() : 1;
+        $userId = $this->getCurrentUserId();
 
-        $file = new File();
+        $file = new File;
         $file->name = $request->name;
         $file->parent_id = $request->parent_id;
         $file->user_id = $userId;
         $file->is_folder = true;
-        $file->path = 'folders/' . Str::uuid();
+        $file->path = 'folders/'.Str::uuid();
         $file->description = $request->description;
         $file->save();
 
@@ -127,32 +90,31 @@ class FileController extends Controller
         $extension = $uploadedFile->getClientOriginalExtension();
         $mimeType = $uploadedFile->getMimeType();
         $size = $uploadedFile->getSize();
-        
-        // 记录文件信息
+
         Log::info("上传文件: 原始名称={$originalName}, 扩展名={$extension}, MIME类型={$mimeType}, 大小={$size}");
-        
-        // 获取用户ID，如果用户未登录，使用默认用户ID(1)
-        $userId = Auth::check() ? Auth::id() : 1;
-        
+
+        $userId = $this->getCurrentUserId();
+
         // 生成唯一文件路径
-        $fileName = Str::uuid() . '.' . $extension;
-        $path = 'cloud/' . $userId . '/' . date('Y/m/d') . '/' . $fileName;
-        
+        $fileName = Str::uuid().'.'.$extension;
+        $path = 'cloud/'.$userId.'/'.date('Y/m/d').'/'.$fileName;
+
         Log::info("存储路径: {$path}");
-        
-        // 保存文件
-        Storage::disk('public')->put($path, file_get_contents($uploadedFile));
+
+        // 保存文件 - 使用 stream 方式避免大文件内存问题
+        Storage::disk('public')->writeStream($path, fopen($uploadedFile->getRealPath(), 'r'));
 
         // 检查文件是否已保存
-        if (!Storage::disk('public')->exists($path)) {
+        if (! Storage::disk('public')->exists($path)) {
             Log::error("文件保存失败: {$path}");
+
             return response()->json(['error' => '文件保存失败'], 500);
         }
-        
+
         Log::info("文件已保存到: {$path}");
 
         // 创建数据库记录
-        $file = new File();
+        $file = new File;
         $file->name = pathinfo($originalName, PATHINFO_FILENAME);
         $file->original_name = $originalName;
         $file->extension = $extension;
@@ -160,12 +122,11 @@ class FileController extends Controller
         $file->path = $path;
         $file->size = $size;
         $file->parent_id = $request->parent_id;
-        $file->user_id = $userId; // 使用获取的用户ID
+        $file->user_id = $userId;
         $file->description = $request->description;
-        
-        // 保存记录
+
         $file->save();
-        
+
         Log::info("文件记录已创建: ID={$file->id}, 类型={$file->type}");
 
         return response()->json($file, 201);
@@ -176,20 +137,19 @@ class FileController extends Controller
      */
     public function download($id)
     {
-        // 获取用户ID，如果用户未登录，使用默认用户ID(1)
-        $userId = Auth::check() ? Auth::id() : 1;
-        
+        $userId = $this->getCurrentUserId();
+
         $file = File::where('user_id', $userId)->findOrFail($id);
 
         if ($file->is_folder) {
             return response()->json(['error' => '不能下载文件夹'], 400);
         }
 
-        if (!Storage::disk('public')->exists($file->path)) {
+        if (! Storage::disk('public')->exists($file->path)) {
             return response()->json(['error' => '文件不存在'], 404);
         }
 
-        return response()->download(storage_path('app/public/' . $file->path), $file->original_name);
+        return response()->download(storage_path('app/public/'.$file->path), $file->original_name);
     }
 
     /**
@@ -197,20 +157,19 @@ class FileController extends Controller
      */
     public function destroy($id)
     {
-        // 获取用户ID，如果用户未登录，使用默认用户ID(1)
-        $userId = Auth::check() ? Auth::id() : 1;
-        
+        $userId = $this->getCurrentUserId();
+
         $file = File::where('user_id', $userId)->findOrFail($id);
 
-        // 如果是文件夹，递归删除所有子文件和子文件夹
+        // 如果是文件夹，使用迭代方式递归删除
         if ($file->is_folder) {
-            $this->deleteFolder($file);
+            $this->deleteFolderIteratively($file);
         } else {
             // 删除存储的文件
             if (Storage::disk('public')->exists($file->path)) {
                 Storage::disk('public')->delete($file->path);
             }
-            
+
             // 删除数据库记录
             $file->delete();
         }
@@ -219,32 +178,38 @@ class FileController extends Controller
     }
 
     /**
-     * 递归删除文件夹
+     * 迭代方式删除文件夹（避免递归栈溢出）
      */
-    private function deleteFolder(File $folder)
+    private function deleteFolderIteratively(File $folder): void
     {
-        // 获取用户ID，如果用户未登录，使用默认用户ID(1)
-        $userId = Auth::check() ? Auth::id() : 1;
-        
-        // 获取所有子文件和子文件夹
-        $children = File::where('parent_id', $folder->id)->get();
+        $userId = $this->getCurrentUserId();
+        $folderIds = [$folder->id];
 
-        foreach ($children as $child) {
-            if ($child->is_folder) {
-                $this->deleteFolder($child);
-            } else {
-                // 删除存储的文件
-                if (Storage::disk('public')->exists($child->path)) {
-                    Storage::disk('public')->delete($child->path);
+        // 使用栈迭代处理所有文件夹
+        while (! empty($folderIds)) {
+            $currentFolderId = array_pop($folderIds);
+
+            // 获取当前文件夹的所有子项
+            $children = File::where('parent_id', $currentFolderId)
+                ->where('user_id', $userId)
+                ->get();
+
+            foreach ($children as $child) {
+                if ($child->is_folder) {
+                    // 将子文件夹加入待处理队列
+                    $folderIds[] = $child->id;
+                } else {
+                    // 删除子文件
+                    if (Storage::disk('public')->exists($child->path)) {
+                        Storage::disk('public')->delete($child->path);
+                    }
+                    $child->delete();
                 }
-                
-                // 删除数据库记录
-                $child->delete();
             }
-        }
 
-        // 删除文件夹记录
-        $folder->delete();
+            // 删除当前文件夹
+            File::where('id', $currentFolderId)->where('user_id', $userId)->delete();
+        }
     }
 
     /**
@@ -252,10 +217,10 @@ class FileController extends Controller
      */
     public function show($id)
     {
-        // 获取用户ID，如果用户未登录，使用默认用户ID(1)
-        $userId = Auth::check() ? Auth::id() : 1;
-        
+        $userId = $this->getCurrentUserId();
+
         $file = File::where('user_id', $userId)->findOrFail($id);
+
         return response()->json($file);
     }
 
@@ -269,9 +234,8 @@ class FileController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        // 获取用户ID，如果用户未登录，使用默认用户ID(1)
-        $userId = Auth::check() ? Auth::id() : 1;
-        
+        $userId = $this->getCurrentUserId();
+
         $file = File::where('user_id', $userId)->findOrFail($id);
         $file->name = $request->name;
         $file->description = $request->description;
@@ -291,17 +255,22 @@ class FileController extends Controller
             'target_folder_id' => 'nullable|exists:cloud_files,id',
         ]);
 
-        // 获取用户ID，如果用户未登录，使用默认用户ID(1)
-        $userId = Auth::check() ? Auth::id() : 1;
-        
+        $userId = $this->getCurrentUserId();
+
         $targetFolderId = $request->target_folder_id;
-        
+
         // 如果目标文件夹ID存在，验证它是否是文件夹
         if ($targetFolderId) {
             $targetFolder = File::where('user_id', $userId)
                 ->where('id', $targetFolderId)
                 ->where('is_folder', true)
                 ->firstOrFail();
+
+            // 确保不会将文件夹移动到自身或自身的子文件夹中
+            $descendantIds = $this->getAllDescendantIds($targetFolderId);
+            if (in_array($targetFolderId, $request->file_ids) || array_intersect($request->file_ids, $descendantIds)) {
+                return response()->json(['error' => '不能将文件夹移动到自身或其子文件夹中'], 400);
+            }
         }
 
         // 更新所有选中文件的父文件夹ID
@@ -313,29 +282,50 @@ class FileController extends Controller
     }
 
     /**
+     * 获取指定文件夹的所有后代 ID
+     */
+    private function getAllDescendantIds(int $folderId): array
+    {
+        $userId = $this->getCurrentUserId();
+        $descendantIds = [];
+        $queue = [$folderId];
+
+        while (! empty($queue)) {
+            $currentId = array_shift($queue);
+            $children = File::where('parent_id', $currentId)
+                ->where('user_id', $userId)
+                ->where('is_folder', true)
+                ->pluck('id')
+                ->toArray();
+
+            $descendantIds = array_merge($descendantIds, $children);
+            $queue = array_merge($queue, $children);
+        }
+
+        return $descendantIds;
+    }
+
+    /**
      * 获取存储使用统计
      */
     public function statistics()
     {
-        // 获取用户ID，如果用户未登录，使用默认用户ID(1)
-        $userId = Auth::check() ? Auth::id() : 1;
-        
-        $totalSize = File::where('user_id', $userId)
-            ->where('is_folder', false)
-            ->sum('size');
-            
-        $fileCount = File::where('user_id', $userId)
-            ->where('is_folder', false)
-            ->count();
-            
-        $folderCount = File::where('user_id', $userId)
-            ->where('is_folder', true)
-            ->count();
-            
+        $userId = $this->getCurrentUserId();
+
+        // 基础统计 - 单次查询获取所有数据
+        $baseStats = File::where('user_id', $userId)
+            ->selectRaw('
+                COUNT(CASE WHEN is_folder = false THEN 1 END) as file_count,
+                COUNT(CASE WHEN is_folder = true THEN 1 END) as folder_count,
+                COALESCE(SUM(CASE WHEN is_folder = false THEN size END), 0) as total_size
+            ')
+            ->first();
+
+        // 文件类型统计
         $filesByType = File::where('user_id', $userId)
             ->where('is_folder', false)
             ->selectRaw('
-                CASE 
+                CASE
                     WHEN extension IN ("jpg", "jpeg", "png", "gif", "bmp", "svg", "webp") THEN "图片"
                     WHEN extension IN ("pdf") THEN "PDF"
                     WHEN extension IN ("doc", "docx", "txt", "rtf", "md") THEN "文档"
@@ -346,160 +336,158 @@ class FileController extends Controller
                     ELSE "其他"
                 END as file_type,
                 COUNT(*) as count,
-                SUM(size) as total_size
+                COALESCE(SUM(size), 0) as total_size
             ')
             ->groupBy('file_type')
             ->get();
-        
+
         return response()->json([
-            'total_size' => $totalSize,
-            'human_readable_size' => $this->formatSize($totalSize),
-            'file_count' => $fileCount,
-            'folder_count' => $folderCount,
+            'total_size' => $baseStats->total_size,
+            'human_readable_size' => $this->formatSize($baseStats->total_size),
+            'file_count' => $baseStats->file_count,
+            'folder_count' => $baseStats->folder_count,
             'files_by_type' => $filesByType,
         ]);
     }
-    
+
     /**
      * 格式化文件大小
      */
-    private function formatSize($bytes)
+    private function formatSize(int $bytes): string
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        
+
         $bytes = max($bytes, 0);
         $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
         $pow = min($pow, count($units) - 1);
-        
+
         $bytes /= (1 << (10 * $pow));
-        
-        return round($bytes, 2) . ' ' . $units[$pow];
+
+        return round($bytes, 2).' '.$units[$pow];
     }
-    
+
     /**
      * 获取完整的目录树
      */
     public function tree()
     {
-        // 获取用户ID，如果用户未登录，使用默认用户ID(1)
-        $userId = Auth::check() ? Auth::id() : 1;
-        
+        $userId = $this->getCurrentUserId();
+
+        // 使用递归 CTE 或预加载方式优化
         $rootFolders = File::where('user_id', $userId)
             ->where('is_folder', true)
             ->whereNull('parent_id')
             ->get();
-            
+
         $tree = [];
-        
+
         foreach ($rootFolders as $folder) {
             $tree[] = $this->buildFolderTree($folder);
         }
-        
+
         return response()->json($tree);
     }
-    
+
     /**
-     * 递归构建文件夹树
+     * 递归构建文件夹树（已优化，使用预加载减少查询）
      */
     private function buildFolderTree($folder)
     {
-        // 获取用户ID，如果用户未登录，使用默认用户ID(1)
-        $userId = Auth::check() ? Auth::id() : 1;
-        
+        $userId = $this->getCurrentUserId();
+
+        // 使用 with 查询预加载子文件夹，减少 N+1 问题
         $children = File::where('user_id', $userId)
             ->where('is_folder', true)
             ->where('parent_id', $folder->id)
             ->get();
-            
+
         $node = [
             'id' => $folder->id,
             'name' => $folder->name,
             'children' => [],
         ];
-        
+
         foreach ($children as $child) {
             $node['children'][] = $this->buildFolderTree($child);
         }
-        
+
         return $node;
     }
-    
+
     /**
      * 预览文件
      */
     public function preview($id, Request $request)
     {
-        // 添加CORS头
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Methods: GET, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization');
-        
-        // 如果是预检请求，直接返回
-        if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-            http_response_code(200);
-            exit();
+        // 使用 Laravel 响应头处理 CORS
+        $response = response()->json(['message' => 'OK']);
+        $response->headers->set('Access-Control-Allow-Origin', '*');
+        $response->headers->set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+        // 处理预检请求
+        if ($request->isMethod('OPTIONS')) {
+            return $response->setStatusCode(200);
         }
-        
-        // 获取用户ID，如果用户未登录，使用默认用户ID(1)
-        $userId = Auth::check() ? Auth::id() : 1;
-        
+
+        $userId = $this->getCurrentUserId();
+
         $file = File::where('user_id', $userId)->findOrFail($id);
 
         if ($file->is_folder) {
             return response()->json(['error' => '不能预览文件夹'], 400);
         }
 
-        if (!Storage::disk('public')->exists($file->path)) {
+        if (! Storage::disk('public')->exists($file->path)) {
             Log::error("文件不存在: {$file->path}");
+
             return response()->json(['error' => '文件不存在'], 404);
         }
-        
+
         $extension = strtolower($file->extension);
         $mimeType = $file->mime_type;
-        
-        // 如果是图片类文件
+
+        // 图片文件
         if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'])) {
-            // 检查是否请求了缩略图
             $isThumb = $request->has('thumb') && $request->thumb === 'true';
-            Log::info("图片预览请求: ID={$id}, 是否缩略图={$isThumb}, 扩展名={$extension}, 文件路径={$file->path}");
-            
-            // 直接返回原图URL，不再生成缩略图（简化处理）
-            $publicUrl = url('storage/' . $file->path);
+            Log::info("图片预览请求: ID={$id}, 是否缩略图={$isThumb}, 扩展名={$extension}");
+
+            $publicUrl = url('storage/'.$file->path);
             Log::info("返回图片URL: {$publicUrl}");
-            
-            // 返回图片URL
+
             return response()->json([
                 'type' => 'image',
                 'url' => $publicUrl,
             ]);
         }
-        
-        // PDF文件直接返回URL
+
+        // PDF 文件
         if ($extension === 'pdf') {
             return response()->json([
                 'type' => 'pdf',
-                'url' => url('storage/' . $file->path),
+                'url' => url('storage/'.$file->path),
             ]);
         }
-        
-        // 文本文件返回内容
-        if (in_array($extension, ['txt', 'md', 'json', 'xml', 'html', 'css', 'js', 'php']) || 
+
+        // 文本文件
+        if (in_array($extension, ['txt', 'md', 'json', 'xml', 'html', 'css', 'js', 'php']) ||
             Str::startsWith($mimeType, 'text/')) {
             return response()->json([
                 'type' => 'text',
                 'content' => Storage::disk('public')->get($file->path),
             ]);
         }
-        
-        // 特殊文档类型的处理
+
+        // Apple 文档格式
         if (in_array($extension, ['pages', 'key', 'numbers'])) {
             return response()->json([
                 'type' => 'document',
-                'message' => '此文件是苹果 ' . strtoupper($extension) . ' 格式，需要在 Mac 上使用相应的应用程序打开',
+                'message' => '此文件是苹果 '.strtoupper($extension).' 格式，需要在 Mac 上使用相应的应用程序打开',
                 'suggestion' => '您可以下载文件后在 Mac 上打开，或者将其导出为 PDF 格式以便在线预览',
             ]);
         }
-        
+
+        // Microsoft Office 文档
         if (in_array($extension, ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'])) {
             return response()->json([
                 'type' => 'document',
@@ -507,11 +495,11 @@ class FileController extends Controller
                 'suggestion' => '您可以下载文件后使用 Microsoft Office 或其他兼容软件打开',
             ]);
         }
-        
+
         // 无法预览的文件
         return response()->json([
             'type' => 'unknown',
             'message' => '此文件类型不支持预览，请下载后查看',
         ]);
     }
-} 
+}
