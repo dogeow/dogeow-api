@@ -3,33 +3,31 @@
 namespace App\Http\Controllers\Api\Game;
 
 use App\Http\Controllers\Controller;
-use App\Models\Game\GameCharacter;
+use App\Http\Requests\Game\SocketGemRequest;
+use App\Http\Requests\Game\UnsocketGemRequest;
 use App\Models\Game\GameItem;
 use App\Models\Game\GameItemGem;
+use App\Services\Game\GameInventoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class GemController extends Controller
 {
+    use \App\Http\Controllers\Concerns\CharacterConcern;
+
     /**
      * 镶嵌宝石到装备
      */
-    public function socket(Request $request): JsonResponse
+    public function socket(SocketGemRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'item_id' => 'required|integer|exists:game_items,id',
-            'gem_item_id' => 'required|integer|exists:game_items,id',
-            'socket_index' => 'required|integer|min:0',
-        ]);
-
         $character = $this->getCharacter($request);
 
         // 获取装备和宝石
-        $equipment = GameItem::where('id', $validated['item_id'])
+        $equipment = GameItem::where('id', $request->input('item_id'))
             ->where('character_id', $character->id)
             ->firstOrFail();
 
-        $gemItem = GameItem::where('id', $validated['gem_item_id'])
+        $gemItem = GameItem::where('id', $request->input('gem_item_id'))
             ->where('character_id', $character->id)
             ->where('is_in_storage', false)
             ->firstOrFail();
@@ -41,7 +39,7 @@ class GemController extends Controller
             return $this->error('只能镶嵌宝石');
         }
 
-        // 验证装备是否为装备类型
+        // 验证装备类型
         $equipmentTypes = ['weapon', 'helmet', 'armor', 'gloves', 'boots', 'belt', 'ring', 'amulet'];
         if (! in_array($equipment->definition->type, $equipmentTypes)) {
             return $this->error('只能向装备镶嵌宝石');
@@ -53,13 +51,13 @@ class GemController extends Controller
         }
 
         // 验证插槽索引
-        if ($validated['socket_index'] >= $equipment->sockets) {
+        if ($request->input('socket_index') >= $equipment->sockets) {
             return $this->error('插槽索引超出范围');
         }
 
         // 检查该插槽是否已有宝石
         $existingGem = GameItemGem::where('item_id', $equipment->id)
-            ->where('socket_index', $validated['socket_index'])
+            ->where('socket_index', $request->input('socket_index'))
             ->first();
 
         if ($existingGem) {
@@ -70,7 +68,7 @@ class GemController extends Controller
         GameItemGem::create([
             'item_id' => $equipment->id,
             'gem_definition_id' => $gemDefinition->id,
-            'socket_index' => $validated['socket_index'],
+            'socket_index' => $request->input('socket_index'),
         ]);
 
         // 删除宝石物品
@@ -85,23 +83,18 @@ class GemController extends Controller
     /**
      * 从装备卸下宝石
      */
-    public function unsocket(Request $request): JsonResponse
+    public function unsocket(UnsocketGemRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'item_id' => 'required|integer|exists:game_items,id',
-            'socket_index' => 'required|integer|min:0',
-        ]);
-
         $character = $this->getCharacter($request);
 
         // 获取装备
-        $equipment = GameItem::where('id', $validated['item_id'])
+        $equipment = GameItem::where('id', $request->input('item_id'))
             ->where('character_id', $character->id)
             ->firstOrFail();
 
         // 查找宝石
         $gem = GameItemGem::where('item_id', $equipment->id)
-            ->where('socket_index', $validated['socket_index'])
+            ->where('socket_index', $request->input('socket_index'))
             ->first();
 
         if (! $gem) {
@@ -111,13 +104,14 @@ class GemController extends Controller
         $gemDefinition = $gem->gemDefinition;
 
         // 检查背包空间
+        $inventoryService = new GameInventoryService;
         $inventoryCount = $character->items()->where('is_in_storage', false)->count();
-        if ($inventoryCount >= 50) { // INVENTORY_SIZE
+        if ($inventoryCount >= $inventoryService::INVENTORY_SIZE) {
             return $this->error('背包已满，无法卸下宝石');
         }
 
         // 找到空位
-        $slotIndex = $this->findEmptySlot($character);
+        $slotIndex = $inventoryService->findEmptySlot($character, false);
 
         // 创建宝石物品
         GameItem::create([
@@ -162,42 +156,5 @@ class GemController extends Controller
             'sockets' => $item->sockets,
             'socketed_gems' => $item->gems,
         ]);
-    }
-
-    /**
-     * 获取角色
-     */
-    private function getCharacter(Request $request): GameCharacter
-    {
-        $characterId = $request->query('character_id') ?: $request->input('character_id');
-
-        $query = GameCharacter::query()
-            ->where('user_id', $request->user()->id);
-
-        if ($characterId) {
-            $query->where('id', $characterId);
-        }
-
-        return $query->firstOrFail();
-    }
-
-    /**
-     * 查找空背包槽位
-     */
-    private function findEmptySlot(GameCharacter $character): int
-    {
-        $occupiedSlots = $character->items()
-            ->where('is_in_storage', false)
-            ->pluck('slot_index')
-            ->filter()
-            ->toArray();
-
-        for ($i = 0; $i < 50; $i++) {
-            if (! in_array($i, $occupiedSlots)) {
-                return $i;
-            }
-        }
-
-        return 0;
     }
 }

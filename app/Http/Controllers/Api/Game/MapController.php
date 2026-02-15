@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Api\Game;
 
 use App\Http\Controllers\Controller;
-use App\Models\Game\GameCharacter;
 use App\Models\Game\GameMapDefinition;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class MapController extends Controller
 {
+    use \App\Http\Controllers\Concerns\CharacterConcern;
+
     /**
      * 获取所有地图
      */
@@ -58,7 +59,7 @@ class MapController extends Controller
             return $this->error("需要等级 {$map->min_level} 才能进入该地图");
         }
 
-        // 确保地图进度记录存在（首次进入时创建）
+        // 确保地图进度记录存在
         $progress = $character->mapProgress()->where('map_id', $mapId)->first();
 
         if (! $progress) {
@@ -69,7 +70,7 @@ class MapController extends Controller
 
         // 更新当前地图并自动开始战斗
         $character->current_map_id = $mapId;
-        $character->is_fighting = true;  // 进入地图自动开始战斗
+        $character->is_fighting = true;
         $character->save();
 
         return $this->success([
@@ -91,9 +92,9 @@ class MapController extends Controller
             return $this->error("需要等级 {$map->min_level} 才能传送到该地图");
         }
 
-        // 直接传送到地图，自动开始战斗（无传送费用）
+        // 直接传送到地图，自动开始战斗
         $character->current_map_id = $mapId;
-        $character->is_fighting = true;  // 传送后自动开始战斗
+        $character->is_fighting = true;
         $character->save();
 
         return $this->success([
@@ -102,13 +103,10 @@ class MapController extends Controller
     }
 
     /**
-     * 解锁地图（已废弃 - 地图无需解锁）
-     *
-     * @deprecated 地图系统不再需要解锁机制
+     * 解锁地图（已废弃）
      */
     public function unlock(Request $request, int $mapId): JsonResponse
     {
-        // 地图无需解锁，直接返回成功
         $map = GameMapDefinition::findOrFail($mapId);
 
         return $this->success([], "地图 {$map->name} 无需解锁");
@@ -136,22 +134,5 @@ class MapController extends Controller
             'monsters' => $monsters,
             'is_fighting' => $character->is_fighting,
         ]);
-    }
-
-    /**
-     * 获取角色
-     */
-    private function getCharacter(Request $request): GameCharacter
-    {
-        $characterId = $request->query('character_id') ?: $request->input('character_id');
-
-        $query = GameCharacter::query()
-            ->where('user_id', $request->user()->id);
-
-        if ($characterId) {
-            $query->where('id', $characterId);
-        }
-
-        return $query->firstOrFail();
     }
 }

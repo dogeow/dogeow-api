@@ -3,13 +3,15 @@
 namespace App\Http\Controllers\Api\Game;
 
 use App\Http\Controllers\Controller;
-use App\Models\Game\GameCharacter;
+use App\Http\Requests\Game\LearnSkillRequest;
 use App\Models\Game\GameSkillDefinition;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SkillController extends Controller
 {
+    use \App\Http\Controllers\Concerns\CharacterConcern;
+
     /**
      * 获取所有可用技能
      */
@@ -39,19 +41,15 @@ class SkillController extends Controller
     /**
      * 学习技能
      */
-    public function learn(Request $request): JsonResponse
+    public function learn(LearnSkillRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'skill_id' => 'required|integer|exists:game_skill_definitions,id',
-        ]);
-
         $character = $this->getCharacter($request);
 
         if ($character->skill_points <= 0) {
             return $this->error('技能点不足');
         }
 
-        $skill = GameSkillDefinition::findOrFail($validated['skill_id']);
+        $skill = GameSkillDefinition::findOrFail($request->input('skill_id'));
 
         // 检查职业限制
         if (! $skill->canLearnByClass($character->class)) {
@@ -78,22 +76,5 @@ class SkillController extends Controller
             'skill_points' => $character->skill_points,
             'character_skill' => $characterSkill,
         ], '技能学习成功');
-    }
-
-    /**
-     * 获取角色
-     */
-    private function getCharacter(Request $request): GameCharacter
-    {
-        $characterId = $request->query('character_id') ?: $request->input('character_id');
-
-        $query = GameCharacter::query()
-            ->where('user_id', $request->user()->id);
-
-        if ($characterId) {
-            $query->where('id', $characterId);
-        }
-
-        return $query->firstOrFail();
     }
 }
