@@ -19,6 +19,7 @@ class GameItem extends GameItemDefinition
         'quantity',
         'slot_index',
         'sockets',
+        'sell_price',
     ];
 
     protected function casts(): array

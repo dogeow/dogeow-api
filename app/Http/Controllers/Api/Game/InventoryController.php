@@ -208,7 +208,7 @@ class InventoryController extends Controller
         // 计算售价（铜币，与商店一致 1银=100铜）
         $basePrice = $item->definition->base_stats['price'] ?? 10;
         $qualityMultiplier = GameItem::QUALITY_MULTIPLIERS[$item->quality] ?? 1.0;
-        $sellPrice = (int) ($basePrice * $qualityMultiplier * $quantity * 0.5 * 100);
+        $sellPrice = (int) ($basePrice * $qualityMultiplier * $quantity * 0.5);
 
         // 更新铜币
         $character->copper += $sellPrice;

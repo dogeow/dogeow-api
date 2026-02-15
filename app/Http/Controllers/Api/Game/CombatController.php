@@ -715,7 +715,10 @@ $requestedSkillIds = $request->input('skill_ids');
         $qualityMultiplier = GameItem::QUALITY_MULTIPLIERS[$quality];
         $stats = [];
         foreach ($definition->base_stats ?? [] as $stat => $value) {
-            $stats[$stat] = (int)($value * $qualityMultiplier * (0.8 + rand(0, 40) / 100));
+            $statValue = (int)($value * $qualityMultiplier * (0.8 + rand(0, 40) / 100));
+            if ($statValue !== 0) {
+                $stats[$stat] = $statValue;
+            }
         }
 
         // 词缀与插槽
@@ -751,6 +754,10 @@ $requestedSkillIds = $request->input('skill_ids');
             }
         }
 
+        // 计算售价（铜币）
+        $basePrice = $definition->base_stats['price'] ?? 10;
+        $sellPrice = (int) ($basePrice * $qualityMultiplier * 0.5);
+
         $item = GameItem::create([
             'character_id' => $character->id,
             'definition_id' => $definition->id,
@@ -761,6 +768,7 @@ $requestedSkillIds = $request->input('skill_ids');
             'quantity' => 1,
             'slot_index' => $this->findEmptySlot($character),
             'sockets' => $sockets,
+            'sell_price' => $sellPrice,
         ]);
         return $item->load('definition');
     }

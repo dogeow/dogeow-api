@@ -327,14 +327,15 @@ class GameCharacter extends Model
     }
 
     /**
-     * 计算攻击力
+     * 计算攻击力（暗黑2风格：力量/敏捷影响物理攻击，精力影响法术攻击）
      */
     public function getAttack(): int
     {
+        // 战士用力量，游侠用敏捷，法师用法力作为主攻击属性
         $baseAttack = match ($this->class) {
             'warrior' => $this->strength * 2,
-            'mage' => $this->energy * 2,
             'ranger' => $this->dexterity * 2,
+            'mage' => $this->energy * 2,
             default => $this->strength,
         };
 
@@ -345,7 +346,7 @@ class GameCharacter extends Model
     }
 
     /**
-     * 计算防御力
+     * 计算防御力（暗黑2风格：体力+敏捷影响防御）
      */
     public function getDefense(): int
     {
@@ -358,7 +359,7 @@ class GameCharacter extends Model
     }
 
     /**
-     * 计算暴击率
+     * 计算暴击率（暗黑2风格：敏捷影响暴击率）
      */
     public function getCritRate(): float
     {
