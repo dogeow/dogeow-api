@@ -8,17 +8,54 @@ use App\Models\Game\GameItem;
 use App\Models\Game\GameItemDefinition;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class ShopController extends Controller
 {
+    /** 商店装备列表缓存时间（秒），药品每次请求都返回不缓存 */
+    private const SHOP_CACHE_TTL_SECONDS = 1800; // 30 分钟
+
     /**
-     * 获取商店物品列表（随机物品，随机属性）
+     * 获取商店物品列表（药品固定显示，装备按固定时间刷新）
      */
     public function index(Request $request): JsonResponse
     {
         $character = $this->getCharacter($request);
 
-        // 药品按 sub_type（hp/mp）各只显示一瓶：取玩家可用的最高等级那种
+        // 药品固定显示：按 sub_type（hp/mp）各只显示一瓶，取玩家可用的最高等级那种
+        $fixedPotionItems = $this->buildFixedPotionItems($character);
+
+        // 装备列表：使用缓存，固定时间刷新
+        $cacheKey = "rpg:shop:{$character->id}";
+        $cached = Cache::get($cacheKey);
+
+        if (is_array($cached) && isset($cached['equipment'], $cached['refreshed_at'])) {
+            $randomEquipmentItems = collect($cached['equipment']);
+            $nextRefreshAt = $cached['refreshed_at'] + self::SHOP_CACHE_TTL_SECONDS;
+        } else {
+            $randomEquipmentItems = $this->buildRandomEquipmentItems();
+            $refreshedAt = time();
+            Cache::put($cacheKey, [
+                'equipment' => $randomEquipmentItems->values()->all(),
+                'refreshed_at' => $refreshedAt,
+            ], self::SHOP_CACHE_TTL_SECONDS);
+            $nextRefreshAt = $refreshedAt + self::SHOP_CACHE_TTL_SECONDS;
+        }
+
+        $shopItems = $fixedPotionItems->concat($randomEquipmentItems);
+
+        return $this->success([
+            'items' => $shopItems,
+            'player_copper' => $character->copper,
+            'next_refresh_at' => $nextRefreshAt,
+        ]);
+    }
+
+    /**
+     * 构建固定药品列表（商店始终显示，不随刷新变化）
+     */
+    private function buildFixedPotionItems(GameCharacter $character): \Illuminate\Support\Collection
+    {
         $potionDefinitions = GameItemDefinition::query()
             ->where('is_active', true)
             ->where('type', 'potion')
@@ -29,7 +66,7 @@ class ShopController extends Controller
 
         $fixedPotions = $potionDefinitions->unique('sub_type')->values();
 
-        $fixedPotionItems = $fixedPotions->map(function ($definition) {
+        return $fixedPotions->map(function ($definition) {
             $randomStats = $this->generateRandomStats($definition);
             $buyPrice = $this->calculateBuyPrice($definition, $randomStats);
 
@@ -49,8 +86,13 @@ class ShopController extends Controller
                 'sell_price' => (int) floor($buyPrice * 0.3),
             ];
         });
+    }
 
-        // 获取所有非药品的物品定义
+    /**
+     * 构建随机装备列表（用于缓存或首次请求）
+     */
+    private function buildRandomEquipmentItems(): \Illuminate\Support\Collection
+    {
         $equipmentDefinitions = GameItemDefinition::query()
             ->where('is_active', true)
             ->where('type', '!=', 'potion')
@@ -58,12 +100,10 @@ class ShopController extends Controller
             ->orderBy('required_level')
             ->get();
 
-        // 随机选择 6-12 件装备
         $shopSize = rand(6, 12);
         $selectedEquipments = $equipmentDefinitions->shuffle()->take($shopSize);
 
-        // 为每个装备生成随机属性和价格
-        $randomEquipmentItems = $selectedEquipments->map(function ($definition) {
+        return $selectedEquipments->map(function ($definition) {
             $randomStats = $this->generateRandomStats($definition);
 
             return [
@@ -81,14 +121,6 @@ class ShopController extends Controller
                 'buy_price' => $this->calculateBuyPrice($definition, $randomStats),
             ];
         });
-
-        // 合并固定药品和随机装备
-        $shopItems = $fixedPotionItems->concat($randomEquipmentItems);
-
-        return $this->success([
-            'items' => $shopItems,
-            'player_copper' => $character->copper,
-        ]);
     }
 
     /**

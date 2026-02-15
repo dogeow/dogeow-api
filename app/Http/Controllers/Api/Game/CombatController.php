@@ -135,6 +135,14 @@ class CombatController extends Controller
 
             $character->initializeHpMana();
             $currentHp = $character->getCurrentHp();
+            $currentMana = $character->getCurrentMana();
+
+            // 每回合开始前若 HP/MP 低于自动使用阈值则先补药（含上一场结束后未补的情况）
+            $charStats = $character->getCombatStats();
+            $potionUsedBeforeRound = $this->tryAutoUsePotions($character, $currentHp, $currentMana, $charStats);
+            if (! empty($potionUsedBeforeRound)) {
+                $currentHp = $character->getCurrentHp();
+            }
 
             if ($currentHp <= 0) {
                 $character->clearCombatState();
@@ -183,6 +191,14 @@ class CombatController extends Controller
                 $monsterHp,
                 $monsterMaxHp
             );
+
+            // 每回合结算后尝试自动使用药水（HP/MP 低于阈值时），再持久化状态
+            $charStats = $character->getCombatStats();
+            $potionUsed = $this->tryAutoUsePotions($character, $roundResult['new_char_hp'], $roundResult['new_char_mana'], $charStats);
+            if (! empty($potionUsed)) {
+                $roundResult['new_char_hp'] = $character->getCurrentHp();
+                $roundResult['new_char_mana'] = $character->getCurrentMana();
+            }
 
             // 统一存储逻辑
             $this->persistCombatState($character, $roundResult, $currentRound);
@@ -237,6 +253,7 @@ class CombatController extends Controller
                 'experience_gained' => 0,
                 'copper_gained' => 0,
                 'loot' => [],
+                'potion_used' => array_merge($potionUsedBeforeRound ?? [], $potionUsed ?? []),
                 'skills_used' => $roundResult['skills_used_this_round'],
                 'character' => $character->fresh()->toArray(),
             ];
@@ -757,14 +774,14 @@ $requestedSkillIds = $request->input('skill_ids');
             'hp' => [
                 'minor' => ['name' => '轻型生命药水', 'restore' => 50],
                 'light' => ['name' => '生命药水', 'restore' => 100],
-                'medium' => ['name' => '重型生命药水', 'restore' => 200],
-                'full' => ['name' => '超重型生命药水', 'restore' => 400],
+                'medium' => ['name' => '强效生命药水', 'restore' => 200],
+                'full' => ['name' => '超级生命药水', 'restore' => 400],
             ],
             'mp' => [
                 'minor' => ['name' => '轻型法力药水', 'restore' => 30],
                 'light' => ['name' => '法力药水', 'restore' => 60],
-                'medium' => ['name' => '重型法力药水', 'restore' => 120],
-                'full' => ['name' => '超重型法力药水', 'restore' => 240],
+                'medium' => ['name' => '强效法力药水', 'restore' => 120],
+                'full' => ['name' => '超级法力药水', 'restore' => 240],
             ],
         ];
         $type = $potionData['sub_type'];
@@ -890,10 +907,12 @@ $requestedSkillIds = $request->input('skill_ids');
     {
         $used = [];
 
-        // HP药水
-        if ($character->auto_use_hp_potion) {
+        // HP药水（避免 max_hp 为 0 除零，阈值取整 1–100）
+        $hpThreshold = (int) ($character->hp_potion_threshold ?? 30);
+        $hpThreshold = max(1, min(100, $hpThreshold));
+        if ($character->auto_use_hp_potion && ($charStats['max_hp'] ?? 0) > 0) {
             $hpPercent = ($currentHp / $charStats['max_hp']) * 100;
-            if ($hpPercent <= $character->hp_potion_threshold) {
+            if ($hpPercent <= $hpThreshold) {
                 $potion = $this->findBestPotion($character, 'hp');
                 if ($potion) {
                     $this->usePotionItem($character, $potion);
@@ -906,10 +925,12 @@ $requestedSkillIds = $request->input('skill_ids');
             }
         }
 
-        // MP药水
-        if ($character->auto_use_mp_potion) {
+        // MP药水（避免 max_mana 为 0 除零，阈值取整 1–100）
+        $mpThreshold = (int) ($character->mp_potion_threshold ?? 30);
+        $mpThreshold = max(1, min(100, $mpThreshold));
+        if ($character->auto_use_mp_potion && ($charStats['max_mana'] ?? 0) > 0) {
             $mpPercent = ($currentMana / $charStats['max_mana']) * 100;
-            if ($mpPercent <= $character->mp_potion_threshold) {
+            if ($mpPercent <= $mpThreshold) {
                 $potion = $this->findBestPotion($character, 'mp');
                 if ($potion) {
                     $this->usePotionItem($character, $potion);

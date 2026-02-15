@@ -51,6 +51,8 @@ class GameCharacter extends Model
             'last_combat_at' => 'datetime',
             'auto_use_hp_potion' => 'boolean',
             'auto_use_mp_potion' => 'boolean',
+            'hp_potion_threshold' => 'integer',
+            'mp_potion_threshold' => 'integer',
             'combat_skills_used' => 'array',
             'combat_skill_cooldowns' => 'array',
             'combat_started_at' => 'datetime',

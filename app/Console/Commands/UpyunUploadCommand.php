@@ -13,6 +13,11 @@ class UpyunUploadCommand extends Command
 
     protected $description = '将本地文件上传到又拍云（可用于 Ollama 生成图片后上传）';
 
+    /**
+     * 默认 Ollama 上传目录常量
+     */
+    protected const DEFAULT_OLLAMA_DIR = 'ollama/';
+
     public function handle(UpyunService $upyun): int
     {
         $localPath = $this->argument('path');
@@ -25,7 +30,7 @@ class UpyunUploadCommand extends Command
 
         $remotePath = $this->option('remote');
         if ($remotePath === null || $remotePath === '') {
-            $remotePath = 'images/ollama/'.basename($localPath);
+            $remotePath = self::DEFAULT_OLLAMA_DIR . basename($localPath);
         }
         $remotePath = ltrim($remotePath, '/');
 

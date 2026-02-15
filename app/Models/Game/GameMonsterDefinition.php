@@ -150,7 +150,7 @@ class GameMonsterDefinition extends Model
                 $this->level <= 10 => 'minor',      // 轻型药水
                 $this->level <= 30 => 'light',       // 普通药水
                 $this->level <= 60 => 'medium',      // 重型药水
-                default => 'full',                     // 超重型药水
+                default => 'full',                     // 超级药水
             };
 
             $loot['potion'] = [
