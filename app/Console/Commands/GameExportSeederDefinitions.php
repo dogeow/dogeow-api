@@ -11,11 +11,16 @@ class GameExportSeederDefinitions extends Command
 {
     protected $signature = 'game:export-seeder-definitions';
 
-    protected $description = '从数据库导出 game_item_definitions、game_monster_definitions、game_skill_definitions，写入 GameSeederDefinitionsData.php，供 GameSeeder 使用';
+    protected $description = '从数据库导出 game_item_definitions、game_monster_definitions、game_skill_definitions，写入 database/seeders/GameSeederData/ 目录，供 GameSeeder 使用';
 
     public function handle(): int
     {
         $this->info('从数据库导出物品、怪物与技能定义...');
+
+        $dir = database_path('seeders/GameSeederData');
+        if (! is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
 
         $items = GameItemDefinition::query()->orderBy('id')->get();
         $monsters = GameMonsterDefinition::query()->orderBy('id')->get();
@@ -79,25 +84,16 @@ class GameExportSeederDefinitions extends Command
             return $arr;
         })->all();
 
-        $path = database_path('seeders/GameSeederDefinitionsData.php');
-        $content = $this->buildPhpFile($itemsArray, $monstersArray, $skillsArray);
-        file_put_contents($path, $content);
+        $header = "<?php\n\n// 由 php artisan game:export-seeder-definitions 从数据库导出，供 GameSeeder 使用\nreturn ";
+        file_put_contents($dir.'/items.php', $header.$this->varExportShort($itemsArray).";\n");
+        file_put_contents($dir.'/monsters.php', $header.$this->varExportShort($monstersArray).";\n");
+        file_put_contents($dir.'/skills.php', $header.$this->varExportShort($skillsArray).";\n");
 
-        $this->info('已写入: '.$path);
+        $this->info('已写入: '.$dir.'/items.php, monsters.php, skills.php');
         $this->info('物品: '.count($itemsArray).' 条，怪物: '.count($monstersArray).' 条，技能: '.count($skillsArray).' 条');
         $this->info('下次执行 php artisan db:seed --class=GameSeeder 将使用上述数据。');
 
         return self::SUCCESS;
-    }
-
-    private function buildPhpFile(array $items, array $monsters, array $skills): string
-    {
-        $out = "<?php\n\n";
-        $out .= "// 由 php artisan game:export-seeder-definitions 从数据库导出，供 GameSeeder 使用\n";
-        $out .= "return [\n    'items' => ".$this->varExportShort($items).",\n";
-        $out .= "    'monsters' => ".$this->varExportShort($monsters).",\n";
-        $out .= "    'skills' => ".$this->varExportShort($skills).",\n];\n";
-        return $out;
     }
 
     private function varExportShort(mixed $var, int $indent = 0): string
