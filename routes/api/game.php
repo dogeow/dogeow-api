@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Game\CharacterController;
 use App\Http\Controllers\Api\Game\CombatController;
+use App\Http\Controllers\Api\Game\CompendiumController;
 use App\Http\Controllers\Api\Game\GemController;
 use App\Http\Controllers\Api\Game\InventoryController;
 use App\Http\Controllers\Api\Game\MapController;
@@ -63,4 +64,9 @@ Route::prefix('rpg')->group(function () {
     Route::get('/combat/logs', [CombatController::class, 'logs']);
     Route::get('/combat/stats', [CombatController::class, 'stats']);
     Route::post('/combat/potion-settings', [CombatController::class, 'updatePotionSettings']);
+
+    // 图鉴相关
+    Route::get('/compendium/items', [CompendiumController::class, 'items']);
+    Route::get('/compendium/monsters', [CompendiumController::class, 'monsters']);
+    Route::get('/compendium/monsters/{monster}/drops', [CompendiumController::class, 'monsterDrops']);
 });
