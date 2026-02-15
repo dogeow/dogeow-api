@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\Cloud;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cloud\File;
-use App\Traits\GetCurrentUserId;
+use App\Http\Controllers\Concerns\GetCurrentUserId;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
