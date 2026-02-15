@@ -13,27 +13,38 @@ class SkillController extends Controller
     use \App\Http\Controllers\Concerns\CharacterConcern;
 
     /**
-     * 获取所有可用技能
+     * 获取技能列表（单一列表，每项含 is_learned 及已学时的 character_skill 信息）
      */
     public function index(Request $request): JsonResponse
     {
         $character = $this->getCharacter($request);
 
-        $availableSkills = GameSkillDefinition::query()
+        $definitions = GameSkillDefinition::query()
             ->where('is_active', true)
             ->where(function ($query) use ($character) {
                 $query->where('class_restriction', 'all')
                     ->orWhere('class_restriction', $character->class);
             })
+            ->orderBy('id')
             ->get();
 
-        $learnedSkills = $character->skills()
-            ->with('skill')
-            ->get();
+        $learnedBySkillId = $character->skills()->get()->keyBy('skill_id');
+
+        $skills = $definitions->map(function (GameSkillDefinition $def) use ($learnedBySkillId) {
+            $row = $def->toArray();
+            $characterSkill = $learnedBySkillId->get($def->id);
+            $row['is_learned'] = $characterSkill !== null;
+            if ($characterSkill !== null) {
+                $row['character_skill_id'] = $characterSkill->id;
+                $row['level'] = $characterSkill->level ?? 1;
+                $row['slot_index'] = $characterSkill->slot_index;
+            }
+
+            return $row;
+        });
 
         return $this->success([
-            'available_skills' => $availableSkills,
-            'learned_skills' => $learnedSkills,
+            'skills' => $skills->values()->all(),
             'skill_points' => $character->skill_points,
         ]);
     }

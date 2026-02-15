@@ -104,7 +104,7 @@ class CombatController extends Controller
                 return $this->error($e->getMessage(), ['auto_stopped' => true]);
             }
 
-            return $this->error('战斗执行失败', ['error' => $e->getMessage()]);
+            return $this->error($e->getMessage() ?: '战斗执行失败', ['error' => $e->getMessage()]);
         }
     }
 

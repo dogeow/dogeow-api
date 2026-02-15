@@ -45,11 +45,30 @@ class GameSeeder extends Seeder
         $skillsPath = __DIR__.'/GameSeederData/skills.php';
         $skills = file_exists($skillsPath) ? require $skillsPath : [];
 
+        // 使用 updateOrCreate 根据名称更新或创建技能
         foreach ($skills as $skill) {
-            GameSkillDefinition::create(array_merge($skill, [
-                'icon' => 'skill_'.strtolower(str_replace(' ', '_', $skill['name'])).'.png',
-                'is_active' => true,
-            ]));
+            $isActive = $skill['type'] === 'active';
+            $baseDamage = $isActive ? ($skill['mana_cost'] * 2) : 0;
+            $damagePerLevel = $isActive ? 5 : 0;
+            $manaCostPerLevel = $isActive ? 2 : 0;
+
+            \App\Models\Game\GameSkillDefinition::updateOrCreate(
+                ['name' => $skill['name']],
+                array_merge($skill, [
+                    'type' => $skill['type'],
+                    'class_restriction' => $skill['class_restriction'],
+                    'mana_cost' => $skill['mana_cost'],
+                    'cooldown' => $skill['cooldown'],
+                    'description' => $skill['description'],
+                    'effects' => $skill['effects'] ?? null,
+                    'icon' => 'skill_'.strtolower(str_replace(' ', '_', $skill['name'])).'.png',
+                    'is_active' => true,
+                    'max_level' => 10,
+                    'base_damage' => $baseDamage,
+                    'damage_per_level' => $damagePerLevel,
+                    'mana_cost_per_level' => $manaCostPerLevel,
+                ])
+            );
         }
     }
 

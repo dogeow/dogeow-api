@@ -17,6 +17,10 @@ class GameSkillDefinition extends Model
         'icon',
         'effects',
         'is_active',
+        'max_level',
+        'base_damage',
+        'damage_per_level',
+        'mana_cost_per_level',
     ];
 
     protected function casts(): array
@@ -24,6 +28,11 @@ class GameSkillDefinition extends Model
         return [
             'effects' => 'array',
             'is_active' => 'boolean',
+            'cooldown' => 'float',
+            'max_level' => 'integer',
+            'base_damage' => 'integer',
+            'damage_per_level' => 'integer',
+            'mana_cost_per_level' => 'integer',
         ];
     }
 
