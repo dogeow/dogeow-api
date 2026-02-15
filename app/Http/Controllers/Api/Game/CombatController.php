@@ -629,19 +629,17 @@ $requestedSkillIds = $request->input('skill_ids');
             }
         }
 
+        // 本回合双方伤害先算好，再同时扣血（双方每回合都会受到伤害）
         $damage = $skillDamage > 0
             ? (int) ($baseDamage + $skillDamage)
             : (int) ($baseDamage * ($isCrit ? $charCritDamage : 1));
+        $monsterDamage = (int) max(1, $monsterAttack - $charDefense * 0.3);
 
-        $monsterHp -= $damage;
         $roundDamageDealt = $damage;
-        $roundDamageTaken = 0;
+        $roundDamageTaken = $monsterDamage;
 
-        if ($monsterHp > 0) {
-            $monsterDamage = (int) max(1, $monsterAttack - $charDefense * 0.3);
-            $charHp -= $monsterDamage;
-            $roundDamageTaken = $monsterDamage;
-        }
+        $charHp -= $monsterDamage;
+        $monsterHp -= $damage;
 
         foreach ($skillsUsedThisRound as $entry) {
             $id = $entry['skill_id'];
