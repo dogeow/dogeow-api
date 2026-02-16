@@ -661,8 +661,8 @@ class GameCombatService
             'loot' => [],
             'skills_used' => $roundResult['new_skills_aggregated'],
             'character' => $charArray,
-            'current_hp' => $defeatHp,
-            'current_mana' => $defeatMana,
+            'current_hp' => 0,
+            'current_mana' => 0,
             'combat_log_id' => $combatLog->id,
         ];
         broadcast(new GameCombatUpdate($character->id, $result));
