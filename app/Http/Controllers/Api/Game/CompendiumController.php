@@ -50,11 +50,11 @@ class CompendiumController extends Controller
 
         // 计算掉落概率
         $baseDropChance = $dropTable['item_chance'] ?? 0.1;
-        $typeMultiplier = GameMonsterDefinition::TYPE_MULTIPLIERS[$monster->type] ?? 0.1;
+        $typeMultiplier = config('game.monster_type_multipliers')[$monster->type] ?? 0.1;
         $dropChance = $baseDropChance * $typeMultiplier;
 
         // 铜币掉落率
-        $goldChance = $dropTable['gold_chance'] ?? 0.7;
+        $goldChance = $dropTable['copper_chance'] ?? 0.7;
 
         // 药水掉落率
         $potionBaseChance = $dropTable['potion_chance'] ?? 0.25;

@@ -164,6 +164,12 @@ class GameCombatService
             $roundResult['loot'] = array_merge($roundResult['loot'] ?? [], ['copper' => $copperGained]);
         }
 
+        // 处理死亡怪物的物品掉落
+        $deathLoot = $this->processDeathLoot($character, $roundResult);
+        if (! empty($deathLoot)) {
+            $roundResult['loot'] = array_merge($roundResult['loot'] ?? [], $deathLoot);
+        }
+
         // 保存更新后的怪物状态
         $character->combat_monster_hp = max(0, $roundResult['new_monster_hp']);
         $character->combat_monster_max_hp = max(0, $roundResult['new_monster_max_hp'] ?? $roundResult['new_monster_hp']);
@@ -791,6 +797,42 @@ class GameCombatService
         }
 
         $potion->quantity > 1 ? $potion->decrement('quantity') : $potion->delete();
+    }
+
+    /**
+     * 计算死亡怪物的掉落奖励（物品、药水等）
+     */
+    private function processDeathLoot(GameCharacter $character, array $roundResult): array
+    {
+        $loot = $roundResult['loot'] ?? [];
+        $monstersUpdated = $roundResult['monsters_updated'] ?? [];
+
+        foreach ($monstersUpdated as $m) {
+            if (! is_array($m) || ($m['hp'] ?? 0) > 0) {
+                continue;
+            }
+            // 怪物已死亡，尝试生成掉落
+            $monster = GameMonsterDefinition::query()->find($m['id'] ?? 0);
+            if (! $monster) {
+                continue;
+            }
+
+            $lootResult = $monster->generateLoot($character->level);
+            if (isset($lootResult['item']) && ! isset($loot['item'])) {
+                $item = $this->createItem($character, $lootResult['item']);
+                if ($item) {
+                    $loot['item'] = $item;
+                }
+            }
+            if (isset($lootResult['potion']) && ! isset($loot['potion'])) {
+                $potion = $this->createPotion($character, $lootResult['potion']);
+                if ($potion) {
+                    $loot['potion'] = $potion;
+                }
+            }
+        }
+
+        return $loot;
     }
 
     /**

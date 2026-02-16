@@ -34,13 +34,6 @@ class GameMonsterDefinition extends Model
 
     public const TYPES = ['normal', 'elite', 'boss'];
 
-    // 类型倍率
-    public const TYPE_MULTIPLIERS = [
-        'normal' => 0.1,
-        'elite' => 0.25,
-        'boss' => 0.5,
-    ];
-
     /**
      * 获取战斗日志
      */
@@ -102,7 +95,7 @@ class GameMonsterDefinition extends Model
      */
     private function calculateStatAtLevel(int $level, float $base, float $perLevel): int
     {
-        $baseMultiplier = self::TYPE_MULTIPLIERS[$this->type] ?? 1.0;
+        $baseMultiplier = config('game.monster_type_multipliers')[$this->type] ?? 1.0;
         $computedLevel = max($level, $this->level); // 防止负数等级
 
         return (int) (($base + $perLevel * ($computedLevel - $this->level)) * $baseMultiplier);
@@ -123,19 +116,21 @@ class GameMonsterDefinition extends Model
 
     /**
      * 生成掉落
+     * @param int $characterLevel 角色等级
+     * @return array 掉落物品
      */
     public function generateLoot(int $characterLevel): array
     {
         $loot = [];
         $dropTable = $this->drop_table ?? [];
 
-        $typeMultiplier = self::TYPE_MULTIPLIERS[$this->type] ?? 1.0;
+        $typeMultiplier = config('game.monster_type_multipliers')[$this->type] ?? 1.0;
 
-        // 铜币掉落：drop_table 的 gold_base / gold_range 直接表示铜币区间（如 8、7 表示 8～15 铜）
-        $copperChance = $dropTable['gold_chance'] ?? 0.7;
+        // 铜币掉落：drop_table 的 copper_base / copper_range 直接表示铜币区间（如 8、7 表示 8～15 铜）
+        $copperChance = $dropTable['copper_chance'] ?? 0.7;
         if ($this->rollChance($copperChance)) {
-            $base = (int) ($dropTable['gold_base'] ?? max(1, $this->level));
-            $range = (int) ($dropTable['gold_range'] ?? max(0, (int) ($this->level / 2)));
+            $base = (int) ($dropTable['copper_base'] ?? max(1, $this->level));
+            $range = (int) ($dropTable['copper_range'] ?? max(0, $this->level));
             $loot['copper'] = random_int($base, $base + $range);
         }
 
@@ -148,8 +143,8 @@ class GameMonsterDefinition extends Model
             // 根据怪物等级决定药水等级
             $potionLevel = match (true) {
                 $this->level <= 10 => 'minor',      // 轻型药水
-                $this->level <= 30 => 'light',       // 普通药水
-                $this->level <= 60 => 'medium',      // 重型药水
+                $this->level <= 30 => 'light',       // 药水
+                $this->level <= 60 => 'medium',      // 强效药水
                 default => 'full',                     // 超级药水
             };
 
@@ -161,7 +156,7 @@ class GameMonsterDefinition extends Model
         }
 
         // 装备掉落概率：使用 drop_table 配置的 item_chance，不再乘 type（避免 normal 仅 0.5%~1% 导致长期无掉落）
-        $dropChance = $dropTable['item_chance'] ?? 0.1;
+        $dropChance = $dropTable['item_chance'] ?? 0.05;
         if ($this->rollChance($dropChance)) {
             // 随机选择物品类型
             $itemTypes = $dropTable['item_types'] ?? ['weapon', 'helmet', 'armor', 'gloves', 'boots'];
@@ -208,7 +203,7 @@ class GameMonsterDefinition extends Model
     /**
      * 加权随机选择
      */
-    private function weightedRandom(array $weights)
+    private function weightedRandom(array $weights): string
     {
         $sum = array_sum($weights);
         if ($sum <= 0) {
