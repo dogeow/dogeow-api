@@ -4,12 +4,13 @@ namespace App\Http\Controllers\Api\Note;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Note\NoteRequest;
-use App\Models\Note\Note;
+use App\Http\Requests\Note\UpdateNoteRequest;
 use App\Jobs\TriggerKnowledgeIndexBuildJob;
+use App\Models\Note\Note;
 use App\Models\Note\NoteLink;
 use App\Services\Note\NoteContentService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -59,7 +60,7 @@ class NoteController extends Controller
     {
         $note = Note::where('slug', $slug)->first();
 
-        if (!$note) {
+        if (! $note) {
             return $this->error('Article not found', [], 404);
         }
 
@@ -89,10 +90,11 @@ class NoteController extends Controller
                 'articles' => $notes,
             ], 'All wiki articles retrieved successfully');
         } catch (\Exception $e) {
-            Log::error('getAllWikiArticles error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+            Log::error('getAllWikiArticles error: '.$e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to retrieve articles: ' . $e->getMessage(), [], 500);
+
+            return $this->error('Failed to retrieve articles: '.$e->getMessage(), [], 500);
         }
     }
 
@@ -132,11 +134,11 @@ class NoteController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id): JsonResponse
+    public function update(UpdateNoteRequest $request, string $id): JsonResponse
     {
         $note = $this->findUserNote($id);
-        $validatedData = $this->validateUpdateData($request, $note);
-        
+        $validatedData = $this->prepareUpdateData($request->validated(), $request, $note);
+
         $note->update($validatedData);
 
         // 处理标签
@@ -171,27 +173,27 @@ class NoteController extends Controller
     {
         // 先查找笔记（不限制条件）
         $note = Note::find($id);
-        
-        if (!$note) {
+
+        if (! $note) {
             throw new \Illuminate\Database\Eloquent\ModelNotFoundException(
-                'No query results for model [App\\Models\\Note\\Note] ' . $id
+                'No query results for model [App\\Models\\Note\\Note] '.$id
             );
         }
-        
+
         $userId = auth()->id(); // 直接使用 auth()->id()，可能返回 null
-        
+
         // 检查权限：
         // 1. 如果是用户自己的笔记（user_id 匹配）
         // 2. 或者是 wiki 节点（is_wiki = true，允许所有认证用户编辑）
         $isUserNote = $userId !== null && $note->user_id !== null && $note->user_id === $userId;
         $isWikiNode = $note->is_wiki === true;
-        
-        if (!$isUserNote && !$isWikiNode) {
+
+        if (! $isUserNote && ! $isWikiNode) {
             throw new \Illuminate\Database\Eloquent\ModelNotFoundException(
-                'No query results for model [App\\Models\\Note\\Note] ' . $id
+                'No query results for model [App\\Models\\Note\\Note] '.$id
             );
         }
-        
+
         return $note;
     }
 
@@ -246,7 +248,7 @@ class NoteController extends Controller
     private function mapGraphLink(NoteLink $link): ?array
     {
         // 检查关联的节点是否存在，如果不存在则跳过该链接
-        if (!$link->sourceNote || !$link->targetNote) {
+        if (! $link->sourceNote || ! $link->targetNote) {
             return null;
         }
 
@@ -309,39 +311,27 @@ class NoteController extends Controller
     }
 
     /**
-     * 验证更新数据
+     * 对更新后的数据进行后处理（空内容、派生 markdown、wiki slug）
      */
-    private function validateUpdateData(Request $request, Note $note): array
+    private function prepareUpdateData(array $validatedData, UpdateNoteRequest $request, Note $note): array
     {
-        $rules = [
-            'title' => 'sometimes|required|string|max:255',
-            'content' => 'sometimes|nullable|string',
-            'content_markdown' => 'sometimes|nullable|string',
-            'is_draft' => 'sometimes|boolean',
-            'slug' => 'sometimes|nullable|string|max:255',
-            'summary' => 'sometimes|nullable|string',
-            'is_wiki' => 'sometimes|boolean',
-        ];
-
-        $validatedData = $request->validate($rules);
-        
         // 处理内容为空的情况（处理 Middleware 转换空字符串为 null 的情况）
         if ($request->has('content') && is_null($validatedData['content'] ?? null)) {
             $validatedData['content'] = '';
         }
 
         // 如果更新了内容但没有提供 markdown，尝试自动生成
-        if (isset($validatedData['content']) && !isset($validatedData['content_markdown'])) {
+        if (isset($validatedData['content']) && ! isset($validatedData['content_markdown'])) {
             $validatedData['content_markdown'] = $this->noteContentService->deriveMarkdownFromContent($validatedData['content']);
         }
 
         // 如果更新了 title 但没有提供 slug，且是 wiki 节点，重新生成 slug
         $isWiki = $validatedData['is_wiki'] ?? $note->is_wiki;
-        if (isset($validatedData['title']) && !isset($validatedData['slug']) && $isWiki) {
+        if (isset($validatedData['title']) && ! isset($validatedData['slug']) && $isWiki) {
             $validatedData['slug'] = Note::normalizeSlug($validatedData['title']);
             $validatedData['slug'] = Note::ensureUniqueSlug($validatedData['slug'], $note->id);
         }
-        
+
         return $validatedData;
     }
 
@@ -387,5 +377,4 @@ class NoteController extends Controller
 
         return $this->success([], 'Link deleted successfully');
     }
-
 }
