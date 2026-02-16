@@ -36,6 +36,7 @@ class GameCharacter extends Model
         'combat_monster_level',
         'combat_monster_hp',
         'combat_monster_max_hp',
+        'combat_monsters',
         'combat_total_damage_dealt',
         'combat_total_damage_taken',
         'combat_rounds',
@@ -55,6 +56,7 @@ class GameCharacter extends Model
             'mp_potion_threshold' => 'integer',
             'combat_skills_used' => 'array',
             'combat_skill_cooldowns' => 'array',
+            'combat_monsters' => 'array',
             'combat_started_at' => 'datetime',
         ];
     }
@@ -271,10 +273,23 @@ class GameCharacter extends Model
     }
 
     /**
-     * 是否处于一场战斗的进行中（有当前怪物且怪物未死）
+     * 是否处于一场战斗的进行中（有当前怪物且至少有一只存活）
      */
     public function hasActiveCombat(): bool
     {
+        // 多怪物模式：检查 combat_monsters
+        $monsters = $this->combat_monsters ?? [];
+        if (! empty($monsters)) {
+            foreach ($monsters as $monster) {
+                if (($monster['hp'] ?? 0) > 0) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // 兼容旧数据：单怪物模式
         return $this->combat_monster_id !== null
             && (int) $this->combat_monster_hp > 0;
     }
@@ -288,6 +303,7 @@ class GameCharacter extends Model
         $this->combat_monster_level = null;
         $this->combat_monster_hp = null;
         $this->combat_monster_max_hp = null;
+        $this->combat_monsters = null;
         $this->combat_total_damage_dealt = 0;
         $this->combat_total_damage_taken = 0;
         $this->combat_rounds = 0;

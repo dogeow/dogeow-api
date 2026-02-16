@@ -100,9 +100,6 @@ class CombatController extends Controller
             if ($e->getPrevious() && str_contains($e->getMessage(), 'auto_stopped')) {
                 return $this->error($e->getMessage(), json_decode($e->getPrevious()->getMessage(), true) ?: []);
             }
-            if (isset($e->getData()['auto_stopped']) && $e->getData()['auto_stopped']) {
-                return $this->error($e->getMessage(), ['auto_stopped' => true]);
-            }
 
             return $this->error($e->getMessage() ?: '战斗执行失败', ['error' => $e->getMessage()]);
         }

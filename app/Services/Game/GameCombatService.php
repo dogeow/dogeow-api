@@ -84,7 +84,7 @@ class GameCombatService
     }
 
     /**
-     * 执行一回合战斗
+     * 执行一回合战斗（支持多怪物持续战斗）
      */
     public function executeRound(GameCharacter $character, array $skillIds = []): array
     {
@@ -167,39 +167,90 @@ class GameCombatService
         $this->persistCombatState($character, $roundResult, $currentRound);
 
         // 处理战斗结果
-        if ($roundResult['victory']) {
-            return $this->handleVictory($character, $map, $monster, $monsterLevel, $monsterMaxHp, $currentRound, $monsterStats, $roundResult, $monsterHp);
-        }
-
         if ($roundResult['defeat']) {
             return $this->handleDefeat($character, $map, $monster, $monsterLevel, $monsterMaxHp, $currentRound, $roundResult, $monsterHp);
         }
 
-        // 普通回合
+        // 检查是否所有怪物都死了
+        if (! ($roundResult['has_alive_monster'] ?? true)) {
+            // 所有怪物死亡，不立即补充，保留死亡怪物显示到下一回合
+            // 给予经验和金币奖励（来自死亡怪物）
+            $roundResult['experience_gained'] = $roundResult['experience_gained'] ?? 0;
+            $roundResult['copper_gained'] = $roundResult['copper_gained'] ?? 0;
+            $roundResult['new_monster_max_hp'] = $roundResult['new_monster_hp']; // 保持总血量不变
+        } else {
+            // 每回合有一定概率加入新怪物（最多5只）
+            $roundResult = $this->tryAddNewMonsters($character, $map, $roundResult, $currentRound);
+        }
+
+        // 保存更新后的怪物状态
         $character->combat_monster_hp = max(0, $roundResult['new_monster_hp']);
+        $character->combat_monster_max_hp = max(0, $roundResult['new_monster_max_hp'] ?? $roundResult['new_monster_hp']);
         $character->save();
+
+        // 获取当前怪物信息用于返回（包含死亡怪物，保持原有顺序）
+        $currentMonsters = $character->combat_monsters ?? [];
+
+        // 确保每个怪物有索引位置（用于前端保持位置）
+        // 创建固定5个位置的数组，用于保持位置不变
+        $fixedMonsters = array_fill(0, 5, null);
+        foreach ($currentMonsters as $idx => $m) {
+            if ($idx < 5) {
+                $m['position'] = $idx;
+                $fixedMonsters[$idx] = $m;
+            }
+        }
+
+        // 找出第一只存活的怪物
+        $firstAliveMonster = null;
+        foreach ($fixedMonsters as $m) {
+            if ($m && ($m['hp'] ?? 0) > 0) {
+                $firstAliveMonster = $m;
+                break;
+            }
+        }
+        if (!$firstAliveMonster) {
+            $firstAliveMonster = ['name' => '怪物', 'type' => 'normal', 'level' => 1];
+        }
+
+        // 创建战斗日志（每回合都记录）
+        $combatLog = GameCombatLog::create([
+            'character_id' => $character->id,
+            'map_id' => $map->id,
+            'monster_id' => $firstAliveMonster['id'] ?? $monster->id,
+            'damage_dealt' => $roundResult['round_damage_dealt'],
+            'damage_taken' => $roundResult['round_damage_taken'],
+            'victory' => false,
+            'loot_dropped' => ! empty($roundResult['loot']) ? $roundResult['loot'] : null,
+            'experience_gained' => $roundResult['experience_gained'] ?? 0,
+            'copper_gained' => $roundResult['copper_gained'] ?? 0,
+            'duration_seconds' => 0,
+            'skills_used' => $roundResult['skills_used_this_round'],
+        ]);
 
         $result = [
             'victory' => false,
             'defeat' => false,
-            'monster_id' => $monster->id,
+            'monster_id' => $firstAliveMonster['id'] ?? $monster->id,
+            'monsters' => $fixedMonsters, // 返回固定5个位置的怪物数组
             'monster' => [
-                'name' => $monster->name,
-                'type' => $monster->type,
-                'level' => $monsterLevel,
+                'name' => $firstAliveMonster['name'] ?? $monster->name,
+                'type' => $firstAliveMonster['type'] ?? $monster->type,
+                'level' => $firstAliveMonster['level'] ?? $monsterLevel,
                 'hp' => max(0, $roundResult['new_monster_hp']),
-                'max_hp' => $monsterMaxHp,
+                'max_hp' => max(0, $roundResult['new_monster_max_hp']),
             ],
             'monster_hp_before_round' => $monsterHp,
             'damage_dealt' => $roundResult['round_damage_dealt'],
             'damage_taken' => $roundResult['round_damage_taken'],
             'rounds' => $currentRound,
-            'experience_gained' => 0,
-            'copper_gained' => 0,
-            'loot' => [],
+            'experience_gained' => $roundResult['experience_gained'] ?? 0,
+            'copper_gained' => $roundResult['copper_gained'] ?? 0,
+            'loot' => $roundResult['loot'] ?? [],
             'potion_used' => array_merge($potionUsedBeforeRound ?? [], $potionUsed ?? []),
             'skills_used' => $roundResult['skills_used_this_round'],
             'character' => $character->fresh()->toArray(),
+            'combat_log_id' => $combatLog->id,
         ];
         broadcast(new GameCombatUpdate($character->id, $result));
 
@@ -207,62 +258,291 @@ class GameCombatService
     }
 
     /**
-     * 准备怪物信息
+     * 补充怪物（当所有怪物死亡时），并发放奖励
+     */
+    private function respawnMonsters(GameCharacter $character, GameMapDefinition $map, array $roundResult, int $currentRound): array
+    {
+        $difficulty = $character->getDifficultyMultipliers();
+        $monsters = $map->getMonsters();
+
+        if (empty($monsters)) {
+            return $roundResult;
+        }
+
+        // 获取上一轮死掉的怪物，计算经验和掉落
+        $oldMonsters = $character->combat_monsters ?? [];
+        $totalExperience = 0;
+        $totalCopper = 0;
+        $loot = ['copper' => 0];
+
+        foreach ($oldMonsters as $m) {
+            $totalExperience += $m['experience'] ?? 0;
+            // 每只怪物掉落 1-10 铜币
+            $totalCopper += rand(1, 10);
+        }
+
+        // 应用难度倍率
+        $totalExperience = (int) ($totalExperience * $difficulty['reward']);
+        $totalCopper = (int) ($totalCopper * $difficulty['reward']);
+
+        // 发放经验
+        if ($totalExperience > 0) {
+            $character->addExperience($totalExperience);
+        }
+
+        // 发放金币
+        if ($totalCopper > 0) {
+            $character->copper += $totalCopper;
+            $loot['copper'] = $totalCopper;
+        }
+
+        // 随机掉落物品（低概率）
+        if (! empty($monsters)) {
+            $baseMonster = $monsters[array_rand($monsters)];
+            $lootResult = $baseMonster->generateLoot($character->level);
+            if (isset($lootResult['item'])) {
+                $item = $this->createItem($character, $lootResult['item']);
+                if ($item) {
+                    $loot['item'] = $item;
+                }
+            }
+            if (isset($lootResult['potion'])) {
+                $potion = $this->createPotion($character, $lootResult['potion']);
+                if ($potion) {
+                    $loot['potion'] = $potion;
+                }
+            }
+        }
+
+        // 随机生成 1-3 只新怪物
+        $newCount = rand(1, 3);
+        $baseMonster = $monsters[array_rand($monsters)];
+        $baseLevel = rand(
+            max($map->min_level, $baseMonster->level - 3),
+            min($map->max_level, $baseMonster->level + 3)
+        );
+
+        $newMonsters = [];
+        for ($i = 0; $i < $newCount; $i++) {
+            $level = $baseLevel + rand(-1, 1);
+            $level = max(1, $level);
+            $stats = $baseMonster->getCombatStats($level);
+            $maxHp = (int) ($stats['hp'] * $difficulty['monster_hp']);
+
+            $newMonsters[] = [
+                'id' => $baseMonster->id,
+                'name' => $baseMonster->name,
+                'type' => $baseMonster->type,
+                'level' => $level,
+                'hp' => $maxHp,
+                'max_hp' => $maxHp,
+                'attack' => (int) ($stats['attack'] * $difficulty['monster_damage']),
+                'defense' => (int) ($stats['defense'] * $difficulty['monster_damage']),
+                'experience' => (int) ($stats['experience'] * $difficulty['reward']),
+            ];
+        }
+
+        $character->combat_monsters = $newMonsters;
+        $roundResult['new_monster_hp'] = array_sum(array_column($newMonsters, 'hp'));
+        $roundResult['new_monster_max_hp'] = array_sum(array_column($newMonsters, 'max_hp'));
+        $roundResult['experience_gained'] = $totalExperience;
+        $roundResult['copper_gained'] = $totalCopper;
+        $roundResult['loot'] = $loot;
+
+        return $roundResult;
+    }
+
+    /**
+     * 尝试添加新怪物（每回合概率加入，最多5只）
+     */
+    private function tryAddNewMonsters(GameCharacter $character, GameMapDefinition $map, array $roundResult, int $currentRound): array
+    {
+        $currentMonsters = $character->combat_monsters ?? [];
+
+        // 如果已有5只怪物，不再添加
+        if (count($currentMonsters) >= 5) {
+            $roundResult['new_monster_hp'] = array_sum(array_column($currentMonsters, 'hp'));
+            $roundResult['new_monster_max_hp'] = array_sum(array_column($currentMonsters, 'max_hp'));
+            return $roundResult;
+        }
+
+        // 30% 概率添加新怪物
+        if (rand(1, 100) > 30) {
+            $roundResult['new_monster_hp'] = array_sum(array_column($currentMonsters, 'hp'));
+            $roundResult['new_monster_max_hp'] = array_sum(array_column($currentMonsters, 'max_hp'));
+            return $roundResult;
+        }
+
+        $difficulty = $character->getDifficultyMultipliers();
+        $monsters = $map->getMonsters();
+
+        if (empty($monsters)) {
+            return $roundResult;
+        }
+
+        // 计算可以添加多少只（最多加到5只）
+        $canAdd = 5 - count($currentMonsters);
+        $addCount = min($canAdd, rand(1, 2));
+
+        $baseMonster = $monsters[array_rand($monsters)];
+        $baseLevel = rand(
+            max($map->min_level, $baseMonster->level - 3),
+            min($map->max_level, $baseMonster->level + 3)
+        );
+
+        for ($i = 0; $i < $addCount; $i++) {
+            $level = $baseLevel + rand(-1, 1);
+            $level = max(1, $level);
+            $stats = $baseMonster->getCombatStats($level);
+            $maxHp = (int) ($stats['hp'] * $difficulty['monster_hp']);
+
+            $currentMonsters[] = [
+                'id' => $baseMonster->id,
+                'name' => $baseMonster->name,
+                'type' => $baseMonster->type,
+                'level' => $level,
+                'hp' => $maxHp,
+                'max_hp' => $maxHp,
+                'attack' => (int) ($stats['attack'] * $difficulty['monster_damage']),
+                'defense' => (int) ($stats['defense'] * $difficulty['monster_damage']),
+                'experience' => (int) ($stats['experience'] * $difficulty['reward']),
+            ];
+        }
+
+        $character->combat_monsters = $currentMonsters;
+        $roundResult['new_monster_hp'] = array_sum(array_column($currentMonsters, 'hp'));
+        $roundResult['new_monster_max_hp'] = array_sum(array_column($currentMonsters, 'max_hp'));
+
+        return $roundResult;
+    }
+
+    /**
+     * 准备怪物信息（支持多怪物）
      */
     private function prepareMonsterInfo(GameCharacter $character, GameMapDefinition $map): array
     {
-        $monster = null;
-        $monsterLevel = null;
-        $monsterStats = null;
-        $monsterHp = null;
-        $monsterMaxHp = null;
+        $existingMonsters = $character->combat_monsters ?? [];
 
-        if ($character->hasActiveCombat()) {
-            $monster = GameMonsterDefinition::query()->find($character->combat_monster_id);
-            if (! $monster) {
-                $character->clearCombatState();
-
-                return [null, null, null, null, null];
+        // 检查是否有存活怪物
+        $hasAliveMonster = false;
+        foreach ($existingMonsters as $m) {
+            if (($m['hp'] ?? 0) > 0) {
+                $hasAliveMonster = true;
+                break;
             }
-            $monsterLevel = (int) $character->combat_monster_level;
-            $monsterStats = $monster->getCombatStats($monsterLevel);
-            $monsterHp = (int) $character->combat_monster_hp;
-            $monsterMaxHp = (int) $character->combat_monster_max_hp;
+        }
 
-            return [$monster, $monsterLevel, $monsterStats, $monsterHp, $monsterMaxHp];
+        if ($character->hasActiveCombat() && $hasAliveMonster) {
+            // 继续已有战斗
+            return $this->loadExistingMonsters($character, $existingMonsters);
         } else {
-            $monsters = $map->getMonsters();
-            if (empty($monsters)) {
-                return ['no-monster', null, null, null, null];
-            }
-            $monster = $monsters[array_rand($monsters)];
-            $monsterLevel = rand(
-                max($map->min_level, $monster->level - 3),
-                min($map->max_level, $monster->level + 3)
-            );
-            $monsterStats = $monster->getCombatStats($monsterLevel);
-            $difficulty = $character->getDifficultyMultipliers();
-            $monsterMaxHp = (int) ($monsterStats['hp'] * $difficulty['monster_hp']);
-            $monsterHp = $monsterMaxHp;
-
-            // 初始化战斗状态
-            $character->combat_monster_id = $monster->id;
-            $character->combat_monster_level = $monsterLevel;
-            $character->combat_monster_hp = $monsterHp;
-            $character->combat_monster_max_hp = $monsterMaxHp;
-            $character->combat_total_damage_dealt = 0;
-            $character->combat_total_damage_taken = 0;
-            $character->combat_rounds = 0;
-            $character->combat_skills_used = null;
-            $character->combat_skill_cooldowns = null;
-            $character->combat_started_at = now();
-
-            return [$monster, $monsterLevel, $monsterStats, $monsterHp, $monsterMaxHp];
+            // 开始新战斗，生成 1-5 只怪物
+            return $this->generateNewMonsters($character, $map, $existingMonsters);
         }
     }
 
     /**
-     * 处理一回合战斗
+     * 加载已有怪物
+     */
+    private function loadExistingMonsters(GameCharacter $character, array $existingMonsters): array
+    {
+        $firstMonster = null;
+        $monsterLevel = null;
+        $monsterStats = null;
+        $totalHp = 0;
+        $totalMaxHp = 0;
+
+        foreach ($existingMonsters as $m) {
+            if ($firstMonster === null && ($m['hp'] ?? 0) > 0) {
+                $monster = GameMonsterDefinition::query()->find($m['id']);
+                if ($monster) {
+                    $firstMonster = $monster;
+                    $monsterLevel = $m['level'];
+                    $monsterStats = $monster->getCombatStats($monsterLevel);
+                }
+            }
+            $totalHp += $m['hp'] ?? 0;
+            $totalMaxHp += $m['max_hp'] ?? 0;
+        }
+
+        if (! $firstMonster) {
+            $character->clearCombatState();
+
+            return [null, null, null, null, null];
+        }
+
+        return [$firstMonster, $monsterLevel, $monsterStats, $totalHp, $totalMaxHp];
+    }
+
+    /**
+     * 生成新怪物（1-5只）
+     */
+    private function generateNewMonsters(GameCharacter $character, GameMapDefinition $map, array $existingMonsters): array
+    {
+        $monsters = $map->getMonsters();
+        if (empty($monsters)) {
+            return ['no-monster', null, null, null, null];
+        }
+
+        $difficulty = $character->getDifficultyMultipliers();
+        $newMonsters = [];
+
+        // 随机生成 1-5 只怪物
+        $monsterCount = rand(1, 5);
+        $baseMonster = $monsters[array_rand($monsters)];
+        $baseLevel = rand(
+            max($map->min_level, $baseMonster->level - 3),
+            min($map->max_level, $baseMonster->level + 3)
+        );
+
+        for ($i = 0; $i < $monsterCount; $i++) {
+            $level = $baseLevel + rand(-1, 1);
+            $level = max(1, $level);
+            $stats = $baseMonster->getCombatStats($level);
+            $maxHp = (int) ($stats['hp'] * $difficulty['monster_hp']);
+
+            $newMonsters[] = [
+                'id' => $baseMonster->id,
+                'name' => $baseMonster->name,
+                'type' => $baseMonster->type,
+                'level' => $level,
+                'hp' => $maxHp,
+                'max_hp' => $maxHp,
+                'attack' => (int) ($stats['attack'] * $difficulty['monster_damage']),
+                'defense' => (int) ($stats['defense'] * $difficulty['monster_damage']),
+                'experience' => (int) ($stats['experience'] * $difficulty['reward']),
+            ];
+        }
+
+        // 持久化怪物数组
+        $character->combat_monsters = $newMonsters;
+        $character->combat_monster_id = $baseMonster->id;
+        $character->combat_monster_level = $baseLevel;
+        $character->combat_monster_hp = array_sum(array_column($newMonsters, 'hp'));
+        $character->combat_monster_max_hp = array_sum(array_column($newMonsters, 'max_hp'));
+        $character->combat_total_damage_dealt = 0;
+        $character->combat_total_damage_taken = 0;
+        $character->combat_rounds = 0;
+        $character->combat_skills_used = null;
+        $character->combat_skill_cooldowns = null;
+        $character->combat_started_at = now();
+        $character->save();
+
+        $firstMonster = $newMonsters[0];
+        $monster = GameMonsterDefinition::query()->find($firstMonster['id']);
+        $monsterStats = $monster?->getCombatStats($firstMonster['level']);
+
+        return [
+            $monster,
+            $firstMonster['level'],
+            $monsterStats,
+            $character->combat_monster_hp,
+            $character->combat_monster_max_hp,
+        ];
+    }
+
+    /**
+     * 处理一回合战斗（支持多怪物）
      */
     private function processOneRound(
         GameCharacter $character,
@@ -285,18 +565,18 @@ class GameCombatService
         $charDefense = $charStats['defense'];
         $charCritRate = $charStats['crit_rate'];
         $charCritDamage = $charStats['crit_damage'];
+        $charClass = $character->class;
 
+        $monsters = $character->combat_monsters ?? [];
         $difficulty = $character->getDifficultyMultipliers();
-        $monsterAttack = (int) ($monsterStats['attack'] * $difficulty['monster_damage']);
-        $monsterDefense = (int) ($monsterStats['defense'] * $difficulty['monster_damage']);
 
+        // 查找本回合使用的技能（检查是否是群体攻击技能）
         $activeSkills = $character->skills()
             ->whereHas('skill', fn ($q) => $q->where('type', 'active'))
             ->with('skill')
             ->get();
 
-        $isCrit = (rand(1, 100) / 100) <= $charCritRate;
-        $baseDamage = max(1, $charAttack - $monsterDefense * 0.5);
+        $isAoeSkill = false;
         $skillDamage = 0;
         $skillsUsedThisRound = [];
         $newCooldowns = $skillCooldowns;
@@ -317,23 +597,101 @@ class GameCombatService
                         'name' => $skill->name,
                         'icon' => $skill->icon,
                     ];
+                    // 检查是否是群体攻击技能（法师技能）
+                    $isAoeSkill = $charClass === 'mage';
                     break 2;
                 }
                 break;
             }
         }
 
+        // 计算角色伤害
+        $isCrit = (rand(1, 100) / 100) <= $charCritRate;
+        $baseDamage = max(1, $charAttack - ($monsterStats['defense'] ?? 0) * 0.5);
         $damage = $skillDamage > 0
             ? (int) ($baseDamage + $skillDamage)
             : (int) ($baseDamage * ($isCrit ? $charCritDamage : 1));
-        $monsterDamage = (int) max(1, $monsterAttack - $charDefense * 0.3);
 
-        $roundDamageDealt = $damage;
-        $roundDamageTaken = $monsterDamage;
+        // 处理多怪物伤害
+        $totalDamageDealt = 0;
+        $monstersUpdated = [];
 
-        $charHp -= $monsterDamage;
-        $monsterHp -= $damage;
+        // 找出存活的怪物
+        $aliveMonsters = array_filter($monsters, fn ($m) => ($m['hp'] ?? 0) > 0);
 
+        // 只有在使用技能且是法师时才是AOE（群体攻击）
+        // 其他情况（普通攻击）只能攻击一只怪物
+        $useAoe = $isAoeSkill && !empty($aliveMonsters);
+
+        // 获取要攻击的怪物列表
+        if ($useAoe) {
+            // AOE：攻击所有存活怪物
+            $targetMonsters = array_values($aliveMonsters);
+        } else {
+            // 单体：随机选择一只存活怪物
+            $targetMonsters = [];
+            if (!empty($aliveMonsters)) {
+                $aliveValues = array_values($aliveMonsters);
+                $randomIndex = array_rand($aliveValues);
+                $targetMonsters = [$aliveValues[$randomIndex]];
+            }
+        }
+
+        foreach ($monsters as &$m) {
+            $m['damage_taken'] = 0; // 重置本回合伤害
+
+            if (($m['hp'] ?? 0) <= 0) {
+                $monstersUpdated[] = $m;
+                continue;
+            }
+
+            // 检查这只怪物是否在攻击目标中
+            $isTarget = false;
+            foreach ($targetMonsters as $tm) {
+                if ($tm['id'] === $m['id'] && $tm['level'] === $m['level']) {
+                    $isTarget = true;
+                    break;
+                }
+            }
+
+            if (!$isTarget) {
+                $monstersUpdated[] = $m;
+                continue;
+            }
+
+            // 计算伤害
+            $targetDamage = $damage;
+            if ($useAoe) {
+                // AOE攻击，伤害略低
+                $targetDamage = (int) ($damage * 0.7);
+            }
+
+            $m['hp'] = max(0, ($m['hp'] ?? 0) - $targetDamage);
+            $m['damage_taken'] = $targetDamage; // 记录本回合受到的伤害
+            $totalDamageDealt += $targetDamage;
+            $monstersUpdated[] = $m;
+        }
+        unset($m);
+
+        // 怪物反击（每只存活怪物都可能攻击）
+        $totalMonsterDamage = 0;
+        foreach ($monstersUpdated as &$m) {
+            if (($m['hp'] ?? 0) <= 0) {
+                continue;
+            }
+            $monsterAttack = $m['attack'] ?? 0;
+            $monsterDamage = (int) max(1, $monsterAttack - $charDefense * 0.3);
+            $totalMonsterDamage += $monsterDamage;
+        }
+        unset($m);
+
+        $charHp -= $totalMonsterDamage;
+
+        // 更新怪物数组到数据库
+        $character->combat_monsters = $monstersUpdated;
+        $newTotalHp = array_sum(array_column($monstersUpdated, 'hp'));
+
+        // 记录技能使用
         foreach ($skillsUsedThisRound as $entry) {
             $id = $entry['skill_id'];
             if (! isset($skillsUsedAggregated[$id])) {
@@ -348,22 +706,33 @@ class GameCombatService
         }
         $newSkillsAggregated = array_values($skillsUsedAggregated);
 
+        // 检查是否有存活怪物
+        $hasAliveMonster = false;
+        foreach ($monstersUpdated as $m) {
+            if (($m['hp'] ?? 0) > 0) {
+                $hasAliveMonster = true;
+                break;
+            }
+        }
+
         return [
-            'round_damage_dealt' => $roundDamageDealt,
-            'round_damage_taken' => $roundDamageTaken,
-            'new_monster_hp' => max(0, $monsterHp),
+            'round_damage_dealt' => $totalDamageDealt,
+            'round_damage_taken' => $totalMonsterDamage,
+            'new_monster_hp' => $newTotalHp,
             'new_char_hp' => $charHp,
             'new_char_mana' => $currentMana,
-            'victory' => $monsterHp <= 0,
+            'victory' => false, // 不再以怪物全灭为胜利
             'defeat' => $charHp <= 0,
+            'has_alive_monster' => $hasAliveMonster,
             'skills_used_this_round' => $skillsUsedThisRound,
             'new_cooldowns' => $newCooldowns,
             'new_skills_aggregated' => $newSkillsAggregated,
+            'monsters_updated' => $monstersUpdated,
         ];
     }
 
     /**
-     * 持久化战斗状态
+     * 持久化战斗状态（支持多怪物）
      */
     private function persistCombatState(GameCharacter $character, array $roundResult, int $currentRound): void
     {
@@ -374,6 +743,11 @@ class GameCombatService
         $character->combat_rounds = $currentRound;
         $character->combat_skills_used = $roundResult['new_skills_aggregated'];
         $character->combat_skill_cooldowns = $roundResult['new_cooldowns'];
+
+        // 保存更新的怪物数组
+        if (isset($roundResult['monsters_updated'])) {
+            $character->combat_monsters = $roundResult['monsters_updated'];
+        }
     }
 
     /**
