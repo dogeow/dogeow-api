@@ -37,6 +37,7 @@ Route::prefix('rpg')->group(function () {
 
     // 商店相关
     Route::get('/shop', [ShopController::class, 'index']);
+    Route::post('/shop/refresh', [ShopController::class, 'refresh']);
     Route::post('/shop/buy', [ShopController::class, 'buy']);
     Route::post('/shop/sell', [ShopController::class, 'sell']);
 

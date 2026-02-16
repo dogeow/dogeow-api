@@ -182,24 +182,39 @@ class GameCharacter extends Model
     public const SKILL_POINTS_PER_LEVEL = 1;
 
     // 职业基础属性
+    /**
+     * 各职业基础属性定义
+     *
+     * warrior - 战士：高力量和体力，适合近战肉搏
+     * mage    - 法师：高能量，法术输出强，体质较弱
+     * ranger  - 游侠：高敏捷，远程和闪避优势，较为均衡
+     *
+     * 键为职业名，值为4项基础属性：
+     * - strength 力量
+     * - dexterity 敏捷
+     * - vitality 体力
+     * - energy 能量
+     *
+     * @var array<string, array{strength: int, dexterity: int, vitality: int, energy: int}>
+     */
     public const CLASS_BASE_STATS = [
         'warrior' => [
-            'strength' => 15,
-            'dexterity' => 10,
-            'vitality' => 15,
-            'energy' => 5,
+            'strength' => 3,
+            'dexterity' => 1,
+            'vitality' => 3,
+            'energy' => 1,
         ],
         'mage' => [
-            'strength' => 5,
-            'dexterity' => 10,
-            'vitality' => 10,
-            'energy' => 20,
+            'strength' => 1,
+            'dexterity' => 2,
+            'vitality' => 1,
+            'energy' => 3,
         ],
         'ranger' => [
-            'strength' => 10,
-            'dexterity' => 20,
-            'vitality' => 10,
-            'energy' => 5,
+            'strength' => 2,
+            'dexterity' => 3,
+            'vitality' => 2,
+            'energy' => 2,
         ],
     ];
 
@@ -318,10 +333,10 @@ class GameCharacter extends Model
     public function getMaxHp(): int
     {
         $baseHp = match ($this->class) {
-            'warrior' => 100,
-            'mage' => 60,
-            'ranger' => 80,
-            default => 80,
+            'warrior' => 20,
+            'mage' => 10,
+            'ranger' => 15,
+            default => 15,
         };
 
         return (int) ($baseHp + $this->vitality * 5);

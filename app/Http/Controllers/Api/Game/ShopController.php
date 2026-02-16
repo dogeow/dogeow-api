@@ -34,6 +34,21 @@ class ShopController extends Controller
     }
 
     /**
+     * 强制刷新商店：扣除 1 银币后清除缓存并返回新的商店列表
+     */
+    public function refresh(Request $request): JsonResponse
+    {
+        try {
+            $character = $this->getCharacter($request);
+            $result = $this->shopService->refreshShop($character);
+
+            return $this->success($result, '刷新成功');
+        } catch (Throwable $e) {
+            return $this->error($e->getMessage());
+        }
+    }
+
+    /**
      * 购买物品
      */
     public function buy(BuyItemRequest $request): JsonResponse

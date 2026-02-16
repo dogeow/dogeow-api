@@ -61,6 +61,7 @@ class GameSeeder extends Seeder
                     'cooldown' => $skill['cooldown'],
                     'description' => $skill['description'],
                     'effects' => $skill['effects'] ?? null,
+                    'target_type' => $skill['target_type'] ?? 'single',
                     'icon' => 'skill_'.strtolower(str_replace(' ', '_', $skill['name'])).'.png',
                     'is_active' => true,
                     'max_level' => 10,

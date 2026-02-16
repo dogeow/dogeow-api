@@ -174,13 +174,23 @@ class GameCombatService
         // 检查是否所有怪物都死了
         if (! ($roundResult['has_alive_monster'] ?? true)) {
             // 所有怪物死亡，不立即补充，保留死亡怪物显示到下一回合
-            // 给予经验和金币奖励（来自死亡怪物）
-            $roundResult['experience_gained'] = $roundResult['experience_gained'] ?? 0;
-            $roundResult['copper_gained'] = $roundResult['copper_gained'] ?? 0;
             $roundResult['new_monster_max_hp'] = $roundResult['new_monster_hp']; // 保持总血量不变
         } else {
             // 每回合有一定概率加入新怪物（最多5只）
             $roundResult = $this->tryAddNewMonsters($character, $map, $roundResult, $currentRound);
+        }
+
+        // 本回合有怪物死亡时发放经验与铜币（由 processOneRound 已算好，仅本回合死亡的怪物）
+        $expGained = $roundResult['experience_gained'] ?? 0;
+        $copperGained = $roundResult['copper_gained'] ?? 0;
+        if ($expGained > 0) {
+            $character->addExperience($expGained);
+        }
+        if ($copperGained > 0) {
+            $character->copper += $copperGained;
+        }
+        if ($expGained > 0 || $copperGained > 0) {
+            $roundResult['loot'] = array_merge($roundResult['loot'] ?? [], ['copper' => $copperGained]);
         }
 
         // 保存更新后的怪物状态
@@ -597,8 +607,8 @@ class GameCombatService
                         'name' => $skill->name,
                         'icon' => $skill->icon,
                     ];
-                    // 检查是否是群体攻击技能（法师技能）
-                    $isAoeSkill = $charClass === 'mage';
+                    // 按技能定义的 target_type 判断单体/群体，而非职业
+                    $isAoeSkill = ($skill->target_type ?? 'single') === 'all';
                     break 2;
                 }
                 break;
@@ -615,13 +625,14 @@ class GameCombatService
         // 处理多怪物伤害
         $totalDamageDealt = 0;
         $monstersUpdated = [];
+        // 保存回合初血量，用于后面计算「本回合死亡」；foreach 中会通过引用改 $monsters
+        $hpAtRoundStart = array_map(fn ($m) => $m['hp'] ?? 0, $monsters);
 
         // 找出存活的怪物
         $aliveMonsters = array_filter($monsters, fn ($m) => ($m['hp'] ?? 0) > 0);
 
-        // 只有在使用技能且是法师时才是AOE（群体攻击）
-        // 其他情况（普通攻击）只能攻击一只怪物
-        $useAoe = $isAoeSkill && !empty($aliveMonsters);
+        // 只有使用群体技能（target_type=all）时才是 AOE；否则单体或普攻只打一只
+        $useAoe = $isAoeSkill && ! empty($aliveMonsters);
 
         // 获取要攻击的怪物列表
         if ($useAoe) {
@@ -715,6 +726,20 @@ class GameCombatService
             }
         }
 
+        // 本回合死亡的怪物（回合初 hp>0，回合末 hp<=0）发放经验与铜币
+        $totalExperience = 0;
+        $totalCopper = 0;
+        for ($i = 0; $i < count($monstersUpdated); $i++) {
+            $before = $hpAtRoundStart[$i] ?? 0;
+            $after = $monstersUpdated[$i]['hp'] ?? 0;
+            if ($before > 0 && $after <= 0) {
+                $totalExperience += $monstersUpdated[$i]['experience'] ?? 0;
+                $totalCopper += rand(1, 10);
+            }
+        }
+        $totalExperience = (int) ($totalExperience * $difficulty['reward']);
+        $totalCopper = (int) ($totalCopper * $difficulty['reward']);
+
         return [
             'round_damage_dealt' => $totalDamageDealt,
             'round_damage_taken' => $totalMonsterDamage,
@@ -728,6 +753,8 @@ class GameCombatService
             'new_cooldowns' => $newCooldowns,
             'new_skills_aggregated' => $newSkillsAggregated,
             'monsters_updated' => $monstersUpdated,
+            'experience_gained' => $totalExperience,
+            'copper_gained' => $totalCopper,
         ];
     }
 

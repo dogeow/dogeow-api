@@ -16,11 +16,13 @@ class GameSkillDefinition extends Model
         'cooldown',
         'icon',
         'effects',
+        'target_type',
         'is_active',
         'max_level',
         'base_damage',
         'damage_per_level',
         'mana_cost_per_level',
+        'skill_points_cost',
     ];
 
     protected function casts(): array

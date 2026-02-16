@@ -8,6 +8,7 @@ return [
         'class_restriction' => 'warrior',
         'mana_cost' => 10,
         'cooldown' => 3,
+        'skill_points_cost' => 1,
         'effects' => [],
         'description' => '强力一击，造成额外伤害',
     ],
@@ -17,6 +18,7 @@ return [
         'class_restriction' => 'warrior',
         'mana_cost' => 15,
         'cooldown' => 10,
+        'skill_points_cost' => 2,
         'effects' => [
             'duration' => 5,
             'buff_attack' => 10,
@@ -29,6 +31,7 @@ return [
         'class_restriction' => 'warrior',
         'mana_cost' => 0,
         'cooldown' => 0,
+        'skill_points_cost' => 1,
         'effects' => [
             'defense_bonus' => 5,
         ],
@@ -40,7 +43,9 @@ return [
         'class_restriction' => 'warrior',
         'mana_cost' => 25,
         'cooldown' => 6,
+        'skill_points_cost' => 3,
         'effects' => [],
+        'target_type' => 'all',
         'description' => '旋转攻击周围所有敌人',
     ],
     [
@@ -49,6 +54,7 @@ return [
         'class_restriction' => 'warrior',
         'mana_cost' => 40,
         'cooldown' => 30,
+        'skill_points_cost' => 4,
         'effects' => [
             'duration' => 10,
             'buff_attack' => 50,
@@ -61,6 +67,7 @@ return [
         'class_restriction' => 'warrior',
         'mana_cost' => 0,
         'cooldown' => 0,
+        'skill_points_cost' => 2,
         'effects' => [
             'hp_bonus' => 100,
             'defense_bonus' => 10,
@@ -73,6 +80,7 @@ return [
         'class_restriction' => 'warrior',
         'mana_cost' => 30,
         'cooldown' => 8,
+        'skill_points_cost' => 3,
         'effects' => [
             'execute_threshold' => 0.3,
             'execute_multiplier' => 2,
@@ -85,6 +93,7 @@ return [
         'class_restriction' => 'mage',
         'mana_cost' => 15,
         'cooldown' => 2,
+        'skill_points_cost' => 1,
         'effects' => [],
         'description' => '发射火球，造成魔法伤害',
     ],
@@ -94,7 +103,9 @@ return [
         'class_restriction' => 'mage',
         'mana_cost' => 20,
         'cooldown' => 5,
+        'skill_points_cost' => 2,
         'effects' => [],
+        'target_type' => 'all',
         'description' => '释放冰霜，造成范围伤害',
     ],
     [
@@ -103,6 +114,7 @@ return [
         'class_restriction' => 'mage',
         'mana_cost' => 0,
         'cooldown' => 0,
+        'skill_points_cost' => 1,
         'effects' => [
             'mana_bonus' => 20,
         ],
@@ -114,6 +126,7 @@ return [
         'class_restriction' => 'mage',
         'mana_cost' => 25,
         'cooldown' => 4,
+        'skill_points_cost' => 2,
         'effects' => [],
         'description' => '召唤闪电，瞬间造成高额伤害',
     ],
@@ -123,6 +136,7 @@ return [
         'class_restriction' => 'mage',
         'mana_cost' => 35,
         'cooldown' => 15,
+        'skill_points_cost' => 2,
         'effects' => [
             'shield' => 100,
             'duration' => 8,
@@ -135,6 +149,7 @@ return [
         'class_restriction' => 'mage',
         'mana_cost' => 0,
         'cooldown' => 0,
+        'skill_points_cost' => 2,
         'effects' => [
             'spell_power_bonus' => 15,
         ],
@@ -146,7 +161,9 @@ return [
         'class_restriction' => 'mage',
         'mana_cost' => 60,
         'cooldown' => 12,
+        'skill_points_cost' => 4,
         'effects' => [],
+        'target_type' => 'all',
         'description' => '召唤陨石从天而降',
     ],
     [
@@ -155,6 +172,7 @@ return [
         'class_restriction' => 'mage',
         'mana_cost' => 15,
         'cooldown' => 6,
+        'skill_points_cost' => 2,
         'effects' => [
             'mana_burn' => 50,
         ],
@@ -166,6 +184,7 @@ return [
         'class_restriction' => 'ranger',
         'mana_cost' => 12,
         'cooldown' => 2,
+        'skill_points_cost' => 1,
         'effects' => [
             'crit_bonus' => 0.2,
         ],
@@ -177,7 +196,9 @@ return [
         'class_restriction' => 'ranger',
         'mana_cost' => 18,
         'cooldown' => 4,
+        'skill_points_cost' => 2,
         'effects' => [],
+        'target_type' => 'all',
         'description' => '同时射出多支箭',
     ],
     [
@@ -186,6 +207,7 @@ return [
         'class_restriction' => 'ranger',
         'mana_cost' => 0,
         'cooldown' => 0,
+        'skill_points_cost' => 1,
         'effects' => [
             'crit_rate_bonus' => 0.03,
         ],
@@ -197,6 +219,7 @@ return [
         'class_restriction' => 'ranger',
         'mana_cost' => 15,
         'cooldown' => 5,
+        'skill_points_cost' => 2,
         'effects' => [
             'dot' => 15,
             'dot_duration' => 5,
@@ -209,6 +232,7 @@ return [
         'class_restriction' => 'ranger',
         'mana_cost' => 20,
         'cooldown' => 12,
+        'skill_points_cost' => 2,
         'effects' => [
             'duration' => 6,
             'dodge_bonus' => 0.3,
@@ -221,6 +245,7 @@ return [
         'class_restriction' => 'ranger',
         'mana_cost' => 0,
         'cooldown' => 0,
+        'skill_points_cost' => 2,
         'effects' => [
             'crit_damage_bonus' => 0.15,
         ],
@@ -232,7 +257,9 @@ return [
         'class_restriction' => 'ranger',
         'mana_cost' => 45,
         'cooldown' => 10,
+        'skill_points_cost' => 4,
         'effects' => [],
+        'target_type' => 'all',
         'description' => '从天而降的箭雨',
     ],
     [
@@ -241,6 +268,7 @@ return [
         'class_restriction' => 'ranger',
         'mana_cost' => 25,
         'cooldown' => 8,
+        'skill_points_cost' => 2,
         'effects' => [
             'backstab_bonus' => 1.5,
         ],
@@ -252,6 +280,7 @@ return [
         'class_restriction' => 'all',
         'mana_cost' => 20,
         'cooldown' => 8,
+        'skill_points_cost' => 2,
         'effects' => [
             'heal' => true,
         ],
@@ -263,6 +292,7 @@ return [
         'class_restriction' => 'all',
         'mana_cost' => 0,
         'cooldown' => 0,
+        'skill_points_cost' => 1,
         'effects' => [
             'strength_bonus' => 2,
         ],
@@ -274,6 +304,7 @@ return [
         'class_restriction' => 'all',
         'mana_cost' => 0,
         'cooldown' => 0,
+        'skill_points_cost' => 1,
         'effects' => [
             'dexterity_bonus' => 2,
         ],
@@ -285,6 +316,7 @@ return [
         'class_restriction' => 'all',
         'mana_cost' => 0,
         'cooldown' => 0,
+        'skill_points_cost' => 1,
         'effects' => [
             'vitality_bonus' => 2,
         ],
@@ -296,6 +328,7 @@ return [
         'class_restriction' => 'all',
         'mana_cost' => 0,
         'cooldown' => 0,
+        'skill_points_cost' => 1,
         'effects' => [
             'energy_bonus' => 2,
         ],
@@ -307,6 +340,7 @@ return [
         'class_restriction' => 'all',
         'mana_cost' => 0,
         'cooldown' => 0,
+        'skill_points_cost' => 3,
         'effects' => [
             'life_steal' => 0.05,
         ],
@@ -318,6 +352,7 @@ return [
         'class_restriction' => 'all',
         'mana_cost' => 0,
         'cooldown' => 0,
+        'skill_points_cost' => 1,
         'effects' => [
             'mana_regen' => 2,
         ],

@@ -160,11 +160,9 @@ class GameMonsterDefinition extends Model
             ];
         }
 
-        // 装备掉落概率
+        // 装备掉落概率：使用 drop_table 配置的 item_chance，不再乘 type（避免 normal 仅 0.5%~1% 导致长期无掉落）
         $dropChance = $dropTable['item_chance'] ?? 0.1;
-        $actualDropChance = $dropChance * $typeMultiplier;
-
-        if ($this->rollChance($actualDropChance)) {
+        if ($this->rollChance($dropChance)) {
             // 随机选择物品类型
             $itemTypes = $dropTable['item_types'] ?? ['weapon', 'helmet', 'armor', 'gloves', 'boots'];
             $itemType = $itemTypes[array_rand($itemTypes)];

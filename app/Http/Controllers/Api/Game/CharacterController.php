@@ -83,7 +83,7 @@ class CharacterController extends Controller
                 $request->input('character_id')
             );
 
-            return $this->success(null, '角色已删除');
+            return $this->success([], '角色已删除');
         } catch (Throwable $e) {
             return $this->error($e->getMessage());
         }

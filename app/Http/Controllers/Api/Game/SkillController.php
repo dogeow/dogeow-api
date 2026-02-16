@@ -56,11 +56,13 @@ class SkillController extends Controller
     {
         $character = $this->getCharacter($request);
 
-        if ($character->skill_points <= 0) {
-            return $this->error('技能点不足');
-        }
-
         $skill = GameSkillDefinition::findOrFail($request->input('skill_id'));
+
+        // 检查技能点是否足够
+        $cost = $skill->skill_points_cost ?? 1;
+        if ($character->skill_points < $cost) {
+            return $this->error("技能点不足，学习该技能需要 {$cost} 点");
+        }
 
         // 检查职业限制
         if (! $skill->canLearnByClass($character->class)) {
@@ -79,7 +81,7 @@ class SkillController extends Controller
         ]);
         $characterSkill->load('skill');
 
-        $character->skill_points--;
+        $character->skill_points -= $cost;
         $character->save();
 
         return $this->success([

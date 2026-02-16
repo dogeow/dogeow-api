@@ -12,6 +12,34 @@ class GameShopService
     /** 商店装备列表缓存时间（秒） */
     private const SHOP_CACHE_TTL_SECONDS = 1800; // 30 分钟
 
+    /** 强制刷新商店费用（铜币），1 银 = 100 铜 */
+    public const REFRESH_COST_COPPER = 100;
+
+    /**
+     * 清除当前角色的商店装备缓存（强制下次取列表时重新生成）
+     */
+    public function clearShopCache(GameCharacter $character): void
+    {
+        Cache::forget("rpg:shop:{$character->id}");
+    }
+
+    /**
+     * 强制刷新商店：扣除 1 银币后清除缓存并返回新列表
+     */
+    public function refreshShop(GameCharacter $character): array
+    {
+        if ($character->copper < self::REFRESH_COST_COPPER) {
+            throw new \InvalidArgumentException('货币不足，强制刷新需要 1 银币');
+        }
+
+        $character->copper -= self::REFRESH_COST_COPPER;
+        $character->save();
+
+        $this->clearShopCache($character);
+
+        return $this->getShopItems($character);
+    }
+
     /**
      * 获取商店物品列表
      */
@@ -25,10 +53,12 @@ class GameShopService
         $cached = Cache::get($cacheKey);
 
         if (is_array($cached) && isset($cached['equipment'], $cached['refreshed_at'])) {
-            $randomEquipmentItems = collect($cached['equipment']);
+            $randomEquipmentItems = collect($cached['equipment'])
+                ->filter(fn (array $item) => ($item['required_level'] ?? 0) <= $character->level)
+                ->values();
             $nextRefreshAt = $cached['refreshed_at'] + self::SHOP_CACHE_TTL_SECONDS;
         } else {
-            $randomEquipmentItems = $this->buildRandomEquipmentItems();
+            $randomEquipmentItems = $this->buildRandomEquipmentItems($character);
             $refreshedAt = time();
             Cache::put($cacheKey, [
                 'equipment' => $randomEquipmentItems->values()->all(),
@@ -84,18 +114,19 @@ class GameShopService
     }
 
     /**
-     * 构建随机装备列表
+     * 构建随机装备列表（仅包含所需等级不超过角色等级的装备）
      */
-    private function buildRandomEquipmentItems(): \Illuminate\Support\Collection
+    private function buildRandomEquipmentItems(GameCharacter $character): \Illuminate\Support\Collection
     {
         $equipmentDefinitions = GameItemDefinition::query()
             ->where('is_active', true)
             ->where('type', '!=', 'potion')
+            ->where('required_level', '<=', $character->level)
             ->orderBy('type')
             ->orderBy('required_level')
             ->get();
 
-        $shopSize = rand(6, 12);
+        $shopSize = rand(20, 25);
         $selectedEquipments = $equipmentDefinitions->shuffle()->take($shopSize);
 
         return $selectedEquipments->map(function ($definition) {
@@ -211,6 +242,11 @@ class GameShopService
 
         if ($basePrice > 0) {
             return $basePrice;
+        }
+
+        // 轻型药水（required_level 1）固定 10 铜
+        if ($item->type === 'potion' && $item->required_level === 1) {
+            return 10;
         }
 
         $levelMultiplier = 1 + ($item->required_level * 0.5);
