@@ -141,9 +141,11 @@ class GameCombatService
         }
 
         // 检查是否所有怪物都死了
-        if (! ($roundResult['has_alive_monster'] ?? true)) {
+        $isVictory = ! ($roundResult['has_alive_monster'] ?? true);
+        if ($isVictory) {
             // 所有怪物死亡，不立即补充，保留死亡怪物显示到下一回合
             $roundResult['new_monster_max_hp'] = $roundResult['new_monster_hp']; // 保持总血量不变
+            $roundResult['victory'] = true;
         } else {
             // 每回合有一定概率加入新怪物（最多5只）
             $roundResult = $this->tryAddNewMonsters($character, $map, $roundResult, $currentRound);
@@ -197,17 +199,20 @@ class GameCombatService
             'monster_id' => $firstAliveMonster['id'] ?? $monster->id,
             'damage_dealt' => $roundResult['round_damage_dealt'],
             'damage_taken' => $roundResult['round_damage_taken'],
-            'victory' => false,
+            'victory' => $roundResult['victory'] ?? false,
             'loot_dropped' => ! empty($roundResult['loot']) ? $roundResult['loot'] : null,
             'experience_gained' => $roundResult['experience_gained'] ?? 0,
             'copper_gained' => $roundResult['copper_gained'] ?? 0,
             'duration_seconds' => 0,
             'skills_used' => $roundResult['skills_used_this_round'],
-            'potion_used' => array_merge($potionUsedBeforeRound ?? [], $potionUsed ?? []) ?: null,
+            'potion_used' => [
+                'before' => $potionUsedBeforeRound ?: null,
+                'after' => $potionUsed ?: null,
+            ],
         ]);
 
         $result = [
-            'victory' => false,
+            'victory' => $roundResult['victory'] ?? false,
             'defeat' => false,
             'monster_id' => $firstAliveMonster['id'] ?? $monster->id,
             'monsters' => $fixedMonsters, // 返回固定5个位置的怪物数组
@@ -225,7 +230,10 @@ class GameCombatService
             'experience_gained' => $roundResult['experience_gained'] ?? 0,
             'copper_gained' => $roundResult['copper_gained'] ?? 0,
             'loot' => $roundResult['loot'] ?? [],
-            'potion_used' => array_merge($potionUsedBeforeRound ?? [], $potionUsed ?? []),
+            'potion_used' => [
+                'before' => $potionUsedBeforeRound ?? [],
+                'after' => $potionUsed ?? [],
+            ],
             'skills_used' => $roundResult['skills_used_this_round'],
             'skill_target_positions' => $roundResult['skill_target_positions'] ?? [],
             'character' => $character->fresh()->toArray(),
