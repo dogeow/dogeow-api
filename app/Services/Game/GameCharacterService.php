@@ -23,7 +23,7 @@ class GameCharacterService
 
         return [
             'characters' => $characters->map(fn ($c) => $c->only(['id', 'name', 'class', 'level', 'experience', 'copper', 'is_fighting', 'difficulty_tier'])),
-            'experience_table' => GameCharacter::EXPERIENCE_TABLE,
+            'experience_table' => config('game.experience_table', []),
         ];
     }
 
@@ -48,7 +48,7 @@ class GameCharacterService
 
         return [
             'character' => $character,
-            'experience_table' => GameCharacter::EXPERIENCE_TABLE,
+            'experience_table' => config('game.experience_table', []),
             'combat_stats' => $character->getCombatStats(),
             'stats_breakdown' => $character->getCombatStatsBreakdown(),
             'equipped_items' => $character->getEquippedItems(),
@@ -68,7 +68,8 @@ class GameCharacterService
         }
 
         // 获取职业基础属性
-        $baseStats = GameCharacter::CLASS_BASE_STATS[$class];
+        $classStats = config('game.class_base_stats', []);
+        $baseStats = $classStats[$class] ?? ['strength' => 2, 'dexterity' => 3, 'vitality' => 2, 'energy' => 2];
 
         return DB::transaction(function () use ($userId, $name, $class, $baseStats) {
             // 创建角色
@@ -88,7 +89,7 @@ class GameCharacterService
             ]);
 
             // 初始化装备槽位
-            foreach (GameCharacter::SLOTS as $slot) {
+            foreach (GameCharacter::getSlots() as $slot) {
                 $character->equipment()->create(['slot' => $slot]);
             }
 

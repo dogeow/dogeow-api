@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\Game;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Game\UpdatePotionSettingsRequest;
 use App\Http\Requests\Game\UsePotionRequest;
-use App\Http\Requests\StartCombatRequest;
 use App\Services\Game\GameCombatService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,36 +30,6 @@ class CombatController extends Controller
             return $this->success($result);
         } catch (Throwable $e) {
             return $this->error('获取战斗状态失败', ['error' => $e->getMessage()]);
-        }
-    }
-
-    /**
-     * 开始挂机战斗
-     */
-    public function start(StartCombatRequest $request): JsonResponse
-    {
-        try {
-            $character = $this->getCharacter($request);
-            $result = $this->combatService->startCombat($character);
-
-            return $this->success($result);
-        } catch (Throwable $e) {
-            return $this->error($e->getMessage());
-        }
-    }
-
-    /**
-     * 停止挂机战斗
-     */
-    public function stop(Request $request): JsonResponse
-    {
-        try {
-            $character = $this->getCharacter($request);
-            $result = $this->combatService->stopCombat($character);
-
-            return $this->success($result);
-        } catch (Throwable $e) {
-            return $this->error('停止战斗失败', ['error' => $e->getMessage()]);
         }
     }
 
@@ -95,12 +64,14 @@ class CombatController extends Controller
             $result = $this->combatService->executeRound($character, $skillIds);
 
             return $this->success($result);
-        } catch (Throwable $e) {
+        } catch (\RuntimeException $e) {
             // 处理特殊异常 - 自动停止战斗
             if ($e->getPrevious() && str_contains($e->getMessage(), 'auto_stopped')) {
                 return $this->error($e->getMessage(), json_decode($e->getPrevious()->getMessage(), true) ?: []);
             }
 
+            return $this->error($e->getMessage() ?: '战斗执行失败', ['error' => $e->getMessage()]);
+        } catch (Throwable $e) {
             return $this->error($e->getMessage() ?: '战斗执行失败', ['error' => $e->getMessage()]);
         }
     }

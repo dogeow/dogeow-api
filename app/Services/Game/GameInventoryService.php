@@ -10,7 +10,7 @@ class GameInventoryService
 {
     public const INVENTORY_SIZE = 100;
 
-    public const STORAGE_SIZE = 100;
+    public const STORAGE_SIZE = 50;
 
     /**
      * 获取背包物品

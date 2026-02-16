@@ -13,17 +13,17 @@ class GameEquipment extends Model
         'item_id',
     ];
 
-    public const SLOTS = [
-        'weapon',
-        'helmet',
-        'armor',
-        'gloves',
-        'boots',
-        'belt',
-        'ring1',
-        'ring2',
-        'amulet',
-    ];
+    /**
+     * 装备槽位列表（与 GameCharacter 共用 config）
+     *
+     * @return array<int, string>
+     */
+    public static function getSlots(): array
+    {
+        return config('game.slots', [
+            'weapon', 'helmet', 'armor', 'gloves', 'boots', 'belt', 'ring1', 'ring2', 'amulet',
+        ]);
+    }
 
     /**
      * 获取所属角色

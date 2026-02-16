@@ -61,175 +61,17 @@ class GameCharacter extends Model
         ];
     }
 
-    // 经验值升级表（每级所需总经验）
-    public const EXPERIENCE_TABLE = [
-        // 第1-10级 - 新手阶段
-        1 => 0,
-        2 => 100,
-        3 => 250,
-        4 => 500,
-        5 => 1000,
-        6 => 2000,
-        7 => 4000,
-        8 => 8000,
-        9 => 16000,
-        10 => 32000,
-        // 第11-20级 - 初级阶段
-        11 => 50000,
-        12 => 75000,
-        13 => 105000,
-        14 => 140000,
-        15 => 180000,
-        16 => 225000,
-        17 => 275000,
-        18 => 330000,
-        19 => 390000,
-        20 => 455000,
-        // 第21-30级 - 中级阶段
-        21 => 525000,
-        22 => 600000,
-        23 => 680000,
-        24 => 765000,
-        25 => 855000,
-        26 => 950000,
-        27 => 1050000,
-        28 => 1155000,
-        29 => 1265000,
-        30 => 1380000,
-        // 第31-40级 - 高级阶段
-        31 => 1500000,
-        32 => 1625000,
-        33 => 1755000,
-        34 => 1890000,
-        35 => 2030000,
-        36 => 2175000,
-        37 => 2325000,
-        38 => 2480000,
-        39 => 2640000,
-        40 => 2805000,
-        // 第41-50级 - 精英阶段
-        41 => 2975000,
-        42 => 3150000,
-        43 => 3330000,
-        44 => 3515000,
-        45 => 3705000,
-        46 => 3900000,
-        47 => 4100000,
-        48 => 4305000,
-        49 => 4515000,
-        50 => 4730000,
-        // 第51-60级 - 大师阶段
-        51 => 4950000,
-        52 => 5175000,
-        53 => 5405000,
-        54 => 5640000,
-        55 => 5880000,
-        56 => 6125000,
-        57 => 6375000,
-        58 => 6630000,
-        59 => 6890000,
-        60 => 7155000,
-        // 第61-70级 - 传奇阶段
-        61 => 7425000,
-        62 => 7700000,
-        63 => 7980000,
-        64 => 8265000,
-        65 => 8555000,
-        66 => 8850000,
-        67 => 9150000,
-        68 => 9455000,
-        69 => 9765000,
-        70 => 10080000,
-        // 第71-80级 - 神话阶段
-        71 => 10400000,
-        72 => 10725000,
-        73 => 11055000,
-        74 => 11390000,
-        75 => 11730000,
-        76 => 12075000,
-        77 => 12425000,
-        78 => 12780000,
-        79 => 13140000,
-        80 => 13505000,
-        // 第81-90级 - 半神阶段
-        81 => 13875000,
-        82 => 14250000,
-        83 => 14628000,
-        84 => 15012000,
-        85 => 15402000,
-        86 => 15798000,
-        87 => 16200000,
-        88 => 16608000,
-        89 => 17022000,
-        90 => 17442000,
-        // 第91-100级 - 神阶段
-        91 => 17868000,
-        92 => 18300000,
-        93 => 18738000,
-        94 => 19182000,
-        95 => 19632000,
-        96 => 20088000,
-        97 => 20550000,
-        98 => 21018000,
-        99 => 21492000,
-        100 => 21972000,
-    ];
-
-    // 每级属性点奖励
-    public const STAT_POINTS_PER_LEVEL = 5;
-
-    // 技能点数
-    public const SKILL_POINTS_PER_LEVEL = 1;
-
-    // 职业基础属性
     /**
-     * 各职业基础属性定义
+     * 装备槽位列表
      *
-     * warrior - 战士：高力量和体力，适合近战肉搏
-     * mage    - 法师：高能量，法术输出强，体质较弱
-     * ranger  - 游侠：高敏捷，远程和闪避优势，较为均衡
-     *
-     * 键为职业名，值为4项基础属性：
-     * - strength 力量
-     * - dexterity 敏捷
-     * - vitality 体力
-     * - energy 能量
-     *
-     * @var array<string, array{strength: int, dexterity: int, vitality: int, energy: int}>
+     * @return array<int, string>
      */
-    public const CLASS_BASE_STATS = [
-        'warrior' => [
-            'strength' => 3,
-            'dexterity' => 1,
-            'vitality' => 3,
-            'energy' => 1,
-        ],
-        'mage' => [
-            'strength' => 1,
-            'dexterity' => 2,
-            'vitality' => 1,
-            'energy' => 3,
-        ],
-        'ranger' => [
-            'strength' => 2,
-            'dexterity' => 3,
-            'vitality' => 2,
-            'energy' => 2,
-        ],
-    ];
-
-    // 装备槽位
-    public const SLOTS = [
-        'weapon',
-        'helmet',
-        'armor',
-        'gloves',
-        'boots',
-        'belt',
-        'ring1',
-        'ring2',
-        'amulet',
-    ];
+    public static function getSlots(): array
+    {
+        return config('game.slots', [
+            'weapon', 'helmet', 'armor', 'gloves', 'boots', 'belt', 'ring1', 'ring2', 'amulet',
+        ]);
+    }
 
     /**
      * 获取所属用户
@@ -332,14 +174,12 @@ class GameCharacter extends Model
      */
     public function getMaxHp(): int
     {
-        $baseHp = match ($this->class) {
-            'warrior' => 20,
-            'mage' => 10,
-            'ranger' => 15,
-            default => 15,
-        };
+        $hpConfig = config('game.hp', []);
+        $base = $hpConfig['base'] ?? [];
+        $baseHp = $base[$this->class] ?? ($base['default'] ?? 15);
+        $multiplier = $hpConfig['vitality_multiplier'] ?? 5;
 
-        return (int) ($baseHp + $this->vitality * 5);
+        return (int) ($baseHp + $this->vitality * $multiplier);
     }
 
     /**
@@ -347,14 +187,25 @@ class GameCharacter extends Model
      */
     public function getMaxMana(): int
     {
-        $baseMana = match ($this->class) {
-            'warrior' => 30,
-            'mage' => 100,
-            'ranger' => 50,
-            default => 50,
-        };
+        $manaConfig = config('game.mana', []);
+        $base = $manaConfig['base'] ?? [];
+        $baseMana = $base[$this->class] ?? ($base['default'] ?? 50);
+        $multiplier = $manaConfig['energy_multiplier'] ?? 3;
 
-        return (int) ($baseMana + $this->energy * 3);
+        return (int) ($baseMana + $this->energy * $multiplier);
+    }
+
+    /**
+     * 基础攻击力（不含装备）
+     */
+    public function getBaseAttack(): int
+    {
+        $attackConfig = config('game.combat.attack', []);
+        $classConfig = $attackConfig[$this->class] ?? ($attackConfig['default'] ?? ['stat' => 'strength', 'multiplier' => 1]);
+        $stat = $classConfig['stat'] ?? 'strength';
+        $multiplier = (float) ($classConfig['multiplier'] ?? 1);
+
+        return (int) ($this->{$stat} * $multiplier);
     }
 
     /**
@@ -362,18 +213,19 @@ class GameCharacter extends Model
      */
     public function getAttack(): int
     {
-        // 战士用力量，游侠用敏捷，法师用法力作为主攻击属性
-        $baseAttack = match ($this->class) {
-            'warrior' => $this->strength * 2,
-            'ranger' => $this->dexterity * 2,
-            'mage' => $this->energy * 2,
-            default => $this->strength,
-        };
+        return (int) ($this->getBaseAttack() + $this->getEquipmentBonus('attack'));
+    }
 
-        // 加上装备加成
-        $equipmentBonus = $this->getEquipmentBonus('attack');
+    /**
+     * 基础防御力（不含装备）
+     */
+    public function getBaseDefense(): int
+    {
+        $def = config('game.combat.defense', []);
+        $vCoef = (float) ($def['vitality_multiplier'] ?? 0.5);
+        $dCoef = (float) ($def['dexterity_multiplier'] ?? 0.3);
 
-        return (int) ($baseAttack + $equipmentBonus);
+        return (int) ($this->vitality * $vCoef + $this->dexterity * $dCoef);
     }
 
     /**
@@ -381,12 +233,18 @@ class GameCharacter extends Model
      */
     public function getDefense(): int
     {
-        $baseDefense = $this->vitality * 0.5 + $this->dexterity * 0.3;
+        return (int) ($this->getBaseDefense() + $this->getEquipmentBonus('defense'));
+    }
 
-        // 加上装备加成
-        $equipmentBonus = $this->getEquipmentBonus('defense');
+    /**
+     * 基础暴击率（不含装备，未封顶）
+     */
+    public function getBaseCritRate(): float
+    {
+        $critConfig = config('game.combat.crit_rate', []);
+        $coef = (float) ($critConfig['dexterity_multiplier'] ?? 0.01);
 
-        return (int) ($baseDefense + $equipmentBonus);
+        return $this->dexterity * $coef;
     }
 
     /**
@@ -394,12 +252,19 @@ class GameCharacter extends Model
      */
     public function getCritRate(): float
     {
-        $baseCrit = $this->dexterity * 0.01; // 每点敏捷增加1%暴击率
+        $critConfig = config('game.combat.crit_rate', []);
+        $cap = (float) ($critConfig['cap'] ?? 0.10);
 
-        // 加上装备加成
-        $equipmentBonus = $this->getEquipmentBonus('crit_rate');
+        return min($cap, $this->getBaseCritRate() + $this->getEquipmentBonus('crit_rate'));
+    }
 
-        return min(0.10, $baseCrit + $equipmentBonus); // 最高10%暴击率
+    /**
+     * 基础暴击伤害倍率（不含装备）
+     */
+    public function getBaseCritDamage(): float
+    {
+        $critConfig = config('game.combat.crit_damage', []);
+        return (float) ($critConfig['base'] ?? 1.5);
     }
 
     /**
@@ -407,12 +272,7 @@ class GameCharacter extends Model
      */
     public function getCritDamage(): float
     {
-        $baseCritDamage = 1.5; // 150%
-
-        // 加上装备加成
-        $equipmentBonus = $this->getEquipmentBonus('crit_damage');
-
-        return $baseCritDamage + $equipmentBonus;
+        return $this->getBaseCritDamage() + $this->getEquipmentBonus('crit_damage');
     }
 
     /**
@@ -424,18 +284,7 @@ class GameCharacter extends Model
     public function getDifficultyMultipliers(): array
     {
         $tier = (int) ($this->difficulty_tier ?? 0);
-        $table = [
-            0 => ['monster_hp' => 1.0, 'monster_damage' => 1.0, 'reward' => 1.0],       // 普通
-            1 => ['monster_hp' => 3.0, 'monster_damage' => 2.3, 'reward' => 1.75],      // 困难 +200% hp, +130% dmg, +75%
-            2 => ['monster_hp' => 4.3, 'monster_damage' => 2.69, 'reward' => 2.0],     // 高手 +330%, +169%, +100%
-            3 => ['monster_hp' => 6.45, 'monster_damage' => 3.2, 'reward' => 3.0],    // 大师 +545%, +220%, +200%
-            4 => ['monster_hp' => 9.98, 'monster_damage' => 3.85, 'reward' => 4.0],    // 痛苦1
-            5 => ['monster_hp' => 15.82, 'monster_damage' => 4.71, 'reward' => 5.0],  // 痛苦2
-            6 => ['monster_hp' => 25.46, 'monster_damage' => 5.82, 'reward' => 6.5],   // 痛苦3
-            7 => ['monster_hp' => 41.36, 'monster_damage' => 7.28, 'reward' => 9.0],   // 痛苦4
-            8 => ['monster_hp' => 67.59, 'monster_damage' => 9.16, 'reward' => 12.5],  // 痛苦5
-            9 => ['monster_hp' => 110.88, 'monster_damage' => 11.6, 'reward' => 17.0], // 痛苦6
-        ];
+        $table = config('game.difficulty_multipliers', [0 => ['monster_hp' => 1.0, 'monster_damage' => 1.0, 'reward' => 1.0]]);
 
         return $table[$tier] ?? $table[0];
     }
@@ -472,7 +321,10 @@ class GameCharacter extends Model
      */
     public function getExperienceToNextLevel(): int
     {
-        return self::EXPERIENCE_TABLE[$this->level + 1] ?? ($this->level * 5000);
+        $table = config('game.experience_table', []);
+        $fallback = (int) config('game.experience_fallback_per_level', 5000);
+
+        return $table[$this->level + 1] ?? ($this->level * $fallback);
     }
 
     /**
@@ -480,7 +332,9 @@ class GameCharacter extends Model
      */
     public function getExperienceForCurrentLevel(): int
     {
-        return self::EXPERIENCE_TABLE[$this->level] ?? 0;
+        $table = config('game.experience_table', []);
+
+        return $table[$this->level] ?? 0;
     }
 
     /**
@@ -493,8 +347,8 @@ class GameCharacter extends Model
 
         while ($this->experience >= $this->getExperienceToNextLevel()) {
             $this->level++;
-            $this->skill_points += self::SKILL_POINTS_PER_LEVEL;
-            $this->stat_points += self::STAT_POINTS_PER_LEVEL;
+            $this->skill_points += config('game.skill_points_per_level', 1);
+            $this->stat_points += config('game.stat_points_per_level', 5);
             $levelsGained++;
         }
 
@@ -517,8 +371,8 @@ class GameCharacter extends Model
 
         while ($this->experience >= $this->getExperienceToNextLevel()) {
             $this->level++;
-            $this->skill_points += self::SKILL_POINTS_PER_LEVEL;
-            $this->stat_points += self::STAT_POINTS_PER_LEVEL;
+            $this->skill_points += config('game.skill_points_per_level', 1);
+            $this->stat_points += config('game.stat_points_per_level', 5);
             $levelsGained++;
         }
 
@@ -554,43 +408,34 @@ class GameCharacter extends Model
      */
     public function getCombatStatsBreakdown(): array
     {
-        $baseAttack = match ($this->class) {
-            'warrior' => $this->strength * 2,
-            'mage' => $this->energy * 2,
-            'ranger' => $this->dexterity * 2,
-            default => $this->strength,
-        };
         $equipAttack = $this->getEquipmentBonus('attack');
-
-        $baseDefense = (int) ($this->vitality * 0.5 + $this->dexterity * 0.3);
         $equipDefense = $this->getEquipmentBonus('defense');
-
-        $baseCritRate = $this->dexterity * 0.01;
         $equipCritRate = $this->getEquipmentBonus('crit_rate');
-        $totalCritRate = min(0.10, $baseCritRate + $equipCritRate);
-
-        $baseCritDamage = 1.5;
         $equipCritDamage = $this->getEquipmentBonus('crit_damage');
-        $totalCritDamage = $baseCritDamage + $equipCritDamage;
+
+        $critConfig = config('game.combat.crit_rate', []);
+        $critCap = (float) ($critConfig['cap'] ?? 0.10);
+        $totalCritRate = min($critCap, $this->getBaseCritRate() + $equipCritRate);
+        $totalCritDamage = $this->getBaseCritDamage() + $equipCritDamage;
 
         return [
             'attack' => [
-                'base' => (int) $baseAttack,
+                'base' => $this->getBaseAttack(),
                 'equipment' => (float) $equipAttack,
                 'total' => $this->getAttack(),
             ],
             'defense' => [
-                'base' => $baseDefense,
+                'base' => $this->getBaseDefense(),
                 'equipment' => (float) $equipDefense,
                 'total' => $this->getDefense(),
             ],
             'crit_rate' => [
-                'base' => round($baseCritRate, 4),
+                'base' => round($this->getBaseCritRate(), 4),
                 'equipment' => (float) $equipCritRate,
                 'total' => round($totalCritRate, 4),
             ],
             'crit_damage' => [
-                'base' => $baseCritDamage,
+                'base' => $this->getBaseCritDamage(),
                 'equipment' => (float) $equipCritDamage,
                 'total' => round($totalCritDamage, 4),
             ],

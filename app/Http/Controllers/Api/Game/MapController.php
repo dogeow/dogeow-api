@@ -54,11 +54,6 @@ class MapController extends Controller
         $character = $this->getCharacter($request);
         $map = GameMapDefinition::findOrFail($mapId);
 
-        // 检查等级要求
-        if (! $map->canEnter($character->level)) {
-            return $this->error("需要等级 {$map->min_level} 才能进入该地图");
-        }
-
         // 确保地图进度记录存在
         $progress = $character->mapProgress()->where('map_id', $mapId)->first();
 
@@ -86,11 +81,6 @@ class MapController extends Controller
     {
         $character = $this->getCharacter($request);
         $map = GameMapDefinition::findOrFail($mapId);
-
-        // 检查等级要求
-        if (! $map->canEnter($character->level)) {
-            return $this->error("需要等级 {$map->min_level} 才能传送到该地图");
-        }
 
         // 直接传送到地图，自动开始战斗
         $character->current_map_id = $mapId;
