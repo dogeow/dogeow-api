@@ -259,8 +259,8 @@ return [
         // 暴击率：敏捷系数，每点敏捷增加 dexterity_multiplier（如 0.01 = 1%）；cap 为总暴击率上限。
         // 达到 cap 后，敏捷再堆也不会提高暴击率；若希望敏捷长期有用可提高 cap 或设为 1.0 取消上限。
         'crit_rate' => [
-            'dexterity_multiplier' => 0.01,
-            'cap' => 0.10,
+            'dexterity_multiplier' => 0.002,
+            'cap' => 0.30,
         ],
         // 暴击伤害：基础倍率（1.5 = 150%）
         'crit_damage' => [

@@ -131,6 +131,7 @@ class GameShopService
 
         return $selectedEquipments->map(function ($definition) {
             $randomStats = $this->generateRandomStats($definition);
+            $quality = $this->generateRandomQuality($definition->required_level);
 
             return [
                 'id' => $definition->id,
@@ -138,15 +139,42 @@ class GameShopService
                 'type' => $definition->type,
                 'sub_type' => $definition->sub_type,
                 'base_stats' => $randomStats,
+                'quality' => $quality,
                 'required_level' => $definition->required_level,
                 'required_strength' => $definition->required_strength,
                 'required_dexterity' => $definition->required_dexterity,
                 'required_energy' => $definition->required_energy,
                 'icon' => $definition->icon,
                 'description' => $definition->description,
-                'buy_price' => $this->calculateBuyPrice($definition, $randomStats),
+                'buy_price' => $this->calculateBuyPrice($definition, $randomStats, $quality),
             ];
         });
+    }
+
+    /**
+     * 生成随机品质
+     */
+    private function generateRandomQuality(int $requiredLevel): string
+    {
+        $rand = rand(1, 100);
+
+        // 品质概率分布（基于需求等级调整）
+        $mythicChance = min(1, $requiredLevel * 0.2); // 1%-21%
+        $legendaryChance = $mythicChance + min(5, $requiredLevel * 0.5); // 5%-26%
+        $rareChance = $legendaryChance + 15; // 20%-41%
+        $magicChance = $rareChance + 30; // 50%-71%
+
+        if ($rand <= $mythicChance) {
+            return 'mythic';
+        } elseif ($rand <= $legendaryChance) {
+            return 'legendary';
+        } elseif ($rand <= $rareChance) {
+            return 'rare';
+        } elseif ($rand <= $magicChance) {
+            return 'magic';
+        }
+
+        return 'common';
     }
 
     /**
@@ -236,7 +264,7 @@ class GameShopService
     /**
      * 计算购买价格
      */
-    private function calculateBuyPrice(GameItemDefinition $item, array $stats = []): int
+    private function calculateBuyPrice(GameItemDefinition $item, array $stats = [], string $quality = 'common'): int
     {
         $basePrice = $item->base_stats['price'] ?? 0;
 
@@ -250,6 +278,15 @@ class GameShopService
         }
 
         $levelMultiplier = 1 + ($item->required_level * 0.5);
+
+        // 品质价格乘数
+        $qualityMultiplier = match ($quality) {
+            'mythic' => 2.5,
+            'legendary' => 2.0,
+            'rare' => 1.6,
+            'magic' => 1.3,
+            default => 1.0,
+        };
 
         $typeBasePrice = match ($item->type) {
             'potion' => 10,
@@ -279,7 +316,7 @@ class GameShopService
             $statsPrice += $statValue;
         }
 
-        return (int) (($typeBasePrice + $statsPrice) * $levelMultiplier * 100);
+        return (int) (($typeBasePrice + $statsPrice) * $levelMultiplier * $qualityMultiplier * 100);
     }
 
     /**
