@@ -221,4 +221,93 @@ class GameCharacterService
             'current_mana' => $character->getCurrentMana(),
         ];
     }
+
+    /**
+     * 检查离线奖励信息
+     */
+    public function checkOfflineRewards(GameCharacter $character): array
+    {
+        $lastOnline = $character->last_online;
+
+        if (! $lastOnline) {
+            return [
+                'available' => false,
+                'offline_seconds' => 0,
+                'experience' => 0,
+                'copper' => 0,
+                'level_up' => false,
+            ];
+        }
+
+        $now = now();
+        $offlineSeconds = $now->diffInSeconds($lastOnline);
+
+        // 最小60秒才发放离线奖励
+        if ($offlineSeconds < 60) {
+            return [
+                'available' => false,
+                'offline_seconds' => $offlineSeconds,
+                'experience' => 0,
+                'copper' => 0,
+                'level_up' => false,
+            ];
+        }
+
+        // 最多24小时
+        $offlineSeconds = min($offlineSeconds, 86400);
+
+        // 计算奖励：每秒 等级*1 经验，等级*0.5 铜币
+        $level = $character->level;
+        $experience = $level * $offlineSeconds;
+        $copper = (int) ($level * $offlineSeconds * 0.5);
+
+        // 检查是否升级
+        $currentExp = $character->experience;
+        $expNeeded = $character->getExperienceForNextLevel();
+        $newExp = $currentExp + $experience;
+        $levelUp = $newExp >= $expNeeded;
+
+        return [
+            'available' => true,
+            'offline_seconds' => $offlineSeconds,
+            'experience' => $experience,
+            'copper' => $copper,
+            'level_up' => $levelUp,
+        ];
+    }
+
+    /**
+     * 领取离线奖励
+     */
+    public function claimOfflineRewards(GameCharacter $character): array
+    {
+        $rewardInfo = $this->checkOfflineRewards($character);
+
+        if (! $rewardInfo['available']) {
+            return [
+                'experience' => 0,
+                'copper' => 0,
+                'level_up' => false,
+                'new_level' => $character->level,
+            ];
+        }
+
+        // 更新经验
+        $character->experience += $rewardInfo['experience'];
+        $character->reconcileLevelFromExperience();
+
+        // 更新铜币
+        $character->copper += $rewardInfo['copper'];
+
+        // 更新最后领取时间
+        $character->claimed_offline_at = now();
+        $character->save();
+
+        return [
+            'experience' => $rewardInfo['experience'],
+            'copper' => $rewardInfo['copper'],
+            'level_up' => $character->level > $character->getOriginal('level'),
+            'new_level' => $character->level,
+        ];
+    }
 }

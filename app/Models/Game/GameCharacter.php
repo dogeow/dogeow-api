@@ -43,6 +43,8 @@ class GameCharacter extends Model
         'combat_skills_used',
         'combat_skill_cooldowns',
         'combat_started_at',
+        'last_online',
+        'claimed_offline_at',
     ];
 
     protected function casts(): array
@@ -58,6 +60,8 @@ class GameCharacter extends Model
             'combat_skill_cooldowns' => 'array',
             'combat_monsters' => 'array',
             'combat_started_at' => 'datetime',
+            'last_online' => 'datetime',
+            'claimed_offline_at' => 'datetime',
         ];
     }
 

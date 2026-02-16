@@ -140,4 +140,50 @@ class CharacterController extends Controller
 
         return $this->success($result);
     }
+
+    /**
+     * 更新最后在线时间（玩家选择角色时调用）
+     */
+    public function online(Request $request): JsonResponse
+    {
+        try {
+            $character = $this->getCharacter($request);
+            $character->last_online = now();
+            $character->save();
+
+            return $this->success(['last_online' => $character->last_online]);
+        } catch (Throwable $e) {
+            return $this->error($e->getMessage());
+        }
+    }
+
+    /**
+     * 检查离线奖励
+     */
+    public function checkOfflineRewards(Request $request): JsonResponse
+    {
+        try {
+            $character = $this->getCharacter($request);
+            $result = $this->characterService->checkOfflineRewards($character);
+
+            return $this->success($result);
+        } catch (Throwable $e) {
+            return $this->error($e->getMessage());
+        }
+    }
+
+    /**
+     * 领取离线奖励
+     */
+    public function claimOfflineRewards(Request $request): JsonResponse
+    {
+        try {
+            $character = $this->getCharacter($request);
+            $result = $this->characterService->claimOfflineRewards($character);
+
+            return $this->success($result, $result['level_up'] ? "升级到了 {$result['new_level']} 级！" : '离线奖励已领取');
+        } catch (Throwable $e) {
+            return $this->error($e->getMessage());
+        }
+    }
 }
