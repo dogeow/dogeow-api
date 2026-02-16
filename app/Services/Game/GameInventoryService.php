@@ -368,4 +368,58 @@ class GameInventoryService
 
         return null;
     }
+
+    /**
+     * 批量出售指定品质的物品（仅背包中的非药水、非宝石物品）
+     *
+     * @return array{count: int, total_price: int, copper: int}
+     */
+    public function sellItemsByQuality(GameCharacter $character, string $quality): array
+    {
+        // 获取背包中指定品质的可出售物品（排除药水和宝石）
+        $items = $character->items()
+            ->where('is_in_storage', false)
+            ->where('quality', $quality)
+            ->whereHas('definition', function ($query) {
+                $query->whereNotIn('type', ['potion', 'gem']);
+            })
+            ->with('definition')
+            ->get();
+
+        if ($items->isEmpty()) {
+            return [
+                'count' => 0,
+                'total_price' => 0,
+                'copper' => $character->copper,
+            ];
+        }
+
+        $totalPrice = 0;
+        $count = 0;
+
+        return DB::transaction(function () use ($character, $items, &$totalPrice, &$count) {
+            foreach ($items as $item) {
+                // 检查是否已装备
+                $equipped = $character->equipment()->where('item_id', $item->id)->exists();
+                if ($equipped) {
+                    continue;
+                }
+
+                $price = $item->calculateSellPrice() * $item->quantity;
+                $totalPrice += $price;
+                $count++;
+
+                $item->delete();
+            }
+
+            $character->copper += $totalPrice;
+            $character->save();
+
+            return [
+                'count' => $count,
+                'total_price' => $totalPrice,
+                'copper' => $character->copper,
+            ];
+        });
+    }
 }

@@ -31,6 +31,7 @@ Route::prefix('rpg')->group(function () {
     Route::post('/inventory/equip', [InventoryController::class, 'equip']);
     Route::post('/inventory/unequip', [InventoryController::class, 'unequip']);
     Route::post('/inventory/sell', [InventoryController::class, 'sell']);
+    Route::post('/inventory/sell-by-quality', [InventoryController::class, 'sellByQuality']);
     Route::post('/inventory/move', [InventoryController::class, 'move']);
     Route::post('/inventory/sort', [InventoryController::class, 'sort']);
     Route::post('/inventory/use-potion', [InventoryController::class, 'usePotion']);

@@ -134,4 +134,39 @@ class InventoryController extends Controller
             return $this->error($e->getMessage());
         }
     }
+
+    /**
+     * 批量出售指定品质的物品
+     */
+    public function sellByQuality(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'quality' => 'required|string|in:common,magic,rare,legendary,mythic',
+            ]);
+
+            $character = $this->getCharacter($request);
+            $quality = $request->input('quality');
+            $result = $this->inventoryService->sellItemsByQuality($character, $quality);
+
+            return $this->success($result, "已出售 {$result['count']} 件{$this->getQualityName($quality)}物品，获得 {$result['total_price']} 铜");
+        } catch (Throwable $e) {
+            return $this->error($e->getMessage());
+        }
+    }
+
+    /**
+     * 获取品质中文名
+     */
+    private function getQualityName(string $quality): string
+    {
+        return match ($quality) {
+            'common' => '普通',
+            'magic' => '魔法',
+            'rare' => '稀有',
+            'legendary' => '传奇',
+            'mythic' => '神话',
+            default => $quality,
+        };
+    }
 }
