@@ -14,7 +14,7 @@ return new class extends Migration
         $columnComments = [
             // game_characters
             'game_characters' => [
-                'id' => '角色ID',
+                // 'id' => '角色ID', // 跳过：被外键引用
                 'user_id' => '所属用户ID',
                 'name' => '角色名称',
                 'class' => '职业：warrior战士/mage法师/ranger游侠',
@@ -48,7 +48,7 @@ return new class extends Migration
 
             // game_item_definitions
             'game_item_definitions' => [
-                'id' => '物品定义ID',
+                // 'id' => '物品定义ID', // 跳过：被外键引用
                 'name' => '物品名称',
                 'type' => '物品类型：weapon武器/helmet头盔/armor护甲/gloves手套/boots鞋子/belt腰带/ring戒指/amulet项链/potion药水',
                 'sub_type' => '物品子类型：sword剑/axe斧/mace锤/staff法杖/bow弓/dagger匕首/cloth布甲/leather皮甲/mail锁甲/plate板甲',
@@ -64,7 +64,7 @@ return new class extends Migration
 
             // game_items
             'game_items' => [
-                'id' => '物品实例ID',
+                // 'id' => '物品实例ID', // 跳过：被外键引用
                 'character_id' => '所属角色ID',
                 'definition_id' => '物品定义ID',
                 'quality' => '品质：common普通/magic魔法/rare稀有/legendary传奇/mythic神话',
@@ -77,7 +77,7 @@ return new class extends Migration
 
             // game_equipment
             'game_equipment' => [
-                'id' => '装备槽ID',
+                // 'id' => '装备槽ID', // 跳过：可能有外键引用
                 'character_id' => '所属角色ID',
                 'slot' => '装备槽位：weapon武器/helmet头盔/armor护甲/gloves手套/boots鞋子/belt腰带/ring1戒指1/ring2戒指2/amulet项链',
                 'item_id' => '装备的物品ID',
@@ -85,7 +85,7 @@ return new class extends Migration
 
             // game_skill_definitions
             'game_skill_definitions' => [
-                'id' => '技能定义ID',
+                // 'id' => '技能定义ID', // 跳过：被外键引用
                 'name' => '技能名称',
                 'description' => '技能描述',
                 'type' => '技能类型：active主动/passive被动',
@@ -105,7 +105,7 @@ return new class extends Migration
 
             // game_character_skills
             'game_character_skills' => [
-                'id' => '角色技能ID',
+                // 'id' => '角色技能ID', // 跳过：可能有外键引用
                 'character_id' => '所属角色ID',
                 'skill_id' => '技能定义ID',
                 'level' => '技能等级',
@@ -114,7 +114,7 @@ return new class extends Migration
 
             // game_map_definitions
             'game_map_definitions' => [
-                'id' => '地图ID',
+                // 'id' => '地图ID', // 跳过：被外键引用
                 'name' => '地图名称',
                 'act' => '所属章节',
                 'min_level' => '最低等级要求',
@@ -127,7 +127,7 @@ return new class extends Migration
 
             // game_character_maps
             'game_character_maps' => [
-                'id' => '记录ID',
+                // 'id' => '记录ID', // 跳过：可能有外键引用
                 'character_id' => '所属角色ID',
                 'map_id' => '地图ID',
                 'unlocked' => '是否已解锁',
@@ -136,7 +136,7 @@ return new class extends Migration
 
             // game_monster_definitions
             'game_monster_definitions' => [
-                'id' => '怪物ID',
+                // 'id' => '怪物ID', // 跳过：被外键引用
                 'name' => '怪物名称',
                 'type' => '怪物类型：normal普通/elite精英/boss首领',
                 'level' => '怪物等级',
@@ -155,7 +155,7 @@ return new class extends Migration
 
             // game_combat_logs
             'game_combat_logs' => [
-                'id' => '日志ID',
+                // 'id' => '日志ID', // 跳过：可能有外键引用
                 'character_id' => '所属角色ID',
                 'map_id' => '地图ID',
                 'monster_id' => '怪物ID',
