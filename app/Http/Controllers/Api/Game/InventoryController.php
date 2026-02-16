@@ -126,10 +126,21 @@ class InventoryController extends Controller
     public function sort(Request $request): JsonResponse
     {
         try {
-            $character = $this->getCharacter($request);
-            $result = $this->inventoryService->sortInventory($character);
+            $request->validate([
+                'sort_by' => 'nullable|string|in:quality,price,default',
+            ]);
 
-            return $this->success($result, '整理完成');
+            $character = $this->getCharacter($request);
+            $sortBy = $request->input('sort_by', 'default');
+            $result = $this->inventoryService->sortInventory($character, $sortBy);
+
+            $message = match ($sortBy) {
+                'quality' => '按品质整理完成',
+                'price' => '按价格整理完成',
+                default => '整理完成',
+            };
+
+            return $this->success($result, $message);
         } catch (Throwable $e) {
             return $this->error($e->getMessage());
         }

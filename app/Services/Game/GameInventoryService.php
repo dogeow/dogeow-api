@@ -328,15 +328,29 @@ class GameInventoryService
 
     /**
      * 整理背包
+     *
+     * @param string $sortBy 排序方式: quality(品质), level(等级), price(价格), default(默认)
      */
-    public function sortInventory(GameCharacter $character): array
+    public function sortInventory(GameCharacter $character, string $sortBy = 'default'): array
     {
-        $items = $character->items()
+        $query = $character->items()
             ->where('is_in_storage', false)
-            ->orderBy('definition_id')
-            ->orderBy('quality')
-            ->orderByDesc('quantity')
-            ->get();
+            ->with('definition');
+
+        $items = match ($sortBy) {
+            'quality' => $query->orderByDesc('quality')
+                ->orderBy('definition_id')
+                ->orderByDesc('quantity')
+                ->get(),
+            'price' => $query->orderByDesc(\DB::raw('COALESCE(sell_price, 0) * quantity'))
+                ->orderBy('definition_id')
+                ->orderByDesc('quantity')
+                ->get(),
+            default => $query->orderBy('definition_id')
+                ->orderByDesc('quality')
+                ->orderByDesc('quantity')
+                ->get(),
+        };
 
         $slotIndex = 0;
         foreach ($items as $item) {
