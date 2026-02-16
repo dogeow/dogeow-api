@@ -912,8 +912,12 @@ class GameCombatService
             'quantity' => 1,
             'slot_index' => $inventoryService->findEmptySlot($character, false),
             'sockets' => $sockets,
-            'sell_price' => $sellPrice,
+            'sell_price' => 0, // 临时设为0，后面会重新计算
         ]);
+
+        // 使用基于属性的价格公式计算卖出价格
+        $item->sell_price = $item->calculateSellPrice();
+        $item->save();
 
         return $item->load('definition');
     }
@@ -996,7 +1000,12 @@ class GameCombatService
             'quantity' => 1,
             'slot_index' => $inventoryService->findEmptySlot($character, false),
             'sockets' => 0,
+            'sell_price' => 0,
         ]);
+
+        // 使用基于属性的价格公式计算卖出价格
+        $potion->sell_price = $potion->calculateSellPrice();
+        $potion->save();
 
         return $potion->load('definition');
     }

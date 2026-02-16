@@ -187,10 +187,8 @@ class GameInventoryService
             throw new \InvalidArgumentException('物品数量不足');
         }
 
-        // 计算售价
-        $basePrice = $item->definition->base_stats['price'] ?? 10;
-        $qualityMultiplier = GameItem::QUALITY_MULTIPLIERS[$item->quality] ?? 1.0;
-        $sellPrice = (int) ($basePrice * $qualityMultiplier * $quantity * 0.5);
+        // 使用基于属性的价格计算公式
+        $sellPrice = $item->calculateSellPrice() * $quantity;
 
         return DB::transaction(function () use ($character, $item, $quantity, $sellPrice) {
             // 更新铜币

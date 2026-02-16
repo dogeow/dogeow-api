@@ -56,6 +56,35 @@ class GameItem extends GameItemDefinition
     ];
 
     /**
+     * 属性价格系数（每1点属性对应的基础价格）
+     * 根据属性在战斗中的价值设定
+     */
+    public const STAT_PRICES = [
+        'attack' => 3,        // 攻击力：每点 3 铜
+        'defense' => 2,       // 防御力：每点 2 铜
+        'max_hp' => 0.5,      // 生命值：每点 0.5 铜
+        'max_mana' => 0.3,    // 法力值：每点 0.3 铜
+        'crit_rate' => 500,   // 暴击率：每 1%（0.01）500 铜
+        'crit_damage' => 200, // 暴击伤害：每 10%（0.1）200 铜
+    ];
+
+    /**
+     * 物品类型价格系数
+     */
+    public const TYPE_PRICE_MULTIPLIERS = [
+        'weapon' => 1.2,
+        'helmet' => 1.0,
+        'armor' => 1.3,
+        'gloves' => 0.8,
+        'boots' => 0.8,
+        'belt' => 0.7,
+        'ring' => 1.5,
+        'amulet' => 1.8,
+        'potion' => 0.5,
+        'gem' => 1.0,
+    ];
+
+    /**
      * 获取所属角色
      */
     public function character(): BelongsTo
@@ -175,5 +204,92 @@ class GameItem extends GameItemDefinition
             'can_equip' => true,
             'reason' => null,
         ];
+    }
+
+    /**
+     * 计算物品卖出价格（基于属性的公式）
+     *
+     * @return int 卖出价格（铜币）
+     */
+    public function calculateSellPrice(): int
+    {
+        // 药水：基于恢复量计算
+        if ($this->definition?->type === 'potion') {
+            return $this->calculatePotionPrice();
+        }
+
+        // 宝石：基于属性计算
+        if ($this->definition?->type === 'gem') {
+            return $this->calculateGemPrice();
+        }
+
+        // 装备：基于属性计算
+        return $this->calculateEquipmentPrice();
+    }
+
+    /**
+     * 计算药水价格
+     */
+    private function calculatePotionPrice(): int
+    {
+        $stats = $this->definition->base_stats ?? [];
+        $hpRestore = $stats['max_hp'] ?? 0;
+        $manaRestore = $stats['max_mana'] ?? 0;
+
+        // HP 恢复每点 0.3 铜，MP 恢复每点 0.2 铜
+        $price = (int) ($hpRestore * 0.3 + $manaRestore * 0.2);
+
+        return max(1, $price);
+    }
+
+    /**
+     * 计算宝石价格
+     */
+    private function calculateGemPrice(): int
+    {
+        $gemStats = $this->definition->gem_stats ?? [];
+        $price = 0;
+
+        foreach ($gemStats as $stat => $value) {
+            $pricePerPoint = self::STAT_PRICES[$stat] ?? 1;
+            $price += (int) ($value * $pricePerPoint);
+        }
+
+        return max(1, $price);
+    }
+
+    /**
+     * 计算装备价格
+     */
+    private function calculateEquipmentPrice(): int
+    {
+        $totalStats = $this->getTotalStats();
+        $basePrice = 0;
+
+        // 1. 计算基础属性价格
+        foreach ($totalStats as $stat => $value) {
+            $pricePerPoint = self::STAT_PRICES[$stat] ?? 1;
+            $basePrice += (int) ($value * $pricePerPoint);
+        }
+
+        // 2. 应用品质倍率
+        $qualityMultiplier = $this->getQualityMultiplier();
+
+        // 3. 应用物品类型倍率
+        $type = $this->definition?->type ?? 'weapon';
+        $typeMultiplier = self::TYPE_PRICE_MULTIPLIERS[$type] ?? 1.0;
+
+        // 4. 应用需求等级加成（高等级装备更值钱）
+        $requiredLevel = $this->definition?->required_level ?? 1;
+        $levelMultiplier = 1 + ($requiredLevel / 50); // 每50级价格翻倍
+
+        // 5. 插槽加成
+        $socketCount = $this->sockets ?? 0;
+        $socketBonus = $socketCount * 10; // 每个插槽额外 10 铜
+
+        // 6. 计算最终价格（卖出价格为估算价值的 50%）
+        $finalPrice = (int) (($basePrice * $qualityMultiplier * $typeMultiplier * $levelMultiplier) + $socketBonus) * 0.5;
+
+        return max(1, (int) $finalPrice);
     }
 }
