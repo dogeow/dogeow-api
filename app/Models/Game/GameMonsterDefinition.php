@@ -159,7 +159,7 @@ class GameMonsterDefinition extends Model
         $dropChance = $dropTable['item_chance'] ?? 0.01;
         if ($this->rollChance($dropChance)) {
             // 随机选择物品类型
-            $itemTypes = $dropTable['item_types'] ?? ['weapon', 'helmet', 'armor', 'gloves', 'boots'];
+            $itemTypes = $dropTable['item_types'] ?? ['weapon', 'helmet', 'armor', 'gloves', 'boots', 'ring', 'amulet', 'belt'];
             $itemType = $itemTypes[array_rand($itemTypes)];
 
             // 随机品质
