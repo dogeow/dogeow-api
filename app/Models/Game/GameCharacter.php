@@ -170,6 +170,17 @@ class GameCharacter extends Model
     }
 
     /**
+     * 生命值基础值（仅配置中的 base，用于复活等）
+     */
+    public function getBaseHp(): int
+    {
+        $hpConfig = config('game.hp', []);
+        $base = $hpConfig['base'] ?? [];
+
+        return (int) ($base[$this->class] ?? ($base['default'] ?? 15));
+    }
+
+    /**
      * 计算最大生命值
      */
     public function getMaxHp(): int
@@ -180,6 +191,17 @@ class GameCharacter extends Model
         $multiplier = $hpConfig['vitality_multiplier'] ?? 5;
 
         return (int) ($baseHp + $this->vitality * $multiplier);
+    }
+
+    /**
+     * 法力值基础值（仅配置中的 base，用于复活等）
+     */
+    public function getBaseMana(): int
+    {
+        $manaConfig = config('game.mana', []);
+        $base = $manaConfig['base'] ?? [];
+
+        return (int) ($base[$this->class] ?? ($base['default'] ?? 15));
     }
 
     /**

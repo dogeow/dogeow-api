@@ -19,6 +19,7 @@ class GameCombatLog extends Model
         'copper_gained',
         'duration_seconds',
         'skills_used',
+        'potion_used',
     ];
 
     protected function casts(): array
@@ -27,6 +28,7 @@ class GameCombatLog extends Model
             'victory' => 'boolean',
             'loot_dropped' => 'array',
             'skills_used' => 'array',
+            'potion_used' => 'array',
         ];
     }
 

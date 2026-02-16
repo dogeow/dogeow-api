@@ -82,9 +82,14 @@ class MapController extends Controller
         $character = $this->getCharacter($request);
         $map = GameMapDefinition::findOrFail($mapId);
 
-        // 直接传送到地图，自动开始战斗
+        // 直接传送到地图，自动开始战斗；若当前未在战斗中则视为复活，只恢复基础生命值与法力值
+        $wasNotFighting = ! $character->is_fighting;
         $character->current_map_id = $mapId;
         $character->is_fighting = true;
+        if ($wasNotFighting) {
+            $character->current_hp = $character->getBaseHp();
+            $character->current_mana = $character->getBaseMana();
+        }
         $character->save();
 
         return $this->success([

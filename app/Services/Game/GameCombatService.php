@@ -203,6 +203,7 @@ class GameCombatService
             'copper_gained' => $roundResult['copper_gained'] ?? 0,
             'duration_seconds' => 0,
             'skills_used' => $roundResult['skills_used_this_round'],
+            'potion_used' => array_merge($potionUsedBeforeRound ?? [], $potionUsed ?? []) ?: null,
         ]);
 
         $result = [
@@ -603,7 +604,8 @@ class GameCombatService
     ): array {
         $copperLoss = (int) ($character->copper * 0.1);
         $character->copper -= $copperLoss;
-        $character->current_hp = max(1, $roundResult['new_char_hp']);
+        // 阵亡时
+        $character->current_hp = max(0, $roundResult['new_char_hp']);
         $character->is_fighting = false;
 
         $startTime = $character->combat_started_at ?? now();
@@ -623,6 +625,20 @@ class GameCombatService
 
         $character->clearCombatState();
         $character->save();
+
+        // 调试：查看 save 后的值
+        \Log::info('[handleDefeat] after save, current_hp in DB:', [
+            'character_id' => $character->id,
+            'current_hp' => $character->current_hp,
+            'fresh_current_hp' => $character->fresh()->current_hp,
+        ]);
+
+        $freshCharacter = $character->fresh();
+        \Log::info('[handleDefeat] fresh character:', ['current_hp' => $freshCharacter->current_hp]);
+        $charArray = $freshCharacter->toArray();
+        $charArray['current_hp'] = 0;
+        $charArray['current_mana'] = 0;
+        \Log::info('[handleDefeat] charArray after override:', ['current_hp' => $charArray['current_hp']]);
 
         $result = [
             'victory' => false,
@@ -644,7 +660,9 @@ class GameCombatService
             'copper_gained' => 0,
             'loot' => [],
             'skills_used' => $roundResult['new_skills_aggregated'],
-            'character' => $character->fresh()->toArray(),
+            'character' => $charArray,
+            'current_hp' => $defeatHp,
+            'current_mana' => $defeatMana,
             'combat_log_id' => $combatLog->id,
         ];
         broadcast(new GameCombatUpdate($character->id, $result));
