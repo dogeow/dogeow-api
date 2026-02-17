@@ -149,10 +149,11 @@ class GameCombatService
             // All monsters dead, don't respawn immediately, keep dead monsters visible until next round
             $roundResult['new_monster_max_hp'] = $roundResult['new_monster_hp']; // Keep total HP unchanged
             $roundResult['victory'] = true;
-        } else {
-            // Each round has a chance to add new monsters (max 5)
-            $roundResult = $this->monsterService->tryAddNewMonsters($character, $map, $roundResult, $currentRound);
         }
+
+        // Always try to add new monsters when some monsters die (even if not all dead)
+        // This enables continuous combat flow: monsters respawn as they die, not waiting for all to die
+        $roundResult = $this->monsterService->tryAddNewMonsters($character, $map, $roundResult, $currentRound);
 
         // Grant exp and copper for dead monsters this round
         $expGained = $roundResult['experience_gained'] ?? 0;

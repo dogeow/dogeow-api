@@ -155,6 +155,37 @@ class CombatController extends Controller
     }
 
     /**
+     * 更新战斗中使用的技能配置
+     */
+    public function updateSkills(Request $request): JsonResponse
+    {
+        try {
+            $character = $this->getCharacter($request);
+
+            $skillIds = $request->input('skill_ids') ?? [];
+            if (! is_array($skillIds) && $request->has('skill_id')) {
+                $skillIds = [(int) $request->input('skill_id')];
+            }
+            $skillIds = array_map('intval', array_values($skillIds));
+
+            $key = AutoCombatRoundJob::redisKey($character->id);
+            $payload = Redis::get($key);
+
+            if ($payload === null) {
+                return $this->error('当前没有进行中的自动战斗');
+            }
+
+            $data = json_decode($payload, true);
+            $data['skill_ids'] = $skillIds;
+            Redis::set($key, json_encode($data));
+
+            return $this->success(['skill_ids' => $skillIds], '技能配置已更新');
+        } catch (Throwable $e) {
+            return $this->error('更新技能配置失败', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * 使用药品
      */
     public function usePotion(UsePotionRequest $request): JsonResponse

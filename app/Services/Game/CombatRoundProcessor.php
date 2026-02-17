@@ -214,6 +214,14 @@ class CombatRoundProcessor
             }
             $m['damage_taken'] = 0;
 
+            // 新出现的怪物不受攻击（下一轮才能攻击）
+            if (isset($m['is_new']) && $m['is_new'] === true) {
+                \Log::info('Skipping new monster attack', ['monster' => $m['name'], 'is_new' => true]);
+                $monstersUpdated[$idx] = $m;
+
+                continue;
+            }
+
             if (($m['hp'] ?? 0) <= 0) {
                 $monstersUpdated[$idx] = $m;
 
@@ -238,6 +246,13 @@ class CombatRoundProcessor
             $m['damage_taken'] = $targetDamage;
             $totalDamageDealt += $targetDamage;
             $monstersUpdated[$idx] = $m;
+        }
+
+        // 清除所有新怪物标记（它们已经经历了第一轮不受攻击，现在可以受伤了）
+        foreach ($monstersUpdated as $idx => $m) {
+            if (is_array($m) && isset($m['is_new'])) {
+                unset($monstersUpdated[$idx]['is_new']);
+            }
         }
 
         return [$monstersUpdated, $totalDamageDealt];

@@ -96,6 +96,8 @@ class GameMonsterService
 
             $monsterDataList[] = [
                 'id' => $baseMonster->id,
+                'instance_id' => uniqid('m-', true), // Unique instance ID for frontend to detect new monsters
+                'is_new' => true, // Flag for frontend to show spawn animation
                 'name' => $baseMonster->name,
                 'type' => $baseMonster->type,
                 'level' => $level,
@@ -155,6 +157,7 @@ class GameMonsterService
 
     /**
      * Try to add new monsters (30% chance per round, max 5)
+     * If all monsters are dead (has_alive_monster = false), force refresh 100%
      */
     public function tryAddNewMonsters(GameCharacter $character, GameMapDefinition $map, array $roundResult, int $currentRound): array
     {
@@ -171,7 +174,11 @@ class GameMonsterService
             return $roundResult;
         }
 
-        if (rand(1, 100) > 30) {
+        // Check if all monsters died this round - if so, force refresh 100%
+        $allMonstersDead = isset($roundResult['has_alive_monster']) && $roundResult['has_alive_monster'] === false;
+        $shouldAddMonster = $allMonstersDead || rand(1, 100) <= 30;
+
+        if (! $shouldAddMonster) {
             $roundResult['new_monster_hp'] = array_sum(array_column(array_filter($currentMonsters, 'is_array'), 'hp'));
             $roundResult['new_monster_max_hp'] = array_sum(array_column(array_filter($currentMonsters, 'is_array'), 'max_hp'));
 
@@ -214,6 +221,8 @@ class GameMonsterService
 
             $currentMonsters[$slot] = [
                 'id' => $baseMonster->id,
+                'instance_id' => uniqid('m-', true), // Unique instance ID for frontend to detect new monsters
+                'is_new' => true, // Flag for frontend to show spawn animation
                 'name' => $baseMonster->name,
                 'type' => $baseMonster->type,
                 'level' => $level,
@@ -309,6 +318,8 @@ class GameMonsterService
 
             $monsterDataList[] = [
                 'id' => $baseMonster->id,
+                'instance_id' => uniqid('m-', true), // Unique instance ID for frontend to detect new monsters
+                'is_new' => true, // Flag for frontend to show spawn animation
                 'name' => $baseMonster->name,
                 'type' => $baseMonster->type,
                 'level' => $level,
