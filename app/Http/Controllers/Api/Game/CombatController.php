@@ -58,6 +58,16 @@ class CombatController extends Controller
         try {
             $character = $this->getCharacter($request);
 
+            // 检测角色是否死亡，复活并传送到地图1
+            if ($character->current_hp <= 0) {
+                $character->current_hp = $character->getMaxHp();
+                $character->current_mana = $character->getMaxMana();
+                $character->map_id = 1; // 传送到新手村
+                $character->save();
+
+                return $this->success(['message' => '角色已复活并传送到新手村']);
+            }
+
             $skillIds = $request->input('skill_ids') ?? [];
             if (! is_array($skillIds) && $request->has('skill_id')) {
                 $skillIds = [(int) $request->input('skill_id')];
