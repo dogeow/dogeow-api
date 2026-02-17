@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Game;
 
+use App\Events\Game\GameInventoryUpdate;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Game\EquipItemRequest;
 use App\Http\Requests\Game\MoveItemRequest;
@@ -44,6 +45,7 @@ class InventoryController extends Controller
         try {
             $character = $this->getCharacter($request);
             $result = $this->inventoryService->equipItem($character, $request->input('item_id'));
+            broadcast(new GameInventoryUpdate($character->id, $this->inventoryService->getInventoryForBroadcast($character)));
 
             return $this->success($result, '装备成功');
         } catch (Throwable $e) {
@@ -59,6 +61,7 @@ class InventoryController extends Controller
         try {
             $character = $this->getCharacter($request);
             $result = $this->inventoryService->unequipItem($character, $request->input('slot'));
+            broadcast(new GameInventoryUpdate($character->id, $this->inventoryService->getInventoryForBroadcast($character)));
 
             return $this->success($result, '卸下装备成功');
         } catch (Throwable $e) {
@@ -78,6 +81,7 @@ class InventoryController extends Controller
                 $request->input('item_id'),
                 $request->input('quantity', 1)
             );
+            broadcast(new GameInventoryUpdate($character->id, $this->inventoryService->getInventoryForBroadcast($character)));
 
             return $this->success($result, '出售成功');
         } catch (Throwable $e) {
@@ -98,6 +102,7 @@ class InventoryController extends Controller
                 $request->input('to_storage'),
                 $request->input('slot_index')
             );
+            broadcast(new GameInventoryUpdate($character->id, $this->inventoryService->getInventoryForBroadcast($character)));
 
             return $this->success($result, '移动成功');
         } catch (Throwable $e) {
@@ -113,6 +118,7 @@ class InventoryController extends Controller
         try {
             $character = $this->getCharacter($request);
             $result = $this->inventoryService->usePotion($character, $request->input('item_id'));
+            broadcast(new GameInventoryUpdate($character->id, $this->inventoryService->getInventoryForBroadcast($character)));
 
             return $this->success($result, '使用药品成功');
         } catch (Throwable $e) {
@@ -133,6 +139,7 @@ class InventoryController extends Controller
             $character = $this->getCharacter($request);
             $sortBy = $request->input('sort_by', 'default');
             $result = $this->inventoryService->sortInventory($character, $sortBy);
+            broadcast(new GameInventoryUpdate($character->id, $this->inventoryService->getInventoryForBroadcast($character)));
 
             $message = match ($sortBy) {
                 'quality' => '按品质整理完成',
@@ -159,6 +166,7 @@ class InventoryController extends Controller
             $character = $this->getCharacter($request);
             $quality = $request->input('quality');
             $result = $this->inventoryService->sellItemsByQuality($character, $quality);
+            broadcast(new GameInventoryUpdate($character->id, $this->inventoryService->getInventoryForBroadcast($character)));
 
             return $this->success($result, "已出售 {$result['count']} 件{$this->getQualityName($quality)}物品，获得 {$result['total_price']} 铜");
         } catch (Throwable $e) {

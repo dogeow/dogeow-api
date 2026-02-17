@@ -44,6 +44,26 @@ class GameInventoryService
     }
 
     /**
+     * 获取背包数据（数组格式），用于 WebSocket 广播，与 GET /rpg/inventory 响应结构一致。
+     */
+    public function getInventoryForBroadcast(GameCharacter $character): array
+    {
+        $result = $this->getInventory($character);
+        $equipmentArray = [];
+        foreach ($result['equipment'] as $slot => $eq) {
+            $equipmentArray[$slot] = $eq->item ? $eq->item->toArray() : null;
+        }
+
+        return [
+            'inventory' => $result['inventory']->toArray(),
+            'storage' => $result['storage']->toArray(),
+            'equipment' => $equipmentArray,
+            'inventory_size' => $result['inventory_size'],
+            'storage_size' => $result['storage_size'],
+        ];
+    }
+
+    /**
      * 装备物品
      */
     public function equipItem(GameCharacter $character, int $itemId): array

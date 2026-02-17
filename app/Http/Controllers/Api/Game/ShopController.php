@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api\Game;
 
+use App\Events\Game\GameInventoryUpdate;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Game\BuyItemRequest;
 use App\Http\Requests\Game\SellItemRequest;
+use App\Services\Game\GameInventoryService;
 use App\Services\Game\GameShopService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +18,7 @@ class ShopController extends Controller
 
     public function __construct(
         private readonly GameShopService $shopService,
+        private readonly GameInventoryService $inventoryService,
     ) {}
 
     /**
@@ -60,6 +63,7 @@ class ShopController extends Controller
                 $request->input('item_id'),
                 $request->input('quantity', 1)
             );
+            broadcast(new GameInventoryUpdate($character->id, $this->inventoryService->getInventoryForBroadcast($character)));
 
             return $this->success($result, '购买成功');
         } catch (Throwable $e) {
@@ -79,6 +83,7 @@ class ShopController extends Controller
                 $request->input('item_id'),
                 $request->input('quantity', 1)
             );
+            broadcast(new GameInventoryUpdate($character->id, $this->inventoryService->getInventoryForBroadcast($character)));
 
             return $this->success($result, '出售成功');
         } catch (Throwable $e) {

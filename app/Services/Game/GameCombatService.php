@@ -3,12 +3,14 @@
 namespace App\Services\Game;
 
 use App\Events\Game\GameCombatUpdate;
+use App\Events\Game\GameInventoryUpdate;
 use App\Models\Game\GameCharacter;
 use App\Models\Game\GameCombatLog;
 use App\Models\Game\GameItem;
 use App\Models\Game\GameItemDefinition;
 use App\Models\Game\GameMapDefinition;
 use App\Models\Game\GameMonsterDefinition;
+use Illuminate\Support\Facades\Log;
 
 class GameCombatService
 {
@@ -246,6 +248,14 @@ class GameCombatService
             'combat_log_id' => $combatLog->id,
         ];
         broadcast(new GameCombatUpdate($character->id, $result));
+        $character->refresh();
+        $inventoryPayload = app(GameInventoryService::class)->getInventoryForBroadcast($character);
+        Log::info('Game inventory broadcast payload', [
+            'character_id' => $character->id,
+            'inventory_count' => count($inventoryPayload['inventory'] ?? []),
+            'first_items_quantity' => array_map(fn ($i) => ['id' => $i['id'] ?? null, 'quantity' => $i['quantity'] ?? null], array_slice($inventoryPayload['inventory'] ?? [], 0, 3)),
+        ]);
+        broadcast(new GameInventoryUpdate($character->id, $inventoryPayload));
 
         return $result;
     }
@@ -641,18 +651,18 @@ class GameCombatService
         $character->save();
 
         // 调试：查看 save 后的值
-        \Log::info('[handleDefeat] after save, current_hp in DB:', [
+        Log::info('[handleDefeat] after save, current_hp in DB:', [
             'character_id' => $character->id,
             'current_hp' => $character->current_hp,
             'fresh_current_hp' => $character->fresh()->current_hp,
         ]);
 
         $freshCharacter = $character->fresh();
-        \Log::info('[handleDefeat] fresh character:', ['current_hp' => $freshCharacter->current_hp]);
+        Log::info('[handleDefeat] fresh character:', ['current_hp' => $freshCharacter->current_hp]);
         $charArray = $freshCharacter->toArray();
         $charArray['current_hp'] = 0;
         $charArray['current_mana'] = 0;
-        \Log::info('[handleDefeat] charArray after override:', ['current_hp' => $charArray['current_hp']]);
+        Log::info('[handleDefeat] charArray after override:', ['current_hp' => $charArray['current_hp']]);
 
         $result = [
             'victory' => false,
@@ -680,6 +690,13 @@ class GameCombatService
             'combat_log_id' => $combatLog->id,
         ];
         broadcast(new GameCombatUpdate($character->id, $result));
+        $character->refresh();
+        $inventoryPayload = app(GameInventoryService::class)->getInventoryForBroadcast($character);
+        Log::info('Game inventory broadcast payload (handleDefeat)', [
+            'character_id' => $character->id,
+            'first_items_quantity' => array_map(fn ($i) => ['id' => $i['id'] ?? null, 'quantity' => $i['quantity'] ?? null], array_slice($inventoryPayload['inventory'] ?? [], 0, 3)),
+        ]);
+        broadcast(new GameInventoryUpdate($character->id, $inventoryPayload));
 
         return $result;
     }
