@@ -9,7 +9,6 @@ use App\Http\Requests\Chat\CreateRoomRequest;
 use App\Http\Requests\Chat\SendMessageRequest;
 use App\Http\Resources\Chat\ChatMessageResource;
 use App\Models\Chat\ChatMessage;
-use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Services\Chat\ChatCacheService;
 use App\Services\Chat\ChatService;
@@ -20,6 +19,8 @@ use Illuminate\Support\Facades\Log;
 
 class ChatController extends Controller
 {
+    use ChatControllerHelpers;
+
     protected ChatService $chatService;
 
     protected ChatCacheService $cacheService;
@@ -35,94 +36,7 @@ class ChatController extends Controller
     }
 
     /**
-     * 判断用户是否在房间
-     */
-    private function isUserInRoom(int $roomId, int $userId): bool
-    {
-        return ChatRoomUser::where('room_id', $roomId)
-            ->where('user_id', $userId)
-            ->exists();
-    }
-
-    /**
-     * 获取房间内用户信息
-     */
-    private function fetchRoomUser(int $roomId, int $userId): ?ChatRoomUser
-    {
-        return ChatRoomUser::where('room_id', $roomId)
-            ->where('user_id', $userId)
-            ->first();
-    }
-
-    /**
-     * 失效相关缓存
-     */
-    private function clearRoomCache(int $roomId): void
-    {
-        $this->cacheService->invalidateOnlineUsers($roomId);
-        $this->cacheService->invalidateRoomStats($roomId);
-        $this->cacheService->invalidateRoomList();
-    }
-
-    /**
-     * 清理房间缓存并记录活动
-     */
-    private function clearCacheAndLogActivity(int $roomId, string $action, int $userId): void
-    {
-        $this->clearRoomCache($roomId);
-        $this->logRoomActivity($roomId, $action, $userId);
-    }
-
-    /**
-     * 记录房间活动
-     */
-    private function logRoomActivity(int $roomId, string $action, int $userId): void
-    {
-        $this->cacheService->trackRoomActivity($roomId, $action, $userId);
-    }
-
-    /**
-     * 统一记录错误并返回错误响应
-     */
-    private function logAndError(string $logMessage, \Throwable $e, array $context, string $userMessage, int $statusCode = 500): JsonResponse
-    {
-        Log::error($logMessage, array_merge($context, [
-            'error' => $e->getMessage(),
-        ]));
-
-        return $this->error($userMessage, [], $statusCode);
-    }
-
-    /**
-     * 规范化 roomId
-     */
-    private function normalizeRoomId($roomId): int
-    {
-        return (int) $roomId;
-    }
-
-    /**
-     * 获取活跃房间或抛出 404
-     */
-    private function findActiveRoom(int $roomId): ChatRoom
-    {
-        return ChatRoom::active()->findOrFail($roomId);
-    }
-
-    /**
-     * 确保用户已加入房间
-     */
-    private function ensureUserInRoom(int $roomId, int $userId, string $message, int $statusCode = 403): ?JsonResponse
-    {
-        if (! $this->isUserInRoom($roomId, $userId)) {
-            return $this->error($message, [], $statusCode);
-        }
-
-        return null;
-    }
-
-    /**
-     * 获取所有房间
+     * Get all rooms
      */
     public function getRooms(): JsonResponse
     {
@@ -141,7 +55,7 @@ class ChatController extends Controller
     }
 
     /**
-     * 创建房间
+     * Create room
      */
     public function createRoom(CreateRoomRequest $request): JsonResponse
     {
@@ -176,7 +90,7 @@ class ChatController extends Controller
     }
 
     /**
-     * 加入房间
+     * Join room
      */
     public function joinRoom(Request $request, $roomId): JsonResponse
     {
@@ -214,7 +128,7 @@ class ChatController extends Controller
     }
 
     /**
-     * 离开房间
+     * Leave room
      */
     public function leaveRoom(Request $request, $roomId): JsonResponse
     {
@@ -249,7 +163,7 @@ class ChatController extends Controller
     }
 
     /**
-     * 删除房间（仅创建者）
+     * Delete room (creator only)
      */
     public function deleteRoom(Request $request, $roomId): JsonResponse
     {
@@ -284,7 +198,7 @@ class ChatController extends Controller
     }
 
     /**
-     * 获取房间消息（分页）
+     * Get room messages (paginated)
      */
     public function getMessages(Request $request, $roomId): JsonResponse
     {
@@ -315,7 +229,7 @@ class ChatController extends Controller
     }
 
     /**
-     * 发送消息
+     * Send message
      */
     public function sendMessage(SendMessageRequest $request, $roomId): JsonResponse
     {
@@ -386,7 +300,7 @@ class ChatController extends Controller
     }
 
     /**
-     * 检查用户权限（禁言/封禁）。管理员或房主不受禁言/封禁限制，可照常发消息。
+     * Check user permission (mute/ban). Admin or room owner is not affected by mute/ban.
      */
     private function checkUserPermission(ChatRoomUser $roomUser, \App\Models\Chat\ChatRoom $room): array
     {
@@ -418,7 +332,7 @@ class ChatController extends Controller
     }
 
     /**
-     * 检查速率限制
+     * Check rate limit
      */
     private function checkRate(int $userId, int $roomId): array
     {
@@ -448,7 +362,7 @@ class ChatController extends Controller
     }
 
     /**
-     * 删除消息（管理）
+     * Delete message (admin)
      */
     public function deleteMessage(Request $request, $roomId, $messageId): JsonResponse
     {
@@ -497,7 +411,7 @@ class ChatController extends Controller
     }
 
     /**
-     * 获取房间在线用户
+     * Get room online users
      */
     public function getOnlineUsers(Request $request, $roomId): JsonResponse
     {
@@ -531,7 +445,7 @@ class ChatController extends Controller
     }
 
     /**
-     * 更新用户状态（心跳）
+     * Update user status (heartbeat)
      */
     public function updateUserStatus(Request $request, $roomId): JsonResponse
     {
@@ -563,7 +477,7 @@ class ChatController extends Controller
     }
 
     /**
-     * 清理离线用户
+     * Clean up offline users
      */
     public function cleanupDisconnectedUsers(Request $request): JsonResponse
     {
@@ -593,7 +507,7 @@ class ChatController extends Controller
     }
 
     /**
-     * 获取用户在房间的状态
+     * Get user presence status in room
      */
     public function getUserPresenceStatus(Request $request, $roomId): JsonResponse
     {
