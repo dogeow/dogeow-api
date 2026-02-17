@@ -127,7 +127,7 @@ class GameMonsterDefinition extends Model
         $typeMultiplier = config('game.monster_type_multipliers')[$this->type] ?? 1.0;
 
         // 铜币掉落：drop_table 的 copper_base / copper_range 直接表示铜币区间（如 8、7 表示 8～15 铜）
-        $copperChance = $dropTable['copper_chance'] ?? 0.01;
+        $copperChance = $dropTable['copper_chance'] ?? 0.005;
         if ($this->rollChance($copperChance)) {
             $base = (int) ($dropTable['copper_base'] ?? max(1, $this->level));
             $range = (int) ($dropTable['copper_range'] ?? max(0, $this->level));
