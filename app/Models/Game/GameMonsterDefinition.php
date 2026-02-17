@@ -127,7 +127,7 @@ class GameMonsterDefinition extends Model
         $typeMultiplier = config('game.monster_type_multipliers')[$this->type] ?? 1.0;
 
         // 铜币掉落：drop_table 的 copper_base / copper_range 直接表示铜币区间（如 8、7 表示 8～15 铜）
-        $copperChance = $dropTable['copper_chance'] ?? 0.2;
+        $copperChance = $dropTable['copper_chance'] ?? 0.01;
         if ($this->rollChance($copperChance)) {
             $base = (int) ($dropTable['copper_base'] ?? max(1, $this->level));
             $range = (int) ($dropTable['copper_range'] ?? max(0, $this->level));
@@ -135,7 +135,7 @@ class GameMonsterDefinition extends Model
         }
 
         // 药水掉落（暗黑2风格：简单直接）
-        $potionDropChance = ($dropTable['potion_chance'] ?? 0.1) * $typeMultiplier;
+        $potionDropChance = ($dropTable['potion_chance'] ?? 0.01) * $typeMultiplier;
         if ($this->rollChance($potionDropChance)) {
             // 简单药水系统：hp 或 mp
             $potionType = $this->weightedRandom(['hp' => 0.6, 'mp' => 0.4]);
@@ -156,7 +156,7 @@ class GameMonsterDefinition extends Model
         }
 
         // 装备掉落概率：使用 drop_table 配置的 item_chance，不再乘 type（避免 normal 仅 0.5%~1% 导致长期无掉落）
-        $dropChance = $dropTable['item_chance'] ?? 0.01;
+        $dropChance = $dropTable['item_chance'] ?? 0.001;
         if ($this->rollChance($dropChance)) {
             // 随机选择物品类型
             $itemTypes = $dropTable['item_types'] ?? ['weapon', 'helmet', 'armor', 'gloves', 'boots', 'ring', 'amulet', 'belt'];
