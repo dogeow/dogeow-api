@@ -329,7 +329,7 @@ class ChatController extends Controller
                 return $this->error('You must be online in the room to send messages', [], 403);
             }
 
-            $perm = $this->checkUserPermission($roomUser);
+            $perm = $this->checkUserPermission($roomUser, $room);
             if (! $perm['allowed']) {
                 return $this->error($perm['message'], [], 403);
             }
@@ -347,7 +347,10 @@ class ChatController extends Controller
             );
 
             if (empty($result['success'])) {
-                return $this->error('Failed to send message', $result['errors'] ?? []);
+                $errors = $result['errors'] ?? [];
+                $message = is_array($errors) && $errors !== [] ? $errors[0] : 'Failed to send message';
+
+                return $this->error($message, ['errors' => $errors]);
             }
 
             $roomUser->updateLastSeen();
@@ -383,10 +386,15 @@ class ChatController extends Controller
     }
 
     /**
-     * 检查用户权限（禁言/封禁）
+     * 检查用户权限（禁言/封禁）。管理员或房主不受禁言/封禁限制，可照常发消息。
      */
-    private function checkUserPermission(ChatRoomUser $roomUser): array
+    private function checkUserPermission(ChatRoomUser $roomUser, \App\Models\Chat\ChatRoom $room): array
     {
+        $user = auth()->user();
+        if ($user && $user->canModerate($room)) {
+            return ['allowed' => true];
+        }
+
         if (! $roomUser->canSendMessages()) {
             if ($roomUser->isBanned()) {
                 $msg = 'You are banned from this room';

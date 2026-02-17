@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\Game;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Game\UpdatePotionSettingsRequest;
 use App\Http\Requests\Game\UsePotionRequest;
+use App\Jobs\Game\AutoCombatRoundJob;
 use App\Services\Game\GameCombatService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Redis;
 use Throwable;
 
 class CombatController extends Controller
@@ -49,7 +51,53 @@ class CombatController extends Controller
     }
 
     /**
-     * 执行一回合战斗
+     * 开始自动战斗：服务器每 3 秒执行一回合，通过 Reverb WebSocket 推送战斗结果
+     */
+    public function start(Request $request): JsonResponse
+    {
+        try {
+            $character = $this->getCharacter($request);
+
+            $skillIds = $request->input('skill_ids') ?? [];
+            if (! is_array($skillIds) && $request->has('skill_id')) {
+                $skillIds = [(int) $request->input('skill_id')];
+            }
+            $skillIds = array_map('intval', array_values($skillIds));
+
+            $key = AutoCombatRoundJob::redisKey($character->id);
+            Redis::set($key, json_encode(['skill_ids' => $skillIds]));
+
+            AutoCombatRoundJob::dispatch($character->id, $skillIds);
+
+            return $this->success(['message' => '自动战斗已开始，结果将通过 WebSocket 推送']);
+        } catch (Throwable $e) {
+            return $this->error($e->getMessage() ?: '开始战斗失败', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * 停止自动战斗
+     */
+    public function stop(Request $request): JsonResponse
+    {
+        try {
+            $character = $this->getCharacter($request);
+
+            $key = AutoCombatRoundJob::redisKey($character->id);
+            Redis::del($key);
+
+            if ($character->is_fighting) {
+                $character->update(['is_fighting' => false]);
+            }
+
+            return $this->success(['message' => '自动战斗已停止']);
+        } catch (Throwable $e) {
+            return $this->error($e->getMessage() ?: '停止战斗失败', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * 执行一回合战斗（单次请求，保留用于手动或兼容）
      */
     public function execute(Request $request): JsonResponse
     {

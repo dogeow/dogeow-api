@@ -2,12 +2,15 @@
 
 namespace App\Events\Game;
 
+use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
+/**
+ * 战斗更新事件，使用队列异步推送到 Reverb。
+ */
 class GameCombatUpdate implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
@@ -27,11 +30,12 @@ class GameCombatUpdate implements ShouldBroadcast
 
     /**
      * Get the channels the event should broadcast on.
+     * 使用公共频道（与聊天室 chat.room.{id} 一致），无需订阅鉴权即可收事件。
      */
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel("game.{$this->characterId}"),
+            new Channel("game.{$this->characterId}"),
         ];
     }
 
