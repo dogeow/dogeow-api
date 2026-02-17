@@ -177,18 +177,23 @@ class GameMonsterDefinition extends Model
 
     /**
      * 生成物品品质
+     * 支持最低的0.001%的掉落概率
      */
     private function generateItemQuality(float $typeMultiplier): string
     {
-        $roll = mt_rand(1, 10000) / 100 * $typeMultiplier;
+        $roll = mt_rand(1, 100000) / 1000 * $typeMultiplier;
+        $chances = config('game.item_quality_chances');
 
-        return match (true) {
-            $roll >= 99 => 'mythic',
-            $roll >= 95 => 'legendary',
-            $roll >= 85 => 'rare',
-            $roll >= 60 => 'magic',
-            default => 'common',
-        };
+        // 从高到低依次判断
+        $cumulative = 0;
+        foreach ($chances as $quality => $chance) {
+            $cumulative += $chance;
+            if ($roll >= 100 - $cumulative) {
+                return $quality;
+            }
+        }
+
+        return 'common'; // 兜底品质
     }
 
     /**
