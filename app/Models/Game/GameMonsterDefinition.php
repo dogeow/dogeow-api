@@ -134,7 +134,7 @@ class GameMonsterDefinition extends Model
             $loot['copper'] = random_int($base, $base + $range);
         }
 
-        // 药水掉落（暗黑2风格：简单直接）
+        // 药水掉落（简单直接）
         $potionDropChance = ($dropTable['potion_chance'] ?? 0.01) * $typeMultiplier;
         if ($this->rollChance($potionDropChance)) {
             // 简单药水系统：hp 或 mp

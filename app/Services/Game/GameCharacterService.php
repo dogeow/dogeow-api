@@ -5,40 +5,70 @@ namespace App\Services\Game;
 use App\Models\Game\GameCharacter;
 use App\Models\Game\GameMapDefinition;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
+/**
+ * 角色服务类
+ *
+ * 负责角色相关的业务逻辑，包括创建、删除、属性分配、离线奖励等
+ */
 class GameCharacterService
 {
+    /** 缓存键前缀 */
+    private const CACHE_PREFIX = 'game_character:';
+
+    /** 缓存有效期（秒） */
+    private const CACHE_TTL = 300;
+
     /**
      * 获取用户角色列表
+     *
+     * @param int $userId 用户ID
+     * @return array 角色列表和经验表
      */
     public function getCharacterList(int $userId): array
     {
-        $characters = GameCharacter::query()
-            ->where('user_id', $userId)
-            ->get();
+        $cacheKey = self::CACHE_PREFIX . "list:{$userId}";
 
-        foreach ($characters as $character) {
-            $character->reconcileLevelFromExperience();
-        }
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($userId) {
+            $characters = GameCharacter::query()
+                ->where('user_id', $userId)
+                ->get();
 
-        return [
-            'characters' => $characters->map(fn ($c) => $c->only(['id', 'name', 'class', 'level', 'experience', 'copper', 'is_fighting', 'difficulty_tier'])),
-            'experience_table' => config('game.experience_table', []),
-        ];
+            // 批量处理等级同步
+            $characters->each(fn ($character) => $character->reconcileLevelFromExperience());
+
+            return [
+                'characters' => $characters->map(fn ($c) => $c->only([
+                    'id', 'name', 'class', 'level', 'experience', 'copper', 'is_fighting', 'difficulty_tier'
+                ])),
+                'experience_table' => config('game.experience_table', []),
+            ];
+        });
     }
 
     /**
      * 获取角色详情
+     *
+     * @param int $userId 用户ID
+     * @param int|null $characterId 角色ID（可选）
+     * @return array|null 角色详情数组
      */
     public function getCharacterDetail(int $userId, ?int $characterId = null): ?array
     {
-        $query = GameCharacter::query()->where('user_id', $userId);
+        $query = GameCharacter::query()
+            ->where('user_id', $userId)
+            ->with([
+                'equipment.item.definition',
+                'skills.skill',
+                'currentMap'
+            ]);
 
         if ($characterId) {
             $query->where('id', $characterId);
         }
 
-        $character = $query->with(['equipment.item.definition', 'skills.skill', 'currentMap'])->first();
+        $character = $query->first();
 
         if (! $character) {
             return null;
@@ -58,20 +88,28 @@ class GameCharacterService
     }
 
     /**
-     * 创建角色
+     * 创建新角色
+     *
+     * @param int $userId 用户ID
+     * @param string $name 角色名称
+     * @param string $class 职业类型
+     * @return GameCharacter 创建的角色
+     * @throws \InvalidArgumentException 角色名已存在
      */
     public function createCharacter(int $userId, string $name, string $class): GameCharacter
     {
+        // 验证角色名
+        $this->validateCharacterName($name);
+
         // 检查角色名是否已存在
-        if (GameCharacter::query()->where('name', $name)->exists()) {
+        if ($this->isCharacterNameTaken($name)) {
             throw new \InvalidArgumentException('角色名已被使用');
         }
 
-        // 获取职业基础属性
-        $classStats = config('game.class_base_stats', []);
-        $baseStats = $classStats[$class] ?? ['strength' => 2, 'dexterity' => 3, 'vitality' => 2, 'energy' => 2];
+        // 获取职业配置
+        $classStats = $this->getClassBaseStats($class);
 
-        return DB::transaction(function () use ($userId, $name, $class, $baseStats) {
+        return DB::transaction(function () use ($userId, $name, $class, $classStats) {
             // 创建角色
             $character = GameCharacter::create([
                 'user_id' => $userId,
@@ -79,27 +117,23 @@ class GameCharacterService
                 'class' => $class,
                 'level' => 1,
                 'experience' => 0,
-                'copper' => 0,
-                'strength' => $baseStats['strength'],
-                'dexterity' => $baseStats['dexterity'],
-                'vitality' => $baseStats['vitality'],
-                'energy' => $baseStats['energy'],
+                'copper' => $this->getStartingCopper($class),
+                'strength' => $classStats['strength'],
+                'dexterity' => $classStats['dexterity'],
+                'vitality' => $classStats['vitality'],
+                'energy' => $classStats['energy'],
                 'skill_points' => 0,
                 'stat_points' => 0,
             ]);
 
             // 初始化装备槽位
-            foreach (GameCharacter::getSlots() as $slot) {
-                $character->equipment()->create(['slot' => $slot]);
-            }
+            $this->initializeEquipmentSlots($character);
 
             // 解锁初始地图
-            $firstMap = GameMapDefinition::orderBy('id')->first();
-            if ($firstMap) {
-                $character->mapProgress()->create([
-                    'map_id' => $firstMap->id,
-                ]);
-            }
+            $this->unlockStartingMap($character);
+
+            // 清除缓存
+            $this->clearCharacterCache($userId);
 
             return $character;
         });
@@ -107,6 +141,10 @@ class GameCharacterService
 
     /**
      * 删除角色
+     *
+     * @param int $userId 用户ID
+     * @param int $characterId 角色ID
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException 角色不存在
      */
     public function deleteCharacter(int $userId, int $characterId): void
     {
@@ -116,10 +154,19 @@ class GameCharacterService
             ->firstOrFail();
 
         $character->delete();
+
+        // 清除缓存
+        $this->clearCharacterCache($userId);
     }
 
     /**
      * 分配属性点
+     *
+     * @param int $userId 用户ID
+     * @param int $characterId 角色ID
+     * @param array $stats 要分配的属性 ['strength' => 1, 'dexterity' => 2, ...]
+     * @return array 更新后的角色数据
+     * @throws \InvalidArgumentException 属性点不足
      */
     public function allocateStats(int $userId, int $characterId, array $stats): array
     {
@@ -128,20 +175,22 @@ class GameCharacterService
             ->where('user_id', $userId)
             ->firstOrFail();
 
-        $totalPoints = ($stats['strength'] ?? 0) +
-                     ($stats['dexterity'] ?? 0) +
-                     ($stats['vitality'] ?? 0) +
-                     ($stats['energy'] ?? 0);
+        // 验证并计算总分配点数
+        $totalPoints = $this->calculateTotalStatPoints($stats);
 
+        // 验证是否有足够的属性点
         if ($totalPoints > $character->stat_points) {
             throw new \InvalidArgumentException('属性点不足');
         }
 
-        $character->strength += $stats['strength'] ?? 0;
-        $character->dexterity += $stats['dexterity'] ?? 0;
-        $character->vitality += $stats['vitality'] ?? 0;
-        $character->energy += $stats['energy'] ?? 0;
-        $character->stat_points -= $totalPoints;
+        // 更新属性
+        $character->fill([
+            'strength' => $character->strength + ($stats['strength'] ?? 0),
+            'dexterity' => $character->dexterity + ($stats['dexterity'] ?? 0),
+            'vitality' => $character->vitality + ($stats['vitality'] ?? 0),
+            'energy' => $character->energy + ($stats['energy'] ?? 0),
+            'stat_points' => $character->stat_points - $totalPoints,
+        ]);
         $character->save();
 
         return [
@@ -154,7 +203,12 @@ class GameCharacterService
     }
 
     /**
-     * 更新难度
+     * 更新难度设置
+     *
+     * @param int $userId 用户ID
+     * @param int $difficultyTier 难度等级 (1-4)
+     * @param int|null $characterId 角色ID（可选）
+     * @return GameCharacter 更新后的角色
      */
     public function updateDifficulty(int $userId, int $difficultyTier, ?int $characterId = null): GameCharacter
     {
@@ -172,7 +226,11 @@ class GameCharacterService
     }
 
     /**
-     * 获取角色详细信息（包含背包、技能等）
+     * 获取角色完整详情（包含背包、技能等）
+     *
+     * @param int $userId 用户ID
+     * @param int|null $characterId 角色ID（可选）
+     * @return array 完整角色数据
      */
     public function getCharacterFullDetail(int $userId, ?int $characterId = null): array
     {
@@ -184,6 +242,7 @@ class GameCharacterService
 
         $character = $query->firstOrFail();
 
+        // 使用 eager loading 优化查询
         $inventory = $character->items()
             ->where('is_in_storage', false)
             ->with('definition')
@@ -201,13 +260,7 @@ class GameCharacterService
             ->orderBy('slot_index')
             ->get();
 
-        $availableSkills = \App\Models\Game\GameSkillDefinition::query()
-            ->where('is_active', true)
-            ->where(function ($query) use ($character) {
-                $query->where('class_restriction', 'all')
-                    ->orWhere('class_restriction', $character->class);
-            })
-            ->get();
+        $availableSkills = $this->getAvailableSkills($character);
 
         return [
             'character' => $character,
@@ -224,19 +277,16 @@ class GameCharacterService
 
     /**
      * 检查离线奖励信息
+     *
+     * @param GameCharacter $character 角色实例
+     * @return array 离线奖励信息
      */
     public function checkOfflineRewards(GameCharacter $character): array
     {
         $lastOnline = $character->last_online;
 
         if (! $lastOnline) {
-            return [
-                'available' => false,
-                'offline_seconds' => 0,
-                'experience' => 0,
-                'copper' => 0,
-                'level_up' => false,
-            ];
+            return $this->formatOfflineRewards(0, false);
         }
 
         $now = now();
@@ -244,19 +294,13 @@ class GameCharacterService
 
         // 最小60秒才发放离线奖励
         if ($offlineSeconds < 60) {
-            return [
-                'available' => false,
-                'offline_seconds' => $offlineSeconds,
-                'experience' => 0,
-                'copper' => 0,
-                'level_up' => false,
-            ];
+            return $this->formatOfflineRewards($offlineSeconds, false);
         }
 
         // 最多24小时
         $offlineSeconds = min($offlineSeconds, 86400);
 
-        // 计算奖励：每秒 等级*1 经验，等级*0.5 铜币
+        // 计算奖励
         $level = $character->level;
         $experience = $level * $offlineSeconds;
         $copper = (int) ($level * $offlineSeconds * 0.5);
@@ -267,17 +311,14 @@ class GameCharacterService
         $newExp = $currentExp + $experience;
         $levelUp = $newExp >= $expNeeded;
 
-        return [
-            'available' => true,
-            'offline_seconds' => $offlineSeconds,
-            'experience' => $experience,
-            'copper' => $copper,
-            'level_up' => $levelUp,
-        ];
+        return $this->formatOfflineRewards($offlineSeconds, true, $experience, $copper, $levelUp);
     }
 
     /**
      * 领取离线奖励
+     *
+     * @param GameCharacter $character 角色实例
+     * @return array 领取结果
      */
     public function claimOfflineRewards(GameCharacter $character): array
     {
@@ -291,6 +332,8 @@ class GameCharacterService
                 'new_level' => $character->level,
             ];
         }
+
+        $originalLevel = $character->level;
 
         // 更新经验
         $character->experience += $rewardInfo['experience'];
@@ -306,8 +349,163 @@ class GameCharacterService
         return [
             'experience' => $rewardInfo['experience'],
             'copper' => $rewardInfo['copper'],
-            'level_up' => $character->level > $character->getOriginal('level'),
+            'level_up' => $character->level > $originalLevel,
             'new_level' => $character->level,
         ];
+    }
+
+    // ==================== 私有辅助方法 ====================
+
+    /**
+     * 验证角色名称
+     *
+     * @param string $name 角色名称
+     * @throws \InvalidArgumentException 名称不符合要求
+     */
+    private function validateCharacterName(string $name): void
+    {
+        $length = mb_strlen($name);
+
+        if ($length < 2) {
+            throw new \InvalidArgumentException('角色名至少需要2个字符');
+        }
+
+        if ($length > 12) {
+            throw new \InvalidArgumentException('角色名最多12个字符');
+        }
+
+        if (! preg_match('/^[\x{4e00}-\x{9fa5}a-zA-Z0-9]+$/u', $name)) {
+            throw new \InvalidArgumentException('角色名只能包含中文、英文和数字');
+        }
+    }
+
+    /**
+     * 检查角色名是否已被使用
+     *
+     * @param string $name 角色名称
+     * @return bool 是否已被使用
+     */
+    private function isCharacterNameTaken(string $name): bool
+    {
+        return GameCharacter::query()->where('name', $name)->exists();
+    }
+
+    /**
+     * 获取职业基础属性
+     *
+     * @param string $class 职业类型
+     * @return array 基础属性数组
+     */
+    private function getClassBaseStats(string $class): array
+    {
+        return config("game.class_base_stats.{$class}", [
+            'strength' => 2,
+            'dexterity' => 3,
+            'vitality' => 2,
+            'energy' => 2,
+        ]);
+    }
+
+    /**
+     * 获取初始铜币
+     *
+     * @param string $class 职业类型
+     * @return int 初始铜币数量
+     */
+    private function getStartingCopper(string $class): int
+    {
+        return config("game.starting_copper.{$class}", 100);
+    }
+
+    /**
+     * 初始化装备槽位
+     *
+     * @param GameCharacter $character 角色实例
+     */
+    private function initializeEquipmentSlots(GameCharacter $character): void
+    {
+        foreach (GameCharacter::getSlots() as $slot) {
+            $character->equipment()->create(['slot' => $slot]);
+        }
+    }
+
+    /**
+     * 解锁初始地图
+     *
+     * @param GameCharacter $character 角色实例
+     */
+    private function unlockStartingMap(GameCharacter $character): void
+    {
+        $firstMap = GameMapDefinition::orderBy('id')->first();
+
+        if ($firstMap) {
+            $character->mapProgress()->create([
+                'map_id' => $firstMap->id,
+            ]);
+        }
+    }
+
+    /**
+     * 计算总属性点数
+     *
+     * @param array $stats 属性数组
+     * @return int 总点数
+     */
+    private function calculateTotalStatPoints(array $stats): int
+    {
+        return array_sum(array_map(fn ($v) => max(0, (int) $v), $stats));
+    }
+
+    /**
+     * 获取可用技能列表
+     *
+     * @param GameCharacter $character 角色实例
+     * @return \Illuminate\Database\Eloquent\Collection 可用技能集合
+     */
+    private function getAvailableSkills(GameCharacter $character)
+    {
+        return \App\Models\Game\GameSkillDefinition::query()
+            ->where('is_active', true)
+            ->where(function ($query) use ($character) {
+                $query->where('class_restriction', 'all')
+                    ->orWhere('class_restriction', $character->class);
+            })
+            ->get();
+    }
+
+    /**
+     * 格式化离线奖励返回数据
+     *
+     * @param int $offlineSeconds 离线秒数
+     * @param bool $available 是否可领取
+     * @param int $experience 经验（可选）
+     * @param int $copper 铜币（可选）
+     * @param bool $levelUp 是否升级（可选）
+     * @return array 格式化后的数据
+     */
+    private function formatOfflineRewards(
+        int $offlineSeconds,
+        bool $available,
+        int $experience = 0,
+        int $copper = 0,
+        bool $levelUp = false
+    ): array {
+        return [
+            'available' => $available,
+            'offline_seconds' => $offlineSeconds,
+            'experience' => $experience,
+            'copper' => $copper,
+            'level_up' => $levelUp,
+        ];
+    }
+
+    /**
+     * 清除角色相关缓存
+     *
+     * @param int $userId 用户ID
+     */
+    private function clearCharacterCache(int $userId): void
+    {
+        Cache::forget(self::CACHE_PREFIX . "list:{$userId}");
     }
 }

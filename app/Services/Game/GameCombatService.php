@@ -9,8 +9,22 @@ use App\Models\Game\GameMapDefinition;
 use App\Models\Game\GameMonsterDefinition;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * 战斗服务类
+ *
+ * 负责战斗相关的业务逻辑，包括执行战斗回合、处理胜负、发放奖励等
+ */
 class GameCombatService
 {
+    /**
+     * 构造函数
+     *
+     * @param CombatRoundProcessor $roundProcessor 回合处理器
+     * @param GameMonsterService $monsterService 怪物服务
+     * @param GamePotionService $potionService 药水服务
+     * @param GameCombatLootService $lootService 战利品服务
+     * @param GameCombatLogService $combatLogService 战斗日志服务
+     */
     public function __construct(
         private readonly CombatRoundProcessor $roundProcessor,
         private readonly GameMonsterService $monsterService,
@@ -20,7 +34,10 @@ class GameCombatService
     ) {}
 
     /**
-     * Get combat status
+     * 获取战斗状态
+     *
+     * @param GameCharacter $character 角色实例
+     * @return array 战斗状态数据
      */
     public function getCombatStatus(GameCharacter $character): array
     {
@@ -37,7 +54,11 @@ class GameCombatService
     }
 
     /**
-     * Update potion settings
+     * 更新药水设置
+     *
+     * @param GameCharacter $character 角色实例
+     * @param array $settings 药水设置
+     * @return GameCharacter 更新后的角色
      */
     public function updatePotionSettings(GameCharacter $character, array $settings): GameCharacter
     {
@@ -52,15 +73,22 @@ class GameCombatService
     }
 
     /**
-     * Execute one round of combat (supports multi-monster continuous combat)
+     * 执行一轮战斗（支持多怪物连续战斗）
+     *
+     * @param GameCharacter $character 角色实例
+     * @param array $skillIds 使用的技能ID数组
+     * @return array 战斗结果
+     * @throws \InvalidArgumentException 地图不存在或没有怪物
+     * @throws \RuntimeException 血量不足或战斗结束
      */
     public function executeRound(GameCharacter $character, array $skillIds = []): array
     {
+        // 检查是否选择了地图
         if (! $character->current_map_id) {
             throw new \InvalidArgumentException('请先选择一个地图');
         }
 
-        // If not in combat, automatically start combat
+        // 如果不在战斗中，自动开始战斗
         if (! $character->is_fighting) {
             $character->fill([
                 'is_fighting' => true,
@@ -68,17 +96,12 @@ class GameCombatService
             ])->save();
         }
 
+        // 初始化HP和Mana
         $character->initializeHpMana();
         $currentHp = $character->getCurrentHp();
         $currentMana = $character->getCurrentMana();
 
-        // Auto-use potions before round
-        $charStats = $character->getCombatStats();
-        $potionUsedBeforeRound = $this->potionService->tryAutoUsePotions($character, $currentHp, $currentMana, $charStats);
-        if (! empty($potionUsedBeforeRound)) {
-            $currentHp = $character->getCurrentHp();
-        }
-
+        // 检查血量是否不足
         if ($currentHp <= 0) {
             $character->clearCombatState();
             $character->update(['is_fighting' => false]);
@@ -93,15 +116,15 @@ class GameCombatService
             throw new \InvalidArgumentException('地图不存在');
         }
 
-        // Prepare monster info
+        // 准备怪物信息
         [
             $monster,
             $monsterLevel,
-            $monsterStats,
             $monsterHp,
             $monsterMaxHp
         ] = $this->monsterService->prepareMonsterInfo($character, $map);
 
+        // 检查怪物是否存在
         if (! $monster) {
             throw new \InvalidArgumentException('当前战斗怪物不存在，已清除状态');
         }
@@ -112,7 +135,7 @@ class GameCombatService
             ])));
         }
 
-        // Process round
+        // 处理回合
         $currentRound = (int) $character->combat_rounds + 1;
         $skillCooldowns = $character->combat_skill_cooldowns ?? [];
         $skillsUsedAggregated = $character->combat_skills_used ?? [];
@@ -120,14 +143,13 @@ class GameCombatService
 
         $roundResult = $this->roundProcessor->processOneRound(
             $character,
-            $monsterStats,
             $currentRound,
             $skillCooldowns,
             $skillsUsedAggregated,
             $requestedSkillIds
         );
 
-        // Auto-use potions after round
+        // 回合后自动使用药水
         $charStats = $character->getCombatStats();
         $potionUsed = $this->potionService->tryAutoUsePotions($character, $roundResult['new_char_hp'], $roundResult['new_char_mana'], $charStats);
         if (! empty($potionUsed)) {
@@ -135,27 +157,27 @@ class GameCombatService
             $roundResult['new_char_mana'] = $character->getCurrentMana();
         }
 
-        // Persist combat state
+        // 持久化战斗状态
         $this->persistCombatState($character, $roundResult, $currentRound);
 
-        // Handle defeat
+        // 处理失败
         if ($roundResult['defeat']) {
             return $this->handleDefeat($character, $map, $monster, $monsterLevel, $monsterMaxHp, $currentRound, $roundResult, $monsterHp);
         }
 
-        // Check if all monsters are dead
+        // 检查是否所有怪物都死亡
         $isVictory = ! ($roundResult['has_alive_monster'] ?? true);
         if ($isVictory) {
-            // All monsters dead, don't respawn immediately, keep dead monsters visible until next round
-            $roundResult['new_monster_max_hp'] = $roundResult['new_monster_hp']; // Keep total HP unchanged
+            // 所有怪物死亡，不立即重生，保持死亡怪物可见直到下一回合
+            $roundResult['new_monster_max_hp'] = $roundResult['new_monster_hp']; // 保持总HP不变
             $roundResult['victory'] = true;
         }
 
-        // Always try to add new monsters when some monsters die (even if not all dead)
-        // This enables continuous combat flow: monsters respawn as they die, not waiting for all to die
+        // 当部分怪物死亡时总是尝试添加新怪物
+        // 这实现了连续战斗流程：怪物随着死亡立即重生，而不是等待所有怪物死亡
         $roundResult = $this->monsterService->tryAddNewMonsters($character, $map, $roundResult, $currentRound);
 
-        // Grant exp and copper for dead monsters this round
+        // 为本回合死亡的怪物发放经验和铜币
         $expGained = $roundResult['experience_gained'] ?? 0;
         $copperGained = $roundResult['copper_gained'] ?? 0;
         if ($expGained > 0 || $copperGained > 0) {
@@ -163,30 +185,28 @@ class GameCombatService
             $roundResult['loot'] = array_merge($roundResult['loot'] ?? [], ['copper' => $copperGained]);
         }
 
-        // Process death loot
+        // 处理死亡战利品
         $deathLoot = $this->lootService->processDeathLoot($character, $roundResult);
         if (! empty($deathLoot)) {
             $roundResult['loot'] = array_merge($roundResult['loot'] ?? [], $deathLoot);
         }
 
-        // Save updated monster state
+        // 保存更新的怪物状态
         $character->combat_monster_hp = max(0, $roundResult['new_monster_hp']);
         $character->combat_monster_max_hp = max(0, $roundResult['new_monster_max_hp'] ?? $roundResult['new_monster_hp']);
         $character->save();
 
-        // Get current monsters for response (fixed 5 slots)
+        // 获取当前怪物列表用于响应（固定5个槽位）
         $monsterData = $this->monsterService->formatMonstersForResponse($character);
         $fixedMonsters = $monsterData['monsters'];
         $firstAliveMonster = $monsterData['first_alive_monster'];
 
-        // Create combat log
+        // 创建战斗日志
         $combatLog = $this->combatLogService->createRoundLog(
             $character,
             $map,
             $firstAliveMonster['id'] ?? $monster->id,
             $roundResult,
-            $currentRound,
-            $potionUsedBeforeRound,
             $potionUsed
         );
 
@@ -215,14 +235,18 @@ class GameCombatService
             ],
             'skills_used' => $roundResult['skills_used_this_round'],
             'skill_target_positions' => $roundResult['skill_target_positions'] ?? [],
+            'skill_cooldowns' => $character->combat_skill_cooldowns ?? [], // 技能冷却（回合数）
             'character' => $character->fresh()->toArray(),
             'combat_log_id' => $combatLog->id,
         ];
 
+        // 广播战斗更新
         broadcast(new GameCombatUpdate($character->id, $result));
         $character->refresh();
+
+        // 广播背包更新
         $inventoryPayload = app(GameInventoryService::class)->getInventoryForBroadcast($character);
-        Log::info('Game inventory broadcast payload', [
+        Log::info('游戏背包广播数据', [
             'character_id' => $character->id,
             'inventory_count' => count($inventoryPayload['inventory'] ?? []),
             'first_items_quantity' => array_map(fn ($i) => ['id' => $i['id'] ?? null, 'quantity' => $i['quantity'] ?? null], array_slice($inventoryPayload['inventory'] ?? [], 0, 3)),
@@ -233,7 +257,11 @@ class GameCombatService
     }
 
     /**
-     * Persist combat state
+     * 持久化战斗状态
+     *
+     * @param GameCharacter $character 角色实例
+     * @param array $roundResult 回合结果
+     * @param int $currentRound 当前回合数
      */
     private function persistCombatState(GameCharacter $character, array $roundResult, int $currentRound): void
     {
@@ -245,14 +273,24 @@ class GameCombatService
         $character->combat_skills_used = $roundResult['new_skills_aggregated'];
         $character->combat_skill_cooldowns = $roundResult['new_cooldowns'];
 
-        // Save updated monster array
+        // 保存更新的怪物数组
         if (isset($roundResult['monsters_updated'])) {
             $character->combat_monsters = $roundResult['monsters_updated'];
         }
     }
 
     /**
-     * Handle defeat
+     * 处理失败情况
+     *
+     * @param GameCharacter $character 角色实例
+     * @param GameMapDefinition $map 地图实例
+     * @param GameMonsterDefinition $monster 怪物实例
+     * @param int $monsterLevel 怪物等级
+     * @param int $monsterMaxHp 怪物最大生命值
+     * @param int $currentRound 当前回合数
+     * @param array $roundResult 回合结果
+     * @param int $monsterHpBeforeRound 回合前怪物生命值
+     * @return array 失败结果
      */
     private function handleDefeat(
         GameCharacter $character,
@@ -264,30 +302,30 @@ class GameCombatService
         array $roundResult,
         int $monsterHpBeforeRound
     ): array {
-        $copperLoss = (int) ($character->copper * 0.1);
-        $character->copper -= $copperLoss;
-        // On defeat
+        // 失败时
         $character->current_hp = max(0, $roundResult['new_char_hp']);
         $character->is_fighting = false;
 
+        // 创建失败日志
         $combatLog = $this->combatLogService->createDefeatLog($character, $map, $monster, $roundResult, $currentRound);
 
+        // 清除战斗状态并保存
         $character->clearCombatState();
         $character->save();
 
-        // Debug: check values after save
-        Log::info('[handleDefeat] after save, current_hp in DB:', [
+        // 调试：保存后检查值
+        Log::info('[handleDefeat] 保存后数据库中的current_hp:', [
             'character_id' => $character->id,
             'current_hp' => $character->current_hp,
             'fresh_current_hp' => $character->fresh()->current_hp,
         ]);
 
         $freshCharacter = $character->fresh();
-        Log::info('[handleDefeat] fresh character:', ['current_hp' => $freshCharacter->current_hp]);
+        Log::info('[handleDefeat] 刷新后的角色:', ['current_hp' => $freshCharacter->current_hp]);
         $charArray = $freshCharacter->toArray();
         $charArray['current_hp'] = 0;
         $charArray['current_mana'] = 0;
-        Log::info('[handleDefeat] charArray after override:', ['current_hp' => $charArray['current_hp']]);
+        Log::info('[handleDefeat] 覆盖后的charArray:', ['current_hp' => $charArray['current_hp']]);
 
         $result = [
             'victory' => false,
@@ -314,10 +352,14 @@ class GameCombatService
             'current_mana' => 0,
             'combat_log_id' => $combatLog->id,
         ];
+
+        // 广播战斗更新
         broadcast(new GameCombatUpdate($character->id, $result));
         $character->refresh();
+
+        // 广播背包更新
         $inventoryPayload = app(GameInventoryService::class)->getInventoryForBroadcast($character);
-        Log::info('Game inventory broadcast payload (handleDefeat)', [
+        Log::info('游戏背包广播数据 (handleDefeat)', [
             'character_id' => $character->id,
             'first_items_quantity' => array_map(fn ($i) => ['id' => $i['id'] ?? null, 'quantity' => $i['quantity'] ?? null], array_slice($inventoryPayload['inventory'] ?? [], 0, 3)),
         ]);
@@ -327,7 +369,10 @@ class GameCombatService
     }
 
     /**
-     * Get combat logs
+     * 获取战斗日志
+     *
+     * @param GameCharacter $character 角色实例
+     * @return array 战斗日志列表
      */
     public function getCombatLogs(GameCharacter $character): array
     {
@@ -335,7 +380,10 @@ class GameCombatService
     }
 
     /**
-     * Get combat statistics
+     * 获取战斗统计
+     *
+     * @param GameCharacter $character 角色实例
+     * @return array 战斗统计数据
      */
     public function getCombatStats(GameCharacter $character): array
     {

@@ -3,6 +3,8 @@
 namespace App\Services\Game;
 
 use App\Models\Game\GameCharacter;
+use App\Models\Game\GameMonsterDefinition;
+use Illuminate\Support\Facades\Log;
 
 /**
  * 单回合战斗处理器：技能选择、目标选择、伤害计算、反击、奖励结算
@@ -16,7 +18,6 @@ class CombatRoundProcessor
      */
     public function processOneRound(
         GameCharacter $character,
-        array $monsterStats,
         int $currentRound,
         array $skillCooldowns,
         array $skillsUsedAggregated,
@@ -216,7 +217,7 @@ class CombatRoundProcessor
 
             // 新出现的怪物不受攻击（下一轮才能攻击）
             if (isset($m['is_new']) && $m['is_new'] === true) {
-                \Log::info('Skipping new monster attack', ['monster' => $m['name'], 'is_new' => true]);
+                Log::info('Skipping new monster attack', ['monster' => $m['name'], 'is_new' => true]);
                 $monstersUpdated[$idx] = $m;
 
                 continue;
@@ -354,15 +355,18 @@ class CombatRoundProcessor
         $totalCopper = 0;
         $rewardMultiplier = $difficulty['reward'] ?? 1;
 
-        foreach ($monstersUpdated as $i => $m) {
-            if (! is_array($m)) {
+        foreach ($monstersUpdated as $i => $monster) {
+            if (! is_array($monster)) {
                 continue;
             }
             $before = $hpAtRoundStart[$i] ?? 0;
-            $after = $m['hp'] ?? 0;
+            $after = $monster['hp'] ?? 0;
             if ($before > 0 && $after <= 0) {
-                $totalExperience += $m['experience'] ?? 0;
-                $totalCopper += rand(1, 10);
+                $totalExperience += $monster['experience'] ?? 0;
+
+                // 使用怪物定义的 drop_table 配置计算铜币掉落
+                $copperGained = $this->calculateMonsterCopperLoot($monster);
+                $totalCopper += $copperGained;
             }
         }
 
@@ -370,5 +374,44 @@ class CombatRoundProcessor
             (int) ($totalExperience * $rewardMultiplier),
             (int) ($totalCopper * $rewardMultiplier),
         ];
+    }
+
+    /**
+     * 根据怪物定义计算铜币掉落
+     */
+    private function calculateMonsterCopperLoot(array $monster): int
+    {
+        $monsterId = $monster['id'] ?? null;
+        if (! $monsterId) {
+            return rand(1, 10); // 回退到随机铜币
+        }
+
+        $definition = GameMonsterDefinition::query()->find($monsterId);
+        if (! $definition) {
+            return rand(1, 10); // 回退到随机铜币
+        }
+
+        $dropTable = $definition->drop_table ?? [];
+        $level = $monster['level'] ?? $definition->level;
+
+        // 使用 drop_table 的铜币配置
+        $copperChance = $dropTable['copper_chance'] ?? 0.005;
+        if (! $this->rollChanceForProcessor($copperChance)) {
+            return 0;
+        }
+
+        $base = (int) ($dropTable['copper_base'] ?? max(1, $level));
+        $range = (int) ($dropTable['copper_range'] ?? max(0, $level));
+
+        return random_int($base, $base + $range);
+    }
+
+    /**
+     * 概率判定（复制自 GameMonsterDefinition）
+     */
+    private function rollChanceForProcessor(float $chance): bool
+    {
+        // $chance是0~1，例如0.12就是12%概率
+        return mt_rand() / mt_getrandmax() < $chance;
     }
 }

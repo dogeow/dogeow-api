@@ -9,13 +9,13 @@ use App\Models\Game\GameMonsterDefinition;
 class GameMonsterService
 {
     /**
-     * Get existing monsters from character or generate new ones
+     * 从角色获取现有怪物或生成新怪物
      */
     public function prepareMonsterInfo(GameCharacter $character, GameMapDefinition $map): array
     {
         $existingMonsters = $character->combat_monsters ?? [];
 
-        // Check if there's any alive monster
+        // 检查是否有存活怪物
         $hasAliveMonster = false;
         foreach ($existingMonsters as $m) {
             if (is_array($m) && ($m['hp'] ?? 0) > 0) {
@@ -32,7 +32,7 @@ class GameMonsterService
     }
 
     /**
-     * Load existing monsters from character state
+     * 从角色状态加载现有怪物
      */
     public function loadExistingMonsters(GameCharacter $character, array $existingMonsters): array
     {
@@ -68,7 +68,7 @@ class GameMonsterService
     }
 
     /**
-     * Generate new monsters (1-5)
+     * 生成新怪物 (1-5个)
      */
     public function generateNewMonsters(GameCharacter $character, GameMapDefinition $map, array $existingMonsters): array
     {
@@ -79,7 +79,7 @@ class GameMonsterService
 
         $difficulty = $character->getDifficultyMultipliers();
 
-        // Generate 1-5 monsters randomly
+        // 随机生成 1-5 个怪物
         $monsterCount = rand(1, 5);
         $baseMonster = $monsters[array_rand($monsters)];
         $baseLevel = rand(
@@ -96,8 +96,7 @@ class GameMonsterService
 
             $monsterDataList[] = [
                 'id' => $baseMonster->id,
-                'instance_id' => uniqid('m-', true), // Unique instance ID for frontend to detect new monsters
-                'is_new' => true, // Flag for frontend to show spawn animation
+                'instance_id' => uniqid('m-', true), // 唯一实例ID，用于前端检测新怪物
                 'name' => $baseMonster->name,
                 'type' => $baseMonster->type,
                 'level' => $level,
@@ -109,7 +108,7 @@ class GameMonsterService
             ];
         }
 
-        // Fixed 5 slots (0-4), randomly select N slots for monsters, rest are null
+        // 固定5个槽位(0-4)，随机选择N个槽位放怪物，其余为null
         $slotIndices = [0, 1, 2, 3, 4];
         shuffle($slotIndices);
         $newMonsters = array_fill(0, 5, null);
@@ -119,7 +118,7 @@ class GameMonsterService
             $newMonsters[$slot] = $data;
         }
 
-        // Persist monster array (5 slots, may contain null)
+        // 持久化怪物数组（5个槽位，可能包含null）
         $character->combat_monsters = $newMonsters;
         $character->combat_monster_id = $baseMonster->id;
         $character->combat_monster_level = $baseLevel;
@@ -133,7 +132,7 @@ class GameMonsterService
         $character->combat_started_at = now();
         $character->save();
 
-        // First monster: first alive monster in slot order
+        // 第一个怪物：槽位顺序中第一个存活的怪物
         $firstMonster = null;
         for ($slot = 0; $slot < 5; $slot++) {
             $m = $newMonsters[$slot] ?? null;
@@ -156,8 +155,8 @@ class GameMonsterService
     }
 
     /**
-     * Try to add new monsters (30% chance per round, max 5)
-     * If all monsters are dead (has_alive_monster = false), force refresh 100%
+     * 尝试添加新怪物（每轮30%概率，最多5个）
+     * 如果所有怪物都死亡（has_alive_monster = false），强制刷新100%
      */
     public function tryAddNewMonsters(GameCharacter $character, GameMapDefinition $map, array $roundResult, int $currentRound): array
     {
@@ -174,7 +173,7 @@ class GameMonsterService
             return $roundResult;
         }
 
-        // Check if all monsters died this round - if so, force refresh 100%
+        // 检查本轮所有怪物是否死亡 - 如果是，强制刷新100%
         $allMonstersDead = isset($roundResult['has_alive_monster']) && $roundResult['has_alive_monster'] === false;
         $shouldAddMonster = $allMonstersDead || rand(1, 100) <= 30;
 
@@ -221,8 +220,7 @@ class GameMonsterService
 
             $currentMonsters[$slot] = [
                 'id' => $baseMonster->id,
-                'instance_id' => uniqid('m-', true), // Unique instance ID for frontend to detect new monsters
-                'is_new' => true, // Flag for frontend to show spawn animation
+                'instance_id' => uniqid('m-', true), // 唯一实例ID，用于前端检测新怪物
                 'name' => $baseMonster->name,
                 'type' => $baseMonster->type,
                 'level' => $level,
@@ -243,115 +241,7 @@ class GameMonsterService
     }
 
     /**
-     * Respawn monsters (when all monsters are defeated) and distribute rewards
-     */
-    public function respawnMonsters(GameCharacter $character, GameMapDefinition $map, array $roundResult, int $currentRound): array
-    {
-        $difficulty = $character->getDifficultyMultipliers();
-        $monsters = $map->getMonsters();
-
-        if (empty($monsters)) {
-            return $roundResult;
-        }
-
-        // Get monsters that died in the previous round, calculate exp and loot
-        $oldMonsters = $character->combat_monsters ?? [];
-        $totalExperience = 0;
-        $totalCopper = 0;
-        $loot = ['copper' => 0];
-
-        foreach ($oldMonsters as $m) {
-            if (! is_array($m)) {
-                continue;
-            }
-            $totalExperience += $m['experience'] ?? 0;
-            $totalCopper += rand(1, 10);
-        }
-
-        // Apply difficulty multipliers
-        $totalExperience = (int) ($totalExperience * $difficulty['reward']);
-        $totalCopper = (int) ($totalCopper * $difficulty['reward']);
-
-        // Grant experience
-        if ($totalExperience > 0) {
-            $character->addExperience($totalExperience);
-        }
-
-        // Grant copper
-        if ($totalCopper > 0) {
-            $character->copper += $totalCopper;
-            $loot['copper'] = $totalCopper;
-        }
-
-        // Random loot drop (low chance)
-        if (! empty($monsters)) {
-            $baseMonster = $monsters[array_rand($monsters)];
-            $lootResult = $baseMonster->generateLoot($character->level);
-            if (isset($lootResult['item'])) {
-                $item = app(GameCombatLootService::class)->createItem($character, $lootResult['item']);
-                if ($item) {
-                    $loot['item'] = $item;
-                }
-            }
-            if (isset($lootResult['potion'])) {
-                $potion = app(GameCombatLootService::class)->createPotion($character, $lootResult['potion']);
-                if ($potion) {
-                    $loot['potion'] = $potion;
-                }
-            }
-        }
-
-        // Randomly generate 1-3 new monsters, place in random slots (fixed 5 slots)
-        $newCount = rand(1, 3);
-        $baseMonster = $monsters[array_rand($monsters)];
-        $baseLevel = rand(
-            max($map->min_level, $baseMonster->level - 3),
-            min($map->max_level, $baseMonster->level + 3)
-        );
-
-        $monsterDataList = [];
-        for ($i = 0; $i < $newCount; $i++) {
-            $level = $baseLevel + rand(-1, 1);
-            $level = max(1, $level);
-            $stats = $baseMonster->getCombatStats($level);
-            $maxHp = (int) ($stats['hp'] * $difficulty['monster_hp']);
-
-            $monsterDataList[] = [
-                'id' => $baseMonster->id,
-                'instance_id' => uniqid('m-', true), // Unique instance ID for frontend to detect new monsters
-                'is_new' => true, // Flag for frontend to show spawn animation
-                'name' => $baseMonster->name,
-                'type' => $baseMonster->type,
-                'level' => $level,
-                'hp' => $maxHp,
-                'max_hp' => $maxHp,
-                'attack' => (int) ($stats['attack'] * $difficulty['monster_damage']),
-                'defense' => (int) ($stats['defense'] * $difficulty['monster_damage']),
-                'experience' => (int) ($stats['experience'] * $difficulty['reward']),
-            ];
-        }
-
-        $slotIndices = [0, 1, 2, 3, 4];
-        shuffle($slotIndices);
-        $newMonsters = array_fill(0, 5, null);
-        foreach ($monsterDataList as $idx => $data) {
-            $slot = $slotIndices[$idx];
-            $data['position'] = $slot;
-            $newMonsters[$slot] = $data;
-        }
-
-        $character->combat_monsters = $newMonsters;
-        $roundResult['new_monster_hp'] = array_sum(array_column($monsterDataList, 'hp'));
-        $roundResult['new_monster_max_hp'] = array_sum(array_column($monsterDataList, 'max_hp'));
-        $roundResult['experience_gained'] = $totalExperience;
-        $roundResult['copper_gained'] = $totalCopper;
-        $roundResult['loot'] = $loot;
-
-        return $roundResult;
-    }
-
-    /**
-     * Format monsters for response (fixed 5 slots)
+     * 格式化怪物用于响应（固定5个槽位）
      */
     public function formatMonstersForResponse(GameCharacter $character): array
     {
@@ -365,7 +255,7 @@ class GameMonsterService
             }
         }
 
-        // Find first alive monster
+        // 查找第一个存活怪物
         $firstAliveMonster = null;
         foreach ($fixedMonsters as $m) {
             if ($m && ($m['hp'] ?? 0) > 0) {

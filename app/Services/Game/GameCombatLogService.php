@@ -18,8 +18,6 @@ class GameCombatLogService
         GameMapDefinition $map,
         int $monsterId,
         array $roundResult,
-        int $currentRound,
-        ?array $potionUsedBeforeRound = null,
         ?array $potionUsedAfterRound = null
     ): GameCombatLog {
         return GameCombatLog::create([

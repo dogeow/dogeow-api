@@ -235,7 +235,7 @@ class GameCharacter extends Model
     }
 
     /**
-     * 计算攻击力（暗黑2风格：力量/敏捷影响物理攻击，精力影响法术攻击）
+     * 计算攻击力（力量/敏捷影响物理攻击，精力影响法术攻击）
      */
     public function getAttack(): int
     {
@@ -255,7 +255,7 @@ class GameCharacter extends Model
     }
 
     /**
-     * 计算防御力（暗黑2风格：体力+敏捷影响防御）
+     * 计算防御力（体力+敏捷影响防御）
      */
     public function getDefense(): int
     {
@@ -274,7 +274,7 @@ class GameCharacter extends Model
     }
 
     /**
-     * 计算暴击率（暗黑2风格：敏捷影响暴击率）
+     * 计算暴击率（敏捷影响暴击率）
      */
     public function getCritRate(): float
     {

@@ -5,15 +5,32 @@ namespace App\Services\Game;
 use App\Models\Game\GameCharacter;
 use App\Models\Game\GameItem;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
+/**
+ * 背包服务类
+ *
+ * 负责背包相关的业务逻辑，包括物品装备、卸下、出售、移动等
+ */
 class GameInventoryService
 {
+    /** 背包默认大小 */
     public const INVENTORY_SIZE = 100;
 
+    /** 仓库默认大小 */
     public const STORAGE_SIZE = 50;
+
+    /** 缓存键前缀 */
+    private const CACHE_PREFIX = 'game_inventory:';
+
+    /** 缓存有效期（秒） */
+    private const CACHE_TTL = 60;
 
     /**
      * 获取背包物品
+     *
+     * @param GameCharacter $character 角色实例
+     * @return array 背包数据
      */
     public function getInventory(GameCharacter $character): array
     {
@@ -44,12 +61,16 @@ class GameInventoryService
     }
 
     /**
-     * 获取背包数据（数组格式），用于 WebSocket 广播，与 GET /rpg/inventory 响应结构一致。
+     * 获取背包数据（用于 WebSocket 广播）
+     *
+     * @param GameCharacter $character 角色实例
+     * @return array 背包数组数据
      */
     public function getInventoryForBroadcast(GameCharacter $character): array
     {
         $result = $this->getInventory($character);
         $equipmentArray = [];
+
         foreach ($result['equipment'] as $slot => $eq) {
             $equipmentArray[$slot] = $eq->item ? $eq->item->toArray() : null;
         }
@@ -65,19 +86,15 @@ class GameInventoryService
 
     /**
      * 装备物品
+     *
+     * @param GameCharacter $character 角色实例
+     * @param int $itemId 物品ID
+     * @return array 装备结果
+     * @throws \InvalidArgumentException 物品不存在或无法装备
      */
     public function equipItem(GameCharacter $character, int $itemId): array
     {
-        $item = GameItem::query()
-            ->where('id', $itemId)
-            ->where('character_id', $character->id)
-            ->where('is_in_storage', false)
-            ->with('definition')
-            ->first();
-
-        if (! $item) {
-            throw new \InvalidArgumentException('物品不存在或不属于你');
-        }
+        $item = $this->findItem($character, $itemId, false);
 
         // 检查是否可以装备
         $canEquip = $item->canEquip($character);
@@ -86,42 +103,13 @@ class GameInventoryService
         }
 
         // 确定装备槽位
-        $slot = $item->definition->getEquipmentSlot();
-        if (! $slot) {
-            throw new \InvalidArgumentException('该物品无法装备');
-        }
-
-        // 如果是戒指，检查两个戒指槽位
-        if ($item->definition->type === 'ring') {
-            $ring1 = $character->equipment()->where('slot', 'ring1')->first();
-            $ring2 = $character->equipment()->where('slot', 'ring2')->first();
-
-            if ($ring1 && ! $ring1->item_id) {
-                $slot = 'ring1';
-            } elseif ($ring2 && ! $ring2->item_id) {
-                $slot = 'ring2';
-            } else {
-                $slot = 'ring1';
-            }
-        }
+        $slot = $this->determineEquipmentSlot($character, $item);
 
         return DB::transaction(function () use ($character, $item, $slot) {
-            // 获取装备槽
-            $equipmentSlot = $character->equipment()->where('slot', $slot)->first();
-
-            if (! $equipmentSlot) {
-                $equipmentSlot = $character->equipment()->create(['slot' => $slot]);
-            }
+            $equipmentSlot = $this->getOrCreateEquipmentSlot($character, $slot);
 
             // 如果槽位已有装备，先卸下
-            $oldItem = null;
-            if ($equipmentSlot->item_id) {
-                $oldItem = GameItem::find($equipmentSlot->item_id);
-                if ($oldItem) {
-                    $oldItem->slot_index = $this->findEmptySlot($character, false);
-                    $oldItem->save();
-                }
-            }
+            $oldItem = $this->handleUnequipIfNeeded($character, $equipmentSlot);
 
             // 装备新物品
             $equipmentSlot->item_id = $item->id;
@@ -132,6 +120,9 @@ class GameInventoryService
             $item->save();
 
             $character->refresh();
+
+            // 清除缓存
+            $this->clearInventoryCache($character->id);
 
             return [
                 'equipped_item' => $item->fresh()->load('definition'),
@@ -145,6 +136,11 @@ class GameInventoryService
 
     /**
      * 卸下装备
+     *
+     * @param GameCharacter $character 角色实例
+     * @param string $slot 装备槽位
+     * @return array 卸下结果
+     * @throws \InvalidArgumentException 槽位没有装备或背包已满
      */
     public function unequipItem(GameCharacter $character, string $slot): array
     {
@@ -174,6 +170,9 @@ class GameInventoryService
 
             $character->refresh();
 
+            // 清除缓存
+            $this->clearInventoryCache($character->id);
+
             return [
                 'item' => $item,
                 'combat_stats' => $character->getCombatStats(),
@@ -184,22 +183,19 @@ class GameInventoryService
 
     /**
      * 出售物品
+     *
+     * @param GameCharacter $character 角色实例
+     * @param int $itemId 物品ID
+     * @param int $quantity 数量
+     * @return array 出售结果
+     * @throws \InvalidArgumentException 物品不存在或数量不足
      */
     public function sellItem(GameCharacter $character, int $itemId, int $quantity = 1): array
     {
-        $item = GameItem::query()
-            ->where('id', $itemId)
-            ->where('character_id', $character->id)
-            ->with('definition')
-            ->first();
-
-        if (! $item) {
-            throw new \InvalidArgumentException('物品不存在或不属于你');
-        }
+        $item = $this->findItem($character, $itemId);
 
         // 检查装备中的物品
-        $equipped = $character->equipment()->where('item_id', $item->id)->exists();
-        if ($equipped) {
+        if ($this->isItemEquipped($character, $itemId)) {
             throw new \InvalidArgumentException('请先卸下装备');
         }
 
@@ -207,7 +203,7 @@ class GameInventoryService
             throw new \InvalidArgumentException('物品数量不足');
         }
 
-        // 使用基于属性的价格计算公式
+        // 计算售价
         $sellPrice = $item->calculateSellPrice() * $quantity;
 
         return DB::transaction(function () use ($character, $item, $quantity, $sellPrice) {
@@ -223,6 +219,9 @@ class GameInventoryService
                 $item->delete();
             }
 
+            // 清除缓存
+            $this->clearInventoryCache($character->id);
+
             return [
                 'copper' => $character->copper,
                 'sell_price' => $sellPrice,
@@ -232,88 +231,75 @@ class GameInventoryService
 
     /**
      * 移动物品
+     *
+     * @param GameCharacter $character 角色实例
+     * @param int $itemId 物品ID
+     * @param bool $toStorage 是否移动到仓库
+     * @param int|null $slotIndex 指定槽位（可选）
+     * @return array 移动结果
+     * @throws \InvalidArgumentException 目标位置已满
      */
     public function moveItem(GameCharacter $character, int $itemId, bool $toStorage, ?int $slotIndex = null): array
     {
-        $item = GameItem::query()
-            ->where('id', $itemId)
-            ->where('character_id', $character->id)
-            ->first();
-
-        if (! $item) {
-            throw new \InvalidArgumentException('物品不存在或不属于你');
-        }
+        $item = $this->findItem($character, $itemId);
 
         // 检查目标空间
-        if ($toStorage) {
-            $storageCount = $character->items()->where('is_in_storage', true)->count();
-            if ($storageCount >= self::STORAGE_SIZE) {
-                throw new \InvalidArgumentException('仓库已满');
-            }
-        } else {
-            $inventoryCount = $character->items()->where('is_in_storage', false)->count();
-            if ($inventoryCount >= self::INVENTORY_SIZE) {
-                throw new \InvalidArgumentException('背包已满');
-            }
-        }
+        $this->checkStorageSpace($character, $toStorage);
 
         $item->is_in_storage = $toStorage;
         $item->slot_index = $slotIndex ?? $this->findEmptySlot($character, $toStorage);
         $item->save();
+
+        // 清除缓存
+        $this->clearInventoryCache($character->id);
 
         return ['item' => $item];
     }
 
     /**
      * 使用药品
+     *
+     * @param GameCharacter $character 角色实例
+     * @param int $itemId 物品ID
+     * @return array 使用结果
+     * @throws \InvalidArgumentException 物品不存在或不是药品
      */
     public function usePotion(GameCharacter $character, int $itemId): array
     {
-        $item = GameItem::query()
-            ->where('id', $itemId)
-            ->where('character_id', $character->id)
-            ->where('is_in_storage', false)
-            ->with('definition')
-            ->first();
-
-        if (! $item) {
-            throw new \InvalidArgumentException('物品不存在或不属于你');
-        }
+        $item = $this->findItem($character, $itemId, false);
 
         // 检查是否是药品
         if ($item->definition->type !== 'potion') {
             throw new \InvalidArgumentException('该物品不是药品');
         }
 
-        // 检查装备中的物品
-        $equipped = $character->equipment()->where('item_id', $item->id)->exists();
-        if ($equipped) {
+        // 检查是否已装备
+        if ($this->isItemEquipped($character, $itemId)) {
             throw new \InvalidArgumentException('请先卸下装备');
         }
 
         // 获取药品效果
-        $baseStats = $item->definition->base_stats ?? [];
-        $hpRestore = $baseStats['max_hp'] ?? $baseStats['restore_amount'] ?? 0;
-        $manaRestore = $baseStats['max_mana'] ?? 0;
+        $effects = $this->getPotionEffects($item);
 
         $definitionName = $item->definition->name;
-        $itemId = (int) $item->getRawOriginal('id');
+        $itemDbId = (int) $item->getRawOriginal('id');
         $quantity = (int) $item->quantity;
 
         $affected = 0;
-        DB::transaction(function () use ($character, $itemId, $quantity, $hpRestore, $manaRestore, &$affected) {
+        DB::transaction(function () use ($character, $itemDbId, $quantity, $effects, &$affected) {
             // 恢复HP/Mana
-            if ($hpRestore > 0) {
-                $character->restoreHp($hpRestore);
+            if ($effects['hp'] > 0) {
+                $character->restoreHp($effects['hp']);
             }
-            if ($manaRestore > 0) {
-                $character->restoreMana($manaRestore);
+            if ($effects['mana'] > 0) {
+                $character->restoreMana($effects['mana']);
             }
 
             // 扣减数量或删除
             $query = DB::table('game_items')
-                ->where('id', $itemId)
+                ->where('id', $itemDbId)
                 ->where('character_id', $character->id);
+
             if ($quantity > 1) {
                 $affected = $query->decrement('quantity', 1);
             } else {
@@ -328,14 +314,7 @@ class GameInventoryService
         $character->refresh();
 
         // 构建恢复消息
-        $restoreText = [];
-        if ($hpRestore > 0) {
-            $restoreText[] = "{$hpRestore} 点生命值";
-        }
-        if ($manaRestore > 0) {
-            $restoreText[] = "{$manaRestore} 点法力值";
-        }
-        $restoreMessage = implode('和', $restoreText);
+        $restoreMessage = $this->formatRestoreMessage($effects);
 
         return [
             'character' => $character,
@@ -349,7 +328,9 @@ class GameInventoryService
     /**
      * 整理背包
      *
-     * @param string $sortBy 排序方式: quality(品质), level(等级), price(价格), default(默认)
+     * @param GameCharacter $character 角色实例
+     * @param string $sortBy 排序方式: quality, price, default
+     * @return array 整理结果
      */
     public function sortInventory(GameCharacter $character, string $sortBy = 'default'): array
     {
@@ -357,20 +338,7 @@ class GameInventoryService
             ->where('is_in_storage', false)
             ->with('definition');
 
-        $items = match ($sortBy) {
-            'quality' => $query->orderByDesc('quality')
-                ->orderBy('definition_id')
-                ->orderByDesc('quantity')
-                ->get(),
-            'price' => $query->orderByDesc(\DB::raw('COALESCE(sell_price, 0) * quantity'))
-                ->orderBy('definition_id')
-                ->orderByDesc('quantity')
-                ->get(),
-            default => $query->orderBy('definition_id')
-                ->orderByDesc('quality')
-                ->orderByDesc('quantity')
-                ->get(),
-        };
+        $items = $this->sortItems($query, $sortBy);
 
         $slotIndex = 0;
         foreach ($items as $item) {
@@ -378,11 +346,68 @@ class GameInventoryService
             $item->save();
         }
 
+        // 清除缓存
+        $this->clearInventoryCache($character->id);
+
         return ['inventory' => $items->fresh()];
     }
 
     /**
+     * 批量出售指定品质的物品
+     *
+     * @param GameCharacter $character 角色实例
+     * @param string $quality 品质
+     * @return array 出售结果
+     */
+    public function sellItemsByQuality(GameCharacter $character, string $quality): array
+    {
+        $items = $this->getSellableItemsByQuality($character, $quality);
+
+        if ($items->isEmpty()) {
+            return [
+                'count' => 0,
+                'total_price' => 0,
+                'copper' => $character->copper,
+            ];
+        }
+
+        return DB::transaction(function () use ($character, $items) {
+            $totalPrice = 0;
+            $count = 0;
+
+            foreach ($items as $item) {
+                // 检查是否已装备
+                if ($this->isItemEquipped($character, $item->id)) {
+                    continue;
+                }
+
+                $price = $item->calculateSellPrice() * $item->quantity;
+                $totalPrice += $price;
+                $count++;
+
+                $item->delete();
+            }
+
+            $character->copper += $totalPrice;
+            $character->save();
+
+            // 清除缓存
+            $this->clearInventoryCache($character->id);
+
+            return [
+                'count' => $count,
+                'total_price' => $totalPrice,
+                'copper' => $character->copper,
+            ];
+        });
+    }
+
+    /**
      * 查找空槽位
+     *
+     * @param GameCharacter $character 角色实例
+     * @param bool $inStorage 是否在仓库中
+     * @return int|null 空槽位索引
      */
     public function findEmptySlot(GameCharacter $character, bool $inStorage): ?int
     {
@@ -403,15 +428,182 @@ class GameInventoryService
         return null;
     }
 
+    // ==================== 私有辅助方法 ====================
+
     /**
-     * 批量出售指定品质的物品（仅背包中的非药水、非宝石物品）
-     *
-     * @return array{count: int, total_price: int, copper: int}
+     * 查找物品
      */
-    public function sellItemsByQuality(GameCharacter $character, string $quality): array
+    private function findItem(GameCharacter $character, int $itemId, bool $checkStorage = true): GameItem
     {
-        // 获取背包中指定品质的可出售物品（排除药水和宝石）
-        $items = $character->items()
+        $query = GameItem::query()
+            ->where('id', $itemId)
+            ->where('character_id', $character->id);
+
+        if ($checkStorage) {
+            $query->where('is_in_storage', false);
+        }
+
+        $item = $query->with('definition')->first();
+
+        if (! $item) {
+            throw new \InvalidArgumentException('物品不存在或不属于你');
+        }
+
+        return $item;
+    }
+
+    /**
+     * 确定装备槽位
+     */
+    private function determineEquipmentSlot(GameCharacter $character, GameItem $item): string
+    {
+        $slot = $item->definition->getEquipmentSlot();
+
+        if (! $slot) {
+            throw new \InvalidArgumentException('该物品无法装备');
+        }
+
+        // 如果是戒指，检查两个戒指槽位
+        if ($item->definition->type === 'ring') {
+            $slot = $this->findAvailableRingSlot($character);
+        }
+
+        return $slot;
+    }
+
+    /**
+     * 查找可用的戒指槽位
+     */
+    private function findAvailableRingSlot(GameCharacter $character): string
+    {
+        $ring1 = $character->equipment()->where('slot', 'ring1')->first();
+        $ring2 = $character->equipment()->where('slot', 'ring2')->first();
+
+        if ($ring1 && ! $ring1->item_id) {
+            return 'ring1';
+        }
+        if ($ring2 && ! $ring2->item_id) {
+            return 'ring2';
+        }
+
+        return 'ring1';
+    }
+
+    /**
+     * 获取或创建装备槽位
+     */
+    private function getOrCreateEquipmentSlot(GameCharacter $character, string $slot)
+    {
+        $equipmentSlot = $character->equipment()->where('slot', $slot)->first();
+
+        if (! $equipmentSlot) {
+            $equipmentSlot = $character->equipment()->create(['slot' => $slot]);
+        }
+
+        return $equipmentSlot;
+    }
+
+    /**
+     * 如果需要则卸下装备
+     */
+    private function handleUnequipIfNeeded(GameCharacter $character, $equipmentSlot): ?GameItem
+    {
+        $oldItem = null;
+
+        if ($equipmentSlot->item_id) {
+            $oldItem = GameItem::find($equipmentSlot->item_id);
+            if ($oldItem) {
+                $oldItem->slot_index = $this->findEmptySlot($character, false);
+                $oldItem->save();
+            }
+        }
+
+        return $oldItem;
+    }
+
+    /**
+     * 检查物品是否已装备
+     */
+    private function isItemEquipped(GameCharacter $character, int $itemId): bool
+    {
+        return $character->equipment()->where('item_id', $itemId)->exists();
+    }
+
+    /**
+     * 检查存储空间
+     */
+    private function checkStorageSpace(GameCharacter $character, bool $toStorage): void
+    {
+        if ($toStorage) {
+            $storageCount = $character->items()->where('is_in_storage', true)->count();
+            if ($storageCount >= self::STORAGE_SIZE) {
+                throw new \InvalidArgumentException('仓库已满');
+            }
+        } else {
+            $inventoryCount = $character->items()->where('is_in_storage', false)->count();
+            if ($inventoryCount >= self::INVENTORY_SIZE) {
+                throw new \InvalidArgumentException('背包已满');
+            }
+        }
+    }
+
+    /**
+     * 获取药品效果
+     */
+    private function getPotionEffects(GameItem $item): array
+    {
+        $baseStats = $item->definition->base_stats ?? [];
+
+        return [
+            'hp' => $baseStats['max_hp'] ?? $baseStats['restore_amount'] ?? 0,
+            'mana' => $baseStats['max_mana'] ?? 0,
+        ];
+    }
+
+    /**
+     * 格式化恢复消息
+     */
+    private function formatRestoreMessage(array $effects): string
+    {
+        $restoreText = [];
+
+        if ($effects['hp'] > 0) {
+            $restoreText[] = "{$effects['hp']} 点生命值";
+        }
+        if ($effects['mana'] > 0) {
+            $restoreText[] = "{$effects['mana']} 点法力值";
+        }
+
+        return implode('和', $restoreText);
+    }
+
+    /**
+     * 排序物品
+     */
+    private function sortItems($query, string $sortBy)
+    {
+        return match ($sortBy) {
+            'quality' => $query->orderByDesc('quality')
+                ->orderBy('definition_id')
+                ->orderByDesc('quantity')
+                ->get(),
+            'price' => $query->orderByDesc(\DB::raw('COALESCE(sell_price, 0) * quantity'))
+                ->orderBy('definition_id')
+                ->orderByDesc('quantity')
+                ->get(),
+            default => $query->orderBy('definition_id')
+                ->orderByDesc('quality')
+                ->orderByDesc('quantity')
+                ->get(),
+        };
+    }
+
+    /**
+     * 获取可出售的物品（按品质）
+     */
+    private function getSellableItemsByQuality(GameCharacter $character, string $quality)
+    {
+        return $character->items()
             ->where('is_in_storage', false)
             ->where('quality', $quality)
             ->whereHas('definition', function ($query) {
@@ -419,41 +611,13 @@ class GameInventoryService
             })
             ->with('definition')
             ->get();
+    }
 
-        if ($items->isEmpty()) {
-            return [
-                'count' => 0,
-                'total_price' => 0,
-                'copper' => $character->copper,
-            ];
-        }
-
-        $totalPrice = 0;
-        $count = 0;
-
-        return DB::transaction(function () use ($character, $items, &$totalPrice, &$count) {
-            foreach ($items as $item) {
-                // 检查是否已装备
-                $equipped = $character->equipment()->where('item_id', $item->id)->exists();
-                if ($equipped) {
-                    continue;
-                }
-
-                $price = $item->calculateSellPrice() * $item->quantity;
-                $totalPrice += $price;
-                $count++;
-
-                $item->delete();
-            }
-
-            $character->copper += $totalPrice;
-            $character->save();
-
-            return [
-                'count' => $count,
-                'total_price' => $totalPrice,
-                'copper' => $character->copper,
-            ];
-        });
+    /**
+     * 清除背包缓存
+     */
+    private function clearInventoryCache(int $characterId): void
+    {
+        Cache::forget(self::CACHE_PREFIX . $characterId);
     }
 }
