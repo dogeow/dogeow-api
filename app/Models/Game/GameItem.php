@@ -118,7 +118,7 @@ class GameItem extends GameItemDefinition
         // 添加随机词缀属性
         foreach ($this->affixes ?? [] as $affix) {
             foreach ($affix as $key => $value) {
-                $stats[$key] = ($stats[$key] ?? 0) + $value;
+                $stats[$key] = bcadd((string)($stats[$key] ?? 0), (string)$value, 4);
             }
         }
 
@@ -126,7 +126,7 @@ class GameItem extends GameItemDefinition
         foreach ($this->gems ?? [] as $gem) {
             $gemStats = $gem->getGemStats();
             foreach ($gemStats as $key => $value) {
-                $stats[$key] = ($stats[$key] ?? 0) + $value;
+                $stats[$key] = bcadd((string)($stats[$key] ?? 0), (string)$value, 4);
             }
         }
 
