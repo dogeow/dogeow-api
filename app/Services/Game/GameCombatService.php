@@ -50,6 +50,7 @@ class GameCombatService
             'current_hp' => $character->getCurrentHp(),
             'current_mana' => $character->getCurrentMana(),
             'last_combat_at' => $character->last_combat_at,
+            'skill_cooldowns' => $character->combat_skill_cooldowns ?? [],
         ];
     }
 

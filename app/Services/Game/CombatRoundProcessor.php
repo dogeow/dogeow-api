@@ -249,7 +249,7 @@ class CombatRoundProcessor
             $monstersUpdated[$idx] = $m;
         }
 
-        // 清除所有新怪物标记（它们已经经历了第一轮不受攻击，现在可以受伤了）
+        // 清除所有新怪物标记 现在可以攻击了
         foreach ($monstersUpdated as $idx => $m) {
             if (is_array($m) && isset($m['is_new'])) {
                 unset($monstersUpdated[$idx]['is_new']);
