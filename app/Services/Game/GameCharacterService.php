@@ -427,6 +427,7 @@ class GameCharacterService
         foreach (GameCharacter::getSlots() as $slot) {
             $character->equipment()->create(['slot' => $slot]);
         }
+    }
 
     /**
      * 计算总属性点数
