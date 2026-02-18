@@ -62,7 +62,7 @@ class CombatController extends Controller
             if ($character->current_hp <= 0) {
                 $character->current_hp = $character->getMaxHp();
                 $character->current_mana = $character->getMaxMana();
-                $character->map_id = 1; // 传送到新手村
+                $character->current_map_id = 1; // 传送到新手村
                 $character->save();
 
                 return $this->success(['message' => '角色已复活并传送到新手村']);
