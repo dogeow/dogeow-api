@@ -118,12 +118,11 @@ class GameCombatService
         }
 
         // 准备怪物信息
-        [
-            $monster,
-            $monsterLevel,
-            $monsterHp,
-            $monsterMaxHp
-        ] = $this->monsterService->prepareMonsterInfo($character, $map);
+        $monsterInfo = $this->monsterService->prepareMonsterInfo($character, $map);
+        $monster = $monsterInfo[0];
+        $monsterLevel = $monsterInfo[1];
+        $monsterHp = $monsterInfo[3];
+        $monsterMaxHp = $monsterInfo[4];
 
         // 检查怪物是否存在
         if (! $monster) {
@@ -208,7 +207,8 @@ class GameCombatService
             $map,
             $firstAliveMonster['id'] ?? $monster->id,
             $roundResult,
-            $potionUsed
+            null, // potionUsedBeforeRound
+            $potionUsed // potionUsedAfterRound
         );
 
         $result = [
@@ -333,6 +333,7 @@ class GameCombatService
             'defeat' => true,
             'auto_stopped' => true,
             'monster_id' => $monster->id,
+            'monsters' => [],
             'monster' => [
                 'name' => $monster->name,
                 'type' => $monster->type,
