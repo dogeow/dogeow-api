@@ -87,8 +87,9 @@ class MapController extends Controller
         $character->current_map_id = $mapId;
         $character->is_fighting = true;
         if ($wasNotFighting) {
-            $character->current_hp = $character->getBaseHp();
-            $character->current_mana = $character->getBaseMana();
+            // 复活时恢复满血满蓝
+            $character->current_hp = $character->getMaxHp();
+            $character->current_mana = $character->getMaxMana();
         }
         $character->save();
 

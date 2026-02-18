@@ -20,6 +20,7 @@ class GameItemDefinition extends Model
         'is_active',
         'sockets',
         'gem_stats',
+        'buy_price',
     ];
 
     protected function casts(): array
@@ -69,7 +70,7 @@ class GameItemDefinition extends Model
             'gloves' => 'gloves',
             'boots' => 'boots',
             'belt' => 'belt',
-            'ring' => 'ring1', // 默认戒指1槽位
+            'ring' => 'ring', // 默认戒指槽位
             'amulet' => 'amulet',
             default => null,
         };

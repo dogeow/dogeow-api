@@ -121,6 +121,7 @@ class GameShopService
         $equipmentDefinitions = GameItemDefinition::query()
             ->where('is_active', true)
             ->where('type', '!=', 'potion')
+            ->where('type', '!=', 'amulet')
             ->where('required_level', '<=', $character->level)
             ->orderBy('type')
             ->orderBy('required_level')
@@ -266,15 +267,15 @@ class GameShopService
      */
     private function calculateBuyPrice(GameItemDefinition $item, array $stats = [], string $quality = 'common'): int
     {
+        // 优先使用固定价格
+        if ($item->buy_price > 0) {
+            return $item->buy_price;
+        }
+
         $basePrice = $item->base_stats['price'] ?? 0;
 
         if ($basePrice > 0) {
             return $basePrice;
-        }
-
-        // 轻型药水（required_level 1）固定 10 铜
-        if ($item->type === 'potion' && $item->required_level === 1) {
-            return 10;
         }
 
         $levelMultiplier = 1 + ($item->required_level * 0.5);
@@ -364,6 +365,18 @@ class GameShopService
                         throw new \InvalidArgumentException('背包已满');
                     }
 
+                    // 创建临时物品用于计算价格
+                    $tempItem = new GameItem([
+                        'character_id' => $character->id,
+                        'definition_id' => $definition->id,
+                        'quality' => 'common',
+                        'stats' => $randomStats,
+                        'affixes' => [],
+                        'is_in_storage' => false,
+                        'quantity' => $quantity,
+                    ]);
+                    $sellPrice = $tempItem->calculateSellPrice();
+
                     GameItem::create([
                         'character_id' => $character->id,
                         'definition_id' => $definition->id,
@@ -373,6 +386,7 @@ class GameShopService
                         'is_in_storage' => false,
                         'quantity' => $quantity,
                         'slot_index' => (new GameInventoryService)->findEmptySlot($character, false),
+                        'sell_price' => $sellPrice,
                     ]);
                 }
             } else {
@@ -380,6 +394,18 @@ class GameShopService
                 if ($inventoryCount + $quantity > $inventorySize) {
                     throw new \InvalidArgumentException('背包空间不足');
                 }
+
+                // 创建临时物品用于计算价格
+                $tempItem = new GameItem([
+                    'character_id' => $character->id,
+                    'definition_id' => $definition->id,
+                    'quality' => 'common',
+                    'stats' => $randomStats,
+                    'affixes' => [],
+                    'is_in_storage' => false,
+                    'quantity' => 1,
+                ]);
+                $sellPrice = $tempItem->calculateSellPrice();
 
                 $inventoryService = new GameInventoryService;
                 for ($i = 0; $i < $quantity; $i++) {
@@ -392,6 +418,7 @@ class GameShopService
                         'is_in_storage' => false,
                         'quantity' => 1,
                         'slot_index' => $inventoryService->findEmptySlot($character, false),
+                        'sell_price' => $sellPrice,
                     ]);
                 }
             }

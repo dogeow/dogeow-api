@@ -36,18 +36,18 @@ class GameInventoryService
     {
         $inventory = $character->items()
             ->where('is_in_storage', false)
-            ->with('definition')
+            ->with(['definition', 'gems.gemDefinition'])
             ->orderBy('slot_index')
             ->get();
 
         $storage = $character->items()
             ->where('is_in_storage', true)
-            ->with('definition')
+            ->with(['definition', 'gems.gemDefinition'])
             ->orderBy('slot_index')
             ->get();
 
         $equipment = $character->equipment()
-            ->with('item.definition')
+            ->with(['item.definition', 'item.gems.gemDefinition'])
             ->get()
             ->keyBy('slot');
 
@@ -476,17 +476,13 @@ class GameInventoryService
      */
     private function findAvailableRingSlot(GameCharacter $character): string
     {
-        $ring1 = $character->equipment()->where('slot', 'ring1')->first();
-        $ring2 = $character->equipment()->where('slot', 'ring2')->first();
+        $ring = $character->equipment()->where('slot', 'ring')->first();
 
-        if ($ring1 && ! $ring1->item_id) {
-            return 'ring1';
-        }
-        if ($ring2 && ! $ring2->item_id) {
-            return 'ring2';
+        if ($ring && ! $ring->item_id) {
+            return 'ring';
         }
 
-        return 'ring1';
+        return 'ring';
     }
 
     /**

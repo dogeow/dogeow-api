@@ -60,12 +60,17 @@ class CombatController extends Controller
 
             // 检测角色是否死亡，复活并传送到地图1
             if ($character->current_hp <= 0) {
+                // 清除战斗状态
+                $character->clearCombatState();
+
                 $character->current_hp = $character->getMaxHp();
                 $character->current_mana = $character->getMaxMana();
                 $character->current_map_id = 1; // 传送到新手村
+                $character->is_fighting = true;
                 $character->save();
 
-                return $this->success(['message' => '角色已复活并传送到新手村']);
+                // 复活成功，但不自动启动战斗，让用户手动开始
+                return $this->success(['message' => '角色已满血复活并传送到新手村，请手动开始战斗']);
             }
 
             $skillIds = $request->input('skill_ids') ?? [];

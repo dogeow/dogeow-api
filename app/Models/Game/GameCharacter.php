@@ -536,11 +536,16 @@ class GameCharacter extends Model
     public function getEquippedItems(): array
     {
         $equipped = [];
-        $equipmentSlots = $this->equipment()->with('item.definition')->get();
+        $equipmentSlots = $this->equipment()->with('item.definition', 'item.gems')->get();
 
         foreach ($equipmentSlots as $slot) {
             if ($slot->item) {
-                $equipped[$slot->slot] = $slot->item;
+                $item = $slot->item;
+                // 计算卖出价格（如果未设置）
+                if (!isset($item->sell_price) || $item->sell_price === 0) {
+                    $item->sell_price = $item->calculateSellPrice();
+                }
+                $equipped[$slot->slot] = $item;
             }
         }
 
