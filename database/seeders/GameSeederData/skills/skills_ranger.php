@@ -1,0 +1,101 @@
+<?php
+
+// 游侠职业技能，由 php artisan game:export-seeder-definitions 从数据库导出，供 GameSeeder 使用
+return [
+    [
+        'name' => '穿刺射击',
+        'type' => 'active',
+        'class_restriction' => 'ranger',
+        'mana_cost' => 12,
+        'cooldown' => 2,
+        'skill_points_cost' => 1,
+        'effects' => [
+            'crit_bonus' => 0.2,
+        ],
+        'description' => '精准射击，高暴击',
+    ],
+    [
+        'name' => '多重射击',
+        'type' => 'active',
+        'class_restriction' => 'ranger',
+        'mana_cost' => 18,
+        'cooldown' => 4,
+        'skill_points_cost' => 2,
+        'effects' => [],
+        'target_type' => 'all',
+        'description' => '同时射出多支箭',
+    ],
+    [
+        'name' => '鹰眼',
+        'type' => 'passive',
+        'class_restriction' => 'ranger',
+        'mana_cost' => 0,
+        'cooldown' => 0,
+        'skill_points_cost' => 1,
+        'effects' => [
+            'crit_rate_bonus' => 0.03,
+        ],
+        'description' => '被动提升暴击率',
+    ],
+    [
+        'name' => '毒箭',
+        'type' => 'active',
+        'class_restriction' => 'ranger',
+        'mana_cost' => 15,
+        'cooldown' => 5,
+        'skill_points_cost' => 2,
+        'effects' => [
+            'dot' => 15,
+            'dot_duration' => 5,
+        ],
+        'description' => '射出毒箭，持续造成伤害',
+    ],
+    [
+        'name' => '闪避',
+        'type' => 'active',
+        'class_restriction' => 'ranger',
+        'mana_cost' => 20,
+        'cooldown' => 12,
+        'skill_points_cost' => 2,
+        'effects' => [
+            'duration' => 6,
+            'dodge_bonus' => 0.3,
+        ],
+        'description' => '提升闪避率',
+    ],
+    [
+        'name' => '致命瞄准',
+        'type' => 'passive',
+        'class_restriction' => 'ranger',
+        'mana_cost' => 0,
+        'cooldown' => 0,
+        'skill_points_cost' => 2,
+        'effects' => [
+            'crit_damage_bonus' => 0.15,
+        ],
+        'description' => '被动提升暴击伤害',
+    ],
+    [
+        'name' => '箭雨',
+        'type' => 'active',
+        'class_restriction' => 'ranger',
+        'mana_cost' => 45,
+        'cooldown' => 10,
+        'skill_points_cost' => 4,
+        'effects' => [],
+        'target_type' => 'all',
+        'description' => '从天而降的箭雨',
+    ],
+    [
+        'name' => '暗影步',
+        'type' => 'active',
+        'class_restriction' => 'ranger',
+        'mana_cost' => 25,
+        'cooldown' => 8,
+        'skill_points_cost' => 2,
+        'effects' => [
+            'backstab_bonus' => 1.5,
+        ],
+        'description' => '瞬间移动到敌人身后',
+    ],
+];

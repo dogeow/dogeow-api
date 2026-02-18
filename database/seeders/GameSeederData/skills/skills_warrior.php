@@ -1,0 +1,90 @@
+<?php
+
+// 战士职业技能，由 php artisan game:export-seeder-definitions 从数据库导出，供 GameSeeder 使用
+return [
+    [
+        'name' => '重击',
+        'type' => 'active',
+        'class_restriction' => 'warrior',
+        'mana_cost' => 10,
+        'cooldown' => 3,
+        'skill_points_cost' => 1,
+        'effects' => [],
+        'description' => '强力一击，造成额外伤害',
+    ],
+    [
+        'name' => '战吼',
+        'type' => 'active',
+        'class_restriction' => 'warrior',
+        'mana_cost' => 15,
+        'cooldown' => 10,
+        'skill_points_cost' => 2,
+        'effects' => [
+            'duration' => 5,
+            'buff_attack' => 10,
+        ],
+        'description' => '发出怒吼，提升攻击力',
+    ],
+    [
+        'name' => '铁壁',
+        'type' => 'passive',
+        'class_restriction' => 'warrior',
+        'mana_cost' => 0,
+        'cooldown' => 0,
+        'skill_points_cost' => 1,
+        'effects' => [
+            'defense_bonus' => 5,
+        ],
+        'description' => '被动提升防御力',
+    ],
+    [
+        'name' => '旋风斩',
+        'type' => 'active',
+        'class_restriction' => 'warrior',
+        'mana_cost' => 25,
+        'cooldown' => 6,
+        'skill_points_cost' => 3,
+        'effects' => [],
+        'target_type' => 'all',
+        'description' => '旋转攻击周围所有敌人',
+    ],
+    [
+        'name' => '狂暴',
+        'type' => 'active',
+        'class_restriction' => 'warrior',
+        'mana_cost' => 40,
+        'cooldown' => 30,
+        'skill_points_cost' => 4,
+        'effects' => [
+            'duration' => 10,
+            'buff_attack' => 50,
+        ],
+        'description' => '进入狂暴状态，大幅提升攻击力',
+    ],
+    [
+        'name' => '钢铁之躯',
+        'type' => 'passive',
+        'class_restriction' => 'warrior',
+        'mana_cost' => 0,
+        'cooldown' => 0,
+        'skill_points_cost' => 2,
+        'effects' => [
+            'hp_bonus' => 100,
+            'defense_bonus' => 10,
+        ],
+        'description' => '被动提升生命值和防御力',
+    ],
+    [
+        'name' => '斩杀',
+        'type' => 'active',
+        'class_restriction' => 'warrior',
+        'mana_cost' => 30,
+        'cooldown' => 8,
+        'skill_points_cost' => 3,
+        'effects' => [
+            'execute_threshold' => 0.3,
+            'execute_multiplier' => 2,
+        ],
+        'description' => '对低血量敌人造成巨额伤害',
+    ],
+];

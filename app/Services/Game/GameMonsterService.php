@@ -82,10 +82,7 @@ class GameMonsterService
         // 随机生成 1-5 个怪物
         $monsterCount = rand(1, 5);
         $baseMonster = $monsters[array_rand($monsters)];
-        $baseLevel = rand(
-            max($map->min_level, $baseMonster->level - 3),
-            min($map->max_level, $baseMonster->level + 3)
-        );
+        $baseLevel = max(1, $baseMonster->level + rand(-3, 3));
 
         $monsterDataList = [];
         for ($i = 0; $i < $monsterCount; $i++) {
@@ -207,10 +204,7 @@ class GameMonsterService
         $slotsToFill = array_slice($emptySlots, 0, $addCount);
 
         $baseMonster = $monsters[array_rand($monsters)];
-        $baseLevel = rand(
-            max($map->min_level, $baseMonster->level - 3),
-            min($map->max_level, $baseMonster->level + 3)
-        );
+        $baseLevel = max(1, $baseMonster->level + rand(-3, 3));
 
         foreach ($slotsToFill as $slot) {
             $level = $baseLevel + rand(-1, 1);

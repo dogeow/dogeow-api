@@ -21,7 +21,7 @@ class MapController extends Controller
         $maps = GameMapDefinition::query()
             ->where('is_active', true)
             ->orderBy('act')
-            ->orderBy('min_level')
+            ->orderBy('id')
             ->get();
 
         $mapsWithMonsters = $maps->map(function (GameMapDefinition $map) {

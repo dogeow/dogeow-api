@@ -1,43 +1,32 @@
 <?php
 
-// 由 php artisan game:export-seeder-definitions 从数据库导出，供 GameSeeder 使用
 return [
     [
         'name' => '小野猪',
         'type' => 'normal',
         'level' => 1,
-        'hp_base' => 50,
+        'hp_base' => 30,
+        'hp_per_level' => 8,
+        'attack_base' => 3,
+        'attack_per_level' => 2,
+        'defense_base' => 1,
+        'defense_per_level' => 1,
+        'experience_base' => 10,
+        'experience_per_level' => 5,
+        ],
+    [
+        'name' => '野狼',
+        'type' => 'normal',
+        'level' => 2,
+        'hp_base' => 40,
         'hp_per_level' => 10,
         'attack_base' => 5,
         'attack_per_level' => 2,
         'defense_base' => 2,
         'defense_per_level' => 1,
-        'experience_base' => 10,
-        'experience_per_level' => 5,
-        'drop_table' => [
-            'copper_base' => 5,
-            'copper_range' => 5,
-            'item_chance' => 0.05,
-        ],
-    ],
-    [
-        'name' => '野狼',
-        'type' => 'normal',
-        'level' => 2,
-        'hp_base' => 60,
-        'hp_per_level' => 12,
-        'attack_base' => 8,
-        'attack_per_level' => 2,
-        'defense_base' => 3,
-        'defense_per_level' => 1,
         'experience_base' => 15,
         'experience_per_level' => 6,
-        'drop_table' => [
-            'copper_base' => 8,
-            'copper_range' => 7,
-            'item_chance' => 0.08,
         ],
-    ],
     [
         'name' => '森林哥布林',
         'type' => 'normal',
@@ -50,12 +39,7 @@ return [
         'defense_per_level' => 1,
         'experience_base' => 20,
         'experience_per_level' => 8,
-        'drop_table' => [
-            'copper_base' => 10,
-            'copper_range' => 10,
-            'item_chance' => 0.1,
         ],
-    ],
     [
         'name' => '巨狼',
         'type' => 'elite',
@@ -68,12 +52,7 @@ return [
         'defense_per_level' => 2,
         'experience_base' => 50,
         'experience_per_level' => 15,
-        'drop_table' => [
-            'copper_base' => 30,
-            'copper_range' => 20,
-            'item_chance' => 0.25,
         ],
-    ],
     [
         'name' => '树人长老',
         'type' => 'boss',
@@ -86,12 +65,7 @@ return [
         'defense_per_level' => 3,
         'experience_base' => 150,
         'experience_per_level' => 40,
-        'drop_table' => [
-            'copper_base' => 100,
-            'copper_range' => 50,
-            'item_chance' => 0.8,
         ],
-    ],
     [
         'name' => '野猪王',
         'type' => 'elite',
@@ -104,12 +78,7 @@ return [
         'defense_per_level' => 2,
         'experience_base' => 70,
         'experience_per_level' => 20,
-        'drop_table' => [
-            'copper_base' => 40,
-            'copper_range' => 25,
-            'item_chance' => 0.3,
         ],
-    ],
     [
         'name' => '蝙蝠',
         'type' => 'normal',
@@ -122,12 +91,7 @@ return [
         'defense_per_level' => 1,
         'experience_base' => 25,
         'experience_per_level' => 8,
-        'drop_table' => [
-            'copper_base' => 12,
-            'copper_range' => 8,
-            'item_chance' => 0.08,
         ],
-    ],
     [
         'name' => '洞穴蜘蛛',
         'type' => 'normal',
@@ -140,12 +104,7 @@ return [
         'defense_per_level' => 1,
         'experience_base' => 30,
         'experience_per_level' => 10,
-        'drop_table' => [
-            'copper_base' => 15,
-            'copper_range' => 10,
-            'item_chance' => 0.1,
         ],
-    ],
     [
         'name' => '骷髅兵',
         'type' => 'normal',
@@ -158,12 +117,7 @@ return [
         'defense_per_level' => 2,
         'experience_base' => 40,
         'experience_per_level' => 12,
-        'drop_table' => [
-            'copper_base' => 20,
-            'copper_range' => 15,
-            'item_chance' => 0.12,
         ],
-    ],
     [
         'name' => '骷髅法师',
         'type' => 'elite',
@@ -176,12 +130,7 @@ return [
         'defense_per_level' => 3,
         'experience_base' => 80,
         'experience_per_level' => 20,
-        'drop_table' => [
-            'copper_base' => 50,
-            'copper_range' => 30,
-            'item_chance' => 0.3,
         ],
-    ],
     [
         'name' => '骸骨之王',
         'type' => 'boss',
@@ -194,12 +143,7 @@ return [
         'defense_per_level' => 4,
         'experience_base' => 250,
         'experience_per_level' => 60,
-        'drop_table' => [
-            'copper_base' => 200,
-            'copper_range' => 100,
-            'item_chance' => 1,
         ],
-    ],
     [
         'name' => '巨型蜘蛛',
         'type' => 'elite',
@@ -212,12 +156,7 @@ return [
         'defense_per_level' => 2,
         'experience_base' => 65,
         'experience_per_level' => 18,
-        'drop_table' => [
-            'copper_base' => 45,
-            'copper_range' => 28,
-            'item_chance' => 0.28,
         ],
-    ],
     [
         'name' => '小恶魔',
         'type' => 'normal',
@@ -230,12 +169,7 @@ return [
         'defense_per_level' => 2,
         'experience_base' => 60,
         'experience_per_level' => 15,
-        'drop_table' => [
-            'copper_base' => 30,
-            'copper_range' => 20,
-            'item_chance' => 0.15,
         ],
-    ],
     [
         'name' => '火焰元素',
         'type' => 'normal',
@@ -248,12 +182,7 @@ return [
         'defense_per_level' => 3,
         'experience_base' => 80,
         'experience_per_level' => 20,
-        'drop_table' => [
-            'copper_base' => 40,
-            'copper_range' => 25,
-            'item_chance' => 0.18,
         ],
-    ],
     [
         'name' => '地狱骑士',
         'type' => 'elite',
@@ -266,12 +195,7 @@ return [
         'defense_per_level' => 4,
         'experience_base' => 150,
         'experience_per_level' => 35,
-        'drop_table' => [
-            'copper_base' => 80,
-            'copper_range' => 50,
-            'item_chance' => 0.4,
         ],
-    ],
     [
         'name' => '地狱魔王',
         'type' => 'boss',
@@ -284,12 +208,7 @@ return [
         'defense_per_level' => 6,
         'experience_base' => 500,
         'experience_per_level' => 100,
-        'drop_table' => [
-            'copper_base' => 500,
-            'copper_range' => 200,
-            'item_chance' => 1,
         ],
-    ],
     [
         'name' => '炎魔',
         'type' => 'elite',
@@ -302,12 +221,7 @@ return [
         'defense_per_level' => 5,
         'experience_base' => 180,
         'experience_per_level' => 40,
-        'drop_table' => [
-            'copper_base' => 100,
-            'copper_range' => 60,
-            'item_chance' => 0.45,
         ],
-    ],
     [
         'name' => '恶魔巫师',
         'type' => 'elite',
@@ -320,12 +234,7 @@ return [
         'defense_per_level' => 4,
         'experience_base' => 160,
         'experience_per_level' => 38,
-        'drop_table' => [
-            'copper_base' => 90,
-            'copper_range' => 55,
-            'item_chance' => 0.42,
         ],
-    ],
     [
         'name' => '深渊魔虫',
         'type' => 'normal',
@@ -338,12 +247,7 @@ return [
         'defense_per_level' => 5,
         'experience_base' => 150,
         'experience_per_level' => 35,
-        'drop_table' => [
-            'copper_base' => 80,
-            'copper_range' => 50,
-            'item_chance' => 0.22,
         ],
-    ],
     [
         'name' => '暗影幽灵',
         'type' => 'normal',
@@ -356,12 +260,7 @@ return [
         'defense_per_level' => 4,
         'experience_base' => 180,
         'experience_per_level' => 40,
-        'drop_table' => [
-            'copper_base' => 100,
-            'copper_range' => 60,
-            'item_chance' => 0.25,
         ],
-    ],
     [
         'name' => '虚空行者',
         'type' => 'elite',
@@ -374,12 +273,7 @@ return [
         'defense_per_level' => 7,
         'experience_base' => 300,
         'experience_per_level' => 70,
-        'drop_table' => [
-            'copper_base' => 200,
-            'copper_range' => 120,
-            'item_chance' => 0.5,
         ],
-    ],
     [
         'name' => '深渊领主',
         'type' => 'boss',
@@ -392,12 +286,7 @@ return [
         'defense_per_level' => 12,
         'experience_base' => 1000,
         'experience_per_level' => 200,
-        'drop_table' => [
-            'copper_base' => 1500,
-            'copper_range' => 500,
-            'item_chance' => 1,
         ],
-    ],
     [
         'name' => '天使卫士',
         'type' => 'normal',
@@ -410,12 +299,7 @@ return [
         'defense_per_level' => 9,
         'experience_base' => 300,
         'experience_per_level' => 70,
-        'drop_table' => [
-            'copper_base' => 180,
-            'copper_range' => 100,
-            'item_chance' => 0.28,
         ],
-    ],
     [
         'name' => '炽天使',
         'type' => 'normal',
@@ -428,12 +312,7 @@ return [
         'defense_per_level' => 10,
         'experience_base' => 350,
         'experience_per_level' => 80,
-        'drop_table' => [
-            'copper_base' => 220,
-            'copper_range' => 130,
-            'item_chance' => 0.32,
         ],
-    ],
     [
         'name' => '天使长',
         'type' => 'elite',
@@ -446,12 +325,7 @@ return [
         'defense_per_level' => 14,
         'experience_base' => 600,
         'experience_per_level' => 140,
-        'drop_table' => [
-            'copper_base' => 400,
-            'copper_range' => 250,
-            'item_chance' => 0.55,
         ],
-    ],
     [
         'name' => '堕落天使',
         'type' => 'elite',
@@ -464,12 +338,7 @@ return [
         'defense_per_level' => 16,
         'experience_base' => 750,
         'experience_per_level' => 170,
-        'drop_table' => [
-            'copper_base' => 500,
-            'copper_range' => 300,
-            'item_chance' => 0.6,
         ],
-    ],
     [
         'name' => '大天使长',
         'type' => 'boss',
@@ -482,12 +351,7 @@ return [
         'defense_per_level' => 20,
         'experience_base' => 2000,
         'experience_per_level' => 400,
-        'drop_table' => [
-            'copper_base' => 3000,
-            'copper_range' => 1000,
-            'item_chance' => 1,
         ],
-    ],
     [
         'name' => '圣殿骑士',
         'type' => 'elite',
@@ -500,12 +364,7 @@ return [
         'defense_per_level' => 18,
         'experience_base' => 680,
         'experience_per_level' => 155,
-        'drop_table' => [
-            'copper_base' => 450,
-            'copper_range' => 280,
-            'item_chance' => 0.58,
         ],
-    ],
     [
         'name' => '神仆',
         'type' => 'normal',
@@ -518,12 +377,7 @@ return [
         'defense_per_level' => 16,
         'experience_base' => 500,
         'experience_per_level' => 110,
-        'drop_table' => [
-            'copper_base' => 350,
-            'copper_range' => 200,
-            'item_chance' => 0.35,
         ],
-    ],
     [
         'name' => '神使',
         'type' => 'normal',
@@ -536,12 +390,7 @@ return [
         'defense_per_level' => 18,
         'experience_base' => 600,
         'experience_per_level' => 130,
-        'drop_table' => [
-            'copper_base' => 450,
-            'copper_range' => 250,
-            'item_chance' => 0.4,
         ],
-    ],
     [
         'name' => '神将',
         'type' => 'elite',
@@ -554,12 +403,7 @@ return [
         'defense_per_level' => 24,
         'experience_base' => 1000,
         'experience_per_level' => 220,
-        'drop_table' => [
-            'copper_base' => 700,
-            'copper_range' => 400,
-            'item_chance' => 0.65,
         ],
-    ],
     [
         'name' => '神官',
         'type' => 'elite',
@@ -572,12 +416,7 @@ return [
         'defense_per_level' => 20,
         'experience_base' => 1100,
         'experience_per_level' => 240,
-        'drop_table' => [
-            'copper_base' => 750,
-            'copper_range' => 450,
-            'item_chance' => 0.68,
         ],
-    ],
     [
         'name' => '神王化身',
         'type' => 'boss',
@@ -590,12 +429,7 @@ return [
         'defense_per_level' => 30,
         'experience_base' => 3500,
         'experience_per_level' => 700,
-        'drop_table' => [
-            'copper_base' => 5000,
-            'copper_range' => 2000,
-            'item_chance' => 1,
         ],
-    ],
     [
         'name' => '审判天使',
         'type' => 'elite',
@@ -608,12 +442,7 @@ return [
         'defense_per_level' => 28,
         'experience_base' => 1300,
         'experience_per_level' => 280,
-        'drop_table' => [
-            'copper_base' => 900,
-            'copper_range' => 550,
-            'item_chance' => 0.72,
         ],
-    ],
     [
         'name' => '永恒守护者',
         'type' => 'normal',
@@ -626,12 +455,7 @@ return [
         'defense_per_level' => 26,
         'experience_base' => 800,
         'experience_per_level' => 170,
-        'drop_table' => [
-            'copper_base' => 600,
-            'copper_range' => 350,
-            'item_chance' => 0.45,
         ],
-    ],
     [
         'name' => '时空裂隙',
         'type' => 'normal',
@@ -644,12 +468,7 @@ return [
         'defense_per_level' => 30,
         'experience_base' => 1000,
         'experience_per_level' => 210,
-        'drop_table' => [
-            'copper_base' => 800,
-            'copper_range' => 450,
-            'item_chance' => 0.5,
         ],
-    ],
     [
         'name' => '永恒战士',
         'type' => 'elite',
@@ -662,12 +481,7 @@ return [
         'defense_per_level' => 40,
         'experience_base' => 1800,
         'experience_per_level' => 380,
-        'drop_table' => [
-            'copper_base' => 1300,
-            'copper_range' => 800,
-            'item_chance' => 0.75,
         ],
-    ],
     [
         'name' => '永恒法师',
         'type' => 'elite',
@@ -680,12 +494,7 @@ return [
         'defense_per_level' => 36,
         'experience_base' => 2000,
         'experience_per_level' => 420,
-        'drop_table' => [
-            'copper_base' => 1500,
-            'copper_range' => 900,
-            'item_chance' => 0.78,
         ],
-    ],
     [
         'name' => '永恒之王',
         'type' => 'boss',
@@ -698,12 +507,7 @@ return [
         'defense_per_level' => 50,
         'experience_base' => 6000,
         'experience_per_level' => 1200,
-        'drop_table' => [
-            'copper_base' => 8000,
-            'copper_range' => 3000,
-            'item_chance' => 1,
         ],
-    ],
     [
         'name' => '永恒骑士',
         'type' => 'elite',
@@ -716,12 +520,7 @@ return [
         'defense_per_level' => 46,
         'experience_base' => 2400,
         'experience_per_level' => 500,
-        'drop_table' => [
-            'copper_base' => 1800,
-            'copper_range' => 1100,
-            'item_chance' => 0.82,
         ],
-    ],
     [
         'name' => '混沌精灵',
         'type' => 'normal',
@@ -734,12 +533,7 @@ return [
         'defense_per_level' => 40,
         'experience_base' => 1400,
         'experience_per_level' => 290,
-        'drop_table' => [
-            'copper_base' => 1100,
-            'copper_range' => 650,
-            'item_chance' => 0.55,
         ],
-    ],
     [
         'name' => '虚空领主',
         'type' => 'normal',
@@ -752,12 +546,7 @@ return [
         'defense_per_level' => 44,
         'experience_base' => 1800,
         'experience_per_level' => 370,
-        'drop_table' => [
-            'copper_base' => 1500,
-            'copper_range' => 850,
-            'item_chance' => 0.6,
         ],
-    ],
     [
         'name' => '混沌战士',
         'type' => 'elite',
@@ -770,12 +559,7 @@ return [
         'defense_per_level' => 56,
         'experience_base' => 3200,
         'experience_per_level' => 650,
-        'drop_table' => [
-            'copper_base' => 2500,
-            'copper_range' => 1500,
-            'item_chance' => 0.85,
         ],
-    ],
     [
         'name' => '混沌魔神',
         'type' => 'elite',
@@ -788,12 +572,7 @@ return [
         'defense_per_level' => 64,
         'experience_base' => 4000,
         'experience_per_level' => 800,
-        'drop_table' => [
-            'copper_base' => 3200,
-            'copper_range' => 2000,
-            'item_chance' => 0.88,
         ],
-    ],
     [
         'name' => '混沌之源',
         'type' => 'boss',
@@ -806,12 +585,7 @@ return [
         'defense_per_level' => 80,
         'experience_base' => 10000,
         'experience_per_level' => 2000,
-        'drop_table' => [
-            'copper_base' => 12000,
-            'copper_range' => 5000,
-            'item_chance' => 1,
         ],
-    ],
     [
         'name' => '混沌之王',
         'type' => 'boss',
@@ -824,12 +598,7 @@ return [
         'defense_per_level' => 100,
         'experience_base' => 20000,
         'experience_per_level' => 4000,
-        'drop_table' => [
-            'copper_base' => 20000,
-            'copper_range' => 10000,
-            'item_chance' => 1,
         ],
-    ],
     [
         'name' => '测试野猪',
         'type' => 'normal',
@@ -842,8 +611,7 @@ return [
         'defense_per_level' => 1,
         'experience_base' => 10,
         'experience_per_level' => 5,
-        'drop_table' => '{"copper_base":5,"copper_range":5,"item_chance":0.05}',
-    ],
+        ],
     [
         'name' => '小野猪',
         'type' => 'normal',
@@ -856,8 +624,7 @@ return [
         'defense_per_level' => 1,
         'experience_base' => 10,
         'experience_per_level' => 5,
-        'drop_table' => '{"copper_base":5,"copper_range":5,"item_chance":0.05}',
-    ],
+        ],
     [
         'name' => '野狼',
         'type' => 'normal',
@@ -870,8 +637,7 @@ return [
         'defense_per_level' => 1,
         'experience_base' => 15,
         'experience_per_level' => 6,
-        'drop_table' => '{"copper_base":8,"copper_range":7,"item_chance":0.08}',
-    ],
+        ],
     [
         'name' => '森林哥布林',
         'type' => 'normal',
@@ -884,8 +650,7 @@ return [
         'defense_per_level' => 1,
         'experience_base' => 20,
         'experience_per_level' => 8,
-        'drop_table' => '{"copper_base":10,"copper_range":10,"item_chance":0.1}',
-    ],
+        ],
     [
         'name' => '小野猪',
         'type' => 'normal',
@@ -898,8 +663,7 @@ return [
         'defense_per_level' => 1,
         'experience_base' => 10,
         'experience_per_level' => 5,
-        'drop_table' => '{"copper_base":5,"copper_range":5,"item_chance":0.05}',
-    ],
+        ],
     [
         'name' => '野狼',
         'type' => 'normal',
@@ -912,8 +676,7 @@ return [
         'defense_per_level' => 1,
         'experience_base' => 15,
         'experience_per_level' => 6,
-        'drop_table' => '{"copper_base":8,"copper_range":7,"item_chance":0.08}',
-    ],
+        ],
     [
         'name' => '森林哥布林',
         'type' => 'normal',
@@ -926,8 +689,7 @@ return [
         'defense_per_level' => 1,
         'experience_base' => 20,
         'experience_per_level' => 8,
-        'drop_table' => '{"copper_base":10,"copper_range":10,"item_chance":0.1}',
-    ],
+        ],
     [
         'name' => '巨狼',
         'type' => 'elite',
@@ -940,8 +702,7 @@ return [
         'defense_per_level' => 2,
         'experience_base' => 50,
         'experience_per_level' => 15,
-        'drop_table' => '{"copper_base":30,"copper_range":20,"item_chance":0.25}',
-    ],
+        ],
     [
         'name' => '树人长老',
         'type' => 'boss',
@@ -954,8 +715,7 @@ return [
         'defense_per_level' => 3,
         'experience_base' => 150,
         'experience_per_level' => 40,
-        'drop_table' => '{"copper_base":100,"copper_range":50,"item_chance":0.8}',
-    ],
+        ],
     [
         'name' => '野猪王',
         'type' => 'elite',
@@ -968,44 +728,33 @@ return [
         'defense_per_level' => 2,
         'experience_base' => 70,
         'experience_per_level' => 20,
-        'drop_table' => '{"copper_base":40,"copper_range":25,"item_chance":0.3}',
-    ],
+        ],
     [
         'name' => '小野猪',
         'type' => 'normal',
         'level' => 1,
-        'hp_base' => 50,
+        'hp_base' => 30,
+        'hp_per_level' => 8,
+        'attack_base' => 3,
+        'attack_per_level' => 2,
+        'defense_base' => 1,
+        'defense_per_level' => 1,
+        'experience_base' => 10,
+        'experience_per_level' => 5,
+        ],
+    [
+        'name' => '野狼',
+        'type' => 'normal',
+        'level' => 2,
+        'hp_base' => 40,
         'hp_per_level' => 10,
         'attack_base' => 5,
         'attack_per_level' => 2,
         'defense_base' => 2,
         'defense_per_level' => 1,
-        'experience_base' => 10,
-        'experience_per_level' => 5,
-        'drop_table' => [
-            'copper_base' => 5,
-            'copper_range' => 5,
-            'item_chance' => 0.05,
-        ],
-    ],
-    [
-        'name' => '野狼',
-        'type' => 'normal',
-        'level' => 2,
-        'hp_base' => 60,
-        'hp_per_level' => 12,
-        'attack_base' => 8,
-        'attack_per_level' => 2,
-        'defense_base' => 3,
-        'defense_per_level' => 1,
         'experience_base' => 15,
         'experience_per_level' => 6,
-        'drop_table' => [
-            'copper_base' => 8,
-            'copper_range' => 7,
-            'item_chance' => 0.08,
         ],
-    ],
     [
         'name' => '森林哥布林',
         'type' => 'normal',
@@ -1018,12 +767,7 @@ return [
         'defense_per_level' => 1,
         'experience_base' => 20,
         'experience_per_level' => 8,
-        'drop_table' => [
-            'copper_base' => 10,
-            'copper_range' => 10,
-            'item_chance' => 0.1,
         ],
-    ],
     [
         'name' => '巨狼',
         'type' => 'elite',
@@ -1036,12 +780,7 @@ return [
         'defense_per_level' => 2,
         'experience_base' => 50,
         'experience_per_level' => 15,
-        'drop_table' => [
-            'copper_base' => 30,
-            'copper_range' => 20,
-            'item_chance' => 0.25,
         ],
-    ],
     [
         'name' => '树人长老',
         'type' => 'boss',
@@ -1054,12 +793,7 @@ return [
         'defense_per_level' => 3,
         'experience_base' => 150,
         'experience_per_level' => 40,
-        'drop_table' => [
-            'copper_base' => 100,
-            'copper_range' => 50,
-            'item_chance' => 0.8,
         ],
-    ],
     [
         'name' => '野猪王',
         'type' => 'elite',
@@ -1072,12 +806,7 @@ return [
         'defense_per_level' => 2,
         'experience_base' => 70,
         'experience_per_level' => 20,
-        'drop_table' => [
-            'copper_base' => 40,
-            'copper_range' => 25,
-            'item_chance' => 0.3,
         ],
-    ],
     [
         'name' => '蝙蝠',
         'type' => 'normal',
@@ -1090,12 +819,7 @@ return [
         'defense_per_level' => 1,
         'experience_base' => 25,
         'experience_per_level' => 8,
-        'drop_table' => [
-            'copper_base' => 12,
-            'copper_range' => 8,
-            'item_chance' => 0.08,
         ],
-    ],
     [
         'name' => '洞穴蜘蛛',
         'type' => 'normal',
@@ -1108,12 +832,7 @@ return [
         'defense_per_level' => 1,
         'experience_base' => 30,
         'experience_per_level' => 10,
-        'drop_table' => [
-            'copper_base' => 15,
-            'copper_range' => 10,
-            'item_chance' => 0.1,
         ],
-    ],
     [
         'name' => '骷髅兵',
         'type' => 'normal',
@@ -1126,12 +845,7 @@ return [
         'defense_per_level' => 2,
         'experience_base' => 40,
         'experience_per_level' => 12,
-        'drop_table' => [
-            'copper_base' => 20,
-            'copper_range' => 15,
-            'item_chance' => 0.12,
         ],
-    ],
     [
         'name' => '骷髅法师',
         'type' => 'elite',
@@ -1144,12 +858,7 @@ return [
         'defense_per_level' => 3,
         'experience_base' => 80,
         'experience_per_level' => 20,
-        'drop_table' => [
-            'copper_base' => 50,
-            'copper_range' => 30,
-            'item_chance' => 0.3,
         ],
-    ],
     [
         'name' => '骸骨之王',
         'type' => 'boss',
@@ -1162,12 +871,7 @@ return [
         'defense_per_level' => 4,
         'experience_base' => 250,
         'experience_per_level' => 60,
-        'drop_table' => [
-            'copper_base' => 200,
-            'copper_range' => 100,
-            'item_chance' => 1,
         ],
-    ],
     [
         'name' => '巨型蜘蛛',
         'type' => 'elite',
@@ -1180,12 +884,7 @@ return [
         'defense_per_level' => 2,
         'experience_base' => 65,
         'experience_per_level' => 18,
-        'drop_table' => [
-            'copper_base' => 45,
-            'copper_range' => 28,
-            'item_chance' => 0.28,
         ],
-    ],
     [
         'name' => '小恶魔',
         'type' => 'normal',
@@ -1198,12 +897,7 @@ return [
         'defense_per_level' => 2,
         'experience_base' => 60,
         'experience_per_level' => 15,
-        'drop_table' => [
-            'copper_base' => 30,
-            'copper_range' => 20,
-            'item_chance' => 0.15,
         ],
-    ],
     [
         'name' => '火焰元素',
         'type' => 'normal',
@@ -1216,12 +910,7 @@ return [
         'defense_per_level' => 3,
         'experience_base' => 80,
         'experience_per_level' => 20,
-        'drop_table' => [
-            'copper_base' => 40,
-            'copper_range' => 25,
-            'item_chance' => 0.18,
         ],
-    ],
     [
         'name' => '地狱骑士',
         'type' => 'elite',
@@ -1234,12 +923,7 @@ return [
         'defense_per_level' => 4,
         'experience_base' => 150,
         'experience_per_level' => 35,
-        'drop_table' => [
-            'copper_base' => 80,
-            'copper_range' => 50,
-            'item_chance' => 0.4,
         ],
-    ],
     [
         'name' => '地狱魔王',
         'type' => 'boss',
@@ -1252,12 +936,7 @@ return [
         'defense_per_level' => 6,
         'experience_base' => 500,
         'experience_per_level' => 100,
-        'drop_table' => [
-            'copper_base' => 500,
-            'copper_range' => 200,
-            'item_chance' => 1,
         ],
-    ],
     [
         'name' => '炎魔',
         'type' => 'elite',
@@ -1270,12 +949,7 @@ return [
         'defense_per_level' => 5,
         'experience_base' => 180,
         'experience_per_level' => 40,
-        'drop_table' => [
-            'copper_base' => 100,
-            'copper_range' => 60,
-            'item_chance' => 0.45,
         ],
-    ],
     [
         'name' => '恶魔巫师',
         'type' => 'elite',
@@ -1288,12 +962,7 @@ return [
         'defense_per_level' => 4,
         'experience_base' => 160,
         'experience_per_level' => 38,
-        'drop_table' => [
-            'copper_base' => 90,
-            'copper_range' => 55,
-            'item_chance' => 0.42,
         ],
-    ],
     [
         'name' => '深渊魔虫',
         'type' => 'normal',
@@ -1306,12 +975,7 @@ return [
         'defense_per_level' => 5,
         'experience_base' => 150,
         'experience_per_level' => 35,
-        'drop_table' => [
-            'copper_base' => 80,
-            'copper_range' => 50,
-            'item_chance' => 0.22,
         ],
-    ],
     [
         'name' => '暗影幽灵',
         'type' => 'normal',
@@ -1324,12 +988,7 @@ return [
         'defense_per_level' => 4,
         'experience_base' => 180,
         'experience_per_level' => 40,
-        'drop_table' => [
-            'copper_base' => 100,
-            'copper_range' => 60,
-            'item_chance' => 0.25,
         ],
-    ],
     [
         'name' => '虚空行者',
         'type' => 'elite',
@@ -1342,12 +1001,7 @@ return [
         'defense_per_level' => 7,
         'experience_base' => 300,
         'experience_per_level' => 70,
-        'drop_table' => [
-            'copper_base' => 200,
-            'copper_range' => 120,
-            'item_chance' => 0.5,
         ],
-    ],
     [
         'name' => '深渊领主',
         'type' => 'boss',
@@ -1360,12 +1014,7 @@ return [
         'defense_per_level' => 12,
         'experience_base' => 1000,
         'experience_per_level' => 200,
-        'drop_table' => [
-            'copper_base' => 1500,
-            'copper_range' => 500,
-            'item_chance' => 1,
         ],
-    ],
     [
         'name' => '天使卫士',
         'type' => 'normal',
@@ -1378,12 +1027,7 @@ return [
         'defense_per_level' => 9,
         'experience_base' => 300,
         'experience_per_level' => 70,
-        'drop_table' => [
-            'copper_base' => 180,
-            'copper_range' => 100,
-            'item_chance' => 0.28,
         ],
-    ],
     [
         'name' => '炽天使',
         'type' => 'normal',
@@ -1396,12 +1040,7 @@ return [
         'defense_per_level' => 10,
         'experience_base' => 350,
         'experience_per_level' => 80,
-        'drop_table' => [
-            'copper_base' => 220,
-            'copper_range' => 130,
-            'item_chance' => 0.32,
         ],
-    ],
     [
         'name' => '天使长',
         'type' => 'elite',
@@ -1414,12 +1053,7 @@ return [
         'defense_per_level' => 14,
         'experience_base' => 600,
         'experience_per_level' => 140,
-        'drop_table' => [
-            'copper_base' => 400,
-            'copper_range' => 250,
-            'item_chance' => 0.55,
         ],
-    ],
     [
         'name' => '堕落天使',
         'type' => 'elite',
@@ -1432,12 +1066,7 @@ return [
         'defense_per_level' => 16,
         'experience_base' => 750,
         'experience_per_level' => 170,
-        'drop_table' => [
-            'copper_base' => 500,
-            'copper_range' => 300,
-            'item_chance' => 0.6,
         ],
-    ],
     [
         'name' => '大天使长',
         'type' => 'boss',
@@ -1450,12 +1079,7 @@ return [
         'defense_per_level' => 20,
         'experience_base' => 2000,
         'experience_per_level' => 400,
-        'drop_table' => [
-            'copper_base' => 3000,
-            'copper_range' => 1000,
-            'item_chance' => 1,
         ],
-    ],
     [
         'name' => '圣殿骑士',
         'type' => 'elite',
@@ -1468,12 +1092,7 @@ return [
         'defense_per_level' => 18,
         'experience_base' => 680,
         'experience_per_level' => 155,
-        'drop_table' => [
-            'copper_base' => 450,
-            'copper_range' => 280,
-            'item_chance' => 0.58,
         ],
-    ],
     [
         'name' => '神仆',
         'type' => 'normal',
@@ -1486,12 +1105,7 @@ return [
         'defense_per_level' => 16,
         'experience_base' => 500,
         'experience_per_level' => 110,
-        'drop_table' => [
-            'copper_base' => 350,
-            'copper_range' => 200,
-            'item_chance' => 0.35,
         ],
-    ],
     [
         'name' => '神使',
         'type' => 'normal',
@@ -1504,12 +1118,7 @@ return [
         'defense_per_level' => 18,
         'experience_base' => 600,
         'experience_per_level' => 130,
-        'drop_table' => [
-            'copper_base' => 450,
-            'copper_range' => 250,
-            'item_chance' => 0.4,
         ],
-    ],
     [
         'name' => '神将',
         'type' => 'elite',
@@ -1522,12 +1131,7 @@ return [
         'defense_per_level' => 24,
         'experience_base' => 1000,
         'experience_per_level' => 220,
-        'drop_table' => [
-            'copper_base' => 700,
-            'copper_range' => 400,
-            'item_chance' => 0.65,
         ],
-    ],
     [
         'name' => '神官',
         'type' => 'elite',
@@ -1540,12 +1144,7 @@ return [
         'defense_per_level' => 20,
         'experience_base' => 1100,
         'experience_per_level' => 240,
-        'drop_table' => [
-            'copper_base' => 750,
-            'copper_range' => 450,
-            'item_chance' => 0.68,
         ],
-    ],
     [
         'name' => '神王化身',
         'type' => 'boss',
@@ -1558,12 +1157,7 @@ return [
         'defense_per_level' => 30,
         'experience_base' => 3500,
         'experience_per_level' => 700,
-        'drop_table' => [
-            'copper_base' => 5000,
-            'copper_range' => 2000,
-            'item_chance' => 1,
         ],
-    ],
     [
         'name' => '审判天使',
         'type' => 'elite',
@@ -1576,12 +1170,7 @@ return [
         'defense_per_level' => 28,
         'experience_base' => 1300,
         'experience_per_level' => 280,
-        'drop_table' => [
-            'copper_base' => 900,
-            'copper_range' => 550,
-            'item_chance' => 0.72,
         ],
-    ],
     [
         'name' => '永恒守护者',
         'type' => 'normal',
@@ -1594,12 +1183,7 @@ return [
         'defense_per_level' => 26,
         'experience_base' => 800,
         'experience_per_level' => 170,
-        'drop_table' => [
-            'copper_base' => 600,
-            'copper_range' => 350,
-            'item_chance' => 0.45,
         ],
-    ],
     [
         'name' => '时空裂隙',
         'type' => 'normal',
@@ -1612,12 +1196,7 @@ return [
         'defense_per_level' => 30,
         'experience_base' => 1000,
         'experience_per_level' => 210,
-        'drop_table' => [
-            'copper_base' => 800,
-            'copper_range' => 450,
-            'item_chance' => 0.5,
         ],
-    ],
     [
         'name' => '永恒战士',
         'type' => 'elite',
@@ -1630,12 +1209,7 @@ return [
         'defense_per_level' => 40,
         'experience_base' => 1800,
         'experience_per_level' => 380,
-        'drop_table' => [
-            'copper_base' => 1300,
-            'copper_range' => 800,
-            'item_chance' => 0.75,
         ],
-    ],
     [
         'name' => '永恒法师',
         'type' => 'elite',
@@ -1648,12 +1222,7 @@ return [
         'defense_per_level' => 36,
         'experience_base' => 2000,
         'experience_per_level' => 420,
-        'drop_table' => [
-            'copper_base' => 1500,
-            'copper_range' => 900,
-            'item_chance' => 0.78,
         ],
-    ],
     [
         'name' => '永恒之王',
         'type' => 'boss',
@@ -1666,12 +1235,7 @@ return [
         'defense_per_level' => 50,
         'experience_base' => 6000,
         'experience_per_level' => 1200,
-        'drop_table' => [
-            'copper_base' => 8000,
-            'copper_range' => 3000,
-            'item_chance' => 1,
         ],
-    ],
     [
         'name' => '永恒骑士',
         'type' => 'elite',
@@ -1684,12 +1248,7 @@ return [
         'defense_per_level' => 46,
         'experience_base' => 2400,
         'experience_per_level' => 500,
-        'drop_table' => [
-            'copper_base' => 1800,
-            'copper_range' => 1100,
-            'item_chance' => 0.82,
         ],
-    ],
     [
         'name' => '混沌精灵',
         'type' => 'normal',
@@ -1702,12 +1261,7 @@ return [
         'defense_per_level' => 40,
         'experience_base' => 1400,
         'experience_per_level' => 290,
-        'drop_table' => [
-            'copper_base' => 1100,
-            'copper_range' => 650,
-            'item_chance' => 0.55,
         ],
-    ],
     [
         'name' => '虚空领主',
         'type' => 'normal',
@@ -1720,12 +1274,7 @@ return [
         'defense_per_level' => 44,
         'experience_base' => 1800,
         'experience_per_level' => 370,
-        'drop_table' => [
-            'copper_base' => 1500,
-            'copper_range' => 850,
-            'item_chance' => 0.6,
         ],
-    ],
     [
         'name' => '混沌战士',
         'type' => 'elite',
@@ -1738,12 +1287,7 @@ return [
         'defense_per_level' => 56,
         'experience_base' => 3200,
         'experience_per_level' => 650,
-        'drop_table' => [
-            'copper_base' => 2500,
-            'copper_range' => 1500,
-            'item_chance' => 0.85,
         ],
-    ],
     [
         'name' => '混沌魔神',
         'type' => 'elite',
@@ -1756,12 +1300,7 @@ return [
         'defense_per_level' => 64,
         'experience_base' => 4000,
         'experience_per_level' => 800,
-        'drop_table' => [
-            'copper_base' => 3200,
-            'copper_range' => 2000,
-            'item_chance' => 0.88,
         ],
-    ],
     [
         'name' => '混沌之源',
         'type' => 'boss',
@@ -1774,12 +1313,7 @@ return [
         'defense_per_level' => 80,
         'experience_base' => 10000,
         'experience_per_level' => 2000,
-        'drop_table' => [
-            'copper_base' => 12000,
-            'copper_range' => 5000,
-            'item_chance' => 1,
         ],
-    ],
     [
         'name' => '混沌之王',
         'type' => 'boss',
@@ -1792,10 +1326,5 @@ return [
         'defense_per_level' => 100,
         'experience_base' => 20000,
         'experience_per_level' => 4000,
-        'drop_table' => [
-            'copper_base' => 20000,
-            'copper_range' => 10000,
-            'item_chance' => 1,
         ],
-    ],
 ];

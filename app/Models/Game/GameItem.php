@@ -219,26 +219,6 @@ class GameItem extends GameItemDefinition
             ];
         }
 
-        if ($character->strength < $definition->required_strength) {
-            return [
-                'can_equip' => false,
-                'reason' => "需要力量 {$definition->required_strength}",
-            ];
-        }
-
-        if ($character->dexterity < $definition->required_dexterity) {
-            return [
-                'can_equip' => false,
-                'reason' => "需要敏捷 {$definition->required_dexterity}",
-            ];
-        }
-
-        if ($character->energy < $definition->required_energy) {
-            return [
-                'can_equip' => false,
-                'reason' => "需要能量 {$definition->required_energy}",
-            ];
-        }
 
         return [
             'can_equip' => true,

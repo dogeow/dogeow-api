@@ -7,13 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class GameItemDefinition extends Model
 {
     protected $fillable = [
+        'id',
         'name',
         'type',
         'sub_type',
         'base_stats',
-        'required_level',
-        'required_strength',
-        'required_dexterity',
         'required_energy',
         'icon',
         'description',

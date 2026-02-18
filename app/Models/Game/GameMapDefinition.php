@@ -10,12 +10,15 @@ class GameMapDefinition extends Model
     protected $fillable = [
         'name',
         'act',
-        'min_level',
-        'max_level',
         'monster_ids',
         'background',
         'description',
         'is_active',
+    ];
+
+    protected $hidden = [
+        'min_level',
+        'max_level',
     ];
 
     protected function casts(): array
@@ -58,18 +61,18 @@ class GameMapDefinition extends Model
     }
 
     /**
-     * 检查角色等级是否可以进入
+     * 检查角色等级是否可以进入（无等级限制）
      */
     public function canEnter(int $level): bool
     {
-        return $level >= $this->min_level;
+        return true;
     }
 
     /**
-     * 获取推荐等级描述
+     * 获取推荐等级描述（无等级限制）
      */
     public function getLevelRangeText(): string
     {
-        return "Lv.{$this->min_level}-{$this->max_level}";
+        return '无等级限制';
     }
 }

@@ -66,9 +66,6 @@ return new class extends Migration
             $table->json('gem_stats')->nullable()->comment('宝石属性（JSON）');
             $table->json('base_stats')->nullable()->comment('基础属性（JSON）');
             $table->unsignedMediumInteger('required_level')->default(1)->comment('需求等级');
-            $table->unsignedSmallInteger('required_strength')->default(0)->comment('需求力量');
-            $table->unsignedSmallInteger('required_dexterity')->default(0)->comment('需求敏捷');
-            $table->unsignedSmallInteger('required_energy')->default(0)->comment('需求能量');
             $table->string('icon', 64)->nullable()->comment('图标');
             $table->text('description')->nullable()->comment('描述');
             $table->boolean('is_active')->default(true)->comment('是否启用');

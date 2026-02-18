@@ -24,26 +24,33 @@ class GameSeeder extends Seeder
 
     private function seedItemDefinitions(): void
     {
-        // 清空并重置自增，使 id 从 1 开始，与 prompts.py 的 ITEM_PROMPTS 索引一致
         DB::table('game_item_definitions')->truncate();
 
         $items = require __DIR__.'/GameSeederData/items.php';
 
         foreach ($items as $item) {
             GameItemDefinition::create(array_merge($item, [
-                'icon' => null,
+                'icon' => 'item_'.$item['id'].'.png',
                 'is_active' => true,
             ]));
         }
-
-        // 按 id 从 1 开始设置 icon 为 item_1.png, item_2.png, ...，与 prompts 生成的文件名一致
-        DB::statement("UPDATE game_item_definitions SET icon = CONCAT('item_', id, '.png')");
     }
 
     private function seedSkillDefinitions(): void
     {
-        $skillsPath = __DIR__.'/GameSeederData/skills.php';
-        $skills = file_exists($skillsPath) ? require $skillsPath : [];
+        $skillsDir = __DIR__.'/GameSeederData/skills';
+        $skillFiles = [
+            'skills_warrior.php',
+            'skills_mage.php',
+            'skills_ranger.php',
+        ];
+        $skills = [];
+        foreach ($skillFiles as $file) {
+            $path = $skillsDir.'/'.$file;
+            if (file_exists($path)) {
+                $skills = array_merge($skills, require $path);
+            }
+        }
 
         // 使用 updateOrCreate 根据名称更新或创建技能
         foreach ($skills as $skill) {

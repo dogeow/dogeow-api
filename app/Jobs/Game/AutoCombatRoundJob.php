@@ -51,7 +51,7 @@ class AutoCombatRoundJob implements ShouldQueue
 
         try {
             $result = $combatService->executeRound($character, $skillIds);
-        } catch (RuntimeException $e) {
+        } catch (RuntimeException|InvalidArgumentException $e) {
             $this->broadcastAutoStoppedAndCleanup($character, $e, $key);
 
             return;
@@ -69,9 +69,13 @@ class AutoCombatRoundJob implements ShouldQueue
         }
     }
 
-    private function broadcastAutoStoppedAndCleanup(GameCharacter $character, RuntimeException $e, string $redisKey): void
+    private function broadcastAutoStoppedAndCleanup(GameCharacter $character, \Throwable $e, string $redisKey): void
     {
         Redis::del($redisKey);
+
+        // 重置战斗状态
+        $character->is_fighting = false;
+        $character->save();
 
         $payload = null;
         if ($e->getPrevious() instanceof \Throwable) {
