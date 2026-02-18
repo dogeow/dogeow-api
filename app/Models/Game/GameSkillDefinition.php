@@ -23,6 +23,9 @@ class GameSkillDefinition extends Model
         'damage_per_level',
         'mana_cost_per_level',
         'skill_points_cost',
+        'branch',
+        'tier',
+        'prerequisite_skill_id',
     ];
 
     protected function casts(): array

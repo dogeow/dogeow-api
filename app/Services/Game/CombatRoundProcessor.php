@@ -81,6 +81,7 @@ class CombatRoundProcessor
         $newSkillsAggregated = $this->aggregateSkillsUsed($skillsUsedThisRound, $skillsUsedAggregated);
         $hasAliveMonster = $this->hasAliveMonster($monstersUpdated);
 
+        // 经验、货币
         [$totalExperience, $totalCopper] = $this->calculateRoundDeathRewards(
             $monstersUpdated,
             $hpAtRoundStart,
@@ -237,7 +238,7 @@ class CombatRoundProcessor
             }
 
             $mDefense = (int) ($m['defense'] ?? 0);
-            $baseDamage = max(1, $charAttack - $mDefense * 0.5);
+            $baseDamage = $charAttack - $mDefense * 0.5;
             $damage = $skillDamage > 0
                 ? (int) ($baseDamage + $skillDamage)
                 : (int) ($baseDamage * ($isCrit ? $charCritDamage : 1));
@@ -293,7 +294,10 @@ class CombatRoundProcessor
                 continue;
             }
             $monsterAttack = $m['attack'] ?? 0;
-            $total += (int) max(1, $monsterAttack - $charDefense * 0.3);
+            $monsterDamage = $monsterAttack - $charDefense * 0.3;
+            if ($monsterDamage > 0) {
+                $total += (int) $monsterDamage;
+            }
         }
 
         return $total;
@@ -394,8 +398,8 @@ class CombatRoundProcessor
         $dropTable = $definition->drop_table ?? [];
         $level = $monster['level'] ?? $definition->level;
 
-        // 使用 drop_table 的铜币配置
-        $copperChance = $dropTable['copper_chance'] ?? 0.005;
+        $copperChance = $dropTable['copper_chance']
+            ?? config('game.copper_drop_defaults.chance', 0.1);
         if (! $this->rollChanceForProcessor($copperChance)) {
             return 0;
         }

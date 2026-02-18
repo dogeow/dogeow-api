@@ -38,6 +38,11 @@ return new class extends Migration
             ['name' => '冰霜新星', 'description' => '减速周围所有敌人', 'type' => 'active', 'class_restriction' => 'mage', 'branch' => 'ice', 'tier' => 2, 'prerequisite_skill_id' => 7, 'mana_cost' => 15, 'cooldown' => 8, 'skill_points_cost' => 1, 'base_damage' => 80, 'target_type' => 'all', 'icon' => 'disc'],
             ['name' => '冰封千里', 'description' => '冰冻所有敌人并造成大量伤害', 'type' => 'active', 'class_restriction' => 'mage', 'branch' => 'ice', 'tier' => 3, 'prerequisite_skill_id' => 8, 'mana_cost' => 60, 'cooldown' => 20, 'skill_points_cost' => 2, 'base_damage' => 250, 'target_type' => 'all', 'icon' => 'cloud-snow'],
 
+            // 闪电分支 - 法师
+            ['name' => '雷击', 'description' => '召唤雷电打击单个敌人', 'type' => 'active', 'class_restriction' => 'mage', 'branch' => 'lightning', 'tier' => 1, 'prerequisite_skill_id' => null, 'mana_cost' => 5, 'cooldown' => 0, 'skill_points_cost' => 1, 'base_damage' => 110, 'target_type' => 'single', 'icon' => 'zap'],
+            ['name' => '连锁闪电', 'description' => '闪电在敌人之间弹跳', 'type' => 'active', 'class_restriction' => 'mage', 'branch' => 'lightning', 'tier' => 2, 'prerequisite_skill_id' => 10, 'mana_cost' => 20, 'cooldown' => 6, 'skill_points_cost' => 1, 'base_damage' => 120, 'target_type' => 'all', 'icon' => 'git-branch'],
+            ['name' => '雷霆万钧', 'description' => '召唤巨型雷电攻击所有敌人', 'type' => 'active', 'class_restriction' => 'mage', 'branch' => 'lightning', 'tier' => 3, 'prerequisite_skill_id' => 11, 'mana_cost' => 60, 'cooldown' => 18, 'skill_points_cost' => 2, 'base_damage' => 280, 'target_type' => 'all', 'icon' => 'cloud-lightning'],
+
             // ====== 游侠技能 ======
             // 敏捷分支 - 游侠
             ['name' => '射击', 'description' => '远程物理攻击，造成100%伤害', 'type' => 'active', 'class_restriction' => 'ranger', 'branch' => 'ranger', 'tier' => 1, 'prerequisite_skill_id' => null, 'mana_cost' => 0, 'cooldown' => 0, 'skill_points_cost' => 1, 'base_damage' => 100, 'target_type' => 'single', 'icon' => 'target'],

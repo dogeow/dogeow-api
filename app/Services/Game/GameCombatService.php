@@ -43,7 +43,7 @@ class GameCombatService
     {
         $character->initializeHpMana();
 
-        return [
+        $result = [
             'is_fighting' => $character->is_fighting,
             'current_map' => $character->currentMap,
             'combat_stats' => $character->getCombatStats(),
@@ -52,6 +52,44 @@ class GameCombatService
             'last_combat_at' => $character->last_combat_at,
             'skill_cooldowns' => $character->combat_skill_cooldowns ?? [],
         ];
+
+        if ($character->is_fighting) {
+            $monsters = $character->combat_monsters ?? [];
+            $result['current_combat_monsters'] = $monsters;
+            $firstAliveOrAny = null;
+            foreach ($monsters as $m) {
+                if (is_array($m) && isset($m['id'])) {
+                    $firstAliveOrAny = $m;
+                    if (($m['hp'] ?? 0) > 0) {
+                        break;
+                    }
+                }
+            }
+            if ($firstAliveOrAny !== null) {
+                $result['current_combat_monster'] = [
+                    'id' => $firstAliveOrAny['id'],
+                    'name' => $firstAliveOrAny['name'] ?? '',
+                    'type' => $firstAliveOrAny['type'] ?? 'normal',
+                    'level' => (int) ($firstAliveOrAny['level'] ?? 1),
+                    'hp' => (int) ($firstAliveOrAny['hp'] ?? 0),
+                    'max_hp' => (int) ($firstAliveOrAny['max_hp'] ?? 0),
+                ];
+            } elseif ($character->combat_monster_id !== null) {
+                $def = GameMonsterDefinition::query()->find($character->combat_monster_id);
+                if ($def) {
+                    $result['current_combat_monster'] = [
+                        'id' => $def->id,
+                        'name' => $def->name,
+                        'type' => $def->type ?? 'normal',
+                        'level' => (int) ($character->combat_monster_level ?? $def->level),
+                        'hp' => (int) ($character->combat_monster_hp ?? 0),
+                        'max_hp' => (int) ($character->combat_monster_max_hp ?? 0),
+                    ];
+                }
+            }
+        }
+
+        return $result;
     }
 
     /**

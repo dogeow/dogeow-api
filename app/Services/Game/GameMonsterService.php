@@ -51,7 +51,7 @@ class GameMonsterService
                 if ($monster) {
                     $firstMonster = $monster;
                     $monsterLevel = $m['level'];
-                    $monsterStats = $monster->getCombatStats($monsterLevel);
+                    $monsterStats = $monster->getCombatStats();
                 }
             }
             $totalHp += $m['hp'] ?? 0;
@@ -88,7 +88,7 @@ class GameMonsterService
         for ($i = 0; $i < $monsterCount; $i++) {
             $level = $baseLevel + rand(-1, 1);
             $level = max(1, $level);
-            $stats = $baseMonster->getCombatStats($level);
+            $stats = $baseMonster->getCombatStats();
             $maxHp = (int) ($stats['hp'] * $difficulty['monster_hp']);
 
             $monsterDataList[] = [
@@ -140,7 +140,7 @@ class GameMonsterService
         }
         $firstMonster = $firstMonster ?? $monsterDataList[0] ?? null;
         $monster = GameMonsterDefinition::query()->find($firstMonster['id']);
-        $monsterStats = $monster?->getCombatStats($firstMonster['level']);
+        $monsterStats = $monster?->getCombatStats();
 
         return [
             $monster,
@@ -209,7 +209,7 @@ class GameMonsterService
         foreach ($slotsToFill as $slot) {
             $level = $baseLevel + rand(-1, 1);
             $level = max(1, $level);
-            $stats = $baseMonster->getCombatStats($level);
+            $stats = $baseMonster->getCombatStats();
             $maxHp = (int) ($stats['hp'] * $difficulty['monster_hp']);
 
             $currentMonsters[$slot] = [

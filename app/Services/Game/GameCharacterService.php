@@ -129,9 +129,6 @@ class GameCharacterService
             // 初始化装备槽位
             $this->initializeEquipmentSlots($character);
 
-            // 解锁初始地图
-            $this->unlockStartingMap($character);
-
             // 清除缓存
             $this->clearCharacterCache($userId);
 

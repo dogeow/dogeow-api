@@ -75,6 +75,15 @@ class SkillController extends Controller
             return $this->error('已经学习了该技能');
         }
 
+        // 检查前置技能
+        if ($skill->prerequisite_skill_id) {
+            $hasPrereq = $character->skills()->where('skill_id', $skill->prerequisite_skill_id)->exists();
+            if (! $hasPrereq) {
+                $prereqSkill = GameSkillDefinition::find($skill->prerequisite_skill_id);
+                return $this->error('需要先学习前置技能: ' . ($prereqSkill?->name ?? '未知'));
+            }
+        }
+
         // 学习技能
         $characterSkill = $character->skills()->create([
             'skill_id' => $skill->id,
