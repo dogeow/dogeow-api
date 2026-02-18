@@ -33,15 +33,8 @@ class MapController extends Controller
 
             return $arr;
         });
-
-        $progress = $character->mapProgress()
-            ->with('map')
-            ->get()
-            ->keyBy('map_id');
-
         return $this->success([
             'maps' => $mapsWithMonsters,
-            'progress' => $progress,
             'current_map_id' => $character->current_map_id,
         ]);
     }
@@ -53,15 +46,6 @@ class MapController extends Controller
     {
         $character = $this->getCharacter($request);
         $map = GameMapDefinition::findOrFail($mapId);
-
-        // 确保地图进度记录存在
-        $progress = $character->mapProgress()->where('map_id', $mapId)->first();
-
-        if (! $progress) {
-            $character->mapProgress()->create([
-                'map_id' => $mapId,
-            ]);
-        }
 
         // 更新当前地图并自动开始战斗
         $character->current_map_id = $mapId;

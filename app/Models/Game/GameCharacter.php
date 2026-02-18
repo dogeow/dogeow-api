@@ -114,14 +114,6 @@ class GameCharacter extends Model
     }
 
     /**
-     * 获取地图进度
-     */
-    public function mapProgress(): HasMany
-    {
-        return $this->hasMany(GameCharacterMap::class, 'character_id');
-    }
-
-    /**
      * 获取当前地图
      */
     public function currentMap(): BelongsTo

@@ -427,23 +427,6 @@ class GameCharacterService
         foreach (GameCharacter::getSlots() as $slot) {
             $character->equipment()->create(['slot' => $slot]);
         }
-    }
-
-    /**
-     * 解锁初始地图
-     *
-     * @param GameCharacter $character 角色实例
-     */
-    private function unlockStartingMap(GameCharacter $character): void
-    {
-        $firstMap = GameMapDefinition::orderBy('id')->first();
-
-        if ($firstMap) {
-            $character->mapProgress()->create([
-                'map_id' => $firstMap->id,
-            ]);
-        }
-    }
 
     /**
      * 计算总属性点数
