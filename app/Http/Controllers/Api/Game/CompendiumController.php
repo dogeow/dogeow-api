@@ -3,38 +3,66 @@
 namespace App\Http\Controllers\Api\Game;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\CharacterConcern;
 use App\Models\Game\GameItemDefinition;
 use App\Models\Game\GameMonsterDefinition;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class CompendiumController extends Controller
 {
+    use CharacterConcern;
+
     /**
      * 获取物品图鉴
      */
-    public function items(): JsonResponse
+    public function items(Request $request): JsonResponse
     {
         $items = GameItemDefinition::where('is_active', true)
             ->orderBy('type')
             ->orderBy('required_level')
             ->get();
 
+        $character = $this->getCharacter($request);
+        $discoveredItems = $character?->discovered_items ?? [];
+
+        // 为每个物品添加 discovered 字段
+        $items = $items->map(function ($item) use ($discoveredItems) {
+            return array_merge($item->toArray(), [
+                'discovered' => in_array($item->id, $discoveredItems),
+            ]);
+        });
+
         return response()->json([
             'items' => $items,
+            'total' => count($items),
+            'discovered_count' => count($discoveredItems),
         ]);
     }
 
     /**
      * 获取怪物图鉴
      */
-    public function monsters(): JsonResponse
+    public function monsters(Request $request): JsonResponse
     {
         $monsters = GameMonsterDefinition::where('is_active', true)
             ->orderBy('level')
             ->get();
 
+        $character = $this->getCharacter($request);
+        $discoveredMonsters = $character?->discovered_monsters ?? [];
+
+        // 为每个怪物添加 discovered 字段
+        $monsters = $monsters->map(function ($monster) use ($discoveredMonsters) {
+            return array_merge($monster->toArray(), [
+                'discovered' => in_array($monster->id, $discoveredMonsters),
+            ]);
+        });
+
         return response()->json([
             'monsters' => $monsters,
+            'total' => count($monsters),
+            'discovered_count' => count($discoveredMonsters),
         ]);
     }
 
@@ -75,7 +103,7 @@ class CompendiumController extends Controller
         // 权重公式：基础权重 + 等级加成 - 品质惩罚（越好的物品权重越低）
         $itemsArray = $items->toArray();
         $totalWeight = 0;
-        $itemsWithRates = array_map(function($item) use (&$totalWeight, $monster) {
+        $itemsWithRates = array_map(function ($item) use (&$totalWeight, $monster) {
             // 基础权重
             $baseWeight = 10;
             // 等级加成（等级越高权重越高一点）
@@ -103,9 +131,10 @@ class CompendiumController extends Controller
         }, $itemsArray);
 
         // 计算每个物品的掉落概率（基于权重）
-        $itemsWithRates = array_map(function($item) use ($dropChance, $totalWeight) {
+        $itemsWithRates = array_map(function ($item) use ($dropChance, $totalWeight) {
             $itemDropRate = $totalWeight > 0 ? ($item['weight'] / $totalWeight) * ($dropChance * 100) : 0;
             $item['drop_rate'] = round($itemDropRate, 2);
+
             return $item;
         }, $itemsWithRates);
 

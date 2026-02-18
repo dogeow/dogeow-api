@@ -63,8 +63,9 @@ class AutoCombatRoundJob implements ShouldQueue
             return;
         }
 
+        // 下一次 Job 执行时从 Redis 读取最新的技能配置，而不是使用当前缓存的值
         if (Redis::get($key) !== null) {
-            self::dispatch($this->characterId, $skillIds)->delay(now()->addSeconds(3));
+            self::dispatch($this->characterId, [])->delay(now()->addSeconds(3));
         }
     }
 

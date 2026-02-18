@@ -45,6 +45,8 @@ class GameCharacter extends Model
         'combat_started_at',
         'last_online',
         'claimed_offline_at',
+        'discovered_items',
+        'discovered_monsters',
     ];
 
     protected function casts(): array
@@ -62,6 +64,8 @@ class GameCharacter extends Model
             'combat_started_at' => 'datetime',
             'last_online' => 'datetime',
             'claimed_offline_at' => 'datetime',
+            'discovered_items' => 'array',
+            'discovered_monsters' => 'array',
         ];
     }
 
@@ -290,6 +294,7 @@ class GameCharacter extends Model
     public function getBaseCritDamage(): float
     {
         $critConfig = config('game.combat.crit_damage', []);
+
         return (float) ($critConfig['base'] ?? 1.5);
     }
 
@@ -542,7 +547,7 @@ class GameCharacter extends Model
             if ($slot->item) {
                 $item = $slot->item;
                 // 计算卖出价格（如果未设置）
-                if (!isset($item->sell_price) || $item->sell_price === 0) {
+                if (! isset($item->sell_price) || $item->sell_price === 0) {
                     $item->sell_price = $item->calculateSellPrice();
                 }
                 $equipped[$slot->slot] = $item;
@@ -550,5 +555,51 @@ class GameCharacter extends Model
         }
 
         return $equipped;
+    }
+
+    /**
+     * 发现一个物品
+     */
+    public function discoverItem(int $itemDefinitionId): void
+    {
+        $discovered = $this->discovered_items ?? [];
+        if (! in_array($itemDefinitionId, $discovered)) {
+            $discovered[] = $itemDefinitionId;
+            $this->discovered_items = $discovered;
+            $this->save();
+        }
+    }
+
+    /**
+     * 发现一个怪物
+     */
+    public function discoverMonster(int $monsterDefinitionId): void
+    {
+        $discovered = $this->discovered_monsters ?? [];
+        if (! in_array($monsterDefinitionId, $discovered)) {
+            $discovered[] = $monsterDefinitionId;
+            $this->discovered_monsters = $discovered;
+            $this->save();
+        }
+    }
+
+    /**
+     * 检查是否已发现物品
+     */
+    public function hasDiscoveredItem(int $itemDefinitionId): bool
+    {
+        $discovered = $this->discovered_items ?? [];
+
+        return in_array($itemDefinitionId, $discovered);
+    }
+
+    /**
+     * 检查是否已发现怪物
+     */
+    public function hasDiscoveredMonster(int $monsterDefinitionId): bool
+    {
+        $discovered = $this->discovered_monsters ?? [];
+
+        return in_array($monsterDefinitionId, $discovered);
     }
 }

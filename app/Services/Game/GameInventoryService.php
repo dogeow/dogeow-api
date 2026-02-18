@@ -51,6 +51,14 @@ class GameInventoryService
             ->get()
             ->keyBy('slot');
 
+        $this->ensureItemsSellPrice($inventory);
+        $this->ensureItemsSellPrice($storage);
+        foreach ($equipment as $eq) {
+            if ($eq->item) {
+                $this->ensureItemsSellPrice(collect([$eq->item]));
+            }
+        }
+
         return [
             'inventory' => $inventory,
             'storage' => $storage,
@@ -58,6 +66,24 @@ class GameInventoryService
             'inventory_size' => self::INVENTORY_SIZE,
             'storage_size' => self::STORAGE_SIZE,
         ];
+    }
+
+    /**
+     * 确保物品列表中的 sell_price 已计算（若为 0 或未设置则按属性计算）
+     *
+     * @param  \Illuminate\Support\Collection<int, GameItem>  $items
+     */
+    private function ensureItemsSellPrice(\Illuminate\Support\Collection $items): void
+    {
+        foreach ($items as $item) {
+            if (! $item instanceof GameItem) {
+                continue;
+            }
+            if (! isset($item->sell_price) || $item->sell_price === 0) {
+                $item->sell_price = $item->calculateSellPrice();
+                $item->saveQuietly();
+            }
+        }
     }
 
     /**

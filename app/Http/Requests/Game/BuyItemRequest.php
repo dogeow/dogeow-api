@@ -15,7 +15,7 @@ class BuyItemRequest extends FormRequest
     {
         return [
             'item_id' => 'required|integer|exists:game_item_definitions,id',
-            'quantity' => 'sometimes|integer|min:1|max:99',
+            'quantity' => 'sometimes|integer|min:1',
         ];
     }
 
@@ -25,7 +25,6 @@ class BuyItemRequest extends FormRequest
             'item_id.required' => '物品ID不能为空',
             'item_id.exists' => '物品不存在',
             'quantity.min' => '数量不能小于1',
-            'quantity.max' => '数量不能超过99',
         ];
     }
 }

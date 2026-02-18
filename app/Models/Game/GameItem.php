@@ -109,6 +109,27 @@ class GameItem extends GameItemDefinition
     }
 
     /**
+     * 使用 bcmath 将数值规范为指定小数位，避免浮点精度问题（如暴击率 0.020000000000000004）
+     *
+     * @param  array<string, mixed>  $arr  键值对（如 stats、affixes）
+     * @param  int  $scale  小数位数，率类属性用 4
+     * @return array<string, mixed>
+     */
+    public static function normalizeStatsPrecision(array $arr, int $scale = 4): array
+    {
+        $result = [];
+        foreach ($arr as $key => $value) {
+            if (is_numeric($value)) {
+                $result[$key] = (float) bcadd((string) $value, '0', $scale);
+            } else {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * 获取完整属性（基础 + 随机词缀 + 宝石）
      */
     public function getTotalStats(): array
@@ -118,7 +139,7 @@ class GameItem extends GameItemDefinition
         // 添加随机词缀属性
         foreach ($this->affixes ?? [] as $affix) {
             foreach ($affix as $key => $value) {
-                $stats[$key] = bcadd((string)($stats[$key] ?? 0), (string)$value, 4);
+                $stats[$key] = bcadd((string) ($stats[$key] ?? 0), (string) $value, 4);
             }
         }
 
@@ -126,11 +147,30 @@ class GameItem extends GameItemDefinition
         foreach ($this->gems ?? [] as $gem) {
             $gemStats = $gem->getGemStats();
             foreach ($gemStats as $key => $value) {
-                $stats[$key] = bcadd((string)($stats[$key] ?? 0), (string)$value, 4);
+                $stats[$key] = bcadd((string) ($stats[$key] ?? 0), (string) $value, 4);
             }
         }
 
         return $stats;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        $array = parent::toArray();
+        if (isset($array['stats']) && is_array($array['stats'])) {
+            $array['stats'] = self::normalizeStatsPrecision($array['stats']);
+        }
+        if (isset($array['affixes']) && is_array($array['affixes'])) {
+            $array['affixes'] = array_map(
+                fn (array $affix): array => self::normalizeStatsPrecision($affix),
+                $array['affixes']
+            );
+        }
+
+        return $array;
     }
 
     /**
@@ -264,6 +304,10 @@ class GameItem extends GameItemDefinition
     private function calculateEquipmentPrice(): int
     {
         $totalStats = $this->getTotalStats();
+        // 若物品自身 stats 为空（如旧数据），用 definition 的 base_stats 参与计价
+        if (empty($totalStats) && $this->definition) {
+            $totalStats = $this->definition->base_stats ?? [];
+        }
         $basePrice = 0;
 
         // 1. 计算基础属性价格

@@ -27,6 +27,9 @@ class GameCombatLootService
                 continue;
             }
 
+            // 发现怪物
+            $character->discoverMonster($monster->id);
+
             $lootResult = $monster->generateLoot($character->level);
             if (isset($lootResult['item']) && ! isset($loot['item'])) {
                 $item = $this->createItem($character, $lootResult['item']);
@@ -156,6 +159,9 @@ class GameCombatLootService
         $item->sell_price = $item->calculateSellPrice();
         $item->save();
 
+        // 发现物品
+        $character->discoverItem($definition->id);
+
         return $item->load('definition');
     }
 
@@ -244,6 +250,9 @@ class GameCombatLootService
         $potion->sell_price = $potion->calculateSellPrice();
         $potion->save();
 
+        // 发现物品
+        $character->discoverItem($definition->id);
+
         return $potion->load('definition');
     }
 
@@ -273,7 +282,7 @@ class GameCombatLootService
         // 根据宝石属性计算价格
         $gemValue = 0;
         foreach ($gemStats as $stat => $value) {
-            $gemValue += (int)($value * 100); // 每个属性点100金币
+            $gemValue += (int) ($value * 100); // 每个属性点100金币
         }
 
         $definition = GameItemDefinition::create([
@@ -304,6 +313,9 @@ class GameCombatLootService
             'slot_index' => $inventoryService->findEmptySlot($character, false),
             'sockets' => 0,
         ]);
+
+        // 发现物品
+        $character->discoverItem($definition->id);
 
         return $gem->load('definition');
     }

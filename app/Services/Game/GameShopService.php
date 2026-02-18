@@ -100,7 +100,7 @@ class GameShopService
                 'name' => $definition->name,
                 'type' => $definition->type,
                 'sub_type' => $definition->sub_type,
-                'base_stats' => $randomStats,
+                'base_stats' => GameItem::normalizeStatsPrecision($randomStats),
                 'required_level' => $definition->required_level,
                 'required_strength' => $definition->required_strength,
                 'required_dexterity' => $definition->required_dexterity,
@@ -139,7 +139,7 @@ class GameShopService
                 'name' => $definition->name,
                 'type' => $definition->type,
                 'sub_type' => $definition->sub_type,
-                'base_stats' => $randomStats,
+                'base_stats' => GameItem::normalizeStatsPrecision($randomStats),
                 'quality' => $quality,
                 'required_level' => $definition->required_level,
                 'required_strength' => $definition->required_strength,
@@ -190,7 +190,7 @@ class GameShopService
             case 'weapon':
                 $stats['attack'] = rand(5, 15) + $definition->required_level * 2;
                 if (rand(1, 100) <= 30) {
-                    $stats['crit_rate'] = rand(1, 10) / 100;
+                    $stats['crit_rate'] = (float) bcdiv((string) rand(1, 10), '100', 4);
                 }
                 if (rand(1, 100) <= 20) {
                     $stats['crit_damage'] = rand(20, 50);
@@ -202,13 +202,13 @@ class GameShopService
                 $stats['defense'] = rand(3, 10) + $definition->required_level;
                 $stats['max_hp'] = rand(10, 30) + $definition->required_level * 5;
                 if (rand(1, 100) <= 25) {
-                    $stats['crit_rate'] = rand(1, 5) / 100;
+                    $stats['crit_rate'] = (float) bcdiv((string) rand(1, 5), '100', 4);
                 }
                 break;
 
             case 'gloves':
                 $stats['attack'] = rand(2, 6) + $definition->required_level;
-                $stats['crit_rate'] = rand(2, 8) / 100;
+                $stats['crit_rate'] = (float) bcdiv((string) rand(2, 8), '100', 4);
                 break;
 
             case 'boots':
@@ -228,14 +228,14 @@ class GameShopService
                 $ringStats = ['attack', 'defense', 'max_hp', 'max_mana', 'crit_rate', 'strength', 'dexterity', 'energy'];
                 $selectedStat = $ringStats[array_rand($ringStats)];
                 if ($selectedStat === 'crit_rate') {
-                    $stats[$selectedStat] = rand(1, 8) / 100;
+                    $stats[$selectedStat] = (float) bcdiv((string) rand(1, 8), '100', 4);
                 } else {
                     $stats[$selectedStat] = rand(3, 12) + $definition->required_level * 2;
                 }
                 if (rand(1, 100) <= 40) {
                     $secondStat = $ringStats[array_rand($ringStats)];
                     if ($secondStat === 'crit_rate') {
-                        $stats[$secondStat] = rand(1, 5) / 100;
+                        $stats[$secondStat] = (float) bcdiv((string) rand(1, 5), '100', 4);
                     } else {
                         $stats[$secondStat] = rand(2, 8) + $definition->required_level;
                     }
