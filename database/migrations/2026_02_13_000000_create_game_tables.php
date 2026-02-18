@@ -169,17 +169,6 @@ return new class extends Migration
         });
         DB::statement("ALTER TABLE game_map_definitions COMMENT = '地图定义表'");
 
-        // ==================== 角色地图进度表 ====================
-        Schema::create('game_character_maps', function (Blueprint $table) {
-            $table->id()->comment('记录ID');
-            $table->unsignedBigInteger('character_id')->index()->comment('所属角色ID');
-            $table->unsignedBigInteger('map_id')->index()->comment('地图ID');
-            $table->timestamps();
-
-            $table->unique(['character_id', 'map_id']);
-        });
-        DB::statement("ALTER TABLE game_character_maps COMMENT = '角色地图进度表'");
-
         // ==================== 怪物定义表 ====================
         Schema::create('game_monster_definitions', function (Blueprint $table) {
             $table->id()->comment('怪物ID');
@@ -226,7 +215,6 @@ return new class extends Migration
     {
         Schema::dropIfExists('game_combat_logs');
         Schema::dropIfExists('game_monster_definitions');
-        Schema::dropIfExists('game_character_maps');
         Schema::dropIfExists('game_map_definitions');
         Schema::dropIfExists('game_character_skills');
         Schema::dropIfExists('game_skill_definitions');

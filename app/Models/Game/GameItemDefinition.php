@@ -12,7 +12,7 @@ class GameItemDefinition extends Model
         'type',
         'sub_type',
         'base_stats',
-        'required_energy',
+        'required_level',
         'icon',
         'description',
         'is_active',

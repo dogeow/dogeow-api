@@ -2,7 +2,7 @@
 
 // 由 php artisan game:export-seeder-definitions 从数据库导出，供 GameSeeder 使用
 return [
-  0 =>
+
   [
     'id' => 106,
     'name' => '铜戒指',
@@ -13,12 +13,9 @@ return [
       'attack' => 2,
     ],
     'required_level' => 1,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  1 =>
+
   [
     'id' => 107,
     'name' => '银戒指',
@@ -30,12 +27,9 @@ return [
       'crit_rate' => 0.02,
     ],
     'required_level' => 5,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  2 =>
+
   [
     'id' => 108,
     'name' => '金戒指',
@@ -47,12 +41,9 @@ return [
       'crit_rate' => 0.05,
     ],
     'required_level' => 10,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  3 =>
+
   [
     'id' => 109,
     'name' => '红宝石戒指',
@@ -64,12 +55,9 @@ return [
       'crit_damage' => 0.2,
     ],
     'required_level' => 15,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  4 =>
+
   [
     'id' => 110,
     'name' => '蓝宝石戒指',
@@ -81,12 +69,9 @@ return [
       'max_mana' => 100,
     ],
     'required_level' => 15,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  5 =>
+
   [
     'id' => 111,
     'name' => '翡翠戒指',
@@ -98,12 +83,9 @@ return [
       'defense' => 10,
     ],
     'required_level' => 15,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  6 =>
+
   [
     'id' => 112,
     'name' => '乌鸦戒指',
@@ -116,12 +98,9 @@ return [
       'crit_damage' => 0.3,
     ],
     'required_level' => 20,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  7 =>
+
   [
     'id' => 113,
     'name' => '乔丹之石',
@@ -134,12 +113,9 @@ return [
       'all_stats' => 5,
     ],
     'required_level' => 25,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  8 =>
+
   [
     'id' => 114,
     'name' => '矮人戒指',
@@ -151,12 +127,9 @@ return [
       'defense' => 30,
     ],
     'required_level' => 25,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  9 =>
+
   [
     'id' => 115,
     'name' => '魔法戒指',
@@ -168,12 +141,9 @@ return [
       'max_mana' => 300,
     ],
     'required_level' => 25,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  10 =>
+
   [
     'id' => 116,
     'name' => '圣骑士戒指',
@@ -186,12 +156,9 @@ return [
       'all_stats' => 10,
     ],
     'required_level' => 35,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  11 =>
+
   [
     'id' => 117,
     'name' => '天使之戒',
@@ -204,12 +171,9 @@ return [
       'crit_rate' => 0.12,
     ],
     'required_level' => 45,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  12 =>
+
   [
     'id' => 118,
     'name' => '神之戒指',
@@ -222,12 +186,9 @@ return [
       'crit_damage' => 0.5,
     ],
     'required_level' => 55,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  13 =>
+
   [
     'id' => 119,
     'name' => '永恒之戒',
@@ -240,12 +201,9 @@ return [
       'crit_damage' => 0.6,
     ],
     'required_level' => 65,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  14 =>
+
   [
     'id' => 120,
     'name' => '混沌之戒',
@@ -258,12 +216,9 @@ return [
       'all_stats' => 25,
     ],
     'required_level' => 75,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  15 =>
+
   [
     'id' => 121,
     'name' => '创世之戒',
@@ -276,12 +231,9 @@ return [
       'crit_damage' => 0.8,
     ],
     'required_level' => 85,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  16 =>
+
   [
     'id' => 122,
     'name' => '神王之戒',
@@ -294,9 +246,6 @@ return [
       'crit_damage' => 1,
     ],
     'required_level' => 95,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-)
+];

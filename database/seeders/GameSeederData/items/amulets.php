@@ -2,7 +2,7 @@
 
 // 由 php artisan game:export-seeder-definitions 从数据库导出，供 GameSeeder 使用
 return [
-  0 =>
+
   [
     'id' => 123,
     'name' => '木制护符',
@@ -14,7 +14,7 @@ return [
     ],
     'required_level' => 1,
   ],
-  1 =>
+
   [
     'id' => 124,
     'name' => '骨制护符',
@@ -27,7 +27,7 @@ return [
     ],
     'required_level' => 5,
   ],
-  2 =>
+
   [
     'id' => 125,
     'name' => '水晶护符',
@@ -41,7 +41,7 @@ return [
     ],
     'required_level' => 10,
   ],
-  3 =>
+
   [
     'id' => 126,
     'name' => '狮子护符',
@@ -55,7 +55,7 @@ return [
     ],
     'required_level' => 15,
   ],
-  4 =>
+
   [
     'id' => 127,
     'name' => '猫眼护符',
@@ -69,7 +69,7 @@ return [
     ],
     'required_level' => 15,
   ],
-  5 =>
+
   [
     'id' => 128,
     'name' => '队长护符',
@@ -83,7 +83,7 @@ return [
     ],
     'required_level' => 20,
   ],
-  6 =>
+
   [
     'id' => 129,
     'name' => '地狱护符',
@@ -97,7 +97,7 @@ return [
     ],
     'required_level' => 25,
   ],
-  7 =>
+
   [
     'id' => 130,
     'name' => '神圣护符',
@@ -111,7 +111,7 @@ return [
     ],
     'required_level' => 30,
   ],
-  8 =>
+
   [
     'id' => 131,
     'name' => '圣骑士护符',
@@ -125,7 +125,7 @@ return [
     ],
     'required_level' => 40,
   ],
-  9 =>
+
   [
     'id' => 132,
     'name' => '天使护符',
@@ -139,7 +139,7 @@ return [
     ],
     'required_level' => 50,
   ],
-  10 =>
+
   [
     'id' => 133,
     'name' => '神圣天使护符',
@@ -153,7 +153,7 @@ return [
     ],
     'required_level' => 60,
   ],
-  11 =>
+
   [
     'id' => 134,
     'name' => '永恒护符',
@@ -167,7 +167,7 @@ return [
     ],
     'required_level' => 70,
   ],
-  12 =>
+
   [
     'id' => 135,
     'name' => '混沌护符',
@@ -181,7 +181,7 @@ return [
     ],
     'required_level' => 80,
   ],
-  13 =>
+
   [
     'id' => 136,
     'name' => '创世护符',
@@ -195,7 +195,7 @@ return [
     ],
     'required_level' => 90,
   ],
-  14 =>
+
   [
     'id' => 137,
     'name' => '神王护符',
@@ -209,4 +209,4 @@ return [
     ],
     'required_level' => 100,
   ],
-)
+];

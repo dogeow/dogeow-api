@@ -2,7 +2,7 @@
 
 // 由 php artisan game:export-seeder-definitions 从数据库导出，供 GameSeeder 使用
 return [
-  0 =>
+
   [
     'id' => 53,
     'name' => '布衣',
@@ -14,12 +14,9 @@ return [
       'defense' => 5,
     ],
     'required_level' => 1,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  1 =>
+
   [
     'id' => 54,
     'name' => '皮甲',
@@ -31,12 +28,9 @@ return [
       'defense' => 12,
     ],
     'required_level' => 5,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  2 =>
+
   [
     'id' => 55,
     'name' => '锁子甲',
@@ -48,12 +42,9 @@ return [
       'defense' => 25,
     ],
     'required_level' => 10,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  3 =>
+
   [
     'id' => 56,
     'name' => '板甲',
@@ -65,12 +56,9 @@ return [
       'defense' => 40,
     ],
     'required_level' => 15,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  4 =>
+
   [
     'id' => 57,
     'name' => '秘银甲',
@@ -82,12 +70,9 @@ return [
       'defense' => 65,
     ],
     'required_level' => 20,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  5 =>
+
   [
     'id' => 58,
     'name' => '龙鳞甲',
@@ -100,12 +85,9 @@ return [
       'defense' => 100,
     ],
     'required_level' => 25,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  6 =>
+
   [
     'id' => 59,
     'name' => '神之铠甲',
@@ -117,12 +99,9 @@ return [
       'defense' => 20,
     ],
     'required_level' => 30,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  7 =>
+
   [
     'id' => 60,
     'name' => '圣骑士铠甲',
@@ -135,12 +114,9 @@ return [
       'vitality' => 30,
     ],
     'required_level' => 40,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  8 =>
+
   [
     'id' => 61,
     'name' => '天使铠甲',
@@ -153,12 +129,9 @@ return [
       'all_stats' => 15,
     ],
     'required_level' => 50,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  9 =>
+
   [
     'id' => 62,
     'name' => '神圣铠甲',
@@ -171,12 +144,9 @@ return [
       'vitality' => 50,
     ],
     'required_level' => 60,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  10 =>
+
   [
     'id' => 63,
     'name' => '永恒铠甲',
@@ -189,12 +159,9 @@ return [
       'all_stats' => 25,
     ],
     'required_level' => 70,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  11 =>
+
   [
     'id' => 64,
     'name' => '混沌铠甲',
@@ -207,12 +174,9 @@ return [
       'vitality' => 80,
     ],
     'required_level' => 80,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  12 =>
+
   [
     'id' => 65,
     'name' => '创世铠甲',
@@ -225,12 +189,9 @@ return [
       'all_stats' => 40,
     ],
     'required_level' => 90,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-  13 =>
+
   [
     'id' => 66,
     'name' => '神王铠甲',
@@ -243,9 +204,6 @@ return [
       'vitality' => 120,
     ],
     'required_level' => 100,
-    'required_strength' => 0,
-    'required_dexterity' => 0,
-    'required_energy' => 0,
     'sockets' => 0,
   ],
-)
+];
