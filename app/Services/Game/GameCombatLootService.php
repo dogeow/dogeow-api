@@ -140,7 +140,8 @@ class GameCombatLootService
         }
 
         $basePrice = $definition->base_stats['price'] ?? 10;
-        $sellPrice = (int) ($basePrice * $qualityMultiplier * 0.5);
+        $sellRatio = config('game.shop.sell_ratio', 0.3);
+        $sellPrice = (int) ($basePrice * $qualityMultiplier * $sellRatio);
 
         $item = GameItem::create([
             'character_id' => $character->id,

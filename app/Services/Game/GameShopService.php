@@ -105,7 +105,7 @@ class GameShopService
                 'icon' => $definition->icon,
                 'description' => $definition->description,
                 'buy_price' => $buyPrice,
-                'sell_price' => (int) floor($buyPrice * 0.3),
+                'sell_price' => (int) floor($buyPrice * config('game.shop.sell_ratio', 0.3)),
             ];
         });
     }
@@ -124,7 +124,9 @@ class GameShopService
             ->orderBy('required_level')
             ->get();
 
-        $shopSize = rand(20, 25);
+        $shopSizeMin = config('game.shop.equipment_count_min', 20);
+        $shopSizeMax = config('game.shop.equipment_count_max', 25);
+        $shopSize = rand($shopSizeMin, $shopSizeMax);
         $selectedEquipments = $equipmentDefinitions->shuffle()->take($shopSize);
 
         return $selectedEquipments->map(function ($definition) {
@@ -153,11 +155,26 @@ class GameShopService
     {
         $rand = rand(1, 100);
 
-        // 品质概率分布（基于需求等级调整）
-        $mythicChance = min(1, $requiredLevel * 0.2); // 1%-21%
-        $legendaryChance = $mythicChance + min(5, $requiredLevel * 0.5); // 5%-26%
-        $rareChance = $legendaryChance + 15; // 20%-41%
-        $magicChance = $rareChance + 30; // 50%-71%
+        // 从配置读取品质概率
+        $qualityConfig = config('game.shop.quality_chance', []);
+
+        $mythicBase = $qualityConfig['mythic']['base'] ?? 0;
+        $mythicPerLevel = $qualityConfig['mythic']['per_level'] ?? 0.2;
+        $mythicMax = $qualityConfig['mythic']['max'] ?? 21;
+        $mythicChance = min($mythicMax, $mythicBase + $requiredLevel * $mythicPerLevel);
+
+        $legendaryBase = $qualityConfig['legendary']['base'] ?? 0;
+        $legendaryPerLevel = $qualityConfig['legendary']['per_level'] ?? 0.5;
+        $legendaryMax = $qualityConfig['legendary']['max'] ?? 26;
+        $legendaryChance = min($legendaryMax, $legendaryBase + $requiredLevel * $legendaryPerLevel);
+
+        $rareBase = $qualityConfig['rare']['base'] ?? 15;
+        $rareMax = $qualityConfig['rare']['max'] ?? 41;
+        $rareChance = min($rareMax, $rareBase + $requiredLevel * ($qualityConfig['rare']['per_level'] ?? 0));
+
+        $magicBase = $qualityConfig['magic']['base'] ?? 30;
+        $magicMax = $qualityConfig['magic']['max'] ?? 71;
+        $magicChance = min($magicMax, $magicBase + $requiredLevel * ($qualityConfig['magic']['per_level'] ?? 0));
 
         if ($rand <= $mythicChance) {
             return 'mythic';
@@ -272,43 +289,24 @@ class GameShopService
             return $basePrice;
         }
 
-        $levelMultiplier = 1 + ($item->required_level * 0.5);
+        // 从配置读取
+        $levelMultiplierConfig = config('game.shop.level_price_multiplier', 0.5);
+        $levelMultiplier = 1 + ($item->required_level * $levelMultiplierConfig);
 
         // 品质价格乘数
-        $qualityMultiplier = match ($quality) {
-            'mythic' => 2.5,
-            'legendary' => 2.0,
-            'rare' => 1.6,
-            'magic' => 1.3,
-            default => 1.0,
-        };
+        $qualityMultiplierConfig = config('game.shop.quality_price_multiplier', []);
+        $qualityMultiplier = $qualityMultiplierConfig[$quality] ?? 1.0;
 
-        $typeBasePrice = match ($item->type) {
-            'potion' => 10,
-            'weapon' => 50,
-            'helmet' => 30,
-            'armor' => 40,
-            'gloves' => 20,
-            'boots' => 20,
-            'belt' => 25,
-            'ring' => 35,
-            'amulet' => 45,
-            default => 20,
-        };
+        // 基础价格（按类型）
+        $typeBasePriceConfig = config('game.shop.type_base_price', []);
+        $typeBasePrice = $typeBasePriceConfig[$item->type] ?? 20;
 
+        // 属性价格计算
+        $statPriceConfig = config('game.shop.stat_price', []);
         $statsPrice = 0;
         foreach ($stats as $stat => $value) {
-            $statValue = match ($stat) {
-                'attack' => $value * 5,
-                'defense' => $value * 4,
-                'max_hp', 'max_mana' => $value * 0.5,
-                'crit_rate' => $value * 100,
-                'crit_damage' => $value * 2,
-                'strength', 'dexterity', 'vitality', 'energy' => $value * 10,
-                'all_stats' => $value * 40,
-                default => $value * 2,
-            };
-            $statsPrice += $statValue;
+            $statMultiplier = $statPriceConfig[$stat] ?? 2;
+            $statsPrice += $value * $statMultiplier;
         }
 
         return (int) (($typeBasePrice + $statsPrice) * $levelMultiplier * $qualityMultiplier * 100);
@@ -488,7 +486,8 @@ class GameShopService
     {
         $buyPrice = $this->calculateBuyPrice($item->definition);
         $qualityMultiplier = GameItem::QUALITY_MULTIPLIERS[$item->quality] ?? 1.0;
+        $sellRatio = config('game.shop.sell_ratio', 0.3);
 
-        return (int) ($buyPrice * $qualityMultiplier * 0.5);
+        return (int) ($buyPrice * $qualityMultiplier * $sellRatio);
     }
 }

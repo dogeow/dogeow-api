@@ -81,7 +81,6 @@ class CombatRoundProcessor
         $newSkillsAggregated = $this->aggregateSkillsUsed($skillsUsedThisRound, $skillsUsedAggregated);
         $hasAliveMonster = $this->hasAliveMonster($monstersUpdated);
 
-        // 经验、货币
         [$totalExperience, $totalCopper] = $this->calculateRoundDeathRewards(
             $monstersUpdated,
             $hpAtRoundStart,
@@ -238,11 +237,13 @@ class CombatRoundProcessor
             }
 
             $mDefense = (int) ($m['defense'] ?? 0);
-            $baseDamage = $charAttack - $mDefense * 0.5;
+            $defenseReduction = config('game.combat.defense_reduction', 0.5);
+            $baseDamage = $charAttack - $mDefense * $defenseReduction;
             $damage = $skillDamage > 0
                 ? (int) ($baseDamage + $skillDamage)
                 : (int) ($baseDamage * ($isCrit ? $charCritDamage : 1));
-            $targetDamage = $useAoe ? (int) ($damage * 0.7) : $damage;
+            $aoeMultiplier = config('game.combat.aoe_damage_multiplier', 0.7);
+            $targetDamage = $useAoe ? (int) ($damage * $aoeMultiplier) : $damage;
 
             $m['hp'] = max(0, ($m['hp'] ?? 0) - $targetDamage);
             $m['damage_taken'] = $targetDamage;
@@ -294,7 +295,8 @@ class CombatRoundProcessor
                 continue;
             }
             $monsterAttack = $m['attack'] ?? 0;
-            $monsterDamage = $monsterAttack - $charDefense * 0.3;
+            $monsterDefenseReduction = config('game.combat.monster_defense_reduction', 0.3);
+            $monsterDamage = $monsterAttack - $charDefense * $monsterDefenseReduction;
             if ($monsterDamage > 0) {
                 $total += (int) $monsterDamage;
             }
@@ -398,14 +400,21 @@ class CombatRoundProcessor
         $dropTable = $definition->drop_table ?? [];
         $level = $monster['level'] ?? $definition->level;
 
-        $copperChance = $dropTable['copper_chance']
-            ?? config('game.copper_drop_defaults.chance', 0.1);
+        // 优先使用怪物 drop_table 的配置，否则用全局配置
+        $copperConfig = config('game.copper_drop');
+        if (! empty($dropTable['copper_chance'])) {
+            $copperChance = $dropTable['copper_chance'];
+            $base = (int) ($dropTable['copper_base'] ?? $copperConfig['base']);
+            $range = (int) ($dropTable['copper_range'] ?? $copperConfig['range']);
+        } else {
+            $copperChance = $copperConfig['chance'];
+            $base = $copperConfig['base'];
+            $range = $copperConfig['range'];
+        }
+
         if (! $this->rollChanceForProcessor($copperChance)) {
             return 0;
         }
-
-        $base = (int) ($dropTable['copper_base'] ?? max(1, $level));
-        $range = (int) ($dropTable['copper_range'] ?? max(0, $level));
 
         return random_int($base, $base + $range);
     }

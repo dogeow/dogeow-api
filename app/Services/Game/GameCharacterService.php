@@ -294,13 +294,16 @@ class GameCharacterService
             return $this->formatOfflineRewards($offlineSeconds, false);
         }
 
-        // 最多24小时
-        $offlineSeconds = min($offlineSeconds, 86400);
+        // 最多24小时（从配置读取）
+        $maxSeconds = config('game.offline_rewards.max_seconds', 86400);
+        $offlineSeconds = min($offlineSeconds, $maxSeconds);
 
-        // 计算奖励
+        // 计算奖励（从配置读取系数）
         $level = $character->level;
-        $experience = $level * $offlineSeconds;
-        $copper = (int) ($level * $offlineSeconds * 0.5);
+        $expPerLevel = config('game.offline_rewards.experience_per_level', 1);
+        $copperPerLevel = config('game.offline_rewards.copper_per_level', 0.5);
+        $experience = (int) ($level * $offlineSeconds * $expPerLevel);
+        $copper = (int) ($level * $offlineSeconds * $copperPerLevel);
 
         // 检查是否升级
         $currentExp = $character->experience;
