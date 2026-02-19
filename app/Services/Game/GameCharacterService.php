@@ -414,7 +414,7 @@ class GameCharacterService
      */
     private function getStartingCopper(string $class): int
     {
-        return config("game.starting_copper.{$class}", 100);
+        return config("game.starting_copper.{$class}", 0);
     }
 
     /**
