@@ -7,6 +7,24 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Check if running on MySQL
+     */
+    private function isMySQL(): bool
+    {
+        return DB::connection()->getDriverName() === 'mysql';
+    }
+
+    /**
+     * Add table comment (MySQL only)
+     */
+    private function setTableComment(string $table, string $comment): void
+    {
+        if ($this->isMySQL()) {
+            DB::statement("ALTER TABLE {$table} COMMENT = '{$comment}'");
+        }
+    }
+
     public function up(): void
     {
         // ==================== 游戏角色表 ====================
@@ -48,7 +66,7 @@ return new class extends Migration
 
             $table->unique(['user_id', 'name']);
         });
-        DB::statement("ALTER TABLE game_characters COMMENT = '游戏角色表'");
+        $this->setTableComment('game_characters', '游戏角色表');
 
         // ==================== 游戏物品定义表 ====================
         Schema::create('game_item_definitions', function (Blueprint $table) {
@@ -71,7 +89,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true)->comment('是否启用');
             $table->timestamps();
         });
-        DB::statement("ALTER TABLE game_item_definitions COMMENT = '物品定义表（装备、药水等的模板）'");
+        $this->setTableComment('game_item_definitions', '物品定义表（装备、药水等的模板）');
 
         // ==================== 游戏物品实例表 ====================
         Schema::create('game_items', function (Blueprint $table) {
@@ -88,7 +106,7 @@ return new class extends Migration
             $table->unsignedInteger('sell_price')->nullable()->comment('出售价格');
             $table->timestamps();
         });
-        DB::statement("ALTER TABLE game_items COMMENT = '角色背包物品表'");
+        $this->setTableComment('game_items', '角色背包物品表');
 
         // ==================== 角色装备槽位表 ====================
         Schema::create('game_equipment', function (Blueprint $table) {
@@ -103,7 +121,7 @@ return new class extends Migration
 
             $table->unique(['character_id', 'slot']);
         });
-        DB::statement("ALTER TABLE game_equipment COMMENT = '角色装备表'");
+        $this->setTableComment('game_equipment', '角色装备表');
 
         // ==================== 宝石镶嵌表 ====================
         Schema::create('game_item_gems', function (Blueprint $table) {
@@ -115,7 +133,7 @@ return new class extends Migration
 
             $table->index('item_id');
         });
-        DB::statement("ALTER TABLE game_item_gems COMMENT = '宝石镶嵌表'");
+        $this->setTableComment('game_item_gems', '宝石镶嵌表');
 
         // ==================== 技能定义表 ====================
         Schema::create('game_skill_definitions', function (Blueprint $table) {
@@ -137,7 +155,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true)->comment('是否启用');
             $table->timestamps();
         });
-        DB::statement("ALTER TABLE game_skill_definitions COMMENT = '技能定义表'");
+        $this->setTableComment('game_skill_definitions', '技能定义表');
 
         // ==================== 角色已学技能表 ====================
         Schema::create('game_character_skills', function (Blueprint $table) {
@@ -150,7 +168,7 @@ return new class extends Migration
 
             $table->unique(['character_id', 'skill_id']);
         });
-        DB::statement("ALTER TABLE game_character_skills COMMENT = '角色已学技能表'");
+        $this->setTableComment('game_character_skills', '角色已学技能表');
 
         // ==================== 地图定义表 ====================
         Schema::create('game_map_definitions', function (Blueprint $table) {
@@ -167,7 +185,7 @@ return new class extends Migration
 
             $table->unique(['name', 'act']);
         });
-        DB::statement("ALTER TABLE game_map_definitions COMMENT = '地图定义表'");
+        $this->setTableComment('game_map_definitions', '地图定义表');
 
         // ==================== 怪物定义表 ====================
         Schema::create('game_monster_definitions', function (Blueprint $table) {
@@ -188,7 +206,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true)->comment('是否启用');
             $table->timestamps();
         });
-        DB::statement("ALTER TABLE game_monster_definitions COMMENT = '怪物定义表'");
+        $this->setTableComment('game_monster_definitions', '怪物定义表');
 
         // ==================== 战斗日志表 ====================
         Schema::create('game_combat_logs', function (Blueprint $table) {
@@ -208,7 +226,7 @@ return new class extends Migration
 
             $table->index(['character_id', 'created_at']);
         });
-        DB::statement("ALTER TABLE game_combat_logs COMMENT = '战斗日志表'");
+        $this->setTableComment('game_combat_logs', '战斗日志表');
     }
 
     public function down(): void

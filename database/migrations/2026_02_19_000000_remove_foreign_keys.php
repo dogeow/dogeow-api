@@ -6,10 +6,22 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration
 {
     /**
+     * Check if running on MySQL
+     */
+    private function isMySQL(): bool
+    {
+        return DB::connection()->getDriverName() === 'mysql';
+    }
+
+    /**
      * Run the migrations.
      */
     public function up(): void
     {
+        if (!$this->isMySQL()) {
+            return;
+        }
+
         // 移除所有 game_ 表的外键约束
         $foreignKeys = DB::select("
             SELECT TABLE_NAME, CONSTRAINT_NAME

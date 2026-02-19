@@ -15,10 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->unsignedBigInteger('created_by')->index();
+            $table->unsignedBigInteger('created_by');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            
+
             // Indexes for performance
             $table->index(['is_active', 'created_at']);
             $table->index('created_by');

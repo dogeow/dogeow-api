@@ -22,7 +22,7 @@ return new class extends Migration
         // 使用原生 SQL 修改 user_id 字段为可空
         // 注意：如果外键约束存在，可能需要先删除再重新添加
         // 在 sqlite 中 information_schema 不可用，跳过复杂的原生 SQL 修改（测试环境通常使用 sqlite）
-        if (DB::getDriverName() !== 'sqlite') {
+        if (DB::connection()->getDriverName() === 'mysql') {
             try {
                 DB::statement('ALTER TABLE notes MODIFY COLUMN user_id BIGINT UNSIGNED NULL');
             } catch (\Exception $e) {

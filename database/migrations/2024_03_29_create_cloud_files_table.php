@@ -20,11 +20,11 @@ return new class extends Migration
             $table->string('extension', 20)->nullable();
             $table->unsignedBigInteger('size')->default(0);
             $table->unsignedBigInteger('parent_id')->nullable();
-            $table->unsignedBigInteger('user_id')->index();
+            $table->unsignedBigInteger('user_id');
             $table->boolean('is_folder')->default(false);
             $table->text('description')->nullable();
             $table->timestamps();
-            
+
             $table->index('parent_id');
             $table->index('user_id');
             $table->index('is_folder');
