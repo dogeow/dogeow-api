@@ -420,6 +420,18 @@ class GameCombatService
     }
 
     /**
+     * 获取单条战斗日志详情
+     *
+     * @param GameCharacter $character 角色实例
+     * @param int $logId 日志ID
+     * @return array 日志详情
+     */
+    public function getCombatLogDetail(GameCharacter $character, int $logId): array
+    {
+        return $this->combatLogService->getCombatLogDetail($character, $logId);
+    }
+
+    /**
      * 获取战斗统计
      *
      * @param GameCharacter $character 角色实例

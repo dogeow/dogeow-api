@@ -8,6 +8,26 @@ use App\Models\Game\GameMonsterDefinition;
 
 class GameMonsterService
 {
+    // 怪物刷新间隔（秒），从配置中读取，默认60秒
+    protected function getRefreshInterval(): int
+    {
+        return config('game.combat.monster_refresh_interval', 60);
+    }
+
+    /**
+     * 检查怪物是否需要刷新
+     */
+    protected function shouldRefreshMonsters(GameCharacter $character): bool
+    {
+        $refreshedAt = $character->combat_monsters_refreshed_at;
+        if ($refreshedAt === null) {
+            return true;
+        }
+
+        $interval = $this->getRefreshInterval();
+        return $refreshedAt->addSeconds($interval)->isPast();
+    }
+
     /**
      * 从角色获取现有怪物或生成新怪物
      */
@@ -24,11 +44,15 @@ class GameMonsterService
             }
         }
 
-        if ($character->hasActiveCombat() && $hasAliveMonster) {
+        // 检查是否需要刷新怪物（定期从数据库读取最新属性）
+        $shouldRefresh = $this->shouldRefreshMonsters($character);
+
+        if ($character->hasActiveCombat() && $hasAliveMonster && !$shouldRefresh) {
             return $this->loadExistingMonsters($character, $existingMonsters);
         }
 
-        return $this->generateNewMonsters($character, $map, $existingMonsters);
+        // 需要刷新怪物：重新生成
+        return $this->generateNewMonsters($character, $map, $existingMonsters, $shouldRefresh);
     }
 
     /**
@@ -69,8 +93,9 @@ class GameMonsterService
 
     /**
      * 生成新怪物 (1-5个)
+     * @param bool $isRefresh 是否是刷新（保留现有HP）
      */
-    public function generateNewMonsters(GameCharacter $character, GameMapDefinition $map, array $existingMonsters): array
+    public function generateNewMonsters(GameCharacter $character, GameMapDefinition $map, array $existingMonsters, bool $isRefresh = false): array
     {
         $monsters = $map->getMonsters();
         if (empty($monsters)) {
@@ -84,6 +109,16 @@ class GameMonsterService
         $baseMonster = $monsters[array_rand($monsters)];
         $baseLevel = max(1, $baseMonster->level + rand(-3, 3));
 
+        // 如果是刷新，保留现有怪物的HP
+        $existingByPosition = [];
+        if ($isRefresh && !empty($existingMonsters)) {
+            foreach ($existingMonsters as $m) {
+                if (is_array($m) && isset($m['position'])) {
+                    $existingByPosition[$m['position']] = $m;
+                }
+            }
+        }
+
         $monsterDataList = [];
         for ($i = 0; $i < $monsterCount; $i++) {
             $level = $baseLevel + rand(-1, 1);
@@ -91,32 +126,45 @@ class GameMonsterService
             $stats = $baseMonster->getCombatStats();
             $maxHp = (int) ($stats['hp'] * $difficulty['monster_hp']);
 
+            // 固定槽位位置，确保刷新时怪物位置一致
+            $slot = $i;
+
+            // 如果是刷新且该位置有现有怪物，保留HP
+            $hp = $maxHp;
+            if ($isRefresh && isset($existingByPosition[$slot])) {
+                $existing = $existingByPosition[$slot];
+                // 保持现有HP，但不超出新maxHp
+                $hp = min($existing['hp'] ?? $maxHp, $maxHp);
+            }
+
             $monsterDataList[] = [
                 'id' => $baseMonster->id,
-                'instance_id' => uniqid('m-', true), // 唯一实例ID，用于前端检测新怪物
+                'instance_id' => $isRefresh && isset($existingByPosition[$slot])
+                    ? ($existingByPosition[$slot]['instance_id'] ?? uniqid('m-', true))
+                    : uniqid('m-', true),
                 'name' => $baseMonster->name,
                 'type' => $baseMonster->type,
                 'level' => $level,
-                'hp' => $maxHp,
+                'hp' => $hp,
                 'max_hp' => $maxHp,
                 'attack' => (int) ($stats['attack'] * $difficulty['monster_damage']),
                 'defense' => (int) ($stats['defense'] * $difficulty['monster_damage']),
                 'experience' => (int) ($stats['experience'] * $difficulty['reward']),
+                'position' => $slot,
             ];
         }
 
-        // 固定5个槽位(0-4)，随机选择N个槽位放怪物，其余为null
-        $slotIndices = [0, 1, 2, 3, 4];
-        shuffle($slotIndices);
+        // 固定5个槽位(0-4)
         $newMonsters = array_fill(0, 5, null);
-        foreach ($monsterDataList as $idx => $data) {
-            $slot = $slotIndices[$idx];
-            $data['position'] = $slot;
+        foreach ($monsterDataList as $data) {
+            $slot = $data['position'];
             $newMonsters[$slot] = $data;
         }
 
         // 持久化怪物数组（5个槽位，可能包含null）
         $character->combat_monsters = $newMonsters;
+        // 更新刷新时间戳
+        $character->combat_monsters_refreshed_at = now();
         $character->combat_monster_id = $baseMonster->id;
         $character->combat_monster_level = $baseLevel;
         $character->combat_monster_hp = array_sum(array_column(array_filter($newMonsters, 'is_array'), 'hp'));

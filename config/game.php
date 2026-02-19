@@ -242,6 +242,8 @@ return [
     |--------------------------------------------------------------------------
     */
     'combat' => [
+        // 怪物属性刷新间隔（秒），定期从数据库重新读取怪物属性
+        'monster_refresh_interval' => env('COMBAT_MONSTER_REFRESH_INTERVAL', 60),
         // 攻击：每职业主属性及倍数（战士力量、游侠敏捷、法师能量）
         'attack' => [
             'warrior' => ['stat' => 'strength', 'multiplier' => 2],

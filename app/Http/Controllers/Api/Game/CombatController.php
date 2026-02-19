@@ -155,6 +155,21 @@ class CombatController extends Controller
     }
 
     /**
+     * 获取单条战斗日志详情
+     */
+    public function logDetail(Request $request, int $log): JsonResponse
+    {
+        try {
+            $character = $this->getCharacter($request);
+            $result = $this->combatService->getCombatLogDetail($character, $log);
+
+            return $this->success($result);
+        } catch (Throwable $e) {
+            return $this->error('获取战斗日志详情失败', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * 获取战斗统计
      */
     public function stats(Request $request): JsonResponse

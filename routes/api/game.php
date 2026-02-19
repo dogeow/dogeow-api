@@ -69,6 +69,7 @@ Route::prefix('rpg')->group(function () {
     Route::post('/combat/skills', [CombatController::class, 'updateSkills']);
     Route::post('/combat/execute', [CombatController::class, 'execute'])->middleware('combat.rate');
     Route::get('/combat/logs', [CombatController::class, 'logs']);
+    Route::get('/combat/logs/{log}', [CombatController::class, 'logDetail']);
     Route::get('/combat/stats', [CombatController::class, 'stats']);
     Route::post('/combat/potion-settings', [CombatController::class, 'updatePotionSettings']);
 

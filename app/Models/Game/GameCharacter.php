@@ -37,6 +37,7 @@ class GameCharacter extends Model
         'combat_monster_hp',
         'combat_monster_max_hp',
         'combat_monsters',
+        'combat_monsters_refreshed_at',
         'combat_total_damage_dealt',
         'combat_total_damage_taken',
         'combat_rounds',
@@ -61,6 +62,7 @@ class GameCharacter extends Model
             'combat_skills_used' => 'array',
             'combat_skill_cooldowns' => 'array',
             'combat_monsters' => 'array',
+            'combat_monsters_refreshed_at' => 'datetime',
             'combat_started_at' => 'datetime',
             'last_online' => 'datetime',
             'claimed_offline_at' => 'datetime',
@@ -161,6 +163,7 @@ class GameCharacter extends Model
         $this->combat_monster_hp = null;
         $this->combat_monster_max_hp = null;
         $this->combat_monsters = null;
+        $this->combat_monsters_refreshed_at = null;
         $this->combat_total_damage_dealt = 0;
         $this->combat_total_damage_taken = 0;
         $this->combat_rounds = 0;

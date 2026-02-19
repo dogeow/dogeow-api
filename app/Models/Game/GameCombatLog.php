@@ -20,6 +20,36 @@ class GameCombatLog extends Model
         'duration_seconds',
         'skills_used',
         'potion_used',
+        // 角色属性
+        'character_level',
+        'character_class',
+        'character_attack',
+        'character_defense',
+        'character_crit_rate',
+        'character_crit_damage',
+        // 怪物属性
+        'monster_level',
+        'monster_hp',
+        'monster_max_hp',
+        'monster_attack',
+        'monster_defense',
+        'monster_experience',
+        'monster_copper',
+        // 伤害详情
+        'base_attack_damage',
+        'skill_damage',
+        'crit_damage',
+        'aoe_damage',
+        'total_damage_to_monsters',
+        'monster_defense_reduction',
+        'monster_counter_damage',
+        // 战斗详情
+        'round_number',
+        'monsters_alive_count',
+        'monsters_killed_count',
+        // 难度相关
+        'difficulty_tier',
+        'difficulty_multiplier',
     ];
 
     protected function casts(): array

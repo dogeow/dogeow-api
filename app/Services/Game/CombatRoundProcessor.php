@@ -14,7 +14,7 @@ class CombatRoundProcessor
     /**
      * 处理一回合战斗（支持多怪物）
      *
-     * @return array{round_damage_dealt: int, round_damage_taken: int, new_monster_hp: int, new_char_hp: int, new_char_mana: int, defeat: bool, has_alive_monster: bool, skills_used_this_round: array, new_cooldowns: array, new_skills_aggregated: array, monsters_updated: array, experience_gained: int, copper_gained: int}
+     * @return array{round_damage_dealt: int, round_damage_taken: int, new_monster_hp: int, new_char_hp: int, new_char_mana: int, defeat: bool, has_alive_monster: bool, skills_used_this_round: array, new_cooldowns: array, new_skills_aggregated: array, monsters_updated: array, experience_gained: int, copper_gained: int, round_details: array}
      */
     public function processOneRound(
         GameCharacter $character,
@@ -35,6 +35,10 @@ class CombatRoundProcessor
 
         $monsters = $character->combat_monsters ?? [];
         $difficulty = $character->getDifficultyMultipliers();
+
+        // 统计本回合开始时的怪物信息
+        $aliveMonstersAtStart = array_filter($monsters, fn ($m) => is_array($m) && ($m['hp'] ?? 0) > 0);
+        $monstersKilledThisRound = 0;
 
         $hpAtRoundStart = [];
         foreach ($monsters as $idx => $m) {
@@ -62,6 +66,40 @@ class CombatRoundProcessor
         $skillTargetPositions = array_map(fn ($m) => $m['position'] ?? null, $targetMonsters);
         $skillTargetPositions = array_filter($skillTargetPositions, fn ($p) => $p !== null);
 
+        // 伤害构成详情
+        $baseAttackDamage = 0;
+        $critDamageAmount = 0;
+        $aoeDamageAmount = 0;
+
+        // 计算基础攻击伤害（用于日志）
+        if (empty($targetMonsters)) {
+            // 没有目标，不造成伤害
+            $baseAttackDamage = 0;
+        } elseif ($skillDamage > 0) {
+            // 使用技能伤害
+            $baseAttackDamage = $skillDamage;
+        } else {
+            // 普通攻击
+            $defenseReduction = config('game.combat.defense_reduction', 0.5);
+            // 取第一个目标怪物的防御力计算
+            $firstTarget = reset($targetMonsters);
+            $targetDefense = is_array($firstTarget) ? ($firstTarget['defense'] ?? 0) : 0;
+            $baseAttackDamage = max(0, (int) ($charAttack - $targetDefense * $defenseReduction));
+            if ($isCrit) {
+                $critDamageAmount = (int) ($baseAttackDamage * ($charCritDamage - 1));
+                $baseAttackDamage = (int) ($baseAttackDamage * $charCritDamage);
+            }
+        }
+
+        // AOE 伤害计算（用于日志）
+        if ($useAoe) {
+            $aoeMultiplier = config('game.combat.aoe_damage_multiplier', 0.7);
+            $targetCount = count($targetMonsters);
+            if ($targetCount > 1) {
+                $aoeDamageAmount = (int) ($baseAttackDamage * (1 - $aoeMultiplier) * $targetCount);
+            }
+        }
+
         [$monstersUpdated, $totalDamageDealt] = $this->applyCharacterDamageToMonsters(
             $monsters,
             $targetMonsters,
@@ -71,6 +109,13 @@ class CombatRoundProcessor
             $charCritDamage,
             $useAoe
         );
+
+        // 统计本回合杀死的怪物数量
+        foreach ($monstersUpdated as $idx => $m) {
+            if (is_array($m) && ($hpAtRoundStart[$idx] ?? 0) > 0 && ($m['hp'] ?? 0) <= 0) {
+                $monstersKilledThisRound++;
+            }
+        }
 
         $totalMonsterDamage = $this->calculateMonsterCounterDamage($monstersUpdated, $charDefense);
         $charHp -= $totalMonsterDamage;
@@ -87,6 +132,55 @@ class CombatRoundProcessor
             $difficulty
         );
 
+        // 获取第一个存活怪物的详细信息
+        $firstAliveMonster = null;
+        foreach ($monstersUpdated as $m) {
+            if (is_array($m) && ($m['hp'] ?? 0) > 0) {
+                $firstAliveMonster = $m;
+                break;
+            }
+        }
+
+        // 收集详细信息用于日志
+        $roundDetails = [
+            'character' => [
+                'level' => $character->level,
+                'class' => $character->class,
+                'attack' => $charAttack,
+                'defense' => $charDefense,
+                'crit_rate' => $charCritRate,
+                'crit_damage' => $charCritDamage,
+            ],
+            'monster' => $firstAliveMonster ? [
+                'level' => $firstAliveMonster['level'] ?? 1,
+                'hp' => $firstAliveMonster['hp'] ?? 0,
+                'max_hp' => $firstAliveMonster['max_hp'] ?? 0,
+                'attack' => $firstAliveMonster['attack'] ?? 0,
+                'defense' => $firstAliveMonster['defense'] ?? 0,
+                'experience' => $firstAliveMonster['experience'] ?? 0,
+            ] : null,
+            'damage' => [
+                'base_attack' => $baseAttackDamage,
+                'skill_damage' => $skillDamage,
+                'crit_damage' => $critDamageAmount,
+                'aoe_damage' => $aoeDamageAmount,
+                'total' => $totalDamageDealt,
+                'defense_reduction' => config('game.combat.defense_reduction', 0.5),
+                'monster_counter' => $totalMonsterDamage,
+            ],
+            'battle' => [
+                'round' => $currentRound,
+                'alive_count' => count($aliveMonstersAtStart),
+                'killed_count' => $monstersKilledThisRound,
+                'is_crit' => $isCrit,
+                'is_aoe' => $useAoe,
+            ],
+            'difficulty' => [
+                'tier' => $character->difficulty_tier ?? 0,
+                'multiplier' => $difficulty['reward'] ?? 1,
+            ],
+        ];
+
         return [
             'round_damage_dealt' => $totalDamageDealt,
             'round_damage_taken' => $totalMonsterDamage,
@@ -102,6 +196,7 @@ class CombatRoundProcessor
             'monsters_updated' => $monstersUpdated,
             'experience_gained' => $totalExperience,
             'copper_gained' => $totalCopper,
+            'round_details' => $roundDetails,
         ];
     }
 
