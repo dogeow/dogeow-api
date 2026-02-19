@@ -486,6 +486,7 @@ class CombatRoundProcessor
 
             $m['hp'] = max(0, ($m['hp'] ?? 0) - $targetDamage);
             $m['damage_taken'] = $targetDamage;
+            $m['was_attacked'] = true; // 标记该怪物被攻击
             $totalDamageDealt += $targetDamage;
             $monstersUpdated[$idx] = $m;
         }
