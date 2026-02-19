@@ -50,6 +50,14 @@ class AutoCombatRoundJob implements ShouldQueue
         }
 
         try {
+            // 先检查是否需要刷新怪物，如果需要则广播怪物出现
+            if ($combatService->shouldRefreshMonsters($character)) {
+                $map = $character->currentMap;
+                if ($map) {
+                    $combatService->broadcastMonstersAppear($character, $map);
+                }
+            }
+
             $result = $combatService->executeRound($character, $skillIds);
         } catch (RuntimeException|InvalidArgumentException $e) {
             $this->broadcastAutoStoppedAndCleanup($character, $e, $key);

@@ -34,6 +34,35 @@ class GameCombatService
     ) {}
 
     /**
+     * 检查怪物是否需要刷新
+     */
+    public function shouldRefreshMonsters(GameCharacter $character): bool
+    {
+        return $this->monsterService->shouldRefreshMonsters($character);
+    }
+
+    /**
+     * 广播怪物出现（不处理攻击）
+     */
+    public function broadcastMonstersAppear(GameCharacter $character, GameMapDefinition $map): void
+    {
+        // 刷新怪物
+        $this->monsterService->generateNewMonsters($character, $map, $character->combat_monsters ?? [], true);
+
+        // 广播怪物出现
+        $monsterData = $this->monsterService->formatMonstersForResponse($character);
+        $monstersAppear = [
+            'type' => 'monsters_appear',
+            'monsters' => $monsterData['monsters'],
+            'character' => [
+                'current_hp' => $character->getCurrentHp(),
+                'current_mana' => $character->getCurrentMana(),
+            ],
+        ];
+        broadcast(new \App\Events\Game\GameCombatUpdate($character->id, $monstersAppear));
+    }
+
+    /**
      * 获取战斗状态
      *
      * @param GameCharacter $character 角色实例
@@ -213,7 +242,12 @@ class GameCombatService
 
         // 当部分怪物死亡时总是尝试添加新怪物
         // 这实现了连续战斗流程：怪物随着死亡立即重生，而不是等待所有怪物死亡
-        $roundResult = $this->monsterService->tryAddNewMonsters($character, $map, $roundResult, $currentRound);
+        // 注意：怪物刷新现在只在自动战斗 Job 中处理，这里只处理怪物死亡后补充
+        // 只有当怪物全部死亡时才补充新怪物
+        $isAllDead = !($roundResult['has_alive_monster'] ?? true);
+        if ($isAllDead) {
+            $roundResult = $this->monsterService->tryAddNewMonsters($character, $map, $roundResult, $currentRound);
+        }
 
         // 为本回合死亡的怪物发放经验和铜币
         $expGained = $roundResult['experience_gained'] ?? 0;
@@ -237,12 +271,6 @@ class GameCombatService
         // 获取当前怪物列表用于响应（固定5个槽位）
         $monsterData = $this->monsterService->formatMonstersForResponse($character);
         $fixedMonsters = $monsterData['monsters'];
-        // 调试日志
-        foreach ($fixedMonsters as $fm) {
-            if (is_array($fm)) {
-                \Log::info('Monster damage_taken', ['name' => $fm['name'] ?? '', 'damage_taken' => $fm['damage_taken'] ?? 'N/A']);
-            }
-        }
         $firstAliveMonster = $monsterData['first_alive_monster'];
 
         // 创建战斗日志
@@ -264,8 +292,8 @@ class GameCombatService
                 'name' => $firstAliveMonster['name'] ?? $monster->name,
                 'type' => $firstAliveMonster['type'] ?? $monster->type,
                 'level' => $firstAliveMonster['level'] ?? $monsterLevel,
-                'hp' => max(0, $roundResult['new_monster_hp']),
-                'max_hp' => max(0, $roundResult['new_monster_max_hp']),
+                'hp' => max(0, $roundResult['new_monster_hp'] ?? $monsterHp),
+                'max_hp' => max(0, $roundResult['new_monster_max_hp'] ?? $monsterMaxHp),
             ],
             'monster_hp_before_round' => $monsterHp,
             'damage_dealt' => $roundResult['round_damage_dealt'],
@@ -382,7 +410,7 @@ class GameCombatService
                 'name' => $monster->name,
                 'type' => $monster->type,
                 'level' => $monsterLevel,
-                'hp' => max(0, $roundResult['new_monster_hp']),
+                'hp' => max(0, $roundResult['new_monster_hp'] ?? $monsterHpBeforeRound),
                 'max_hp' => $monsterMaxHp,
             ],
             'monster_hp_before_round' => $monsterHpBeforeRound,

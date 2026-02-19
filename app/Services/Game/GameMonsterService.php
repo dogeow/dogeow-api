@@ -17,7 +17,7 @@ class GameMonsterService
     /**
      * 检查怪物是否需要刷新
      */
-    protected function shouldRefreshMonsters(GameCharacter $character): bool
+    public function shouldRefreshMonsters(GameCharacter $character): bool
     {
         $refreshedAt = $character->combat_monsters_refreshed_at;
         if ($refreshedAt === null) {
@@ -289,7 +289,6 @@ class GameMonsterService
     public function formatMonstersForResponse(GameCharacter $character): array
     {
         $currentMonsters = $character->combat_monsters ?? [];
-        \Log::info('formatMonstersForResponse', ['monsters' => $currentMonsters]);
         $fixedMonsters = array_fill(0, 5, null);
         for ($idx = 0; $idx < 5; $idx++) {
             $m = $currentMonsters[$idx] ?? null;
