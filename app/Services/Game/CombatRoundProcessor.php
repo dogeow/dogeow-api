@@ -107,6 +107,7 @@ class CombatRoundProcessor
 
     /**
      * 解析本回合使用的技能（蓝量、冷却、单体/群体）
+     * 智能选择：根据怪物血量和数量、技能伤害和消耗来决定使用最佳技能
      *
      * @return array{mana: int, is_aoe: bool, skill_damage: int, skills_used_this_round: array, new_cooldowns: array}
      */
@@ -127,44 +128,187 @@ class CombatRoundProcessor
             ->with('skill')
             ->get();
 
-        foreach ($requestedSkillIds as $rid) {
-            foreach ($activeSkills as $charSkill) {
-                if ($charSkill->skill_id !== $rid) {
-                    continue;
-                }
-                $skill = $charSkill->skill;
-                $cooldownEnd = $newCooldowns[$rid] ?? 0;
-                if ($currentMana >= $skill->mana_cost && $cooldownEnd <= $currentRound) {
-                    $skillDamage = (int) $skill->damage;
-                    $currentMana -= $skill->mana_cost;
-                    $newCooldowns[$rid] = $currentRound + (int) $skill->cooldown;
-                    $skillsUsedThisRound[] = [
-                        'skill_id' => $skill->id,
-                        'name' => $skill->name,
-                        'icon' => $skill->icon,
-                        'target_type' => $skill->target_type ?? 'single',
-                    ];
-                    $isAoeSkill = ($skill->target_type ?? 'single') === 'all';
+        // 获取当前怪物信息用于智能选择
+        $monsters = $character->combat_monsters ?? [];
+        $aliveMonsters = array_filter($monsters, fn ($m) => is_array($m) && ($m['hp'] ?? 0) > 0);
+        $aliveMonsterCount = count($aliveMonsters);
+        $lowHpMonsters = array_filter($aliveMonsters, fn ($m) => is_array($m) && ($m['hp'] ?? 0) > 0 && ($m['hp'] ?? 0) <= ($m['max_hp'] ?? 100) * 0.3);
+        $lowHpMonsterCount = count($lowHpMonsters);
+        $totalMonsterHp = array_sum(array_column($aliveMonsters, 'hp'));
 
-                    return [
-                        'mana' => $currentMana,
-                        'is_aoe' => $isAoeSkill,
-                        'skill_damage' => $skillDamage,
-                        'skills_used_this_round' => $skillsUsedThisRound,
-                        'new_cooldowns' => $newCooldowns,
-                    ];
-                }
-                break;
+        // 角色基础攻击力，用于估算普通攻击伤害
+        $charStats = $character->getCombatStats();
+        $charAttack = $charStats['attack'];
+
+        // 过滤出可用的技能（魔法值足够且不在冷却中）
+        $availableSkills = [];
+        foreach ($activeSkills as $charSkill) {
+            $skill = $charSkill->skill;
+            $cooldownEnd = $newCooldowns[$skill->id] ?? 0;
+
+            if ($currentMana >= $skill->mana_cost && $cooldownEnd <= $currentRound) {
+                $availableSkills[] = [
+                    'char_skill' => $charSkill,
+                    'skill' => $skill,
+                    'damage' => (int) $skill->damage,
+                    'mana_cost' => (int) $skill->mana_cost,
+                    'cooldown' => (int) $skill->cooldown,
+                    'is_aoe' => ($skill->target_type ?? 'single') === 'all',
+                ];
             }
         }
 
+        if (empty($availableSkills)) {
+            // 没有可用技能，使用普通攻击
+            return [
+                'mana' => $currentMana,
+                'is_aoe' => false,
+                'skill_damage' => 0,
+                'skills_used_this_round' => [],
+                'new_cooldowns' => $newCooldowns,
+            ];
+        }
+
+        // 智能选择最佳技能
+        $selectedSkill = $this->selectOptimalSkill(
+            $availableSkills,
+            $aliveMonsterCount,
+            $lowHpMonsterCount,
+            $totalMonsterHp,
+            $charAttack
+        );
+
+        if ($selectedSkill !== null) {
+            $skill = $selectedSkill['skill'];
+            $skillDamage = $selectedSkill['damage'];
+            $currentMana -= $selectedSkill['mana_cost'];
+            $newCooldowns[$skill->id] = $currentRound + $selectedSkill['cooldown'];
+            $isAoeSkill = $selectedSkill['is_aoe'];
+            $skillsUsedThisRound[] = [
+                'skill_id' => $skill->id,
+                'name' => $skill->name,
+                'icon' => $skill->icon,
+                'target_type' => $skill->target_type ?? 'single',
+            ];
+
+            return [
+                'mana' => $currentMana,
+                'is_aoe' => $isAoeSkill,
+                'skill_damage' => $skillDamage,
+                'skills_used_this_round' => $skillsUsedThisRound,
+                'new_cooldowns' => $newCooldowns,
+            ];
+        }
+
+        // 没有找到合适的技能，使用普通攻击
         return [
             'mana' => $currentMana,
-            'is_aoe' => $isAoeSkill,
-            'skill_damage' => $skillDamage,
-            'skills_used_this_round' => $skillsUsedThisRound,
+            'is_aoe' => false,
+            'skill_damage' => 0,
+            'skills_used_this_round' => [],
             'new_cooldowns' => $newCooldowns,
         ];
+    }
+
+    /**
+     * 智能选择最佳技能
+     *
+     * 选择策略：
+     * 1. 如果所有怪物血量都很低，优先使用低消耗技能
+     * 2. 如果有多只低血量怪物，优先使用群体技能
+     * 3. 如果只有一只怪物且血量低，用单体技能
+     * 4. 优先选择伤害足够击杀怪物的技能中消耗最低的
+     * 5. 考虑技能效率（伤害/魔法消耗）
+     *
+     * @param array $availableSkills 可用技能列表
+     * @param int $aliveMonsterCount 存活怪物数量
+     * @param int $lowHpMonsterCount 低血量怪物数量
+     * @param int $totalMonsterHp 怪物总血量
+     * @param int $charAttack 角色攻击力
+     * @return array|null 选中的技能或null（使用普通攻击）
+     */
+    private function selectOptimalSkill(
+        array $availableSkills,
+        int $aliveMonsterCount,
+        int $lowHpMonsterCount,
+        int $totalMonsterHp,
+        int $charAttack
+    ): ?array {
+        if (empty($availableSkills)) {
+            return null;
+        }
+
+        // 只有一个技能，直接使用
+        if (count($availableSkills) === 1) {
+            return $availableSkills[0];
+        }
+
+        // 计算普通攻击伤害
+        $baseAttackDamage = (int) ($charAttack * 0.5);
+
+        // 策略1：怪物数量 >= 3 且有多只低血量怪物，优先使用群体技能
+        if ($aliveMonsterCount >= 3 && $lowHpMonsterCount >= 2) {
+            $aoeSkills = array_filter($availableSkills, fn ($s) => $s['is_aoe']);
+            if (!empty($aoeSkills)) {
+                // 从群体技能中选择伤害最高且消耗可接受的
+                usort($aoeSkills, function ($a, $b) {
+                    // 优先按效率排序（伤害/消耗），其次按伤害排序
+                    $efficiencyA = $a['mana_cost'] > 0 ? $a['damage'] / $a['mana_cost'] : $a['damage'];
+                    $efficiencyB = $b['mana_cost'] > 0 ? $b['damage'] / $b['mana_cost'] : $b['damage'];
+                    if (abs($efficiencyA - $efficiencyB) > 0.1) {
+                        return $efficiencyB <=> $efficiencyA;
+                    }
+                    return $b['damage'] <=> $a['damage'];
+                });
+                return $aoeSkills[0];
+            }
+        }
+
+        // 策略2：所有怪物血量都很低（总血量 <= 角色攻击力 * 2），优先使用低消耗技能
+        if ($totalMonsterHp <= $charAttack * 2) {
+            // 按魔法消耗排序，选择最经济的技能
+            usort($availableSkills, function ($a, $b) {
+                // 优先选择不需要魔法的技能
+                if ($a['mana_cost'] === 0 && $b['mana_cost'] > 0) return -1;
+                if ($b['mana_cost'] === 0 && $a['mana_cost'] > 0) return 1;
+                // 然后按效率排序
+                $efficiencyA = $a['mana_cost'] > 0 ? $a['damage'] / $a['mana_cost'] : $a['damage'] * 10;
+                $efficiencyB = $b['mana_cost'] > 0 ? $b['damage'] / $b['mana_cost'] : $b['damage'] * 10;
+                return $efficiencyB <=> $efficiencyA;
+            });
+            return $availableSkills[0];
+        }
+
+        // 策略3：正常战斗情况，选择伤害最高的技能（如果伤害 > 0）
+        // 但要避免使用高消耗低效率的技能
+        $skillsWithDamage = array_filter($availableSkills, fn ($s) => $s['damage'] > 0);
+        if (!empty($skillsWithDamage)) {
+            // 按伤害/消耗效率排序
+            usort($skillsWithDamage, function ($a, $b) {
+                $efficiencyA = $a['mana_cost'] > 0 ? $a['damage'] / $a['mana_cost'] : $a['damage'];
+                $efficiencyB = $b['mana_cost'] > 0 ? $b['damage'] / $b['mana_cost'] : $b['damage'];
+                return $efficiencyB <=> $efficiencyA;
+            });
+
+            // 如果最高效率的技能比普通攻击好很多，使用它
+            $bestSkill = $skillsWithDamage[0];
+            $bestEfficiency = $bestSkill['mana_cost'] > 0 ? $bestSkill['damage'] / $bestSkill['mana_cost'] : $bestSkill['damage'];
+            $baseEfficiency = $baseAttackDamage; // 普通攻击视为消耗0魔法
+
+            // 只有当技能效率明显优于普通攻击时才使用
+            if ($bestEfficiency >= $baseEfficiency * 0.5 || $bestSkill['damage'] > $totalMonsterHp * 0.5) {
+                return $bestSkill;
+            }
+        }
+
+        // 默认：使用最经济的技能
+        usort($availableSkills, function ($a, $b) {
+            if ($a['mana_cost'] === 0 && $b['mana_cost'] > 0) return -1;
+            if ($b['mana_cost'] === 0 && $a['mana_cost'] > 0) return 1;
+            return $a['mana_cost'] <=> $b['mana_cost'];
+        });
+
+        return $availableSkills[0];
     }
 
     /**
