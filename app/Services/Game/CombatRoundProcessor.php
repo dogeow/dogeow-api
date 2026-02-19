@@ -452,7 +452,8 @@ class CombatRoundProcessor
 
                 continue;
             }
-            $m['damage_taken'] = 0;
+            $m['damage_taken'] = -1; // -1 表示未受攻击
+            $m['was_attacked'] = false; // 每回合开始时清除被攻击标记
 
             // 新出现的怪物不受攻击（下一轮才能攻击）
             if (isset($m['is_new']) && $m['is_new'] === true) {

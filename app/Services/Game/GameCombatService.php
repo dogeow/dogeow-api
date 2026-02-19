@@ -237,6 +237,12 @@ class GameCombatService
         // 获取当前怪物列表用于响应（固定5个槽位）
         $monsterData = $this->monsterService->formatMonstersForResponse($character);
         $fixedMonsters = $monsterData['monsters'];
+        // 调试日志
+        foreach ($fixedMonsters as $fm) {
+            if (is_array($fm)) {
+                \Log::info('Monster damage_taken', ['name' => $fm['name'] ?? '', 'damage_taken' => $fm['damage_taken'] ?? 'N/A']);
+            }
+        }
         $firstAliveMonster = $monsterData['first_alive_monster'];
 
         // 创建战斗日志

@@ -151,6 +151,7 @@ class GameMonsterService
                 'defense' => (int) ($stats['defense'] * $difficulty['monster_damage']),
                 'experience' => (int) ($stats['experience'] * $difficulty['reward']),
                 'position' => $slot,
+                'damage_taken' => -1, // 新怪物未被攻击
             ];
         }
 
@@ -288,6 +289,7 @@ class GameMonsterService
     public function formatMonstersForResponse(GameCharacter $character): array
     {
         $currentMonsters = $character->combat_monsters ?? [];
+        \Log::info('formatMonstersForResponse', ['monsters' => $currentMonsters]);
         $fixedMonsters = array_fill(0, 5, null);
         for ($idx = 0; $idx < 5; $idx++) {
             $m = $currentMonsters[$idx] ?? null;
