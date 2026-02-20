@@ -110,7 +110,7 @@ class GameCombatService
                         'id' => $def->id,
                         'name' => $def->name,
                         'type' => $def->type ?? 'normal',
-                        'level' => (int) ($character->combat_monster_level ?? $def->level),
+                        'level' => (int) $def->level,
                         'hp' => (int) ($character->combat_monster_hp ?? 0),
                         'max_hp' => (int) ($character->combat_monster_max_hp ?? 0),
                     ];

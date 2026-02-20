@@ -167,7 +167,6 @@ class GameMonsterService
         // 更新刷新时间戳
         $character->combat_monsters_refreshed_at = now();
         $character->combat_monster_id = $baseMonster->id;
-        $character->combat_monster_level = $baseLevel;
         $character->combat_monster_hp = array_sum(array_column(array_filter($newMonsters, 'is_array'), 'hp'));
         $character->combat_monster_max_hp = array_sum(array_column(array_filter($newMonsters, 'is_array'), 'max_hp'));
         $character->combat_total_damage_dealt = 0;

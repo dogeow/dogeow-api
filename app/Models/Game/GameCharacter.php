@@ -33,7 +33,6 @@ class GameCharacter extends Model
         'auto_use_mp_potion',
         'mp_potion_threshold',
         'combat_monster_id',
-        'combat_monster_level',
         'combat_monster_hp',
         'combat_monster_max_hp',
         'combat_monsters',
@@ -159,7 +158,6 @@ class GameCharacter extends Model
     public function clearCombatState(): void
     {
         $this->combat_monster_id = null;
-        $this->combat_monster_level = null;
         $this->combat_monster_hp = null;
         $this->combat_monster_max_hp = null;
         $this->combat_monsters = null;

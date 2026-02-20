@@ -262,7 +262,7 @@ class ChatCacheService
     /**
      * Track room activity for analytics
      */
-    public function trackRoomActivity(int $roomId, string $activityType, int $userId = null): void
+    public function trackRoomActivity(int $roomId, string $activityType, ?int $userId = null): void
     {
         $cacheKey = self::PREFIX_ROOM_ACTIVITY . "{$roomId}:" . date('Y-m-d-H');
         
