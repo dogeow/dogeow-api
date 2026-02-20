@@ -52,9 +52,14 @@ class GameShopService
         $cacheKey = "rpg:shop:{$character->id}";
         $cached = Cache::get($cacheKey);
 
+        // 获取已购买的装备ID列表
+        $purchasedItemIds = $this->getPurchasedItemIds($character);
+
         if (is_array($cached) && isset($cached['equipment'], $cached['refreshed_at'])) {
             $randomEquipmentItems = collect($cached['equipment'])
                 ->filter(fn (array $item) => ($item['required_level'] ?? 0) <= $character->level)
+                // 过滤掉已购买的物品
+                ->filter(fn (array $item) => !in_array($item['id'], $purchasedItemIds))
                 ->values();
             $nextRefreshAt = $cached['refreshed_at'] + self::SHOP_CACHE_TTL_SECONDS;
         } else {
@@ -65,6 +70,8 @@ class GameShopService
                 'refreshed_at' => $refreshedAt,
             ], self::SHOP_CACHE_TTL_SECONDS);
             $nextRefreshAt = $refreshedAt + self::SHOP_CACHE_TTL_SECONDS;
+            // 新缓存时清空已购买记录
+            $this->clearPurchasedItems($character);
         }
 
         $shopItems = $fixedPotionItems->concat($randomEquipmentItems);
@@ -74,6 +81,63 @@ class GameShopService
             'player_copper' => $character->copper,
             'next_refresh_at' => $nextRefreshAt,
         ];
+    }
+
+    /**
+     * 获取已购买的物品ID列表（仅装备，排除药品）
+     */
+    private function getPurchasedItemIds(GameCharacter $character): array
+    {
+        $cacheKey = "rpg:shop:purchased:{$character->id}";
+        $purchased = Cache::get($cacheKey);
+
+        if (!is_array($purchased)) {
+            return [];
+        }
+
+        // 过滤掉过期记录（超过缓存时间）
+        $shopCacheKey = "rpg:shop:{$character->id}";
+        $shopCache = Cache::get($shopCacheKey);
+
+        if (!is_array($shopCache) || !isset($shopCache['refreshed_at'])) {
+            return [];
+        }
+
+        $cacheAge = time() - $shopCache['refreshed_at'];
+        if ($cacheAge > self::SHOP_CACHE_TTL_SECONDS) {
+            // 缓存已过期，清空已购买记录
+            $this->clearPurchasedItems($character);
+            return [];
+        }
+
+        return $purchased;
+    }
+
+    /**
+     * 记录已购买的物品ID（仅装备）
+     */
+    public function recordPurchasedItem(GameCharacter $character, int $definitionId): void
+    {
+        $cacheKey = "rpg:shop:purchased:{$character->id}";
+        $purchased = Cache::get($cacheKey);
+
+        if (!is_array($purchased)) {
+            $purchased = [];
+        }
+
+        if (!in_array($definitionId, $purchased)) {
+            $purchased[] = $definitionId;
+            Cache::put($cacheKey, $purchased, self::SHOP_CACHE_TTL_SECONDS);
+        }
+    }
+
+    /**
+     * 清空已购买记录
+     */
+    private function clearPurchasedItems(GameCharacter $character): void
+    {
+        $cacheKey = "rpg:shop:purchased:{$character->id}";
+        Cache::forget($cacheKey);
     }
 
     /**
@@ -337,7 +401,7 @@ class GameShopService
             throw new \InvalidArgumentException('货币不足');
         }
 
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($character, $definition, $randomStats, $totalPrice, $quantity) {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($character, $definition, $randomStats, $totalPrice, $quantity, $itemId) {
             $inventoryCount = $character->items()->where('is_in_storage', false)->count();
             $inventorySize = GameInventoryService::INVENTORY_SIZE;
 
@@ -413,6 +477,9 @@ class GameShopService
                         'sell_price' => $sellPrice,
                     ]);
                 }
+
+                // 记录已购买的装备，药品不记录
+                $this->recordPurchasedItem($character, $itemId);
             }
 
             // 扣除铜币
