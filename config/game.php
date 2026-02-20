@@ -228,6 +228,7 @@ return [
         'boots',
         'belt',
         'ring',
+        'amulet',
     ],
 
     /*
