@@ -16,6 +16,7 @@ class GameItem extends GameItemDefinition
         'stats',
         'affixes',
         'is_in_storage',
+        'is_equipped',
         'quantity',
         'slot_index',
         'sockets',
@@ -28,6 +29,7 @@ class GameItem extends GameItemDefinition
             'stats' => 'array',
             'affixes' => 'array',
             'is_in_storage' => 'boolean',
+            'is_equipped' => 'boolean',
         ];
     }
 

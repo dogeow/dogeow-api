@@ -34,22 +34,18 @@ class GameInventoryService
      */
     public function getInventory(GameCharacter $character): array
     {
-        // 先获取装备槽位中的物品ID，排除这些物品
-        $equippedItemIds = $character->equipment()
-            ->whereNotNull('item_id')
-            ->pluck('item_id')
-            ->toArray();
-
+        // 背包：不在仓库且未装备
         $inventory = $character->items()
             ->where('is_in_storage', false)
-            ->whereNotIn('id', $equippedItemIds)
+            ->where('is_equipped', false)
             ->with(['definition', 'gems.gemDefinition'])
             ->orderBy('slot_index')
             ->get();
 
+        // 仓库：未装备
         $storage = $character->items()
             ->where('is_in_storage', true)
-            ->whereNotIn('id', $equippedItemIds)
+            ->where('is_equipped', false)
             ->with(['definition', 'gems.gemDefinition'])
             ->orderBy('slot_index')
             ->get();
@@ -149,7 +145,8 @@ class GameInventoryService
             $equipmentSlot->item_id = $item->id;
             $equipmentSlot->save();
 
-            // 从背包移除
+            // 标记为已装备
+            $item->is_equipped = true;
             $item->slot_index = null;
             $item->save();
 
@@ -195,6 +192,7 @@ class GameInventoryService
 
             // 卸下装备到背包
             if ($item) {
+                $item->is_equipped = false;
                 $item->slot_index = $emptySlot;
                 $item->save();
             }
@@ -471,7 +469,8 @@ class GameInventoryService
     {
         $query = GameItem::query()
             ->where('id', $itemId)
-            ->where('character_id', $character->id);
+            ->where('character_id', $character->id)
+            ->where('is_equipped', false); // 排除已装备的物品
 
         if ($checkStorage) {
             $query->where('is_in_storage', false);
