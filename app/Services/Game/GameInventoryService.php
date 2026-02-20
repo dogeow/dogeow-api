@@ -372,6 +372,9 @@ class GameInventoryService
     {
         $query = $character->items()
             ->where('is_in_storage', false)
+            ->where(function ($query) {
+                $query->where('is_equipped', false)->orWhereNull('is_equipped');
+            })
             ->with('definition');
 
         $items = $this->sortItems($query, $sortBy);
