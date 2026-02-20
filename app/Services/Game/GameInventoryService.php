@@ -34,10 +34,12 @@ class GameInventoryService
      */
     public function getInventory(GameCharacter $character): array
     {
-        // 背包：不在仓库且未装备
+        // 背包：不在仓库且未装备（兼容 is_equipped 为 null 或 false 的情况）
         $inventory = $character->items()
             ->where('is_in_storage', false)
-            ->where('is_equipped', false)
+            ->where(function ($query) {
+                $query->where('is_equipped', false)->orWhereNull('is_equipped');
+            })
             ->with(['definition', 'gems.gemDefinition'])
             ->orderBy('slot_index')
             ->get();
@@ -45,7 +47,9 @@ class GameInventoryService
         // 仓库：未装备
         $storage = $character->items()
             ->where('is_in_storage', true)
-            ->where('is_equipped', false)
+            ->where(function ($query) {
+                $query->where('is_equipped', false)->orWhereNull('is_equipped');
+            })
             ->with(['definition', 'gems.gemDefinition'])
             ->orderBy('slot_index')
             ->get();
@@ -470,7 +474,9 @@ class GameInventoryService
         $query = GameItem::query()
             ->where('id', $itemId)
             ->where('character_id', $character->id)
-            ->where('is_equipped', false); // 排除已装备的物品
+            ->where(function ($query) {
+                $query->where('is_equipped', false)->orWhereNull('is_equipped');
+            }); // 排除已装备的物品
 
         if ($checkStorage) {
             $query->where('is_in_storage', false);
