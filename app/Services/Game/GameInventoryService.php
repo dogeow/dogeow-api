@@ -449,8 +449,12 @@ class GameInventoryService
     {
         $maxSize = $inStorage ? self::STORAGE_SIZE : self::INVENTORY_SIZE;
 
+        // 查询已使用的槽位时，排除已装备的物品
         $usedSlots = $character->items()
             ->where('is_in_storage', $inStorage)
+            ->where(function ($query) {
+                $query->where('is_equipped', false)->orWhereNull('is_equipped');
+            })
             ->whereNotNull('slot_index')
             ->pluck('slot_index')
             ->toArray();
