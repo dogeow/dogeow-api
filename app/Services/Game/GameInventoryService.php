@@ -34,14 +34,22 @@ class GameInventoryService
      */
     public function getInventory(GameCharacter $character): array
     {
+        // 先获取装备槽位中的物品ID，排除这些物品
+        $equippedItemIds = $character->equipment()
+            ->whereNotNull('item_id')
+            ->pluck('item_id')
+            ->toArray();
+
         $inventory = $character->items()
             ->where('is_in_storage', false)
+            ->whereNotIn('id', $equippedItemIds)
             ->with(['definition', 'gems.gemDefinition'])
             ->orderBy('slot_index')
             ->get();
 
         $storage = $character->items()
             ->where('is_in_storage', true)
+            ->whereNotIn('id', $equippedItemIds)
             ->with(['definition', 'gems.gemDefinition'])
             ->orderBy('slot_index')
             ->get();
