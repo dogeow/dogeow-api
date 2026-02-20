@@ -68,8 +68,8 @@ class GameItemDefinition extends Model
             'gloves' => 'gloves',
             'boots' => 'boots',
             'belt' => 'belt',
-            'ring' => 'ring', // 默认戒指槽位
-            'amulet' => 'amulet',
+            'ring' => 'ring',
+            'amulet' => 'amulet', // 护符槽位
             default => null,
         };
     }
