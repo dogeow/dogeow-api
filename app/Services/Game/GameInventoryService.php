@@ -548,6 +548,7 @@ class GameInventoryService
         if ($equipmentSlot->item_id) {
             $oldItem = GameItem::find($equipmentSlot->item_id);
             if ($oldItem) {
+                $oldItem->is_equipped = false;
                 $oldItem->slot_index = $this->findEmptySlot($character, false);
                 $oldItem->save();
             }
