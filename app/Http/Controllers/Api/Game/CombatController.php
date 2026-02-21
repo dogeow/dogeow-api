@@ -73,13 +73,18 @@ class CombatController extends Controller
                 return $this->success(['message' => '角色已满血复活并传送到新手村，请手动开始战斗']);
             }
 
+            // 检查是否已经有自动战斗在运行
+            $key = AutoCombatRoundJob::redisKey($character->id);
+            if (Redis::get($key) !== null) {
+                return $this->error('自动战斗已在运行中，请先停止当前战斗');
+            }
+
             $skillIds = $request->input('skill_ids') ?? [];
             if (! is_array($skillIds) && $request->has('skill_id')) {
                 $skillIds = [(int) $request->input('skill_id')];
             }
             $skillIds = array_map('intval', array_values($skillIds));
 
-            $key = AutoCombatRoundJob::redisKey($character->id);
             Redis::set($key, json_encode(['skill_ids' => $skillIds]));
 
             AutoCombatRoundJob::dispatch($character->id, $skillIds);

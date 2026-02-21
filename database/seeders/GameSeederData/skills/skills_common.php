@@ -4,6 +4,7 @@
 return [
     [
         'name' => '治疗术',
+        'effect_key' => 'heal',
         'type' => 'active',
         'class_restriction' => 'all',
         'mana_cost' => 20,

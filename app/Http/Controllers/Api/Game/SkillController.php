@@ -75,14 +75,33 @@ class SkillController extends Controller
             return $this->error('已经学习了该技能');
         }
 
-        // 检查前置技能
-        if ($skill->prerequisite_skill_id) {
-            $hasPrereq = $character->skills()->where('skill_id', $skill->prerequisite_skill_id)->exists();
-            if (! $hasPrereq) {
-                $prereqSkill = GameSkillDefinition::find($skill->prerequisite_skill_id);
-
-                return $this->error('需要先学习前置技能: ' . ($prereqSkill?->name ?? '未知'));
+        // 检查前置技能（优先使用 effect_key 判断，其次使用 skill_id）
+        $prereqError = null;
+        if ($skill->prerequisite_effect_key) {
+            // 根据 effect_key 检查是否已学习前置技能
+            $prereqSkill = GameSkillDefinition::where('effect_key', $skill->prerequisite_effect_key)
+                ->where(function ($query) use ($character) {
+                    $query->where('class_restriction', 'all')
+                        ->orWhere('class_restriction', $character->class);
+                })
+                ->first();
+            if ($prereqSkill) {
+                $hasPrereq = $character->skills()->where('skill_id', $prereqSkill->id)->exists();
+                if (!$hasPrereq) {
+                    $prereqError = '需要先学习前置技能: ' . $prereqSkill->name;
+                }
             }
+        } elseif ($skill->prerequisite_skill_id) {
+            // 回退到旧的 skill_id 判断
+            $hasPrereq = $character->skills()->where('skill_id', $skill->prerequisite_skill_id)->exists();
+            if (!$hasPrereq) {
+                $prereqSkill = GameSkillDefinition::find($skill->prerequisite_skill_id);
+                $prereqError = '需要先学习前置技能: ' . ($prereqSkill?->name ?? '未知');
+            }
+        }
+
+        if ($prereqError) {
+            return $this->error($prereqError);
         }
 
         // 学习技能

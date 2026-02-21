@@ -70,7 +70,7 @@ class GameSeeder extends Seeder
             // 法师 - 冰系
             '冰霜新星' => ['branch' => 'ice', 'tier' => 1],
             '冰箭' => ['branch' => 'ice', 'tier' => 1],
-            '冰封千里' => ['branch' => 'ice', 'tier' => 3],
+            '冰河世纪' => ['branch' => 'ice', 'tier' => 3],
             // 法师 - 雷系
             '雷击' => ['branch' => 'lightning', 'tier' => 1],
             '连锁闪电' => ['branch' => 'lightning', 'tier' => 2],

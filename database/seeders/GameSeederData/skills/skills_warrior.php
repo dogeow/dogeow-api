@@ -4,6 +4,7 @@
 return [
     [
         'name' => '重击',
+        'effect_key' => 'slash',
         'type' => 'active',
         'class_restriction' => 'warrior',
         'mana_cost' => 10,
@@ -14,6 +15,7 @@ return [
     ],
     [
         'name' => '战吼',
+        'effect_key' => 'buff',
         'type' => 'active',
         'class_restriction' => 'warrior',
         'mana_cost' => 15,
@@ -39,6 +41,7 @@ return [
     ],
     [
         'name' => '冲锋',
+        'effect_key' => 'charge',
         'type' => 'active',
         'class_restriction' => 'warrior',
         'mana_cost' => 10,
@@ -50,6 +53,7 @@ return [
     ],
     [
         'name' => '旋风斩',
+        'effect_key' => 'whirlwind',
         'type' => 'active',
         'class_restriction' => 'warrior',
         'mana_cost' => 25,
@@ -61,6 +65,7 @@ return [
     ],
     [
         'name' => '狂暴',
+        'effect_key' => 'rage',
         'type' => 'active',
         'class_restriction' => 'warrior',
         'mana_cost' => 40,
@@ -87,6 +92,7 @@ return [
     ],
     [
         'name' => '斩杀',
+        'effect_key' => 'execute',
         'type' => 'active',
         'class_restriction' => 'warrior',
         'mana_cost' => 30,

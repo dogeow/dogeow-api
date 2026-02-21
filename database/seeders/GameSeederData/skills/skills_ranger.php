@@ -4,6 +4,7 @@
 return [
     [
         'name' => '穿刺射击',
+        'effect_key' => 'pierce',
         'type' => 'active',
         'class_restriction' => 'ranger',
         'mana_cost' => 12,
@@ -16,6 +17,7 @@ return [
     ],
     [
         'name' => '多重射击',
+        'effect_key' => 'multi-shot',
         'type' => 'active',
         'class_restriction' => 'ranger',
         'mana_cost' => 18,
@@ -27,6 +29,7 @@ return [
     ],
     [
         'name' => '疾风步',
+        'effect_key' => 'dash',
         'type' => 'active',
         'class_restriction' => 'ranger',
         'mana_cost' => 30,
@@ -49,6 +52,7 @@ return [
     ],
     [
         'name' => '毒箭',
+        'effect_key' => 'poison',
         'type' => 'active',
         'class_restriction' => 'ranger',
         'mana_cost' => 15,
@@ -62,6 +66,7 @@ return [
     ],
     [
         'name' => '闪避',
+        'effect_key' => 'dodge',
         'type' => 'active',
         'class_restriction' => 'ranger',
         'mana_cost' => 20,
@@ -87,6 +92,7 @@ return [
     ],
     [
         'name' => '箭雨',
+        'effect_key' => 'arrow-rain',
         'type' => 'active',
         'class_restriction' => 'ranger',
         'mana_cost' => 45,
@@ -98,6 +104,7 @@ return [
     ],
     [
         'name' => '暗影步',
+        'effect_key' => 'shadow-step',
         'type' => 'active',
         'class_restriction' => 'ranger',
         'mana_cost' => 25,

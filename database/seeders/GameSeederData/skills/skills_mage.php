@@ -26,7 +26,8 @@ return [
     ],
     [
         'name' => '燃烧',
-        'effect_key' => 'fireball',
+        'effect_key' => 'burn',
+        'prerequisite_effect_key' => 'fireball',
         'type' => 'active',
         'class_restriction' => 'mage',
         'mana_cost' => 15,
@@ -41,11 +42,18 @@ return [
     [
         'name' => '烈焰风暴',
         'effect_key' => 'meteor-storm',
+        'prerequisite_effect_key' => 'burn',
         'type' => 'active',
         'class_restriction' => 'mage',
+        'branch' => 'fire',
+        'tier' => 3,
         'mana_cost' => 50,
         'cooldown' => 15,
         'skill_points_cost' => 2,
+        'max_level' => 10,
+        'base_damage' => 200,
+        'damage_per_level' => 5,
+        'mana_cost_per_level' => 0,
         'effects' => [],
         'target_type' => 'all',
         'description' => '召唤火焰风暴攻击所有敌人',
@@ -63,8 +71,8 @@ return [
         'description' => '释放冰霜，造成范围伤害',
     ],
     [
-        'name' => '冰封千里',
-        'effect_key' => 'ice-arrow',
+        'name' => '冰河世纪',
+        'effect_key' => 'ice-age',
         'type' => 'active',
         'class_restriction' => 'mage',
         'mana_cost' => 60,
@@ -76,6 +84,7 @@ return [
     ],
     [
         'name' => '魔力涌动',
+        'effect_key' => 'buff',
         'type' => 'passive',
         'class_restriction' => 'mage',
         'mana_cost' => 0,
@@ -99,7 +108,7 @@ return [
     ],
     [
         'name' => '连锁闪电',
-        'effect_key' => 'lightning',
+        'effect_key' => 'chain-lightning',
         'type' => 'active',
         'class_restriction' => 'mage',
         'mana_cost' => 20,
@@ -123,6 +132,7 @@ return [
     ],
     [
         'name' => '魔法护盾',
+        'effect_key' => 'shield',
         'type' => 'active',
         'class_restriction' => 'mage',
         'mana_cost' => 35,
@@ -136,6 +146,7 @@ return [
     ],
     [
         'name' => '奥术智慧',
+        'effect_key' => 'buff',
         'type' => 'passive',
         'class_restriction' => 'mage',
         'mana_cost' => 0,
@@ -160,6 +171,7 @@ return [
     ],
     [
         'name' => '法力燃烧',
+        'effect_key' => 'mana-burn',
         'type' => 'active',
         'class_restriction' => 'mage',
         'mana_cost' => 15,
