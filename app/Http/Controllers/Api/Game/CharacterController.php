@@ -57,7 +57,8 @@ class CharacterController extends Controller
             $character = $this->characterService->createCharacter(
                 $request->user()->id,
                 $request->input('name'),
-                $request->input('class')
+                $request->input('class'),
+                $request->input('gender', 'male')
             );
 
             return $this->success([

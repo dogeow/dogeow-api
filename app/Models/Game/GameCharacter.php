@@ -13,6 +13,7 @@ class GameCharacter extends Model
         'user_id',
         'name',
         'class',
+        'gender',
         'level',
         'experience',
         'copper',

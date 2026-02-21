@@ -92,11 +92,12 @@ class GameCharacterService
      * @param  int  $userId  用户ID
      * @param  string  $name  角色名称
      * @param  string  $class  职业类型
+     * @param  string  $gender  性别 male 或 female
      * @return GameCharacter 创建的角色
      *
      * @throws \InvalidArgumentException 角色名已存在
      */
-    public function createCharacter(int $userId, string $name, string $class): GameCharacter
+    public function createCharacter(int $userId, string $name, string $class, string $gender = 'male'): GameCharacter
     {
         // 验证角色名
         $this->validateCharacterName($name);
@@ -109,12 +110,13 @@ class GameCharacterService
         // 获取职业配置
         $classStats = $this->getClassBaseStats($class);
 
-        return DB::transaction(function () use ($userId, $name, $class, $classStats) {
+        return DB::transaction(function () use ($userId, $name, $class, $gender, $classStats) {
             // 创建角色
             $character = GameCharacter::create([
                 'user_id' => $userId,
                 'name' => $name,
                 'class' => $class,
+                'gender' => $gender,
                 'level' => 1,
                 'experience' => 0,
                 'copper' => $this->getStartingCopper($class),

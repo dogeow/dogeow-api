@@ -16,6 +16,7 @@ class CreateCharacterRequest extends FormRequest
         return [
             'name' => 'required|string|max:32|alpha_num',
             'class' => 'required|in:warrior,mage,ranger',
+            'gender' => 'nullable|in:male,female',
         ];
     }
 
@@ -27,6 +28,7 @@ class CreateCharacterRequest extends FormRequest
             'name.alpha_num' => '角色名称只能包含字母和数字',
             'class.required' => '请选择职业',
             'class.in' => '职业选择无效',
+            'gender.in' => '性别选择无效',
         ];
     }
 }
