@@ -38,6 +38,17 @@ return [
         'description' => '被动提升防御力',
     ],
     [
+        'name' => '冲锋',
+        'type' => 'active',
+        'class_restriction' => 'warrior',
+        'mana_cost' => 10,
+        'cooldown' => 3,
+        'skill_points_cost' => 1,
+        'effects' => [],
+        'target_type' => 'single',
+        'description' => '冲向敌人造成120%伤害',
+    ],
+    [
         'name' => '旋风斩',
         'type' => 'active',
         'class_restriction' => 'warrior',

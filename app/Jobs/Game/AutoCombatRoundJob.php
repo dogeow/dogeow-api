@@ -11,6 +11,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Redis;
+use InvalidArgumentException;
 use RuntimeException;
 
 class AutoCombatRoundJob implements ShouldQueue
@@ -37,17 +38,15 @@ class AutoCombatRoundJob implements ShouldQueue
         }
 
         $data = json_decode($payload, true);
-        // 始终从 Redis 读取技能配置，而不是使用 Job 构造函数的参数
         $skillIds = $data['skill_ids'] ?? [];
         if (! is_array($skillIds)) {
             $skillIds = [];
         }
 
-        // 检查是否有被取消的技能，如果有则从列表中移除（保留取消标记，永久生效）
+        // 检查是否有被取消的技能，如果有则从列表中移除
         $cancelledSkillIds = $data['cancelled_skill_ids'] ?? [];
         if (! empty($cancelledSkillIds)) {
             $skillIds = array_values(array_diff($skillIds, $cancelledSkillIds));
-            // 更新 Redis 中的技能列表
             $data['skill_ids'] = $skillIds;
             Redis::set($key, json_encode($data));
         }

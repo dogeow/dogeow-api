@@ -26,6 +26,16 @@ return [
         'description' => '同时射出多支箭',
     ],
     [
+        'name' => '疾风步',
+        'type' => 'active',
+        'class_restriction' => 'ranger',
+        'mana_cost' => 30,
+        'cooldown' => 10,
+        'skill_points_cost' => 2,
+        'effects' => [],
+        'description' => '快速移动并提升下次攻击伤害',
+    ],
+    [
         'name' => '鹰眼',
         'type' => 'passive',
         'class_restriction' => 'ranger',

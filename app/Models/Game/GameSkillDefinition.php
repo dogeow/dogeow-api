@@ -15,6 +15,7 @@ class GameSkillDefinition extends Model
         'mana_cost',
         'cooldown',
         'icon',
+        'effect_key',
         'effects',
         'target_type',
         'is_active',

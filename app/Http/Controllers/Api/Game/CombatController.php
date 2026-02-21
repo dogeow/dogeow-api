@@ -212,31 +212,32 @@ class CombatController extends Controller
             $currentSkillIds = $data['skill_ids'] ?? [];
 
             if ($singleSkillId !== null) {
-                // 单个技能操作
+                // 单个技能操作（前端已更新本地 enabledSkillIds，同时把完整列表通过 skill_ids 传来）
                 $skillId = (int) $singleSkillId;
                 $isDisabling = in_array($skillId, $currentSkillIds);
 
                 if ($isDisabling) {
-                    // 取消技能：从列表中移除，并添加到取消队列
                     $data['skill_ids'] = array_values(array_diff($currentSkillIds, [$skillId]));
                     $data['cancelled_skill_ids'] = $data['cancelled_skill_ids'] ?? [];
                     if (! in_array($skillId, $data['cancelled_skill_ids'])) {
                         $data['cancelled_skill_ids'][] = $skillId;
                     }
                 } else {
-                    // 启用技能：添加到列表，并从取消队列中移除
                     $data['skill_ids'] = array_unique(array_merge($currentSkillIds, [$skillId]));
                     $data['cancelled_skill_ids'] = array_values(array_diff($data['cancelled_skill_ids'] ?? [], [$skillId]));
                 }
+                // 以请求中的 skill_ids 为准，避免 Redis 与前端不同步
+                if ($request->has('skill_ids') && is_array($request->input('skill_ids'))) {
+                    $data['skill_ids'] = array_map('intval', array_values($request->input('skill_ids')));
+                }
             } else {
-                // 批量更新技能列表，同时清除取消标记
                 $data['skill_ids'] = $skillIds;
                 $data['cancelled_skill_ids'] = [];
             }
 
             Redis::set($key, json_encode($data));
 
-            return $this->success(['skill_ids' => $skillIds], '技能配置已更新');
+            return $this->success(['skill_ids' => $data['skill_ids']], '技能配置已更新');
         } catch (Throwable $e) {
             return $this->error('更新技能配置失败', ['error' => $e->getMessage()]);
         }

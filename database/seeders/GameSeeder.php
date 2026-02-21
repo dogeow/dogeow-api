@@ -42,6 +42,7 @@ class GameSeeder extends Seeder
             'skills_warrior.php',
             'skills_mage.php',
             'skills_ranger.php',
+            'skills_common.php',
         ];
         $skills = [];
         foreach ($skillFiles as $file) {
@@ -62,11 +63,20 @@ class GameSeeder extends Seeder
             '狂暴' => ['branch' => 'warrior', 'tier' => 2],
             '钢铁之躯' => ['branch' => 'passive', 'tier' => 2],
             '斩杀' => ['branch' => 'warrior', 'tier' => 3],
-            // 法师
+            // 法师 - 火系
             '火球术' => ['branch' => 'fire', 'tier' => 1],
+            '燃烧' => ['branch' => 'fire', 'tier' => 2],
+            '烈焰风暴' => ['branch' => 'fire', 'tier' => 3],
+            // 法师 - 冰系
             '冰霜新星' => ['branch' => 'ice', 'tier' => 1],
-            '魔力涌动' => ['branch' => 'passive', 'tier' => 1],
+            '冰箭' => ['branch' => 'ice', 'tier' => 1],
+            '冰封千里' => ['branch' => 'ice', 'tier' => 3],
+            // 法师 - 雷系
             '雷击' => ['branch' => 'lightning', 'tier' => 1],
+            '连锁闪电' => ['branch' => 'lightning', 'tier' => 2],
+            '雷霆万钧' => ['branch' => 'lightning', 'tier' => 3],
+            // 法师 - 奥系
+            '魔力涌动' => ['branch' => 'passive', 'tier' => 1],
             '魔法护盾' => ['branch' => 'arcane', 'tier' => 2],
             '奥术智慧' => ['branch' => 'passive', 'tier' => 2],
             '陨石术' => ['branch' => 'fire', 'tier' => 3],
@@ -74,6 +84,7 @@ class GameSeeder extends Seeder
             // 游侠
             '穿刺射击' => ['branch' => 'ranger', 'tier' => 1],
             '多重射击' => ['branch' => 'ranger', 'tier' => 2],
+            '疾风步' => ['branch' => 'ranger', 'tier' => 3],
             '鹰眼' => ['branch' => 'passive', 'tier' => 1],
             '毒箭' => ['branch' => 'poison', 'tier' => 2],
             '闪避' => ['branch' => 'ranger', 'tier' => 2],
@@ -81,6 +92,13 @@ class GameSeeder extends Seeder
             '箭雨' => ['branch' => 'ranger', 'tier' => 3],
             '暗影步' => ['branch' => 'ranger', 'tier' => 3],
             // 通用
+            '治疗术' => ['branch' => 'healing', 'tier' => 1],
+            '力量强化' => ['branch' => 'passive', 'tier' => 1],
+            '敏捷强化' => ['branch' => 'passive', 'tier' => 1],
+            '体力强化' => ['branch' => 'passive', 'tier' => 1],
+            '能量强化' => ['branch' => 'passive', 'tier' => 1],
+            '吸血' => ['branch' => 'passive', 'tier' => 2],
+            '回蓝' => ['branch' => 'passive', 'tier' => 2],
             'HP强化' => ['branch' => 'passive', 'tier' => 1],
             'MP强化' => ['branch' => 'passive', 'tier' => 1],
         ];

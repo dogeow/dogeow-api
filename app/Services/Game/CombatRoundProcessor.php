@@ -283,6 +283,7 @@ class CombatRoundProcessor
                 'skill_id' => $skill->id,
                 'name' => $skill->name,
                 'icon' => $skill->icon,
+                'effect_key' => $skill->effect_key ?? null,
                 'target_type' => $skill->target_type ?? 'single',
             ];
 
