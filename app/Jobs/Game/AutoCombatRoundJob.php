@@ -42,12 +42,12 @@ class AutoCombatRoundJob implements ShouldQueue
             $skillIds = [];
         }
 
-        // 检查是否有被取消的技能，如果有则从列表中移除
+        // 检查是否有被取消的技能，如果有则从列表中移除（保留取消标记，永久生效）
         $cancelledSkillIds = $data['cancelled_skill_ids'] ?? [];
         if (! empty($cancelledSkillIds)) {
             $skillIds = array_values(array_diff($skillIds, $cancelledSkillIds));
-            // 清除取消标记，避免重复检查
-            $data['cancelled_skill_ids'] = [];
+            // 更新 Redis 中的技能列表
+            $data['skill_ids'] = $skillIds;
             Redis::set($key, json_encode($data));
         }
 
