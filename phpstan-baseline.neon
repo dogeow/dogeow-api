@@ -1,0 +1,1609 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Console/Commands/Chat/CleanupDisconnectedChatUsers.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Console/Commands/Chat/ManageChatModerations.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Console/Commands/Chat/ManageChatModerations.php
+
+		-
+			message: '#^Offset ''path'' does not exist on array\{success\: true, url\?\: string, message\?\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Console/Commands/UpyunUploadCommand.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$content\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Console/Commands/Word/AddFeb5LearningRecords.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/Word/AddFeb5LearningRecords.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Word\\Word\:\:\$explanation\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/Word/FetchWordFromIcibaCommand.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$educationLevels\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/Word/FetchWordFromIcibaCommand.php
+
+		-
+			message: '#^Ternary operator condition is always false\.$#'
+			identifier: ternary.alwaysFalse
+			count: 1
+			path: app/Console/Commands/Word/FetchWordFromIcibaCommand.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Events/Chat/MentionNotification.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Events/Chat/MentionNotification.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Events/Chat/MentionNotification.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Events/Chat/MessageSent.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Events/Chat/MessageSent.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Events/Chat/MessageSent.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/Chat/ChatReportController.php
+
+		-
+			message: '#^Cannot call method currentPage\(\) on class\-string\|object\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/Chat/ChatReportController.php
+
+		-
+			message: '#^Cannot call method items\(\) on class\-string\|object\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/Chat/ChatReportController.php
+
+		-
+			message: '#^Cannot call method perPage\(\) on class\-string\|object\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/Chat/ChatReportController.php
+
+		-
+			message: '#^Cannot call method total\(\) on class\-string\|object\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/Chat/ChatReportController.php
+
+		-
+			message: '#^Parameter \#2 \$room of method App\\Http\\Controllers\\Api\\Chat\\ChatReportController\:\:ensureCanModerate\(\) expects App\\Models\\Chat\\ChatRoom, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/Chat/ChatReportController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Cloud\\File\:\:\$file_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/Cloud/FileController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Cloud\\File\:\:\$folder_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/Cloud/FileController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Cloud\\File\:\:\$total_size\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/Cloud/FileController.php
+
+		-
+			message: '#^Parameter \#2 \$characterId of method App\\Services\\Game\\GameCharacterService\:\:getCharacterDetail\(\) expects int\|null, array\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/Game/CharacterController.php
+
+		-
+			message: '#^Parameter \#2 \$characterId of method App\\Services\\Game\\GameCharacterService\:\:getCharacterFullDetail\(\) expects int\|null, array\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/Game/CharacterController.php
+
+		-
+			message: '#^Offset ''copper_chance'' on array\{\}\|string on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/Api/Game/CompendiumController.php
+
+		-
+			message: '#^Offset ''item_chance'' on array\{\}\|string on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/Api/Game/CompendiumController.php
+
+		-
+			message: '#^Offset ''item_types'' on array\{\}\|string on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/Api/Game/CompendiumController.php
+
+		-
+			message: '#^Offset ''potion_chance'' on array\{\}\|string on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/Api/Game/CompendiumController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>discovered_items" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/Game/CompendiumController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>discovered_monsters" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/Game/CompendiumController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/Game/GemController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$type\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/Game/GemController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getMonsters\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/Game/MapController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/Game/SkillController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slot_index\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/Game/SkillController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/Game/SkillController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Nav\\Category\:\:\$items\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/Nav/CategoryController.php
+
+		-
+			message: '#^Relation ''items'' is not found in App\\Models\\Nav\\Category model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Api/Nav/CategoryController.php
+
+		-
+			message: '#^Relation ''category'' is not found in App\\Models\\Nav\\Item model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Api/Nav/ItemController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/Note/NoteController.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between int and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Http/Controllers/Api/Note/NoteController.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
+			count: 1
+			path: app/Http/Controllers/Api/Note/NoteController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Thing\\ItemCategory\:\:\$children\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/Thing/CategoryController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Thing\\ItemCategory\:\:\$items_count\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/Thing/CategoryController.php
+
+		-
+			message: '#^Relation ''children'' is not found in App\\Models\\Thing\\ItemCategory model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Api/Thing/CategoryController.php
+
+		-
+			message: '#^Relation ''spot'' is not found in App\\Models\\Thing\\Item model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Controllers/Api/Thing/ItemController.php
+
+		-
+			message: '#^Relation ''area'' is not found in App\\Models\\Thing\\Room model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Http/Controllers/Api/Thing/LocationController.php
+
+		-
+			message: '#^Relation ''room'' is not found in App\\Models\\Thing\\Spot model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Http/Controllers/Api/Thing/LocationController.php
+
+		-
+			message: '#^Cannot call method toDateString\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 3
+			path: app/Http/Controllers/Api/Word/CheckInController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>new_words_count" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: app/Http/Controllers/Api/Word/CheckInController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>review_words_count" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: app/Http/Controllers/Api/Word/CheckInController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$example_sentences\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/Word/LearningController.php
+
+		-
+			message: '#^Comparison operation "\>" between int\<1, max\> and 0 is always true\.$#'
+			identifier: greater.alwaysTrue
+			count: 1
+			path: app/Http/Controllers/Api/Word/LearningController.php
+
+		-
+			message: '#^Call to function method_exists\(\) with App\\Models\\User and ''isAdmin'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Http/Middleware/EnsureUserIsAdmin.php
+
+		-
+			message: '#^Parameter \#1 \$user of static method Illuminate\\Support\\Facades\\Auth\:\:setUser\(\) expects Illuminate\\Contracts\\Auth\\Authenticatable, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Middleware/WebSocketAuthMiddleware.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Chat\\ChatMessageResource\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Chat/ChatMessageResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Chat\\ChatMessageResource\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Chat/ChatMessageResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Chat\\ChatMessageResource\:\:\$message\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Chat/ChatMessageResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Chat\\ChatMessageResource\:\:\$message_type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Chat/ChatMessageResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Chat\\ChatMessageResource\:\:\$room_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Chat/ChatMessageResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Chat\\ChatMessageResource\:\:\$user\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Http/Resources/Chat/ChatMessageResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Chat\\ChatMessageResource\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Chat/ChatMessageResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\ItemImageResource\:\:\$thumbnail_path\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ItemImageResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Word\\BookResource\:\:\$description\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Word/BookResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Word\\BookResource\:\:\$difficulty\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Word/BookResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Word\\BookResource\:\:\$educationLevels\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Word/BookResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Word\\BookResource\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Word/BookResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Word\\BookResource\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Word/BookResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Word\\BookResource\:\:\$sort_order\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Word/BookResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Word\\BookResource\:\:\$total_words\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Word/BookResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Word\\WordResource\:\:\$books\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Word/WordResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Word\\WordResource\:\:\$content\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Word/WordResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Word\\WordResource\:\:\$difficulty\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Word/WordResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Word\\WordResource\:\:\$educationLevels\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Word/WordResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Word\\WordResource\:\:\$example_sentences\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Word/WordResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Word\\WordResource\:\:\$explanation\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Word/WordResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Word\\WordResource\:\:\$frequency\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Word/WordResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Word\\WordResource\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Word/WordResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Word\\WordResource\:\:\$phonetic_us\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Word/WordResource.php
+
+		-
+			message: '#^Caught class App\\Jobs\\Game\\InvalidArgumentException not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Jobs/Game/AutoCombatRoundJob.php
+
+		-
+			message: '#^Parameter \#2 \$map of method App\\Services\\Game\\GameCombatService\:\:broadcastMonstersAppear\(\) expects App\\Models\\Game\\GameMapDefinition, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Jobs/Game/AutoCombatRoundJob.php
+
+		-
+			message: '#^Parameter \#2 \$map of method App\\Services\\Game\\GameMonsterService\:\:generateNewMonsters\(\) expects App\\Models\\Game\\GameMapDefinition, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Jobs/Game/RefreshCombatMonstersJob.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between int and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Listeners/WebSocketDisconnectListener.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Models\\User\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Listeners/WebSocketDisconnectListener.php
+
+		-
+			message: '#^Match arm comparison between ''other'' and ''other'' is always true\.$#'
+			identifier: match.alwaysTrue
+			count: 1
+			path: app/Models/Chat/ChatMessageReport.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$item\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Models/Game/GameCharacter.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slot\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Game/GameCharacter.php
+
+		-
+			message: '#^Argument of an invalid type string supplied for foreach, only iterables are supported\.$#'
+			identifier: foreach.nonIterable
+			count: 1
+			path: app/Models/Game/GameCharacter.php
+
+		-
+			message: '#^Property App\\Models\\Game\\GameCharacter\:\:\$discovered_items \(string\|null\) does not accept array\<int, int\>\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Models/Game/GameCharacter.php
+
+		-
+			message: '#^Property App\\Models\\Game\\GameCharacter\:\:\$discovered_monsters \(string\|null\) does not accept array\<int, int\>\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Models/Game/GameCharacter.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$required_level\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Models/Game/GameItem.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$type\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Models/Game/GameItem.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getGemStats\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/Game/GameItem.php
+
+		-
+			message: '#^Empty array passed to foreach\.$#'
+			identifier: foreach.emptyArray
+			count: 1
+			path: app/Models/Game/GameItem.php
+
+		-
+			message: '#^Offset ''common''\|''legendary''\|''magic''\|''mythic''\|''rare'' on array\{common\: ''\#ffffff'', magic\: ''\#6888ff'', rare\: ''\#ffcc00'', legendary\: ''\#ff8000'', mythic\: ''\#00ff00''\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Models/Game/GameItem.php
+
+		-
+			message: '#^Offset ''common''\|''legendary''\|''magic''\|''mythic''\|''rare'' on array\{common\: 1\.0, magic\: 1\.3, rare\: 1\.6, legendary\: 2\.0, mythic\: 2\.5\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Models/Game/GameItem.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>required_level" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Models/Game/GameItem.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>type" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Models/Game/GameItem.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$gem_stats\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Game/GameItemGem.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>gem_stats" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Models/Game/GameItemGem.php
+
+		-
+			message: '#^Call to function is_array\(\) with non\-falsy\-string will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Models/Game/GameMapDefinition.php
+
+		-
+			message: '#^Class App\\Models\\Game\\GameCharacterMap not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/Game/GameMapDefinition.php
+
+		-
+			message: '#^Parameter \#1 \$related of method Illuminate\\Database\\Eloquent\\Model\:\:hasMany\(\) expects class\-string\<Illuminate\\Database\\Eloquent\\Model\>, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/Game/GameMapDefinition.php
+
+		-
+			message: '#^Result of \|\| is always true\.$#'
+			identifier: booleanOr.alwaysTrue
+			count: 1
+			path: app/Models/Game/GameMapDefinition.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: app/Models/Game/GameMapDefinition.php
+
+		-
+			message: '#^Offset ''item_chance'' on array\{\}\|string on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Models/Game/GameMonsterDefinition.php
+
+		-
+			message: '#^Offset ''item_types'' on array\{\}\|string on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Models/Game/GameMonsterDefinition.php
+
+		-
+			message: '#^Offset ''potion_chance'' on array\{\}\|string on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Models/Game/GameMonsterDefinition.php
+
+		-
+			message: '#^PHPDoc type array of property App\\Models\\Nav\\Category\:\:\$casts is not covariant with PHPDoc type array\<string, string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$casts\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Models/Nav/Category.php
+
+		-
+			message: '#^PHPDoc type array of property App\\Models\\Nav\\Category\:\:\$fillable is not covariant with PHPDoc type list\<string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$fillable\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Models/Nav/Category.php
+
+		-
+			message: '#^PHPDoc type array of property App\\Models\\Nav\\Item\:\:\$casts is not covariant with PHPDoc type array\<string, string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$casts\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Models/Nav/Item.php
+
+		-
+			message: '#^PHPDoc type array of property App\\Models\\Nav\\Item\:\:\$fillable is not covariant with PHPDoc type list\<string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$fillable\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Models/Nav/Item.php
+
+		-
+			message: '#^PHPDoc type array of property App\\Models\\Note\\Note\:\:\$fillable is not covariant with PHPDoc type list\<string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$fillable\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Models/Note/Note.php
+
+		-
+			message: '#^PHPDoc type array of property App\\Models\\Note\\NoteCategory\:\:\$fillable is not covariant with PHPDoc type list\<string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$fillable\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Models/Note/NoteCategory.php
+
+		-
+			message: '#^PHPDoc type array of property App\\Models\\Note\\NoteTag\:\:\$fillable is not covariant with PHPDoc type list\<string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$fillable\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Models/Note/NoteTag.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Thing\\Item\:\:\$primaryImage\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Thing/Item.php
+
+		-
+			message: '#^PHPDoc type array of property App\\Models\\Thing\\Tag\:\:\$fillable is not covariant with PHPDoc type list\<string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$fillable\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Models/Thing/Tag.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_by\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Policies/Chat/ChatMessagePolicy.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_active\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Policies/Chat/ChatMessagePolicy.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 9
+			path: app/Policies/Game/GameItemPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Note\\Note\:\:\$is_public\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Policies/Note/NotePolicy.php
+
+		-
+			message: '#^Access to property \$is_public on an unknown class App\\Models\\Thing\\ThingItem\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Policies/Thing/ThingItemPolicy.php
+
+		-
+			message: '#^Access to property \$user_id on an unknown class App\\Models\\Thing\\ThingItem\.$#'
+			identifier: class.notFound
+			count: 5
+			path: app/Policies/Thing/ThingItemPolicy.php
+
+		-
+			message: '#^Parameter \$item of method App\\Policies\\Thing\\ThingItemPolicy\:\:archive\(\) has invalid type App\\Models\\Thing\\ThingItem\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Policies/Thing/ThingItemPolicy.php
+
+		-
+			message: '#^Parameter \$item of method App\\Policies\\Thing\\ThingItemPolicy\:\:delete\(\) has invalid type App\\Models\\Thing\\ThingItem\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Policies/Thing/ThingItemPolicy.php
+
+		-
+			message: '#^Parameter \$item of method App\\Policies\\Thing\\ThingItemPolicy\:\:share\(\) has invalid type App\\Models\\Thing\\ThingItem\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Policies/Thing/ThingItemPolicy.php
+
+		-
+			message: '#^Parameter \$item of method App\\Policies\\Thing\\ThingItemPolicy\:\:update\(\) has invalid type App\\Models\\Thing\\ThingItem\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Policies/Thing/ThingItemPolicy.php
+
+		-
+			message: '#^Parameter \$item of method App\\Policies\\Thing\\ThingItemPolicy\:\:view\(\) has invalid type App\\Models\\Thing\\ThingItem\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Policies/Thing/ThingItemPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Word\\Word\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Policies/Word/WordPolicy.php
+
+		-
+			message: '#^Class App\\Models\\Thing\\ThingItem not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Providers/PolicyServiceProvider.php
+
+		-
+			message: '#^Call to an undefined static method Illuminate\\Support\\Facades\\Cache\:\:getRedis\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 2
+			path: app/Services/Cache/CacheService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Chat/ChatCacheService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Chat/ChatCacheService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Chat/ChatCacheService.php
+
+		-
+			message: '#^Anonymous function should return Illuminate\\Support\\Collection\<int, array\{id\: mixed, name\: mixed, email\: mixed, joined_at\: Carbon\\Carbon\|null, last_seen_at\: Carbon\\Carbon\|null, is_online\: bool\}\> but returns Illuminate\\Support\\Collection\<int, array\{id\: mixed, name\: mixed, email\: mixed, joined_at\: Carbon\\Carbon\|null, last_seen_at\: Carbon\\Carbon\|null, is_online\: bool\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Chat/ChatCacheService.php
+
+		-
+			message: '#^Constant App\\Services\\Chat\\ChatCacheService\:\:RATE_LIMIT_TTL is unused\.$#'
+			identifier: classConstant.unused
+			count: 1
+			path: app/Services/Chat/ChatCacheService.php
+
+		-
+			message: '#^Constant App\\Services\\Chat\\ChatCacheService\:\:ROOM_LIST_TTL is unused\.$#'
+			identifier: classConstant.unused
+			count: 1
+			path: app/Services/Chat/ChatCacheService.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Chat\\ChatRoomUser\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Services/Chat/ChatCacheService.php
+
+		-
+			message: '#^Method App\\Services\\Chat\\ChatPaginationService\:\:optimizeQuery\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: app/Services/Chat/ChatPaginationService.php
+
+		-
+			message: '#^Comparison operation "\>" between int\<10, max\> and 0 is always true\.$#'
+			identifier: greater.alwaysTrue
+			count: 2
+			path: app/Services/Chat/ContentFilterService.php
+
+		-
+			message: '#^Offset ''hate''\|''spam''\|''stupid''\|''violence'' on array\{spam\: ''\*\*\*\*'', stupid\: ''\[filtered\]'', hate\: ''\[filtered\]'', violence\: ''\[filtered\]''\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: app/Services/Chat/ContentFilterService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/Chat/WebSocketDisconnectService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Thing\\Item\:\:\$images\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/File/ImageUploadService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Thing\\Item\:\:\$images\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/File/ItemImageManagementService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$skill\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/CombatRoundProcessor.php
+
+		-
+			message: '#^Call to function is_array\(\) with \*NEVER\* will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 3
+			path: app/Services/Game/CombatRoundProcessor.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<string, mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 8
+			path: app/Services/Game/CombatRoundProcessor.php
+
+		-
+			message: '#^Call to function is_array\(\) with non\-empty\-array\<string, mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Services/Game/CombatRoundProcessor.php
+
+		-
+			message: '#^Comparison operation "\>" between 0 and 0 is always false\.$#'
+			identifier: greater.alwaysFalse
+			count: 1
+			path: app/Services/Game/CombatRoundProcessor.php
+
+		-
+			message: '#^Empty array passed to foreach\.$#'
+			identifier: foreach.emptyArray
+			count: 1
+			path: app/Services/Game/CombatRoundProcessor.php
+
+		-
+			message: '#^Offset ''hp'' on \*NEVER\* on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 4
+			path: app/Services/Game/CombatRoundProcessor.php
+
+		-
+			message: '#^Offset ''hp'' on non\-empty\-array\<string, mixed\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: app/Services/Game/CombatRoundProcessor.php
+
+		-
+			message: '#^Offset ''max_hp'' on \*NEVER\* on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Game/CombatRoundProcessor.php
+
+		-
+			message: '#^Offset ''reward'' on array\{monster_hp\: float, monster_damage\: float, reward\: float\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Game/CombatRoundProcessor.php
+
+		-
+			message: '#^Offset int on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Game/CombatRoundProcessor.php
+
+		-
+			message: '#^Property App\\Models\\Game\\GameCharacter\:\:\$combat_monsters \(string\|null\) does not accept array\<int, array\<string, mixed\>\>\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Services/Game/CombatRoundProcessor.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 2
+			path: app/Services/Game/CombatRoundProcessor.php
+
+		-
+			message: '#^Call to an undefined method App\\Models\\Game\\GameCharacter\:\:getExperienceForNextLevel\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/Game/GameCharacterService.php
+
+		-
+			message: '#^Parameter \#1 \$offlineSeconds of method App\\Services\\Game\\GameCharacterService\:\:formatOfflineRewards\(\) expects int, float given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Game/GameCharacterService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$aoe_damage\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$base_attack_damage\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$character_attack\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$character_class\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$character_crit_damage\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$character_crit_rate\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$character_defense\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$character_level\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$copper_gained\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$crit_damage\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$damage_dealt\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$damage_taken\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$difficulty_multiplier\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$difficulty_tier\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$duration_seconds\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$experience_gained\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$loot_dropped\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$map\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$map_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$monster\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$monster_attack\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$monster_copper\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$monster_counter_damage\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$monster_defense\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$monster_defense_reduction\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$monster_experience\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$monster_hp\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$monster_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$monster_level\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$monster_max_hp\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$monsters_alive_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$monsters_killed_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$potion_used\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$round_number\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$skill_damage\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$skills_used\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$total_damage_to_monsters\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$victory\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Offset ''reward'' on array\{monster_hp\: float, monster_damage\: float, reward\: float\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Game/GameCombatLogService.php
+
+		-
+			message: '#^Empty array passed to foreach\.$#'
+			identifier: foreach.emptyArray
+			count: 1
+			path: app/Services/Game/GameCombatLootService.php
+
+		-
+			message: '#^Method App\\Services\\Game\\GameCombatLootService\:\:createPotion\(\) should return App\\Models\\Game\\GameItem\|null but returns Illuminate\\Database\\Eloquent\\Model\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Game/GameCombatLootService.php
+
+		-
+			message: '#^Offset ''price'' on string\|null on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Game/GameCombatLootService.php
+
+		-
+			message: '#^Empty array passed to foreach\.$#'
+			identifier: foreach.emptyArray
+			count: 1
+			path: app/Services/Game/GameCombatService.php
+
+		-
+			message: '#^Offset ''has_alive_monster'' on array\{round_damage_dealt\: int, round_damage_taken\: int, new_monster_hp\: int, new_char_hp\: int, new_char_mana\: int, defeat\: false, has_alive_monster\: bool, skills_used_this_round\: array, \.\.\.\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: app/Services/Game/GameCombatService.php
+
+		-
+			message: '#^Offset ''hp'' on \*NEVER\* on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Game/GameCombatService.php
+
+		-
+			message: '#^Offset ''level'' on \*NEVER\* on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Game/GameCombatService.php
+
+		-
+			message: '#^Offset ''max_hp'' on \*NEVER\* on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Game/GameCombatService.php
+
+		-
+			message: '#^Offset ''name'' on \*NEVER\* on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Game/GameCombatService.php
+
+		-
+			message: '#^Offset ''type'' on \*NEVER\* on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Game/GameCombatService.php
+
+		-
+			message: '#^Parameter \#2 \$map of method App\\Services\\Game\\GameCombatLogService\:\:createRoundLog\(\) expects App\\Models\\Game\\GameMapDefinition, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Game/GameCombatService.php
+
+		-
+			message: '#^Parameter \#2 \$map of method App\\Services\\Game\\GameCombatService\:\:handleDefeat\(\) expects App\\Models\\Game\\GameMapDefinition, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Game/GameCombatService.php
+
+		-
+			message: '#^Parameter \#2 \$map of method App\\Services\\Game\\GameMonsterService\:\:prepareMonsterInfo\(\) expects App\\Models\\Game\\GameMapDefinition, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Game/GameCombatService.php
+
+		-
+			message: '#^Parameter \#2 \$map of method App\\Services\\Game\\GameMonsterService\:\:tryAddNewMonsters\(\) expects App\\Models\\Game\\GameMapDefinition, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Game/GameCombatService.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between null and null will always evaluate to false\.$#'
+			identifier: notIdentical.alwaysFalse
+			count: 1
+			path: app/Services/Game/GameCombatService.php
+
+		-
+			message: '#^Variable \$potionUsed on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: app/Services/Game/GameCombatService.php
+
+		-
+			message: '#^Variable \$potionUsedBeforeRound on left side of \?\? is never defined\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: app/Services/Game/GameCombatService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$item\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameInventoryService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$item_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/Game/GameInventoryService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameInventoryService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$type\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/Game/GameInventoryService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getEquipmentSlot\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/Game/GameInventoryService.php
+
+		-
+			message: '#^Constant App\\Services\\Game\\GameInventoryService\:\:CACHE_TTL is unused\.$#'
+			identifier: classConstant.unused
+			count: 1
+			path: app/Services/Game/GameInventoryService.php
+
+		-
+			message: '#^Instanceof between App\\Models\\Game\\GameItem and App\\Models\\Game\\GameItem will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: app/Services/Game/GameInventoryService.php
+
+		-
+			message: '#^Parameter \#1 \$items of method App\\Services\\Game\\GameInventoryService\:\:ensureItemsSellPrice\(\) expects Illuminate\\Support\\Collection\<int, App\\Models\\Game\\GameItem\>, Illuminate\\Database\\Eloquent\\Collection\<int, Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/Game/GameInventoryService.php
+
+		-
+			message: '#^Call to function is_array\(\) with non\-empty\-string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Services/Game/GameMonsterService.php
+
+		-
+			message: '#^Cannot call method addSeconds\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Services/Game/GameMonsterService.php
+
+		-
+			message: '#^Comparison operation "\<\=" between int\<1, 2\> and 0 is always false\.$#'
+			identifier: smallerOrEqual.alwaysFalse
+			count: 1
+			path: app/Services/Game/GameMonsterService.php
+
+		-
+			message: '#^Comparison operation "\>\=" between 0 and 5 is always false\.$#'
+			identifier: greaterOrEqual.alwaysFalse
+			count: 1
+			path: app/Services/Game/GameMonsterService.php
+
+		-
+			message: '#^Empty array passed to foreach\.$#'
+			identifier: foreach.emptyArray
+			count: 1
+			path: app/Services/Game/GameMonsterService.php
+
+		-
+			message: '#^Left side of && is always false\.$#'
+			identifier: booleanAnd.leftAlwaysFalse
+			count: 1
+			path: app/Services/Game/GameMonsterService.php
+
+		-
+			message: '#^Negated boolean expression is always true\.$#'
+			identifier: booleanNot.alwaysTrue
+			count: 2
+			path: app/Services/Game/GameMonsterService.php
+
+		-
+			message: '#^Offset ''hp'' on \*NEVER\* on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Game/GameMonsterService.php
+
+		-
+			message: '#^Offset ''hp'' on array\{id\: mixed, instance_id\: mixed, name\: mixed, type\: mixed, level\: float\|int\<1, max\>, hp\: mixed, max_hp\: int, attack\: int, \.\.\.\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Game/GameMonsterService.php
+
+		-
+			message: '#^Offset 0 on non\-empty\-list\<array\{id\: mixed, instance_id\: mixed, name\: mixed, type\: mixed, level\: float\|int\<1, max\>, hp\: mixed, max_hp\: int, attack\: int, \.\.\.\}\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Game/GameMonsterService.php
+
+		-
+			message: '#^Property App\\Models\\Game\\GameCharacter\:\:\$combat_monsters \(string\|null\) does not accept array\<int, array\<string, mixed\>\|null\>\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Services/Game/GameMonsterService.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: app/Services/Game/GameMonsterService.php
+
+		-
+			message: '#^Result of \|\| is always true\.$#'
+			identifier: booleanOr.alwaysTrue
+			count: 1
+			path: app/Services/Game/GameMonsterService.php
+
+		-
+			message: '#^Right side of && is always false\.$#'
+			identifier: booleanAnd.rightAlwaysFalse
+			count: 1
+			path: app/Services/Game/GameMonsterService.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-empty\-string and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Services/Game/GameMonsterService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$definition\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/Game/GamePotionService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GamePotionService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/Game/GamePotionService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$quantity\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GamePotionService.php
+
+		-
+			message: '#^Method App\\Services\\Game\\GamePotionService\:\:findBestPotion\(\) should return App\\Models\\Game\\GameItem\|null but returns Illuminate\\Database\\Eloquent\\Model\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Game/GamePotionService.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Services/Game/GamePotionService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameShopService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$quantity\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Game/GameShopService.php
+
+		-
+			message: '#^Comparison operation "\>" between 0 and 0 is always false\.$#'
+			identifier: greater.alwaysFalse
+			count: 1
+			path: app/Services/Game/GameShopService.php
+
+		-
+			message: '#^Offset ''common''\|''legendary''\|''magic''\|''mythic''\|''rare'' on array\{common\: 1\.0, magic\: 1\.3, rare\: 1\.6, legendary\: 2\.0, mythic\: 2\.5\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Game/GameShopService.php
+
+		-
+			message: '#^Offset ''price'' on string\|null on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Game/GameShopService.php
+
+		-
+			message: '#^Parameter \#1 \$callback of static method Illuminate\\Database\\Connection\:\:transaction\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Services/Game/GameShopService.php
+
+		-
+			message: '#^Parameter \#1 \$item of method App\\Services\\Game\\GameShopService\:\:calculateBuyPrice\(\) expects App\\Models\\Game\\GameItemDefinition, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Game/GameShopService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Thing\\Spot\:\:\$items_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Location/LocationService.php
+
+		-
+			message: '#^Relation ''area'' is not found in App\\Models\\Thing\\Room model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Services/Location/LocationService.php
+
+		-
+			message: '#^Relation ''room'' is not found in App\\Models\\Thing\\Spot model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Services/Location/LocationService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 12
+			path: app/Services/Location/LocationTreeService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$items_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Location/LocationTreeService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Services/Location/LocationTreeService.php
+
+		-
+			message: '#^Relation ''area'' is not found in App\\Models\\Thing\\Room model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Services/Location/LocationTreeService.php
+
+		-
+			message: '#^Relation ''room'' is not found in App\\Models\\Thing\\Spot model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Services/Location/LocationTreeService.php
+
+		-
+			message: '#^Called ''pluck'' on Laravel collection, but could have been retrieved as a query\.$#'
+			identifier: larastan.noUnnecessaryCollectionCall
+			count: 1
+			path: app/Services/Thing/ItemSearchService.php
+
+		-
+			message: '#^Relation ''category'' is not found in App\\Models\\Thing\\Item model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Services/Thing/ItemSearchService.php
+
+		-
+			message: '#^Relation ''spot'' is not found in App\\Models\\Thing\\Item model\.$#'
+			identifier: larastan.relationExistence
+			count: 3
+			path: app/Services/Thing/ItemSearchService.php
+
+		-
+			message: '#^Comparison operation "\<\=" between int\<129536, max\> and 128591 is always false\.$#'
+			identifier: smallerOrEqual.alwaysFalse
+			count: 1
+			path: app/Utils/CharLengthHelper.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: app/Utils/CharLengthHelper.php
