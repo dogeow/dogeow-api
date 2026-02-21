@@ -1,10 +1,10 @@
 <?php
 
+use App\Models\Note\Note;
+use App\Models\Note\NoteLink;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use App\Models\Note\Note;
-use App\Models\Note\NoteLink;
 
 return new class extends Migration
 {
@@ -14,7 +14,7 @@ return new class extends Migration
     public function up(): void
     {
         // 检查是否有 wiki 数据需要迁移
-        if (!Schema::hasTable('wiki_nodes') || !Schema::hasTable('wiki_links')) {
+        if (! Schema::hasTable('wiki_nodes') || ! Schema::hasTable('wiki_links')) {
             return;
         }
 
@@ -57,7 +57,7 @@ return new class extends Migration
                     ->where('target_id', $targetId)
                     ->exists();
 
-                if (!$exists) {
+                if (! $exists) {
                     NoteLink::create([
                         'source_id' => $sourceId,
                         'target_id' => $targetId,

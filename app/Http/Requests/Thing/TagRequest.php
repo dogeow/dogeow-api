@@ -30,9 +30,9 @@ class TagRequest extends FormRequest
                 'max:50',
                 Rule::unique('thing_tags', 'name')
                     ->where('user_id', Auth::id())
-                    ->ignore($this->route('tag'))
+                    ->ignore($this->route('tag')),
             ],
-            'color' => 'sometimes|string|regex:/^#([A-Fa-f0-9]{6})$/'
+            'color' => 'sometimes|string|regex:/^#([A-Fa-f0-9]{6})$/',
         ];
     }
 
@@ -48,4 +48,4 @@ class TagRequest extends FormRequest
             'color' => '标签颜色',
         ];
     }
-} 
+}

@@ -2,7 +2,6 @@
 
 namespace App\Exceptions;
 
-use App\Exceptions\GameException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
@@ -21,18 +20,18 @@ class ApiExceptionHandler
     public static function handle(Throwable $exception, Request $request): ?JsonResponse
     {
         // 只处理API请求
-        if (!$request->is('api/*') && !$request->expectsJson()) {
+        if (! $request->is('api/*') && ! $request->expectsJson()) {
             return null;
         }
 
         return match (true) {
-            $exception instanceof GameException             => self::handleGameException($exception),
-            $exception instanceof ValidationException       => self::handleValidationException($exception),
-            $exception instanceof ModelNotFoundException    => self::handleModelNotFoundException($exception),
-            $exception instanceof NotFoundHttpException     => self::handleNotFoundHttpException(),
-            $exception instanceof AuthenticationException   => self::handleAuthenticationException($exception),
-            $exception instanceof HttpException             => self::handleHttpException($exception),
-            default                                         => self::handleGenericException($exception),
+            $exception instanceof GameException => self::handleGameException($exception),
+            $exception instanceof ValidationException => self::handleValidationException($exception),
+            $exception instanceof ModelNotFoundException => self::handleModelNotFoundException($exception),
+            $exception instanceof NotFoundHttpException => self::handleNotFoundHttpException(),
+            $exception instanceof AuthenticationException => self::handleAuthenticationException($exception),
+            $exception instanceof HttpException => self::handleHttpException($exception),
+            default => self::handleGenericException($exception),
         };
     }
 
@@ -44,7 +43,7 @@ class ApiExceptionHandler
         return response()->json([
             'success' => false,
             'message' => __('Validation failed'),
-            'errors'  => $exception->errors(),
+            'errors' => $exception->errors(),
         ], 422);
     }
 
@@ -116,12 +115,12 @@ class ApiExceptionHandler
         ];
 
         // 在非生产环境中添加调试信息
-        if (!$isProd) {
+        if (! $isProd) {
             $data['debug'] = [
                 'exception' => get_class($exception),
-                'file'      => $exception->getFile(),
-                'line'      => $exception->getLine(),
-                'trace'     => collect($exception->getTrace())
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
+                'trace' => collect($exception->getTrace())
                     ->map(fn ($item) => Arr::only($item, ['file', 'line', 'function', 'class']))
                     ->all(),
             ];

@@ -18,7 +18,7 @@ class GameCharacterServiceTest extends TestCase
     {
         parent::setUp();
 
-        $this->service = new GameCharacterService();
+        $this->service = new GameCharacterService;
     }
 
     public function test_get_character_list_returns_empty_array_when_no_characters(): void

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->text('message');
             $table->enum('message_type', ['text', 'system'])->default('text');
             $table->timestamps();
-            
+
             // Performance indexes
             $table->index(['room_id', 'id', 'created_at'], 'idx_room_id_cursor');
             if (config('database.default') !== 'sqlite') {

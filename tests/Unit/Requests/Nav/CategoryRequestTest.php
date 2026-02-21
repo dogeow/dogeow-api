@@ -2,9 +2,9 @@
 
 namespace Tests\Unit\Requests\Nav;
 
-use Tests\TestCase;
 use App\Http\Requests\Nav\CategoryRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class CategoryRequestTest extends TestCase
 {
@@ -15,7 +15,7 @@ class CategoryRequestTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->request = new CategoryRequest();
+        $this->request = new CategoryRequest;
     }
 
     public function test_authorize_returns_true()
@@ -121,4 +121,4 @@ class CategoryRequestTest extends TestCase
 
         $this->assertEquals('是否可见', $attributes['is_visible']);
     }
-} 
+}

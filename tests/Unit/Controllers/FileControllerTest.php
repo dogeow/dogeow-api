@@ -2,28 +2,27 @@
 
 namespace Tests\Unit\Controllers;
 
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Cloud\File;
 use App\Http\Controllers\Api\Cloud\FileController;
+use App\Models\Cloud\File;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use ReflectionClass;
-use ReflectionMethod;
+use Tests\TestCase;
 
 class FileControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     private FileController $controller;
+
     private User $user;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->controller = new FileController();
+        $this->controller = new FileController;
         $this->user = User::factory()->create();
         Auth::login($this->user);
         Storage::fake('public');
@@ -59,14 +58,14 @@ class FileControllerTest extends TestCase
         $rootFolder = File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => true,
-            'name' => 'Root'
+            'name' => 'Root',
         ]);
 
         $childFolder = File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => true,
             'name' => 'Child',
-            'parent_id' => $rootFolder->id
+            'parent_id' => $rootFolder->id,
         ]);
 
         $result = $method->invoke($this->controller, $rootFolder);
@@ -89,14 +88,14 @@ class FileControllerTest extends TestCase
         // Create a folder with children
         $folder = File::factory()->create([
             'user_id' => $this->user->id,
-            'is_folder' => true
+            'is_folder' => true,
         ]);
 
         $childFile = File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => false,
             'path' => 'cloud/1/2024/01/child.txt',
-            'parent_id' => $folder->id
+            'parent_id' => $folder->id,
         ]);
 
         Storage::disk('public')->put($childFile->path, 'test content');
@@ -116,18 +115,18 @@ class FileControllerTest extends TestCase
         $imageFile = File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => false,
-            'extension' => 'jpg'
+            'extension' => 'jpg',
         ]);
 
         $pdfFile = File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => false,
-            'extension' => 'pdf'
+            'extension' => 'pdf',
         ]);
 
         $folder = File::factory()->create([
             'user_id' => $this->user->id,
-            'is_folder' => true
+            'is_folder' => true,
         ]);
 
         $this->assertEquals('image', $imageFile->type);
@@ -142,12 +141,12 @@ class FileControllerTest extends TestCase
     {
         $parentFolder = File::factory()->create([
             'user_id' => $this->user->id,
-            'is_folder' => true
+            'is_folder' => true,
         ]);
 
         $childFile = File::factory()->create([
             'user_id' => $this->user->id,
-            'parent_id' => $parentFolder->id
+            'parent_id' => $parentFolder->id,
         ]);
 
         $this->assertInstanceOf(File::class, $childFile->parent);
@@ -164,7 +163,7 @@ class FileControllerTest extends TestCase
     public function test_file_download_url()
     {
         $file = File::factory()->create([
-            'user_id' => $this->user->id
+            'user_id' => $this->user->id,
         ]);
 
         $url = $file->getDownloadUrl();
@@ -176,7 +175,7 @@ class FileControllerTest extends TestCase
      */
     public function test_file_model_fillable_attributes()
     {
-        $file = new File();
+        $file = new File;
         $fillable = $file->getFillable();
 
         $expectedFillable = [
@@ -200,7 +199,7 @@ class FileControllerTest extends TestCase
      */
     public function test_file_model_casts()
     {
-        $file = new File();
+        $file = new File;
         $casts = $file->getCasts();
 
         $this->assertArrayHasKey('size', $casts);
@@ -215,7 +214,7 @@ class FileControllerTest extends TestCase
      */
     public function test_file_model_appends()
     {
-        $file = new File();
+        $file = new File;
         $appends = $file->getAppends();
 
         $this->assertContains('type', $appends);
@@ -227,7 +226,7 @@ class FileControllerTest extends TestCase
     public function test_file_user_relationship()
     {
         $file = File::factory()->create([
-            'user_id' => $this->user->id
+            'user_id' => $this->user->id,
         ]);
 
         $this->assertInstanceOf(User::class, $file->user);
@@ -280,10 +279,10 @@ class FileControllerTest extends TestCase
             $file = File::factory()->create([
                 'user_id' => $this->user->id,
                 'is_folder' => false,
-                'extension' => $testCase['extension']
+                'extension' => $testCase['extension'],
             ]);
 
-            $this->assertEquals($testCase['expected_type'], $file->type, 
+            $this->assertEquals($testCase['expected_type'], $file->type,
                 "Failed for extension: {$testCase['extension']}");
         }
     }
@@ -295,7 +294,7 @@ class FileControllerTest extends TestCase
     {
         $folder = File::factory()->create([
             'user_id' => $this->user->id,
-            'is_folder' => true
+            'is_folder' => true,
         ]);
 
         $this->assertEquals('folder', $folder->type);
@@ -321,4 +320,4 @@ class FileControllerTest extends TestCase
         $this->assertEquals('1 MB', $method->invoke($this->controller, 1024 * 1024));
         $this->assertEquals('1 GB', $method->invoke($this->controller, 1024 * 1024 * 1024));
     }
-} 
+}

@@ -2,12 +2,12 @@
 
 namespace Tests\Unit\Services;
 
-use Tests\TestCase;
-use App\Services\File\ItemImageManagementService;
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemImage;
-use Illuminate\Support\Facades\Storage;
+use App\Services\File\ItemImageManagementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
 
 class ItemImageManagementServiceTest extends TestCase
 {
@@ -18,7 +18,7 @@ class ItemImageManagementServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new ItemImageManagementService();
+        $this->service = new ItemImageManagementService;
         Storage::fake('public');
     }
 
@@ -36,7 +36,7 @@ class ItemImageManagementServiceTest extends TestCase
         // 验证指定的图片已删除
         $this->assertDatabaseMissing('thing_item_images', ['id' => $image1->id]);
         $this->assertDatabaseMissing('thing_item_images', ['id' => $image2->id]);
-        
+
         // 验证未指定的图片仍然存在
         $this->assertDatabaseHas('thing_item_images', ['id' => $image3->id]);
     }
@@ -45,7 +45,7 @@ class ItemImageManagementServiceTest extends TestCase
     {
         $item1 = Item::factory()->create();
         $item2 = Item::factory()->create();
-        
+
         $image1 = ItemImage::factory()->create(['item_id' => $item1->id]);
         $image2 = ItemImage::factory()->create(['item_id' => $item2->id]);
 
@@ -107,7 +107,7 @@ class ItemImageManagementServiceTest extends TestCase
     {
         $item1 = Item::factory()->create();
         $item2 = Item::factory()->create();
-        
+
         $image1 = ItemImage::factory()->create(['item_id' => $item1->id]);
         $image2 = ItemImage::factory()->create(['item_id' => $item2->id]);
 
@@ -123,7 +123,7 @@ class ItemImageManagementServiceTest extends TestCase
         $item = Item::factory()->create();
         $image = ItemImage::factory()->create([
             'item_id' => $item->id,
-            'path' => 'test/image.jpg'
+            'path' => 'test/image.jpg',
         ]);
 
         // Mock Storage to verify deletion
@@ -144,11 +144,11 @@ class ItemImageManagementServiceTest extends TestCase
         $item = Item::factory()->create();
         $image1 = ItemImage::factory()->create([
             'item_id' => $item->id,
-            'path' => 'test/image1.jpg'
+            'path' => 'test/image1.jpg',
         ]);
         $image2 = ItemImage::factory()->create([
             'item_id' => $item->id,
-            'path' => 'test/image2.jpg'
+            'path' => 'test/image2.jpg',
         ]);
 
         // Mock Storage to verify deletion
@@ -172,7 +172,7 @@ class ItemImageManagementServiceTest extends TestCase
         $item = Item::factory()->create();
         $image = ItemImage::factory()->create([
             'item_id' => $item->id,
-            'path' => 'test/image.jpg'
+            'path' => 'test/image.jpg',
         ]);
 
         // Mock Storage to throw exception
@@ -200,11 +200,11 @@ class ItemImageManagementServiceTest extends TestCase
         $item = Item::factory()->create();
         $image1 = ItemImage::factory()->create([
             'item_id' => $item->id,
-            'path' => 'test/image1.jpg'
+            'path' => 'test/image1.jpg',
         ]);
         $image2 = ItemImage::factory()->create([
             'item_id' => $item->id,
-            'path' => 'test/image2.jpg'
+            'path' => 'test/image2.jpg',
         ]);
 
         // Mock Storage to throw exception
@@ -244,7 +244,7 @@ class ItemImageManagementServiceTest extends TestCase
     {
         $item1 = Item::factory()->create();
         $item2 = Item::factory()->create();
-        
+
         $image1 = ItemImage::factory()->create(['item_id' => $item1->id]);
         $image2 = ItemImage::factory()->create(['item_id' => $item2->id]);
 
@@ -262,7 +262,7 @@ class ItemImageManagementServiceTest extends TestCase
         $item = Item::factory()->create();
         $image = ItemImage::factory()->create([
             'item_id' => $item->id,
-            'path' => 'test/image.jpg'
+            'path' => 'test/image.jpg',
         ]);
 
         $this->service->deleteAllItemImages($item);
@@ -271,7 +271,7 @@ class ItemImageManagementServiceTest extends TestCase
         $this->assertDatabaseMissing('thing_item_images', [
             'id' => $image->id,
             'item_id' => $item->id,
-            'path' => 'test/image.jpg'
+            'path' => 'test/image.jpg',
         ]);
     }
-} 
+}

@@ -19,6 +19,7 @@ class ClientInfoController extends Controller
     public function getBasicInfo(Request $request): JsonResponse
     {
         $data = $this->clientInfoService->getBasicInfo($request);
+
         return response()->json($data);
     }
 
@@ -29,8 +30,9 @@ class ClientInfoController extends Controller
     {
         $ip = $request->ip();
         $data = $this->clientInfoService->getLocationInfo($ip);
-        
+
         $statusCode = isset($data['error']) ? 500 : 200;
+
         return response()->json($data, $statusCode);
     }
 
@@ -40,6 +42,7 @@ class ClientInfoController extends Controller
     public function getClientInfo(Request $request): JsonResponse
     {
         $data = $this->clientInfoService->getClientInfo($request);
+
         return response()->json($data);
     }
-} 
+}

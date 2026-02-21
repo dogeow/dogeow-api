@@ -17,7 +17,7 @@ class ChatMessageFactory extends Factory
     public function definition(): array
     {
         return [
-            'room_id' => \App\Models\Chat\ChatRoom:factory(),
+            'room_id' => \App\Models\Chat\ChatRoom::factory(),
             'user_id' => \App\Models\User::factory(),
             'message' => $this->faker->sentence(),
             'message_type' => \App\Models\Chat\ChatMessage::TYPE_TEXT,

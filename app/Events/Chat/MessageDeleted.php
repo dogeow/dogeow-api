@@ -13,8 +13,11 @@ class MessageDeleted implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public int $messageId;
+
     public int $roomId;
+
     public int $deletedBy;
+
     public ?string $reason;
 
     /**

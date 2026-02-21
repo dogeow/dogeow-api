@@ -12,9 +12,6 @@ class LocationTreeService extends BaseService
 {
     /**
      * 构建位置树形结构
-     *
-     * @param int $userId
-     * @return array
      */
     public function buildLocationTree(int $userId): array
     {
@@ -51,9 +48,6 @@ class LocationTreeService extends BaseService
 
     /**
      * 获取物品数量统计
-     *
-     * @param int $userId
-     * @return array
      */
     private function getItemCounts(int $userId): array
     {
@@ -83,11 +77,9 @@ class LocationTreeService extends BaseService
     /**
      * 构建树形结构
      *
-     * @param \Illuminate\Database\Eloquent\Collection $areas
-     * @param \Illuminate\Database\Eloquent\Collection $rooms
-     * @param \Illuminate\Database\Eloquent\Collection $spots
-     * @param array $itemCounts
-     * @return array
+     * @param  \Illuminate\Database\Eloquent\Collection  $areas
+     * @param  \Illuminate\Database\Eloquent\Collection  $rooms
+     * @param  \Illuminate\Database\Eloquent\Collection  $spots
      */
     private function buildTreeStructure($areas, $rooms, $spots, array $itemCounts): array
     {

@@ -6,7 +6,6 @@ use App\Models\User;
 use App\Models\Word\Book;
 use App\Models\Word\UserSetting;
 use App\Models\Word\UserWord;
-use App\Models\Word\Word;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -31,8 +30,6 @@ class AddFeb5LearningRecords extends Command
 
     /**
      * 执行控制台命令
-     *
-     * @return int
      */
     public function handle(): int
     {
@@ -42,14 +39,16 @@ class AddFeb5LearningRecords extends Command
         // 获取用户
         if ($userId) {
             $user = User::find($userId);
-            if (!$user) {
+            if (! $user) {
                 $this->error("用户 ID {$userId} 不存在");
+
                 return Command::FAILURE;
             }
         } else {
             $user = User::first();
-            if (!$user) {
+            if (! $user) {
                 $this->error('数据库中没有用户，请先创建用户');
+
                 return Command::FAILURE;
             }
         }
@@ -66,11 +65,12 @@ class AddFeb5LearningRecords extends Command
             ]
         );
 
-        if (!$setting->current_book_id) {
+        if (! $setting->current_book_id) {
             // 如果没有选择单词书，选择第一个单词书
             $book = Book::first();
-            if (!$book) {
+            if (! $book) {
                 $this->error('数据库中没有单词书，请先导入单词数据');
+
                 return Command::FAILURE;
             }
             $setting->current_book_id = $book->id;
@@ -93,8 +93,8 @@ class AddFeb5LearningRecords extends Command
 
         if ($availableWords->isEmpty()) {
             $this->warn("单词书 '{$book->name}' 中没有可用的新单词了");
-            $this->info("尝试使用已学习的单词...");
-            
+            $this->info('尝试使用已学习的单词...');
+
             // 使用已学习的单词，但更新为5号学习记录
             $existingWords = UserWord::where('user_id', $user->id)
                 ->where('word_book_id', $book->id)
@@ -104,11 +104,12 @@ class AddFeb5LearningRecords extends Command
 
             if ($existingWords->isEmpty()) {
                 $this->error('没有可用的单词');
+
                 return Command::FAILURE;
             }
 
             $this->info("找到 {$existingWords->count()} 个已学习的单词，将更新为5号学习记录");
-            
+
             DB::beginTransaction();
             try {
                 foreach ($existingWords as $userWord) {
@@ -126,10 +127,12 @@ class AddFeb5LearningRecords extends Command
                 }
                 DB::commit();
                 $this->info("成功更新 {$existingWords->count()} 条学习记录！");
+
                 return Command::SUCCESS;
             } catch (\Exception $e) {
                 DB::rollBack();
-                $this->error("更新失败: " . $e->getMessage());
+                $this->error('更新失败: ' . $e->getMessage());
+
                 return Command::FAILURE;
             }
         }
@@ -162,13 +165,14 @@ class AddFeb5LearningRecords extends Command
 
             DB::commit();
             $this->info("成功创建 {$availableWords->count()} 条学习记录！");
-            $this->info("这些单词将在今天（6号）出现在复习列表中");
+            $this->info('这些单词将在今天（6号）出现在复习列表中');
 
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->error("创建失败: " . $e->getMessage());
+            $this->error('创建失败: ' . $e->getMessage());
+
             return Command::FAILURE;
         }
     }

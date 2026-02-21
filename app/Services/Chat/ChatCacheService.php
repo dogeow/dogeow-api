@@ -2,31 +2,43 @@
 
 namespace App\Services\Chat;
 
-use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatMessage;
+use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Redis;
-use Illuminate\Support\Collection;
 
 class ChatCacheService
 {
     // Cache TTL constants (in seconds)
     private const ROOM_LIST_TTL = 300; // 5 minutes
+
     private const ROOM_STATS_TTL = 600; // 10 minutes
+
     private const ONLINE_USERS_TTL = 60; // 1 minute
+
     private const MESSAGE_HISTORY_TTL = 1800; // 30 minutes
+
     private const USER_PRESENCE_TTL = 120; // 2 minutes
+
     private const RATE_LIMIT_TTL = 3600; // 1 hour
 
     // Cache key prefixes
     private const PREFIX_ROOM_LIST = 'chat:rooms:list';
+
     private const PREFIX_ROOM_STATS = 'chat:room:stats:';
+
     private const PREFIX_ONLINE_USERS = 'chat:room:online:';
+
     private const PREFIX_MESSAGE_HISTORY = 'chat:room:messages:';
+
     private const PREFIX_USER_PRESENCE = 'chat:user:presence:';
+
     private const PREFIX_RATE_LIMIT = 'chat:rate_limit:';
+
     private const PREFIX_ROOM_ACTIVITY = 'chat:room:activity:';
+
     private const PREFIX_CACHE_KEYS = 'chat:cache:keys';
 
     /**
@@ -40,7 +52,7 @@ class ChatCacheService
                 'users as online_count' => function ($query) {
                     $query->where('is_online', true);
                 },
-                'messages as message_count'
+                'messages as message_count',
             ])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -61,17 +73,17 @@ class ChatCacheService
     public function getRoomStats(int $roomId): array
     {
         $cacheKey = self::PREFIX_ROOM_STATS . $roomId;
-        
+
         $stats = Cache::remember($cacheKey, self::ROOM_STATS_TTL, function () use ($roomId) {
             $room = ChatRoom::with('creator:id,name,email')->find($roomId);
-            
-            if (!$room) {
+
+            if (! $room) {
                 return [];
             }
 
             $totalUsers = ChatRoomUser::where('room_id', $roomId)->count();
             $onlineUsers = ChatRoomUser::where('room_id', $roomId)->where('is_online', true)->count();
-            
+
             $messageStats = [
                 'total_messages' => ChatMessage::where('room_id', $roomId)->count(),
                 'text_messages' => ChatMessage::where('room_id', $roomId)->where('message_type', 'text')->count(),
@@ -89,11 +101,12 @@ class ChatCacheService
                 'messages' => $messageStats,
                 'recent_activity_24h' => $recentActivity,
                 'created_at' => $room->created_at,
-                'last_activity' => ChatMessage::where('room_id', $roomId)->latest()->first()?->created_at
+                'last_activity' => ChatMessage::where('room_id', $roomId)->latest()->first()?->created_at,
             ];
         });
 
         $this->registerCacheKey($cacheKey);
+
         return $stats;
     }
 
@@ -113,7 +126,7 @@ class ChatCacheService
     public function getOnlineUsers(int $roomId): Collection
     {
         $cacheKey = self::PREFIX_ONLINE_USERS . $roomId;
-        
+
         $users = Cache::remember($cacheKey, self::ONLINE_USERS_TTL, function () use ($roomId) {
             return ChatRoomUser::where('room_id', $roomId)
                 ->where('is_online', true)
@@ -127,12 +140,13 @@ class ChatCacheService
                         'email' => $roomUser->user->email,
                         'joined_at' => $roomUser->joined_at,
                         'last_seen_at' => $roomUser->last_seen_at,
-                        'is_online' => $roomUser->is_online
+                        'is_online' => $roomUser->is_online,
                     ];
                 });
         });
 
         $this->registerCacheKey($cacheKey);
+
         return $users;
     }
 
@@ -162,6 +176,7 @@ class ChatCacheService
     public function getMessageHistory(int $roomId, int $page): ?Collection
     {
         $cacheKey = self::PREFIX_MESSAGE_HISTORY . "{$roomId}:page:{$page}";
+
         return Cache::get($cacheKey);
     }
 
@@ -190,6 +205,7 @@ class ChatCacheService
     public function getUserPresence(int $userId, int $roomId): ?array
     {
         $cacheKey = self::PREFIX_USER_PRESENCE . "{$userId}:{$roomId}";
+
         return Cache::get($cacheKey);
     }
 
@@ -209,44 +225,46 @@ class ChatCacheService
     public function checkRateLimit(string $key, int $maxAttempts, int $windowSeconds): array
     {
         $cacheKey = self::PREFIX_RATE_LIMIT . $key;
-        
+
         try {
             $redis = Redis::connection();
             $current = $redis->get($cacheKey);
-            
+
             if ($current === null) {
                 // First request in window
                 $redis->setex($cacheKey, $windowSeconds, 1);
+
                 return [
                     'allowed' => true,
                     'attempts' => 1,
                     'remaining' => $maxAttempts - 1,
-                    'reset_time' => now()->addSeconds($windowSeconds)
+                    'reset_time' => now()->addSeconds($windowSeconds),
                 ];
             }
-            
+
             $attempts = (int) $current;
-            
+
             if ($attempts >= $maxAttempts) {
                 $ttl = $redis->ttl($cacheKey);
+
                 return [
                     'allowed' => false,
                     'attempts' => $attempts,
                     'remaining' => 0,
-                    'reset_time' => now()->addSeconds($ttl > 0 ? $ttl : $windowSeconds)
+                    'reset_time' => now()->addSeconds($ttl > 0 ? $ttl : $windowSeconds),
                 ];
             }
-            
+
             // Increment counter
             $newAttempts = $redis->incr($cacheKey);
-            
+
             return [
                 'allowed' => true,
                 'attempts' => $newAttempts,
                 'remaining' => max(0, $maxAttempts - $newAttempts),
-                'reset_time' => now()->addSeconds($redis->ttl($cacheKey))
+                'reset_time' => now()->addSeconds($redis->ttl($cacheKey)),
             ];
-            
+
         } catch (\Exception $e) {
             // Fallback to allowing request if Redis fails
             return [
@@ -254,7 +272,7 @@ class ChatCacheService
                 'attempts' => 1,
                 'remaining' => $maxAttempts - 1,
                 'reset_time' => now()->addSeconds($windowSeconds),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ];
         }
     }
@@ -265,20 +283,20 @@ class ChatCacheService
     public function trackRoomActivity(int $roomId, string $activityType, ?int $userId = null): void
     {
         $cacheKey = self::PREFIX_ROOM_ACTIVITY . "{$roomId}:" . date('Y-m-d-H');
-        
+
         try {
             $activityData = [
                 'type' => $activityType,
                 'user_id' => $userId,
-                'timestamp' => now()->timestamp
+                'timestamp' => now()->timestamp,
             ];
-            
+
             if (config('cache.default') === 'redis') {
                 $redis = Redis::connection();
                 // Store as a list with expiration
                 $redis->lpush($cacheKey, json_encode($activityData));
                 $redis->expire($cacheKey, 86400); // 24 hours
-                
+
                 // Keep only last 1000 activities per hour
                 $redis->ltrim($cacheKey, 0, 999);
             } else {
@@ -288,13 +306,13 @@ class ChatCacheService
                 Cache::put($cacheKey, $activities, 86400);
                 $this->registerCacheKey($cacheKey);
             }
-            
+
         } catch (\Exception $e) {
             // Silently fail for activity tracking
             \Log::warning('Failed to track room activity', [
                 'room_id' => $roomId,
                 'activity_type' => $activityType,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -306,12 +324,12 @@ class ChatCacheService
     {
         try {
             $activities = [];
-            
+
             // Get activities for the last N hours
             for ($i = 0; $i < $hours; $i++) {
                 $hour = now()->subHours($i)->format('Y-m-d-H');
                 $cacheKey = self::PREFIX_ROOM_ACTIVITY . "{$roomId}:{$hour}";
-                
+
                 if (config('cache.default') === 'redis') {
                     $redis = Redis::connection();
                     $hourlyActivities = $redis->lrange($cacheKey, 0, -1);
@@ -325,25 +343,25 @@ class ChatCacheService
                     }
                 }
             }
-            
+
             // Sort by timestamp descending
             usort($activities, function ($a, $b) {
                 return $b['timestamp'] - $a['timestamp'];
             });
-            
+
             $activities = array_slice($activities, 0, 500);
             $activityTypes = [];
             foreach ($activities as $activity) {
                 $type = $activity['type'] ?? 'unknown';
                 $activityTypes[$type] = ($activityTypes[$type] ?? 0) + 1;
             }
-            
+
             return [
                 'activities' => $activities,
                 'total_activities' => count($activities),
                 'activity_types' => $activityTypes,
             ];
-            
+
         } catch (\Exception $e) {
             return [
                 'activities' => [],
@@ -360,7 +378,7 @@ class ChatCacheService
     {
         // Warm up room list
         $this->getRoomList();
-        
+
         // Warm up stats for active rooms
         $activeRooms = ChatRoom::where('is_active', true)->pluck('id');
         foreach ($activeRooms as $roomId) {
@@ -380,9 +398,9 @@ class ChatCacheService
             self::PREFIX_ONLINE_USERS . '*',
             self::PREFIX_MESSAGE_HISTORY . '*',
             self::PREFIX_USER_PRESENCE . '*',
-            self::PREFIX_ROOM_ACTIVITY . '*'
+            self::PREFIX_ROOM_ACTIVITY . '*',
         ];
-        
+
         foreach ($patterns as $pattern) {
             $this->deleteByPattern($pattern);
         }
@@ -397,7 +415,7 @@ class ChatCacheService
             if (config('cache.default') === 'redis') {
                 $redis = Redis::connection();
                 $keys = $redis->keys($pattern);
-                if (!empty($keys)) {
+                if (! empty($keys)) {
                     $redis->del($keys);
                 }
             } else {
@@ -407,7 +425,7 @@ class ChatCacheService
         } catch (\Exception $e) {
             \Log::warning('Failed to delete cache by pattern', [
                 'pattern' => $pattern,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -421,7 +439,7 @@ class ChatCacheService
             if (config('cache.default') === 'redis') {
                 $redis = Redis::connection();
                 $info = $redis->info();
-                
+
                 return [
                     'driver' => 'redis',
                     'memory_usage' => $info['used_memory_human'] ?? 'N/A',
@@ -436,7 +454,7 @@ class ChatCacheService
                     ),
                 ];
             }
-            
+
             $registeredKeys = Cache::get(self::PREFIX_CACHE_KEYS, []);
             $totalKeys = count($registeredKeys);
 
@@ -446,10 +464,10 @@ class ChatCacheService
                 'memory_usage' => 'N/A',
                 'hit_rate' => 0,
             ];
-            
+
         } catch (\Exception $e) {
             return [
-                'error' => 'Failed to get cache stats: ' . $e->getMessage()
+                'error' => 'Failed to get cache stats: ' . $e->getMessage(),
             ];
         }
     }
@@ -457,7 +475,7 @@ class ChatCacheService
     private function registerCacheKey(string $key): void
     {
         $keys = Cache::get(self::PREFIX_CACHE_KEYS, []);
-        if (!in_array($key, $keys, true)) {
+        if (! in_array($key, $keys, true)) {
             $keys[] = $key;
             Cache::put(self::PREFIX_CACHE_KEYS, $keys, 3600);
         }
@@ -466,7 +484,7 @@ class ChatCacheService
     private function unregisterCacheKey(string $key): void
     {
         $keys = Cache::get(self::PREFIX_CACHE_KEYS, []);
-        $filtered = array_values(array_filter($keys, static fn($item) => $item !== $key));
+        $filtered = array_values(array_filter($keys, static fn ($item) => $item !== $key));
         Cache::put(self::PREFIX_CACHE_KEYS, $filtered, 3600);
     }
 
@@ -476,6 +494,7 @@ class ChatCacheService
         if ($total === 0) {
             return 0;
         }
+
         return $hits / $total;
     }
 }

@@ -19,11 +19,11 @@ class GameCombatService
     /**
      * 构造函数
      *
-     * @param CombatRoundProcessor $roundProcessor 回合处理器
-     * @param GameMonsterService $monsterService 怪物服务
-     * @param GamePotionService $potionService 药水服务
-     * @param GameCombatLootService $lootService 战利品服务
-     * @param GameCombatLogService $combatLogService 战斗日志服务
+     * @param  CombatRoundProcessor  $roundProcessor  回合处理器
+     * @param  GameMonsterService  $monsterService  怪物服务
+     * @param  GamePotionService  $potionService  药水服务
+     * @param  GameCombatLootService  $lootService  战利品服务
+     * @param  GameCombatLogService  $combatLogService  战斗日志服务
      */
     public function __construct(
         private readonly CombatRoundProcessor $roundProcessor,
@@ -65,7 +65,7 @@ class GameCombatService
     /**
      * 获取战斗状态
      *
-     * @param GameCharacter $character 角色实例
+     * @param  GameCharacter  $character  角色实例
      * @return array 战斗状态数据
      */
     public function getCombatStatus(GameCharacter $character): array
@@ -124,8 +124,8 @@ class GameCombatService
     /**
      * 更新药水设置
      *
-     * @param GameCharacter $character 角色实例
-     * @param array $settings 药水设置
+     * @param  GameCharacter  $character  角色实例
+     * @param  array  $settings  药水设置
      * @return GameCharacter 更新后的角色
      */
     public function updatePotionSettings(GameCharacter $character, array $settings): GameCharacter
@@ -143,9 +143,10 @@ class GameCombatService
     /**
      * 执行一轮战斗（支持多怪物连续战斗）
      *
-     * @param GameCharacter $character 角色实例
-     * @param array $skillIds 使用的技能ID数组
+     * @param  GameCharacter  $character  角色实例
+     * @param  array  $skillIds  使用的技能ID数组
      * @return array 战斗结果
+     *
      * @throws \InvalidArgumentException 地图不存在或没有怪物
      * @throws \RuntimeException 血量不足或战斗结束
      */
@@ -244,7 +245,7 @@ class GameCombatService
         // 这实现了连续战斗流程：怪物随着死亡立即重生，而不是等待所有怪物死亡
         // 注意：怪物刷新现在只在自动战斗 Job 中处理，这里只处理怪物死亡后补充
         // 只有当怪物全部死亡时才补充新怪物
-        $isAllDead = !($roundResult['has_alive_monster'] ?? true);
+        $isAllDead = ! ($roundResult['has_alive_monster'] ?? true);
         if ($isAllDead) {
             $roundResult = $this->monsterService->tryAddNewMonsters($character, $map, $roundResult, $currentRound);
         }
@@ -332,9 +333,9 @@ class GameCombatService
     /**
      * 持久化战斗状态
      *
-     * @param GameCharacter $character 角色实例
-     * @param array $roundResult 回合结果
-     * @param int $currentRound 当前回合数
+     * @param  GameCharacter  $character  角色实例
+     * @param  array  $roundResult  回合结果
+     * @param  int  $currentRound  当前回合数
      */
     private function persistCombatState(GameCharacter $character, array $roundResult, int $currentRound): void
     {
@@ -355,14 +356,14 @@ class GameCombatService
     /**
      * 处理失败情况
      *
-     * @param GameCharacter $character 角色实例
-     * @param GameMapDefinition $map 地图实例
-     * @param GameMonsterDefinition $monster 怪物实例
-     * @param int $monsterLevel 怪物等级
-     * @param int $monsterMaxHp 怪物最大生命值
-     * @param int $currentRound 当前回合数
-     * @param array $roundResult 回合结果
-     * @param int $monsterHpBeforeRound 回合前怪物生命值
+     * @param  GameCharacter  $character  角色实例
+     * @param  GameMapDefinition  $map  地图实例
+     * @param  GameMonsterDefinition  $monster  怪物实例
+     * @param  int  $monsterLevel  怪物等级
+     * @param  int  $monsterMaxHp  怪物最大生命值
+     * @param  int  $currentRound  当前回合数
+     * @param  array  $roundResult  回合结果
+     * @param  int  $monsterHpBeforeRound  回合前怪物生命值
      * @return array 失败结果
      */
     private function handleDefeat(
@@ -445,7 +446,7 @@ class GameCombatService
     /**
      * 获取战斗日志
      *
-     * @param GameCharacter $character 角色实例
+     * @param  GameCharacter  $character  角色实例
      * @return array 战斗日志列表
      */
     public function getCombatLogs(GameCharacter $character): array
@@ -456,8 +457,8 @@ class GameCombatService
     /**
      * 获取单条战斗日志详情
      *
-     * @param GameCharacter $character 角色实例
-     * @param int $logId 日志ID
+     * @param  GameCharacter  $character  角色实例
+     * @param  int  $logId  日志ID
      * @return array 日志详情
      */
     public function getCombatLogDetail(GameCharacter $character, int $logId): array
@@ -468,7 +469,7 @@ class GameCombatService
     /**
      * 获取战斗统计
      *
-     * @param GameCharacter $character 角色实例
+     * @param  GameCharacter  $character  角色实例
      * @return array 战斗统计数据
      */
     public function getCombatStats(GameCharacter $character): array

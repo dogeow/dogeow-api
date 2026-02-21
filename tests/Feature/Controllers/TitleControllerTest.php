@@ -2,24 +2,24 @@
 
 namespace Tests\Feature\Controllers;
 
-use Tests\TestCase;
-use App\Services\Web\WebPageService;
 use App\Services\Cache\CacheService;
+use App\Services\Web\WebPageService;
 use Mockery;
+use Tests\TestCase;
 
 class TitleControllerTest extends TestCase
 {
-
     private $webPageService;
+
     private $cacheService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->webPageService = Mockery::mock(WebPageService::class);
         $this->cacheService = Mockery::mock(CacheService::class);
-        
+
         $this->app->instance(WebPageService::class, $this->webPageService);
         $this->app->instance(CacheService::class, $this->cacheService);
     }
@@ -216,7 +216,7 @@ class TitleControllerTest extends TestCase
     public function test_fetch_handles_malformed_url()
     {
         $url = 'not-a-valid-url';
-        
+
         $this->cacheService->shouldReceive('get')
             ->with($url)
             ->once()
@@ -306,7 +306,7 @@ class TitleControllerTest extends TestCase
             ->with($url, $fetchedData)
             ->once();
 
-        $response = $this->getJson("/api/fetch-title?url=" . urlencode($url));
+        $response = $this->getJson('/api/fetch-title?url=' . urlencode($url));
 
         $response->assertStatus(200)
             ->assertJson($fetchedData);
@@ -334,7 +334,7 @@ class TitleControllerTest extends TestCase
             ->with($url, $fetchedData)
             ->once();
 
-        $response = $this->getJson("/api/fetch-title?url=" . urlencode($url));
+        $response = $this->getJson('/api/fetch-title?url=' . urlencode($url));
 
         $response->assertStatus(200)
             ->assertJson($fetchedData);
@@ -367,4 +367,4 @@ class TitleControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson($fetchedData);
     }
-} 
+}

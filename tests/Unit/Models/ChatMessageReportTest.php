@@ -2,10 +2,10 @@
 
 namespace Tests\Unit\Models;
 
+use App\Models\Chat\ChatMessage;
 use App\Models\Chat\ChatMessageReport;
 use App\Models\Chat\ChatRoom;
 use App\Models\User;
-use App\Models\Chat\ChatMessage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,22 +14,26 @@ class ChatMessageReportTest extends TestCase
     use RefreshDatabase;
 
     private ChatMessageReport $report;
+
     private User $reporter;
+
     private User $reviewer;
+
     private ChatRoom $room;
+
     private ChatMessage $message;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->reporter = User::factory()->create();
         $this->reviewer = User::factory()->create();
         $this->room = ChatRoom::factory()->create();
         $this->message = ChatMessage::factory()->create([
             'room_id' => $this->room->id,
         ]);
-        
+
         $this->report = ChatMessageReport::factory()->create([
             'message_id' => $this->message->id,
             'reported_by' => $this->reporter->id,
@@ -55,7 +59,7 @@ class ChatMessageReportTest extends TestCase
             'review_notes',
             'metadata',
         ];
-        
+
         $this->assertEquals($fillable, $this->report->getFillable());
     }
 
@@ -67,7 +71,7 @@ class ChatMessageReportTest extends TestCase
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
-        
+
         foreach ($casts as $attribute => $cast) {
             $this->assertEquals($cast, $this->report->getCasts()[$attribute]);
         }
@@ -126,7 +130,7 @@ class ChatMessageReportTest extends TestCase
         $pendingReport = ChatMessageReport::factory()->create([
             'status' => ChatMessageReport::STATUS_PENDING,
         ]);
-        
+
         $reviewedReport = ChatMessageReport::factory()->create([
             'status' => ChatMessageReport::STATUS_REVIEWED,
         ]);
@@ -143,7 +147,7 @@ class ChatMessageReportTest extends TestCase
         $reviewedReport = ChatMessageReport::factory()->create([
             'status' => ChatMessageReport::STATUS_REVIEWED,
         ]);
-        
+
         $resolvedReport = ChatMessageReport::factory()->create([
             'status' => ChatMessageReport::STATUS_RESOLVED,
         ]);
@@ -153,7 +157,7 @@ class ChatMessageReportTest extends TestCase
         $this->assertTrue($reviewedReports->contains($reviewedReport));
         $this->assertFalse($reviewedReports->contains($resolvedReport)); // resolved scope is separate
         $this->assertFalse($reviewedReports->contains($this->report));
-        
+
         // Verify the scope only includes reviewed status
         $this->assertCount(1, $reviewedReports);
     }
@@ -163,7 +167,7 @@ class ChatMessageReportTest extends TestCase
         $resolvedReport = ChatMessageReport::factory()->create([
             'status' => ChatMessageReport::STATUS_RESOLVED,
         ]);
-        
+
         $dismissedReport = ChatMessageReport::factory()->create([
             'status' => ChatMessageReport::STATUS_DISMISSED,
         ]);
@@ -231,7 +235,7 @@ class ChatMessageReportTest extends TestCase
     public function test_is_pending_returns_true_for_pending_reports()
     {
         $this->assertTrue($this->report->isPending());
-        
+
         $this->report->update(['status' => ChatMessageReport::STATUS_REVIEWED]);
         $this->assertFalse($this->report->isPending());
     }
@@ -239,10 +243,10 @@ class ChatMessageReportTest extends TestCase
     public function test_is_reviewed_returns_true_for_reviewed_reports()
     {
         $this->assertFalse($this->report->isReviewed());
-        
+
         $this->report->update(['status' => ChatMessageReport::STATUS_REVIEWED]);
         $this->assertTrue($this->report->isReviewed());
-        
+
         $this->report->update(['status' => ChatMessageReport::STATUS_RESOLVED]);
         $this->assertTrue($this->report->isReviewed());
     }
@@ -250,7 +254,7 @@ class ChatMessageReportTest extends TestCase
     public function test_is_resolved_returns_true_for_resolved_reports()
     {
         $this->assertFalse($this->report->isResolved());
-        
+
         $this->report->update(['status' => ChatMessageReport::STATUS_RESOLVED]);
         $this->assertTrue($this->report->isResolved());
     }
@@ -258,7 +262,7 @@ class ChatMessageReportTest extends TestCase
     public function test_is_dismissed_returns_true_for_dismissed_reports()
     {
         $this->assertFalse($this->report->isDismissed());
-        
+
         $this->report->update(['status' => ChatMessageReport::STATUS_DISMISSED]);
         $this->assertTrue($this->report->isDismissed());
     }
@@ -269,7 +273,7 @@ class ChatMessageReportTest extends TestCase
 
         $this->assertTrue($result);
         $this->report->refresh();
-        
+
         $this->assertEquals(ChatMessageReport::STATUS_REVIEWED, $this->report->status);
         $this->assertEquals($this->reviewer->id, $this->report->reviewed_by);
         $this->assertNotNull($this->report->reviewed_at);
@@ -282,7 +286,7 @@ class ChatMessageReportTest extends TestCase
 
         $this->assertTrue($result);
         $this->report->refresh();
-        
+
         $this->assertEquals(ChatMessageReport::STATUS_RESOLVED, $this->report->status);
         $this->assertEquals($this->reviewer->id, $this->report->reviewed_by);
         $this->assertNotNull($this->report->reviewed_at);
@@ -295,7 +299,7 @@ class ChatMessageReportTest extends TestCase
 
         $this->assertTrue($result);
         $this->report->refresh();
-        
+
         $this->assertEquals(ChatMessageReport::STATUS_DISMISSED, $this->report->status);
         $this->assertEquals($this->reviewer->id, $this->report->reviewed_by);
         $this->assertNotNull($this->report->reviewed_at);
@@ -307,11 +311,11 @@ class ChatMessageReportTest extends TestCase
         $hateSpeechReport = ChatMessageReport::factory()->create([
             'report_type' => ChatMessageReport::TYPE_HATE_SPEECH,
         ]);
-        
+
         $inappropriateReport = ChatMessageReport::factory()->create([
             'report_type' => ChatMessageReport::TYPE_INAPPROPRIATE_CONTENT,
         ]);
-        
+
         $spamReport = ChatMessageReport::factory()->create([
             'report_type' => ChatMessageReport::TYPE_SPAM,
         ]);
@@ -324,12 +328,12 @@ class ChatMessageReportTest extends TestCase
     public function test_get_report_type_label_returns_human_readable_labels()
     {
         $this->assertEquals('Inappropriate Content', $this->report->getReportTypeLabel());
-        
+
         $spamReport = ChatMessageReport::factory()->create([
             'report_type' => ChatMessageReport::TYPE_SPAM,
         ]);
         $this->assertEquals('Spam', $spamReport->getReportTypeLabel());
-        
+
         $harassmentReport = ChatMessageReport::factory()->create([
             'report_type' => ChatMessageReport::TYPE_HARASSMENT,
         ]);
@@ -411,7 +415,7 @@ class ChatMessageReportTest extends TestCase
         ]);
 
         $this->assertEquals('low', $report->getSeverityLevel());
-        
+
         // Test with a high severity type
         $hateSpeechReport = ChatMessageReport::factory()->create([
             'report_type' => ChatMessageReport::TYPE_HATE_SPEECH,
@@ -429,7 +433,7 @@ class ChatMessageReportTest extends TestCase
         ]);
 
         $this->assertEquals('Spam', $report->getReportTypeLabel());
-        
+
         // Test with another known type
         $harassmentReport = ChatMessageReport::factory()->create([
             'report_type' => ChatMessageReport::TYPE_HARASSMENT,
@@ -437,4 +441,4 @@ class ChatMessageReportTest extends TestCase
 
         $this->assertEquals('Harassment', $harassmentReport->getReportTypeLabel());
     }
-} 
+}

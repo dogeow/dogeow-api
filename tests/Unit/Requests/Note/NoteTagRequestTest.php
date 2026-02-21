@@ -2,9 +2,9 @@
 
 namespace Tests\Unit\Requests\Note;
 
-use Tests\TestCase;
 use App\Http\Requests\Note\NoteTagRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class NoteTagRequestTest extends TestCase
 {
@@ -15,7 +15,7 @@ class NoteTagRequestTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->request = new NoteTagRequest();
+        $this->request = new NoteTagRequest;
     }
 
     public function test_authorize_returns_true()
@@ -73,4 +73,4 @@ class NoteTagRequestTest extends TestCase
 
         $this->assertEquals('标签颜色', $attributes['color']);
     }
-} 
+}

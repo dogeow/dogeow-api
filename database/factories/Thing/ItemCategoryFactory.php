@@ -24,7 +24,7 @@ class ItemCategoryFactory extends Factory
     /**
      * 创建子分类
      */
-    public function child(ItemCategory $parent = null)
+    public function child(?ItemCategory $parent = null)
     {
         return $this->state(function (array $attributes) use ($parent) {
             return [
@@ -44,4 +44,4 @@ class ItemCategoryFactory extends Factory
             ];
         });
     }
-} 
+}

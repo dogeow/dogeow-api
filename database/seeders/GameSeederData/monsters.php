@@ -9,7 +9,7 @@ return [
         'attack_base' => 3,
         'defense_base' => 1,
         'experience_base' => 10,
-        ],
+    ],
     [
         'name' => '野狼',
         'type' => 'normal',
@@ -18,7 +18,7 @@ return [
         'attack_base' => 5,
         'defense_base' => 2,
         'experience_base' => 15,
-        ],
+    ],
     [
         'name' => '森林哥布林',
         'type' => 'normal',
@@ -27,7 +27,7 @@ return [
         'attack_base' => 10,
         'defense_base' => 4,
         'experience_base' => 20,
-        ],
+    ],
     [
         'name' => '巨狼',
         'type' => 'elite',
@@ -36,7 +36,7 @@ return [
         'attack_base' => 15,
         'defense_base' => 6,
         'experience_base' => 50,
-        ],
+    ],
     [
         'name' => '树人长老',
         'type' => 'boss',
@@ -45,7 +45,7 @@ return [
         'attack_base' => 25,
         'defense_base' => 12,
         'experience_base' => 150,
-        ],
+    ],
     [
         'name' => '野猪王',
         'type' => 'elite',
@@ -54,7 +54,7 @@ return [
         'attack_base' => 20,
         'defense_base' => 8,
         'experience_base' => 70,
-        ],
+    ],
     [
         'name' => '蝙蝠',
         'type' => 'normal',
@@ -63,7 +63,7 @@ return [
         'attack_base' => 12,
         'defense_base' => 3,
         'experience_base' => 25,
-        ],
+    ],
     [
         'name' => '洞穴蜘蛛',
         'type' => 'normal',
@@ -72,7 +72,7 @@ return [
         'attack_base' => 14,
         'defense_base' => 4,
         'experience_base' => 30,
-        ],
+    ],
     [
         'name' => '骷髅兵',
         'type' => 'normal',
@@ -81,7 +81,7 @@ return [
         'attack_base' => 16,
         'defense_base' => 8,
         'experience_base' => 40,
-        ],
+    ],
     [
         'name' => '骷髅法师',
         'type' => 'elite',
@@ -90,7 +90,7 @@ return [
         'attack_base' => 25,
         'defense_base' => 10,
         'experience_base' => 80,
-        ],
+    ],
     [
         'name' => '骸骨之王',
         'type' => 'boss',
@@ -99,7 +99,7 @@ return [
         'attack_base' => 35,
         'defense_base' => 18,
         'experience_base' => 250,
-        ],
+    ],
     [
         'name' => '巨型蜘蛛',
         'type' => 'elite',
@@ -108,7 +108,7 @@ return [
         'attack_base' => 22,
         'defense_base' => 9,
         'experience_base' => 65,
-        ],
+    ],
     [
         'name' => '小恶魔',
         'type' => 'normal',
@@ -117,7 +117,7 @@ return [
         'attack_base' => 25,
         'defense_base' => 10,
         'experience_base' => 60,
-        ],
+    ],
     [
         'name' => '火焰元素',
         'type' => 'normal',
@@ -126,7 +126,7 @@ return [
         'attack_base' => 30,
         'defense_base' => 12,
         'experience_base' => 80,
-        ],
+    ],
     [
         'name' => '地狱骑士',
         'type' => 'elite',
@@ -135,7 +135,7 @@ return [
         'attack_base' => 40,
         'defense_base' => 20,
         'experience_base' => 150,
-        ],
+    ],
     [
         'name' => '地狱魔王',
         'type' => 'boss',
@@ -144,7 +144,7 @@ return [
         'attack_base' => 60,
         'defense_base' => 30,
         'experience_base' => 500,
-        ],
+    ],
     [
         'name' => '炎魔',
         'type' => 'elite',
@@ -153,7 +153,7 @@ return [
         'attack_base' => 50,
         'defense_base' => 22,
         'experience_base' => 180,
-        ],
+    ],
     [
         'name' => '恶魔巫师',
         'type' => 'elite',
@@ -162,7 +162,7 @@ return [
         'attack_base' => 55,
         'defense_base' => 15,
         'experience_base' => 160,
-        ],
+    ],
     [
         'name' => '深渊魔虫',
         'type' => 'normal',
@@ -171,7 +171,7 @@ return [
         'attack_base' => 55,
         'defense_base' => 25,
         'experience_base' => 150,
-        ],
+    ],
     [
         'name' => '暗影幽灵',
         'type' => 'normal',
@@ -180,7 +180,7 @@ return [
         'attack_base' => 60,
         'defense_base' => 20,
         'experience_base' => 180,
-        ],
+    ],
     [
         'name' => '虚空行者',
         'type' => 'elite',
@@ -189,7 +189,7 @@ return [
         'attack_base' => 80,
         'defense_base' => 35,
         'experience_base' => 300,
-        ],
+    ],
     [
         'name' => '深渊领主',
         'type' => 'boss',
@@ -198,7 +198,7 @@ return [
         'attack_base' => 120,
         'defense_base' => 60,
         'experience_base' => 1000,
-        ],
+    ],
     [
         'name' => '天使卫士',
         'type' => 'normal',
@@ -207,7 +207,7 @@ return [
         'attack_base' => 90,
         'defense_base' => 45,
         'experience_base' => 300,
-        ],
+    ],
     [
         'name' => '炽天使',
         'type' => 'normal',
@@ -216,7 +216,7 @@ return [
         'attack_base' => 100,
         'defense_base' => 50,
         'experience_base' => 350,
-        ],
+    ],
     [
         'name' => '天使长',
         'type' => 'elite',
@@ -225,7 +225,7 @@ return [
         'attack_base' => 130,
         'defense_base' => 70,
         'experience_base' => 600,
-        ],
+    ],
     [
         'name' => '堕落天使',
         'type' => 'elite',
@@ -234,7 +234,7 @@ return [
         'attack_base' => 150,
         'defense_base' => 80,
         'experience_base' => 750,
-        ],
+    ],
     [
         'name' => '大天使长',
         'type' => 'boss',
@@ -243,7 +243,7 @@ return [
         'attack_base' => 200,
         'defense_base' => 100,
         'experience_base' => 2000,
-        ],
+    ],
     [
         'name' => '圣殿骑士',
         'type' => 'elite',
@@ -252,7 +252,7 @@ return [
         'attack_base' => 140,
         'defense_base' => 90,
         'experience_base' => 680,
-        ],
+    ],
     [
         'name' => '神仆',
         'type' => 'normal',
@@ -261,7 +261,7 @@ return [
         'attack_base' => 160,
         'defense_base' => 80,
         'experience_base' => 500,
-        ],
+    ],
     [
         'name' => '神使',
         'type' => 'normal',
@@ -270,7 +270,7 @@ return [
         'attack_base' => 180,
         'defense_base' => 90,
         'experience_base' => 600,
-        ],
+    ],
     [
         'name' => '神将',
         'type' => 'elite',
@@ -279,7 +279,7 @@ return [
         'attack_base' => 220,
         'defense_base' => 120,
         'experience_base' => 1000,
-        ],
+    ],
     [
         'name' => '神官',
         'type' => 'elite',
@@ -288,7 +288,7 @@ return [
         'attack_base' => 240,
         'defense_base' => 100,
         'experience_base' => 1100,
-        ],
+    ],
     [
         'name' => '神王化身',
         'type' => 'boss',
@@ -297,7 +297,7 @@ return [
         'attack_base' => 300,
         'defense_base' => 150,
         'experience_base' => 3500,
-        ],
+    ],
     [
         'name' => '审判天使',
         'type' => 'elite',
@@ -306,7 +306,7 @@ return [
         'attack_base' => 280,
         'defense_base' => 140,
         'experience_base' => 1300,
-        ],
+    ],
     [
         'name' => '永恒守护者',
         'type' => 'normal',
@@ -315,7 +315,7 @@ return [
         'attack_base' => 260,
         'defense_base' => 130,
         'experience_base' => 800,
-        ],
+    ],
     [
         'name' => '时空裂隙',
         'type' => 'normal',
@@ -324,7 +324,7 @@ return [
         'attack_base' => 300,
         'defense_base' => 150,
         'experience_base' => 1000,
-        ],
+    ],
     [
         'name' => '永恒战士',
         'type' => 'elite',
@@ -333,7 +333,7 @@ return [
         'attack_base' => 380,
         'defense_base' => 200,
         'experience_base' => 1800,
-        ],
+    ],
     [
         'name' => '永恒法师',
         'type' => 'elite',
@@ -342,7 +342,7 @@ return [
         'attack_base' => 420,
         'defense_base' => 180,
         'experience_base' => 2000,
-        ],
+    ],
     [
         'name' => '永恒之王',
         'type' => 'boss',
@@ -351,7 +351,7 @@ return [
         'attack_base' => 500,
         'defense_base' => 250,
         'experience_base' => 6000,
-        ],
+    ],
     [
         'name' => '永恒骑士',
         'type' => 'elite',
@@ -360,7 +360,7 @@ return [
         'attack_base' => 450,
         'defense_base' => 230,
         'experience_base' => 2400,
-        ],
+    ],
     [
         'name' => '混沌精灵',
         'type' => 'normal',
@@ -369,7 +369,7 @@ return [
         'attack_base' => 400,
         'defense_base' => 200,
         'experience_base' => 1400,
-        ],
+    ],
     [
         'name' => '虚空领主',
         'type' => 'normal',
@@ -378,7 +378,7 @@ return [
         'attack_base' => 450,
         'defense_base' => 220,
         'experience_base' => 1800,
-        ],
+    ],
     [
         'name' => '混沌战士',
         'type' => 'elite',
@@ -387,7 +387,7 @@ return [
         'attack_base' => 550,
         'defense_base' => 280,
         'experience_base' => 3200,
-        ],
+    ],
     [
         'name' => '混沌魔神',
         'type' => 'elite',
@@ -396,7 +396,7 @@ return [
         'attack_base' => 650,
         'defense_base' => 320,
         'experience_base' => 4000,
-        ],
+    ],
     [
         'name' => '混沌之源',
         'type' => 'boss',
@@ -405,7 +405,7 @@ return [
         'attack_base' => 800,
         'defense_base' => 400,
         'experience_base' => 10000,
-        ],
+    ],
     [
         'name' => '混沌之王',
         'type' => 'boss',
@@ -414,5 +414,5 @@ return [
         'attack_base' => 1000,
         'defense_base' => 500,
         'experience_base' => 20000,
-        ],
+    ],
 ];

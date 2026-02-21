@@ -31,4 +31,4 @@ class NoteCategoryFactory extends Factory
             'description' => $this->faker->optional()->sentence(),
         ];
     }
-} 
+}

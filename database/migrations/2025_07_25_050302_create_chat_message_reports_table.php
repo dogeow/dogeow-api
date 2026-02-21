@@ -24,7 +24,7 @@ return new class extends Migration
                 'violence',
                 'sexual_content',
                 'misinformation',
-                'other'
+                'other',
             ]);
             $table->text('reason')->nullable();
             $table->enum('status', ['pending', 'reviewed', 'resolved', 'dismissed'])->default('pending');

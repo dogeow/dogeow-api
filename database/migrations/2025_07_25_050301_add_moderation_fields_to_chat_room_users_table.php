@@ -33,7 +33,7 @@ return new class extends Migration
                 'is_banned',
                 'banned_until',
                 'muted_by',
-                'banned_by'
+                'banned_by',
             ]);
         });
     }

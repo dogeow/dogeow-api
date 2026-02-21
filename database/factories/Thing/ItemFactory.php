@@ -4,9 +4,6 @@ namespace Database\Factories\Thing;
 
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemCategory;
-use App\Models\Thing\Area;
-use App\Models\Thing\Room;
-use App\Models\Thing\Spot;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -17,21 +14,21 @@ class ItemFactory extends Factory
     public function definition()
     {
         return [
-            "name" => $this->faker->sentence(3),
-            "description" => $this->faker->paragraph(),
-            "user_id" => User::factory(),
-            "quantity" => $this->faker->numberBetween(1, 100),
-            "status" => $this->faker->randomElement(['active', 'inactive', 'expired']),
-            "expiry_date" => $this->faker->optional()->dateTimeBetween('now', '+2 years'),
-            "purchase_date" => $this->faker->optional()->dateTimeBetween('-2 years', 'now'),
-            "purchase_price" => $this->faker->optional()->randomFloat(2, 0, 10000),
-            "category_id" => null,
-            "area_id" => null,
-            "room_id" => null,
-            "spot_id" => null,
-            "is_public" => $this->faker->boolean(80),
-            "created_at" => now(),
-            "updated_at" => now(),
+            'name' => $this->faker->sentence(3),
+            'description' => $this->faker->paragraph(),
+            'user_id' => User::factory(),
+            'quantity' => $this->faker->numberBetween(1, 100),
+            'status' => $this->faker->randomElement(['active', 'inactive', 'expired']),
+            'expiry_date' => $this->faker->optional()->dateTimeBetween('now', '+2 years'),
+            'purchase_date' => $this->faker->optional()->dateTimeBetween('-2 years', 'now'),
+            'purchase_price' => $this->faker->optional()->randomFloat(2, 0, 10000),
+            'category_id' => null,
+            'area_id' => null,
+            'room_id' => null,
+            'spot_id' => null,
+            'is_public' => $this->faker->boolean(80),
+            'created_at' => now(),
+            'updated_at' => now(),
         ];
     }
 
@@ -98,7 +95,7 @@ class ItemFactory extends Factory
     /**
      * 设置物品有分类
      */
-    public function withCategory(ItemCategory $category = null)
+    public function withCategory(?ItemCategory $category = null)
     {
         return $this->state(function (array $attributes) use ($category) {
             return [

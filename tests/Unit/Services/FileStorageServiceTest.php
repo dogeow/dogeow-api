@@ -3,21 +3,19 @@
 namespace Tests\Unit\Services;
 
 use App\Services\File\FileStorageService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class FileStorageServiceTest extends TestCase
 {
-
     protected FileStorageService $fileStorageService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
-        $this->fileStorageService = new FileStorageService();
+
+        $this->fileStorageService = new FileStorageService;
         Storage::fake('public');
     }
 
@@ -37,7 +35,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertArrayHasKey('origin_filename', $result);
         $this->assertArrayHasKey('compressed_path', $result);
         $this->assertArrayHasKey('origin_path', $result);
-        
+
         $this->assertEquals('jpg', $result['extension']);
         $this->assertStringEndsWith('.jpg', $result['compressed_filename']);
         $this->assertStringEndsWith('-thumb.jpg', $result['thumbnail_filename']);
@@ -88,7 +86,7 @@ class FileStorageServiceTest extends TestCase
         $expectedPath = storage_path('app/public/uploads/' . $userId);
 
         // Create directory first
-        if (!file_exists($expectedPath)) {
+        if (! file_exists($expectedPath)) {
             mkdir($expectedPath, 0755, true);
         }
 
@@ -149,4 +147,4 @@ class FileStorageServiceTest extends TestCase
         $this->assertTrue($result2['success']);
         $this->assertNotEquals($result1['basename'], $result2['basename']);
     }
-} 
+}

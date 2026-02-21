@@ -25,6 +25,7 @@ class GameMonsterService
         }
 
         $interval = $this->getRefreshInterval();
+
         return $refreshedAt->addSeconds($interval)->isPast();
     }
 
@@ -47,7 +48,7 @@ class GameMonsterService
         // 检查是否需要刷新怪物（定期从数据库读取最新属性）
         $shouldRefresh = $this->shouldRefreshMonsters($character);
 
-        if ($character->hasActiveCombat() && $hasAliveMonster && !$shouldRefresh) {
+        if ($character->hasActiveCombat() && $hasAliveMonster && ! $shouldRefresh) {
             return $this->loadExistingMonsters($character, $existingMonsters);
         }
 
@@ -93,7 +94,8 @@ class GameMonsterService
 
     /**
      * 生成新怪物 (1-5个)
-     * @param bool $isRefresh 是否是刷新（保留现有HP）
+     *
+     * @param  bool  $isRefresh  是否是刷新（保留现有HP）
      */
     public function generateNewMonsters(GameCharacter $character, GameMapDefinition $map, array $existingMonsters, bool $isRefresh = false): array
     {
@@ -111,7 +113,7 @@ class GameMonsterService
 
         // 如果是刷新，保留现有怪物的HP
         $existingByPosition = [];
-        if ($isRefresh && !empty($existingMonsters)) {
+        if ($isRefresh && ! empty($existingMonsters)) {
             foreach ($existingMonsters as $m) {
                 if (is_array($m) && isset($m['position'])) {
                     $existingByPosition[$m['position']] = $m;

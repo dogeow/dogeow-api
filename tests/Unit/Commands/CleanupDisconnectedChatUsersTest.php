@@ -8,7 +8,6 @@ use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class CleanupDisconnectedChatUsersTest extends TestCase
@@ -16,23 +15,28 @@ class CleanupDisconnectedChatUsersTest extends TestCase
     use RefreshDatabase;
 
     protected CleanupDisconnectedChatUsers $command;
+
     protected User $user1;
+
     protected User $user2;
+
     protected User $user3;
+
     protected ChatRoom $room1;
+
     protected ChatRoom $room2;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
-        $this->command = new CleanupDisconnectedChatUsers();
-        
+
+        $this->command = new CleanupDisconnectedChatUsers;
+
         // Create test users
         $this->user1 = User::factory()->create(['name' => 'John Doe']);
         $this->user2 = User::factory()->create(['name' => 'Jane Smith']);
         $this->user3 = User::factory()->create(['name' => 'Bob Wilson']);
-        
+
         // Create test rooms
         $this->room1 = ChatRoom::factory()->create(['name' => 'General Chat']);
         $this->room2 = ChatRoom::factory()->create(['name' => 'Support Room']);
@@ -287,4 +291,4 @@ class CleanupDisconnectedChatUsersTest extends TestCase
             'is_online' => true,
         ]);
     }
-} 
+}

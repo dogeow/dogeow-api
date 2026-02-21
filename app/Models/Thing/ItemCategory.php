@@ -2,9 +2,9 @@
 
 namespace App\Models\Thing;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
 
 class ItemCategory extends Model
 {
@@ -57,6 +57,6 @@ class ItemCategory extends Model
      */
     public function isChild()
     {
-        return !is_null($this->parent_id);
+        return ! is_null($this->parent_id);
     }
-} 
+}

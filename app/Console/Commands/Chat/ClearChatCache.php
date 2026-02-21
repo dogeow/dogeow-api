@@ -35,8 +35,6 @@ class ClearChatCache extends Command
 
     /**
      * 执行控制台命令
-     *
-     * @return int
      */
     public function handle(): int
     {
@@ -45,9 +43,11 @@ class ClearChatCache extends Command
         try {
             $this->cacheService->clearAllCache();
             $this->info('聊天室缓存清理成功！');
+
             return Command::SUCCESS;
         } catch (\Exception $e) {
             $this->error('清理缓存失败：' . $e->getMessage());
+
             return Command::FAILURE;
         }
     }

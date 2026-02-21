@@ -2,8 +2,8 @@
 
 namespace Tests\Unit\Services;
 
-use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatMessage;
+use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
 use App\Services\Chat\ChatCacheService;
@@ -20,7 +20,7 @@ class ChatCacheServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->cacheService = new ChatCacheService();
+        $this->cacheService = new ChatCacheService;
         Cache::flush();
     }
 
@@ -29,25 +29,25 @@ class ChatCacheServiceTest extends TestCase
     {
         // Create rooms
         $rooms = ChatRoom::factory()->count(3)->create(['is_active' => true]);
-        
+
         $result = $this->cacheService->getRoomList();
 
         $this->assertInstanceOf(\Illuminate\Support\Collection::class, $result);
         $this->assertCount(3, $result);
-        $this->assertTrue($result->every(fn($room) => $room->is_active));
+        $this->assertTrue($result->every(fn ($room) => $room->is_active));
     }
 
     /** @test */
     public function it_caches_room_list()
     {
         $rooms = ChatRoom::factory()->count(2)->create(['is_active' => true]);
-        
+
         // First call should cache
         $firstResult = $this->cacheService->getRoomList();
-        
+
         // Second call should use cache
         $secondResult = $this->cacheService->getRoomList();
-        
+
         $this->assertEquals($firstResult->count(), $secondResult->count());
     }
 
@@ -55,13 +55,13 @@ class ChatCacheServiceTest extends TestCase
     public function it_invalidates_room_list_cache()
     {
         $rooms = ChatRoom::factory()->count(2)->create(['is_active' => true]);
-        
+
         // Cache the room list
         $this->cacheService->getRoomList();
-        
+
         // Invalidate cache
         $this->cacheService->invalidateRoomList();
-        
+
         // Cache should be cleared
         $this->assertNull(Cache::get('chat:rooms:list'));
     }
@@ -71,20 +71,20 @@ class ChatCacheServiceTest extends TestCase
     {
         $user = User::factory()->create();
         $room = ChatRoom::factory()->create(['created_by' => $user->id]);
-        
+
         // Create some users and messages
         $users = User::factory()->count(3)->create();
         foreach ($users as $user) {
             ChatRoomUser::factory()->create([
                 'room_id' => $room->id,
                 'user_id' => $user->id,
-                'is_online' => true
+                'is_online' => true,
             ]);
         }
-        
+
         ChatMessage::factory()->count(5)->create([
             'room_id' => $room->id,
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         $stats = $this->cacheService->getRoomStats($room->id);
@@ -109,13 +109,13 @@ class ChatCacheServiceTest extends TestCase
     public function it_invalidates_room_stats()
     {
         $room = ChatRoom::factory()->create();
-        
+
         // Cache room stats
         $this->cacheService->getRoomStats($room->id);
-        
+
         // Invalidate cache
         $this->cacheService->invalidateRoomStats($room->id);
-        
+
         // Cache should be cleared
         $this->assertNull(Cache::get('chat:room:stats:' . $room->id));
     }
@@ -125,13 +125,13 @@ class ChatCacheServiceTest extends TestCase
     {
         $room = ChatRoom::factory()->create();
         $users = User::factory()->count(3)->create();
-        
+
         // Add users to room
         foreach ($users as $user) {
             ChatRoomUser::factory()->create([
                 'room_id' => $room->id,
                 'user_id' => $user->id,
-                'is_online' => true
+                'is_online' => true,
             ]);
         }
 
@@ -145,13 +145,13 @@ class ChatCacheServiceTest extends TestCase
     public function it_invalidates_online_users_cache()
     {
         $room = ChatRoom::factory()->create();
-        
+
         // Cache online users
         $this->cacheService->getOnlineUsers($room->id);
-        
+
         // Invalidate cache
         $this->cacheService->invalidateOnlineUsers($room->id);
-        
+
         // Cache should be cleared
         $this->assertNull(Cache::get('chat:room:online:' . $room->id));
     }
@@ -161,7 +161,7 @@ class ChatCacheServiceTest extends TestCase
     {
         $room = ChatRoom::factory()->create();
         $messages = ChatMessage::factory()->count(5)->create([
-            'room_id' => $room->id
+            'room_id' => $room->id,
         ]);
 
         $this->cacheService->cacheMessageHistory($room->id, 1, $messages);
@@ -187,15 +187,15 @@ class ChatCacheServiceTest extends TestCase
     {
         $room = ChatRoom::factory()->create();
         $messages = ChatMessage::factory()->count(3)->create([
-            'room_id' => $room->id
+            'room_id' => $room->id,
         ]);
 
         // Cache message history
         $this->cacheService->cacheMessageHistory($room->id, 1, $messages);
-        
+
         // Invalidate cache
         $this->cacheService->invalidateMessageHistory($room->id);
-        
+
         // Should return null after invalidation
         $result = $this->cacheService->getMessageHistory($room->id, 1);
         $this->assertNull($result);
@@ -206,11 +206,11 @@ class ChatCacheServiceTest extends TestCase
     {
         $user = User::factory()->create();
         $room = ChatRoom::factory()->create();
-        
+
         $presenceData = [
             'is_online' => true,
             'last_seen_at' => now(),
-            'status' => 'active'
+            'status' => 'active',
         ];
 
         $this->cacheService->cacheUserPresence($user->id, $room->id, $presenceData);
@@ -237,15 +237,15 @@ class ChatCacheServiceTest extends TestCase
     {
         $user = User::factory()->create();
         $room = ChatRoom::factory()->create();
-        
+
         $presenceData = ['is_online' => true];
 
         // Cache user presence
         $this->cacheService->cacheUserPresence($user->id, $room->id, $presenceData);
-        
+
         // Invalidate cache
         $this->cacheService->invalidateUserPresence($user->id, $room->id);
-        
+
         // Should return null after invalidation
         $result = $this->cacheService->getUserPresence($user->id, $room->id);
         $this->assertNull($result);
@@ -396,4 +396,4 @@ class ChatCacheServiceTest extends TestCase
         $cacheKey = 'chat:room:stats:' . $room->id;
         $this->assertNotNull(Cache::get($cacheKey));
     }
-} 
+}

@@ -2,11 +2,11 @@
 
 namespace Tests\Unit\Models\Note;
 
-use Tests\TestCase;
-use App\Models\Note\NoteCategory;
 use App\Models\Note\Note;
+use App\Models\Note\NoteCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class NoteCategoryTest extends TestCase
 {
@@ -94,4 +94,4 @@ class NoteCategoryTest extends TestCase
 
         $this->assertEquals('Test description', $category->description);
     }
-} 
+}

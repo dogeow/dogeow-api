@@ -16,7 +16,7 @@ class ItemImageTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->item = Item::factory()->create();
     }
 
@@ -217,4 +217,4 @@ class ItemImageTest extends TestCase
         $this->assertArrayHasKey('thumbnail_url', $array);
         $this->assertArrayHasKey('thumbnail_path', $array);
     }
-} 
+}

@@ -67,10 +67,10 @@ class NoteTagController extends Controller
     {
         $tag = NoteTag::where('user_id', Auth::id())
             ->findOrFail($id);
-            
+
         // 先删除关联关系
         $tag->notes()->detach();
-        
+
         $tag->delete();
 
         return response()->json(null, 204);

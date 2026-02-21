@@ -17,7 +17,7 @@ class ItemCategorySearchTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // 创建测试用户
         $this->user = User::factory()->create();
         $this->actingAs($this->user, 'sanctum');
@@ -89,7 +89,7 @@ class ItemCategorySearchTest extends TestCase
         $response = $this->getJson("/api/things/items?filter[category_id]={$parentCategory->id}");
 
         $response->assertStatus(200);
-        
+
         $items = $response->json('data');
         $this->assertCount(3, $items, '搜索父分类应该返回3个物品（1个父分类物品 + 2个子分类物品）');
 
@@ -138,7 +138,7 @@ class ItemCategorySearchTest extends TestCase
         $response = $this->getJson("/api/things/items?filter[category_id]={$childCategory->id}");
 
         $response->assertStatus(200);
-        
+
         $items = $response->json('data');
         $this->assertCount(1, $items, '搜索子分类应该只返回1个物品');
 
@@ -151,10 +151,10 @@ class ItemCategorySearchTest extends TestCase
     public function test_nonexistent_category_returns_empty_result()
     {
         // 测试：搜索不存在的分类ID
-        $response = $this->getJson("/api/things/items?filter[category_id]=99999");
+        $response = $this->getJson('/api/things/items?filter[category_id]=99999');
 
         $response->assertStatus(200);
-        
+
         $items = $response->json('data');
         $this->assertCount(0, $items, '搜索不存在的分类应该返回空结果');
     }
@@ -186,10 +186,10 @@ class ItemCategorySearchTest extends TestCase
         ]);
 
         // 测试：搜索未分类应该只返回没有分类的物品
-        $response = $this->getJson("/api/things/items?filter[category_id]=uncategorized");
+        $response = $this->getJson('/api/things/items?filter[category_id]=uncategorized');
 
         $response->assertStatus(200);
-        
+
         $items = $response->json('data');
         $this->assertCount(1, $items, '搜索未分类应该返回1个物品');
 
@@ -198,4 +198,4 @@ class ItemCategorySearchTest extends TestCase
         $this->assertContains($uncategorizedItem->id, $itemIds, '应该包含未分类的物品');
         $this->assertNotContains($categorizedItem->id, $itemIds, '不应该包含有分类的物品');
     }
-} 
+}

@@ -2,9 +2,9 @@
 
 namespace App\Models\Thing;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
 
 class Area extends Model
 {
@@ -31,4 +31,4 @@ class Area extends Model
     {
         return $this->belongsTo(User::class);
     }
-} 
+}

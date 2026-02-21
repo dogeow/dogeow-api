@@ -68,7 +68,7 @@ class NoteCategoryController extends Controller
     {
         $category = NoteCategory::where('user_id', Auth::id())
             ->findOrFail($id);
-            
+
         // 分类下的笔记会自动设置分类为null（由于外键约束nullOnDelete）
         $category->delete();
 

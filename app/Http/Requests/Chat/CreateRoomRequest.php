@@ -10,6 +10,7 @@ class CreateRoomRequest extends FormRequest
 {
     // 房间名称长度限制（按字符数计算：中文/emoji算2，数字/字母算1）
     private const MIN_ROOM_NAME_LENGTH = 2; // 最少2个字符
+
     private const MAX_ROOM_NAME_LENGTH = 20; // 最多20个字符
 
     /**
@@ -44,7 +45,7 @@ class CreateRoomRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             $name = $this->input('name');
-            
+
             if (empty($name)) {
                 return;
             }
@@ -55,7 +56,7 @@ class CreateRoomRequest extends FormRequest
             if (CharLengthHelper::belowMinLength($name, self::MIN_ROOM_NAME_LENGTH)) {
                 $validator->errors()->add(
                     'name',
-                    "房间名称至少需要" . self::MIN_ROOM_NAME_LENGTH . "个字符"
+                    '房间名称至少需要' . self::MIN_ROOM_NAME_LENGTH . '个字符'
                 );
             }
 
@@ -63,7 +64,7 @@ class CreateRoomRequest extends FormRequest
             if (CharLengthHelper::exceedsMaxLength($name, self::MAX_ROOM_NAME_LENGTH)) {
                 $validator->errors()->add(
                     'name',
-                    "房间名称不能超过" . self::MAX_ROOM_NAME_LENGTH . "个字符（中文/emoji算2个字符，数字/字母算1个字符）"
+                    '房间名称不能超过' . self::MAX_ROOM_NAME_LENGTH . '个字符（中文/emoji算2个字符，数字/字母算1个字符）'
                 );
             }
         });

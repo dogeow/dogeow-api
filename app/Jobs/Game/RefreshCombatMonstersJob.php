@@ -25,7 +25,9 @@ class RefreshCombatMonstersJob implements ShouldQueue
         foreach ($characters as $character) {
             if ($monsterService->shouldRefreshMonsters($character)) {
                 $map = $character->currentMap;
-                if (!$map) continue;
+                if (! $map) {
+                    continue;
+                }
 
                 // 刷新怪物
                 $monsterService->generateNewMonsters($character, $map, $character->combat_monsters ?? [], true);

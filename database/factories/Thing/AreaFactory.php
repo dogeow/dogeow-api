@@ -30,4 +30,4 @@ class AreaFactory extends Factory
             'user_id' => User::factory(),
         ];
     }
-} 
+}

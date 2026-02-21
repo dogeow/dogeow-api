@@ -315,11 +315,11 @@ class CombatRoundProcessor
      * 4. 优先选择伤害足够击杀怪物的技能中消耗最低的
      * 5. 考虑技能效率（伤害/魔法消耗）
      *
-     * @param array $availableSkills 可用技能列表
-     * @param int $aliveMonsterCount 存活怪物数量
-     * @param int $lowHpMonsterCount 低血量怪物数量
-     * @param int $totalMonsterHp 怪物总血量
-     * @param int $charAttack 角色攻击力
+     * @param  array  $availableSkills  可用技能列表
+     * @param  int  $aliveMonsterCount  存活怪物数量
+     * @param  int  $lowHpMonsterCount  低血量怪物数量
+     * @param  int  $totalMonsterHp  怪物总血量
+     * @param  int  $charAttack  角色攻击力
      * @return array|null 选中的技能或null（使用普通攻击）
      */
     private function selectOptimalSkill(
@@ -344,7 +344,7 @@ class CombatRoundProcessor
         // 策略1：怪物数量 >= 3 且有多只低血量怪物，优先使用群体技能
         if ($aliveMonsterCount >= 3 && $lowHpMonsterCount >= 2) {
             $aoeSkills = array_filter($availableSkills, fn ($s) => $s['is_aoe']);
-            if (!empty($aoeSkills)) {
+            if (! empty($aoeSkills)) {
                 // 从群体技能中选择伤害最高且消耗可接受的
                 usort($aoeSkills, function ($a, $b) {
                     // 优先按效率排序（伤害/消耗），其次按伤害排序
@@ -353,8 +353,10 @@ class CombatRoundProcessor
                     if (abs($efficiencyA - $efficiencyB) > 0.1) {
                         return $efficiencyB <=> $efficiencyA;
                     }
+
                     return $b['damage'] <=> $a['damage'];
                 });
+
                 return $aoeSkills[0];
             }
         }
@@ -364,24 +366,31 @@ class CombatRoundProcessor
             // 按魔法消耗排序，选择最经济的技能
             usort($availableSkills, function ($a, $b) {
                 // 优先选择不需要魔法的技能
-                if ($a['mana_cost'] === 0 && $b['mana_cost'] > 0) return -1;
-                if ($b['mana_cost'] === 0 && $a['mana_cost'] > 0) return 1;
+                if ($a['mana_cost'] === 0 && $b['mana_cost'] > 0) {
+                    return -1;
+                }
+                if ($b['mana_cost'] === 0 && $a['mana_cost'] > 0) {
+                    return 1;
+                }
                 // 然后按效率排序
                 $efficiencyA = $a['mana_cost'] > 0 ? $a['damage'] / $a['mana_cost'] : $a['damage'] * 10;
                 $efficiencyB = $b['mana_cost'] > 0 ? $b['damage'] / $b['mana_cost'] : $b['damage'] * 10;
+
                 return $efficiencyB <=> $efficiencyA;
             });
+
             return $availableSkills[0];
         }
 
         // 策略3：正常战斗情况，选择伤害最高的技能（如果伤害 > 0）
         // 但要避免使用高消耗低效率的技能
         $skillsWithDamage = array_filter($availableSkills, fn ($s) => $s['damage'] > 0);
-        if (!empty($skillsWithDamage)) {
+        if (! empty($skillsWithDamage)) {
             // 按伤害/消耗效率排序
             usort($skillsWithDamage, function ($a, $b) {
                 $efficiencyA = $a['mana_cost'] > 0 ? $a['damage'] / $a['mana_cost'] : $a['damage'];
                 $efficiencyB = $b['mana_cost'] > 0 ? $b['damage'] / $b['mana_cost'] : $b['damage'];
+
                 return $efficiencyB <=> $efficiencyA;
             });
 
@@ -398,8 +407,13 @@ class CombatRoundProcessor
 
         // 默认：使用最经济的技能
         usort($availableSkills, function ($a, $b) {
-            if ($a['mana_cost'] === 0 && $b['mana_cost'] > 0) return -1;
-            if ($b['mana_cost'] === 0 && $a['mana_cost'] > 0) return 1;
+            if ($a['mana_cost'] === 0 && $b['mana_cost'] > 0) {
+                return -1;
+            }
+            if ($b['mana_cost'] === 0 && $a['mana_cost'] > 0) {
+                return 1;
+            }
+
             return $a['mana_cost'] <=> $b['mana_cost'];
         });
 

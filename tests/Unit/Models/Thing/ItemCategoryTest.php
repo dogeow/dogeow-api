@@ -2,11 +2,11 @@
 
 namespace Tests\Unit\Models\Thing;
 
-use Tests\TestCase;
-use App\Models\Thing\ItemCategory;
 use App\Models\Thing\Item;
+use App\Models\Thing\ItemCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class ItemCategoryTest extends TestCase
 {
@@ -212,4 +212,4 @@ class ItemCategoryTest extends TestCase
         $this->assertTrue($child->items->contains($item));
         $this->assertEquals($child->id, $item->category->id);
     }
-} 
+}

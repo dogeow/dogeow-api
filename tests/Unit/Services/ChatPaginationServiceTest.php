@@ -18,7 +18,7 @@ class ChatPaginationServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->paginationService = new ChatPaginationService();
+        $this->paginationService = new ChatPaginationService;
     }
 
     /** @test */
@@ -26,11 +26,11 @@ class ChatPaginationServiceTest extends TestCase
     {
         $room = ChatRoom::factory()->create();
         $user = User::factory()->create();
-        
+
         // Create messages with different timestamps
         $messages = ChatMessage::factory()->count(10)->create([
             'room_id' => $room->id,
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         $result = $this->paginationService->getMessagesCursor($room->id);
@@ -47,11 +47,11 @@ class ChatPaginationServiceTest extends TestCase
     {
         $room = ChatRoom::factory()->create();
         $user = User::factory()->create();
-        
+
         // Create more messages than limit
         ChatMessage::factory()->count(15)->create([
             'room_id' => $room->id,
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         $result = $this->paginationService->getMessagesCursor($room->id, null, 5);
@@ -65,21 +65,21 @@ class ChatPaginationServiceTest extends TestCase
     {
         $room = ChatRoom::factory()->create();
         $user = User::factory()->create();
-        
+
         // Create messages
         $messages = ChatMessage::factory()->count(10)->create([
             'room_id' => $room->id,
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         // Get first page
         $firstResult = $this->paginationService->getMessagesCursor($room->id, null, 5);
-        
+
         // Get second page using cursor
         $secondResult = $this->paginationService->getMessagesCursor(
-            $room->id, 
-            $firstResult['next_cursor'], 
-            5, 
+            $room->id,
+            $firstResult['next_cursor'],
+            5,
             'before'
         );
 
@@ -92,21 +92,21 @@ class ChatPaginationServiceTest extends TestCase
     {
         $room = ChatRoom::factory()->create();
         $user = User::factory()->create();
-        
+
         // Create messages
         $messages = ChatMessage::factory()->count(10)->create([
             'room_id' => $room->id,
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         // Get first page
         $firstResult = $this->paginationService->getMessagesCursor($room->id, null, 5);
-        
+
         // Get newer messages using cursor
         $secondResult = $this->paginationService->getMessagesCursor(
-            $room->id, 
-            $firstResult['prev_cursor'], 
-            5, 
+            $room->id,
+            $firstResult['prev_cursor'],
+            5,
             'after'
         );
 
@@ -118,11 +118,11 @@ class ChatPaginationServiceTest extends TestCase
     {
         $room = ChatRoom::factory()->create();
         $user = User::factory()->create();
-        
+
         // Create messages
         ChatMessage::factory()->count(10)->create([
             'room_id' => $room->id,
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         $result = $this->paginationService->getRecentMessages($room->id, 5);
@@ -137,11 +137,11 @@ class ChatPaginationServiceTest extends TestCase
     {
         $room = ChatRoom::factory()->create();
         $user = User::factory()->create();
-        
+
         // Create messages
         $messages = ChatMessage::factory()->count(10)->create([
             'room_id' => $room->id,
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         $middleMessage = $messages[4]; // 5th message
@@ -150,7 +150,7 @@ class ChatPaginationServiceTest extends TestCase
 
         $this->assertInstanceOf(\Illuminate\Support\Collection::class, $result);
         $this->assertGreaterThan(0, $result->count());
-        
+
         // All returned messages should have IDs greater than the middle message
         foreach ($result as $message) {
             $this->assertGreaterThan($middleMessage->id, $message->id);
@@ -162,18 +162,18 @@ class ChatPaginationServiceTest extends TestCase
     {
         $room = ChatRoom::factory()->create();
         $user = User::factory()->create();
-        
+
         // Create messages with specific content
         ChatMessage::factory()->create([
             'room_id' => $room->id,
             'user_id' => $user->id,
-            'message' => 'Hello world test message'
+            'message' => 'Hello world test message',
         ]);
-        
+
         ChatMessage::factory()->create([
             'room_id' => $room->id,
             'user_id' => $user->id,
-            'message' => 'Another message without test'
+            'message' => 'Another message without test',
         ]);
 
         $result = $this->paginationService->searchMessages($room->id, 'test');
@@ -190,12 +190,12 @@ class ChatPaginationServiceTest extends TestCase
     {
         $room = ChatRoom::factory()->create();
         $user = User::factory()->create();
-        
+
         // Create messages without search term
         ChatMessage::factory()->count(5)->create([
             'room_id' => $room->id,
             'user_id' => $user->id,
-            'message' => 'Hello world'
+            'message' => 'Hello world',
         ]);
 
         $result = $this->paginationService->searchMessages($room->id, 'nonexistent');
@@ -210,12 +210,12 @@ class ChatPaginationServiceTest extends TestCase
     {
         $room = ChatRoom::factory()->create();
         $user = User::factory()->create();
-        
+
         // Create messages over the last few days
         ChatMessage::factory()->count(10)->create([
             'room_id' => $room->id,
             'user_id' => $user->id,
-            'created_at' => now()
+            'created_at' => now(),
         ]);
 
         $result = $this->paginationService->getMessageStatistics($room->id, 7);
@@ -231,11 +231,11 @@ class ChatPaginationServiceTest extends TestCase
     {
         $room = ChatRoom::factory()->create();
         $user = User::factory()->create();
-        
+
         // Create some messages
         ChatMessage::factory()->count(5)->create([
             'room_id' => $room->id,
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         $result = $this->paginationService->getMessagesCursor($room->id, 'invalid-cursor');
@@ -249,11 +249,11 @@ class ChatPaginationServiceTest extends TestCase
     {
         $room = ChatRoom::factory()->create();
         $user = User::factory()->create();
-        
+
         // Create messages
         ChatMessage::factory()->count(10)->create([
             'room_id' => $room->id,
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         // Try to get more than max page size
@@ -280,10 +280,10 @@ class ChatPaginationServiceTest extends TestCase
     {
         $room = ChatRoom::factory()->create();
         $user = User::factory()->create();
-        
+
         $message = ChatMessage::factory()->create([
             'room_id' => $room->id,
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         $result = $this->paginationService->getMessagesCursor($room->id, null, 1);
@@ -299,12 +299,12 @@ class ChatPaginationServiceTest extends TestCase
     {
         $room = ChatRoom::factory()->create();
         $user = User::factory()->create();
-        
+
         // Create messages with search term
         ChatMessage::factory()->count(10)->create([
             'room_id' => $room->id,
             'user_id' => $user->id,
-            'message' => 'test message content'
+            'message' => 'test message content',
         ]);
 
         $result = $this->paginationService->searchMessages($room->id, 'test', null, 5);
@@ -315,4 +315,4 @@ class ChatPaginationServiceTest extends TestCase
         $this->assertCount(5, $result['messages']);
         $this->assertTrue($result['has_more']);
     }
-} 
+}

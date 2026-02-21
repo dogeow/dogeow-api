@@ -52,7 +52,7 @@ class ChatRoomTest extends TestCase
     {
         $room = ChatRoom::factory()->create();
         $user = User::factory()->create();
-        
+
         ChatRoomUser::factory()->create([
             'room_id' => $room->id,
             'user_id' => $user->id,
@@ -67,13 +67,13 @@ class ChatRoomTest extends TestCase
         $room = ChatRoom::factory()->create();
         $onlineUser = User::factory()->create();
         $offlineUser = User::factory()->create();
-        
+
         ChatRoomUser::factory()->create([
             'room_id' => $room->id,
             'user_id' => $onlineUser->id,
             'is_online' => true,
         ]);
-        
+
         ChatRoomUser::factory()->create([
             'room_id' => $room->id,
             'user_id' => $offlineUser->id,
@@ -81,7 +81,7 @@ class ChatRoomTest extends TestCase
         ]);
 
         $onlineUsers = $room->onlineUsers;
-        
+
         $this->assertCount(1, $onlineUsers);
         $this->assertEquals($onlineUser->id, $onlineUsers->first()->id);
     }
@@ -102,13 +102,13 @@ class ChatRoomTest extends TestCase
         $room = ChatRoom::factory()->create();
         $onlineUser = User::factory()->create();
         $offlineUser = User::factory()->create();
-        
+
         ChatRoomUser::factory()->create([
             'room_id' => $room->id,
             'user_id' => $onlineUser->id,
             'is_online' => true,
         ]);
-        
+
         ChatRoomUser::factory()->create([
             'room_id' => $room->id,
             'user_id' => $offlineUser->id,
@@ -150,12 +150,12 @@ class ChatRoomTest extends TestCase
         $room = ChatRoom::factory()->create();
         $user1 = User::factory()->create();
         $user2 = User::factory()->create();
-        
+
         ChatRoomUser::factory()->create([
             'room_id' => $room->id,
             'user_id' => $user1->id,
         ]);
-        
+
         ChatRoomUser::factory()->create([
             'room_id' => $room->id,
             'user_id' => $user2->id,

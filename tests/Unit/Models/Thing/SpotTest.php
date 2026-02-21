@@ -2,12 +2,12 @@
 
 namespace Tests\Unit\Models\Thing;
 
-use Tests\TestCase;
-use App\Models\Thing\Spot;
-use App\Models\Thing\Room;
 use App\Models\Thing\Item;
+use App\Models\Thing\Room;
+use App\Models\Thing\Spot;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class SpotTest extends TestCase
 {
@@ -74,4 +74,4 @@ class SpotTest extends TestCase
         $this->assertEquals($data['room_id'], $spot->room_id);
         $this->assertEquals($data['user_id'], $spot->user_id);
     }
-} 
+}

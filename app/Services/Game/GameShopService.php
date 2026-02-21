@@ -59,7 +59,7 @@ class GameShopService
             $randomEquipmentItems = collect($cached['equipment'])
                 ->filter(fn (array $item) => ($item['required_level'] ?? 0) <= $character->level)
                 // 过滤掉已购买的物品
-                ->filter(fn (array $item) => !in_array($item['id'], $purchasedItemIds))
+                ->filter(fn (array $item) => ! in_array($item['id'], $purchasedItemIds))
                 ->values();
             $nextRefreshAt = $cached['refreshed_at'] + self::SHOP_CACHE_TTL_SECONDS;
         } else {
@@ -91,7 +91,7 @@ class GameShopService
         $cacheKey = "rpg:shop:purchased:{$character->id}";
         $purchased = Cache::get($cacheKey);
 
-        if (!is_array($purchased)) {
+        if (! is_array($purchased)) {
             return [];
         }
 
@@ -99,7 +99,7 @@ class GameShopService
         $shopCacheKey = "rpg:shop:{$character->id}";
         $shopCache = Cache::get($shopCacheKey);
 
-        if (!is_array($shopCache) || !isset($shopCache['refreshed_at'])) {
+        if (! is_array($shopCache) || ! isset($shopCache['refreshed_at'])) {
             return [];
         }
 
@@ -107,6 +107,7 @@ class GameShopService
         if ($cacheAge > self::SHOP_CACHE_TTL_SECONDS) {
             // 缓存已过期，清空已购买记录
             $this->clearPurchasedItems($character);
+
             return [];
         }
 
@@ -121,11 +122,11 @@ class GameShopService
         $cacheKey = "rpg:shop:purchased:{$character->id}";
         $purchased = Cache::get($cacheKey);
 
-        if (!is_array($purchased)) {
+        if (! is_array($purchased)) {
             $purchased = [];
         }
 
-        if (!in_array($definitionId, $purchased)) {
+        if (! in_array($definitionId, $purchased)) {
             $purchased[] = $definitionId;
             Cache::put($cacheKey, $purchased, self::SHOP_CACHE_TTL_SECONDS);
         }

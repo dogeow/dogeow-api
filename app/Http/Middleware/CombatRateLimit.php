@@ -24,7 +24,7 @@ class CombatRateLimit
 
         // 为每个角色创建独立的速率限制器
         // 每4秒最多1次请求
-        $key = 'combat:'.$request->user()->id.':'.$characterId;
+        $key = 'combat:' . $request->user()->id . ':' . $characterId;
 
         // 检查是否在4秒窗口期内已经有过请求
         if (RateLimiter::tooManyAttempts($key, 1)) {

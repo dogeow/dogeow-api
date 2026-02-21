@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Cache;
 class CacheService extends BaseService
 {
     private const DEFAULT_TTL = 3600; // 1 hour
+
     private const SUCCESS_TTL = 86400; // 24 hours
+
     private const ERROR_TTL = 1800; // 30 minutes
 
     /**
@@ -58,8 +60,8 @@ class CacheService extends BaseService
     {
         $pattern = $this->buildCacheKey('*', $prefix);
         $keys = Cache::getRedis()->keys($pattern);
-        
-        if (!empty($keys)) {
+
+        if (! empty($keys)) {
             Cache::getRedis()->del($keys);
         }
     }
@@ -82,6 +84,7 @@ class CacheService extends BaseService
     private function buildCacheKey(string $key, string $prefix = ''): string
     {
         $prefix = $prefix ?: 'app';
+
         return "{$prefix}:" . md5($key);
     }
 
@@ -108,4 +111,4 @@ class CacheService extends BaseService
     {
         $this->putError($url, $errorData, 'title_favicon');
     }
-} 
+}

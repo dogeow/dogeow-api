@@ -43,7 +43,7 @@ class UpyunService
      * 上传本地文件到又拍云
      *
      * @param  string  $localPath  本地文件路径（如 Ollama 生成图片的路径）
-     * @param  string  $remotePath 又拍云上的路径，如 /images/ollama/xxx.png（以 / 开头，不要带 bucket）
+     * @param  string  $remotePath  又拍云上的路径，如 /images/ollama/xxx.png（以 / 开头，不要带 bucket）
      * @return array{success: bool, url?: string, message?: string}
      */
     public function upload(string $localPath, string $remotePath): array
@@ -66,11 +66,11 @@ class UpyunService
         $contentMd5 = md5($body);
         $contentType = $this->guessMimeType($localPath);
 
-        $uri = '/'.$this->bucket.'/'.$remotePath;
+        $uri = '/' . $this->bucket . '/' . $remotePath;
         $date = gmdate('D, d M Y H:i:s \G\M\T');
         $signature = $this->makeSignature('PUT', $uri, $date, $contentMd5);
 
-        $url = 'https://'.$this->apiHost.$uri;
+        $url = 'https://' . $this->apiHost . $uri;
 
         $response = Http::withHeaders([
             'Authorization' => $signature,
@@ -83,18 +83,18 @@ class UpyunService
         if (! $response->successful()) {
             return [
                 'success' => false,
-                'message' => '又拍云上传失败: '.$response->status().' '.$response->body(),
+                'message' => '又拍云上传失败: ' . $response->status() . ' ' . $response->body(),
             ];
         }
 
         $publicUrl = $this->domain
-            ? rtrim($this->domain, '/').'/'.$remotePath
+            ? rtrim($this->domain, '/') . '/' . $remotePath
             : null;
 
         return [
             'success' => true,
             'url' => $publicUrl,
-            'path' => '/'.$remotePath,
+            'path' => '/' . $remotePath,
         ];
     }
 
@@ -111,7 +111,7 @@ class UpyunService
         $stringToSign = implode('&', $parts);
         $sign = base64_encode(hash_hmac('sha1', $stringToSign, $this->passwordMd5, true));
 
-        return 'UPYUN '.$this->operator.':'.$sign;
+        return 'UPYUN ' . $this->operator . ':' . $sign;
     }
 
     private function guessMimeType(string $path): string

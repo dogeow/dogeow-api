@@ -3,8 +3,8 @@
 namespace Tests\Unit\Models\Thing;
 
 use App\Models\Thing\Item;
-use App\Models\Thing\ItemImage;
 use App\Models\Thing\ItemCategory;
+use App\Models\Thing\ItemImage;
 use App\Models\Thing\Spot;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -15,13 +15,15 @@ class ItemTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected ItemCategory $category;
+
     protected Spot $spot;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->category = ItemCategory::factory()->create();
         $this->spot = Spot::factory()->create();
@@ -253,4 +255,4 @@ class ItemTest extends TestCase
         $this->assertNotEmpty($item->name);
         $this->assertEquals($this->user->id, $item->user_id);
     }
-} 
+}

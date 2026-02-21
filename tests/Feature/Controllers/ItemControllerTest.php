@@ -5,9 +5,7 @@ namespace Tests\Feature\Controllers;
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemCategory;
 use App\Models\User;
-use App\Services\File\ImageUploadService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class ItemControllerTest extends TestCase
@@ -32,7 +30,7 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $this->assertArrayHasKey('data', $data);
         $this->assertCount(1, $data['data']);
         $this->assertEquals($item->id, $data['data'][0]['id']);
@@ -55,7 +53,7 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $this->assertCount(1, $data['data']);
         $this->assertEquals($publicItem->id, $data['data'][0]['id']);
     }
@@ -78,7 +76,7 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $itemIds = array_column($data['data'], 'id');
         $this->assertContains($ownItem->id, $itemIds);
         $this->assertNotContains($otherItem->id, $itemIds);
@@ -104,7 +102,7 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(201);
         $response->assertJson([
-            'message' => '物品创建成功'
+            'message' => '物品创建成功',
         ]);
 
         $this->assertDatabaseHas('thing_items', [
@@ -126,7 +124,7 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $this->assertEquals($item->id, $data['id']);
         $this->assertEquals($item->name, $data['name']);
     }
@@ -144,7 +142,7 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(403);
         $response->assertJson([
-            'message' => '无权查看此物品'
+            'message' => '无权查看此物品',
         ]);
     }
 
@@ -162,7 +160,7 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $this->assertEquals($item->id, $data['id']);
     }
 
@@ -185,7 +183,7 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJson([
-            'message' => '物品更新成功'
+            'message' => '物品更新成功',
         ]);
 
         $this->assertDatabaseHas('thing_items', [
@@ -211,7 +209,7 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(403);
         $response->assertJson([
-            'message' => '无权更新此物品'
+            'message' => '无权更新此物品',
         ]);
     }
 
@@ -228,7 +226,7 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJson([
-            'message' => '物品删除成功'
+            'message' => '物品删除成功',
         ]);
 
         $this->assertDatabaseMissing('thing_items', [
@@ -250,7 +248,7 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(403);
         $response->assertJson([
-            'message' => '无权删除此物品'
+            'message' => '无权删除此物品',
         ]);
     }
 
@@ -268,7 +266,7 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $this->assertEquals('Special', $data['search_term']);
         $this->assertGreaterThan(0, $data['count']);
         $this->assertCount(1, $data['results']);
@@ -281,7 +279,7 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $this->assertEquals('', $data['search_term']);
         $this->assertEquals(0, $data['count']);
         $this->assertEmpty($data['results']);
@@ -296,7 +294,7 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $this->assertIsArray($data);
         $this->assertCount(1, $data);
         $this->assertEquals($category->id, $data[0]['id']);
@@ -321,7 +319,7 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $this->assertCount(1, $data['data']);
         $this->assertEquals('Apple iPhone', $data['data'][0]['name']);
     }
@@ -345,8 +343,8 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $this->assertCount(1, $data['data']);
         $this->assertEquals('active', $data['data'][0]['status']);
     }
-} 
+}

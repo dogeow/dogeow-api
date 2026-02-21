@@ -3,19 +3,15 @@
 namespace App\Services\Location;
 
 use App\Models\Thing\Area;
+use App\Models\Thing\Item;
 use App\Models\Thing\Room;
 use App\Models\Thing\Spot;
-use App\Models\Thing\Item;
 use App\Services\BaseService;
-use Illuminate\Support\Facades\Auth;
 
 class LocationService extends BaseService
 {
     /**
      * 构建位置树形结构
-     *
-     * @param int $userId
-     * @return array
      */
     public function buildLocationTree(int $userId): array
     {
@@ -98,7 +94,6 @@ class LocationService extends BaseService
     /**
      * 获取每个区域的物品数量（使用 Eloquent 聚合）
      *
-     * @param int $userId
      * @return array<int, int>
      */
     private function getAreaItemCounts(int $userId): array
@@ -114,7 +109,6 @@ class LocationService extends BaseService
     /**
      * 获取每个房间的物品数量（使用 Eloquent 聚合）
      *
-     * @param int $userId
      * @return array<int, int>
      */
     private function getRoomItemCounts(int $userId): array

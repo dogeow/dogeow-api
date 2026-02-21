@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Game\GameItemDefinition;
 use App\Models\Game\GameMapDefinition;
 use App\Models\Game\GameMonsterDefinition;
-use App\Models\Game\GameSkillDefinition;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -26,11 +25,11 @@ class GameSeeder extends Seeder
     {
         DB::table('game_item_definitions')->truncate();
 
-        $items = require __DIR__.'/GameSeederData/items.php';
+        $items = require __DIR__ . '/GameSeederData/items.php';
 
         foreach ($items as $item) {
             GameItemDefinition::create(array_merge($item, [
-                'icon' => 'item_'.$item['id'].'.png',
+                'icon' => 'item_' . $item['id'] . '.png',
                 'is_active' => true,
             ]));
         }
@@ -38,7 +37,7 @@ class GameSeeder extends Seeder
 
     private function seedSkillDefinitions(): void
     {
-        $skillsDir = __DIR__.'/GameSeederData/skills';
+        $skillsDir = __DIR__ . '/GameSeederData/skills';
         $skillFiles = [
             'skills_warrior.php',
             'skills_mage.php',
@@ -46,7 +45,7 @@ class GameSeeder extends Seeder
         ];
         $skills = [];
         foreach ($skillFiles as $file) {
-            $path = $skillsDir.'/'.$file;
+            $path = $skillsDir . '/' . $file;
             if (file_exists($path)) {
                 $skills = array_merge($skills, require $path);
             }
@@ -105,7 +104,7 @@ class GameSeeder extends Seeder
                     'description' => $skill['description'],
                     'effects' => $skill['effects'] ?? null,
                     'target_type' => $skill['target_type'] ?? 'single',
-                    'icon' => 'skill_'.strtolower(str_replace(' ', '_', $skill['name'])).'.png',
+                    'icon' => 'skill_' . strtolower(str_replace(' ', '_', $skill['name'])) . '.png',
                     'is_active' => true,
                     'max_level' => 10,
                     'base_damage' => $baseDamage,
@@ -120,11 +119,11 @@ class GameSeeder extends Seeder
 
     private function seedMonsterDefinitions(): void
     {
-        $monsters = require __DIR__.'/GameSeederData/monsters.php';
+        $monsters = require __DIR__ . '/GameSeederData/monsters.php';
 
         foreach ($monsters as $monster) {
             GameMonsterDefinition::create(array_merge($monster, [
-                'icon' => 'monster_'.strtolower(str_replace(' ', '_', $monster['name'])).'.png',
+                'icon' => 'monster_' . strtolower(str_replace(' ', '_', $monster['name'])) . '.png',
                 'is_active' => true,
             ]));
         }
@@ -132,7 +131,7 @@ class GameSeeder extends Seeder
 
     private function seedMapDefinitions(): void
     {
-        $maps = require __DIR__.'/GameSeederData/maps.php';
+        $maps = require __DIR__ . '/GameSeederData/maps.php';
 
         // 按 ID 顺序取当前库中怪物，用于把配置里的“序号”转成真实 ID（避免多次 seed 后 ID 错位）
         $monsterIdsByOrder = GameMonsterDefinition::query()
@@ -159,7 +158,7 @@ class GameSeeder extends Seeder
                 ],
                 array_merge($map, [
                     'monster_ids' => $resolvedIds,
-                    'background' => 'map_'.($index + 1).'.jpg',
+                    'background' => 'map_' . ($index + 1) . '.jpg',
                     'is_active' => true,
                 ])
             );

@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -35,11 +35,11 @@ return new class extends Migration
                     AND COLUMN_NAME = 'user_id' 
                     AND REFERENCED_TABLE_NAME IS NOT NULL
                 ");
-                
+
                 foreach ($foreignKeys as $fk) {
                     DB::statement("ALTER TABLE notes DROP FOREIGN KEY {$fk->CONSTRAINT_NAME}");
                 }
-                
+
                 DB::statement('ALTER TABLE notes MODIFY COLUMN user_id BIGINT UNSIGNED NULL');
             }
         } else {

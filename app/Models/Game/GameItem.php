@@ -204,7 +204,7 @@ class GameItem extends GameItemDefinition
             default => '',
         };
 
-        return $prefix.($this->definition->name ?? '未知物品');
+        return $prefix . ($this->definition->name ?? '未知物品');
     }
 
     /**
@@ -220,7 +220,6 @@ class GameItem extends GameItemDefinition
                 'reason' => "需要等级 {$definition->required_level}",
             ];
         }
-
 
         return [
             'can_equip' => true,

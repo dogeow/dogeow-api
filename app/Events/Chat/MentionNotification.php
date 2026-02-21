@@ -16,6 +16,7 @@ class MentionNotification implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public ChatMessage $message;
+
     public User $mentionedUser;
 
     /**

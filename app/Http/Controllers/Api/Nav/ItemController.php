@@ -23,7 +23,7 @@ class ItemController extends Controller
         }
 
         // 默认只显示可见的
-        if (!$request->has('show_all')) {
+        if (! $request->has('show_all')) {
             $query->where('is_visible', true);
         }
 
@@ -41,7 +41,7 @@ class ItemController extends Controller
 
         return response()->json([
             'message' => '导航项创建成功',
-            'item' => $item
+            'item' => $item,
         ], 201);
     }
 
@@ -64,7 +64,7 @@ class ItemController extends Controller
 
         return response()->json([
             'message' => '导航项更新成功',
-            'item' => $item
+            'item' => $item,
         ]);
     }
 
@@ -76,7 +76,7 @@ class ItemController extends Controller
         $item->delete();
 
         return response()->json([
-            'message' => '导航项删除成功'
+            'message' => '导航项删除成功',
         ]);
     }
 
@@ -89,7 +89,7 @@ class ItemController extends Controller
 
         return response()->json([
             'message' => '点击记录成功',
-            'clicks' => $item->clicks
+            'clicks' => $item->clicks,
         ]);
     }
-} 
+}

@@ -62,7 +62,7 @@ class FileFactory extends Factory
     public function image(): static
     {
         $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'];
-        
+
         return $this->state(fn (array $attributes) => [
             'extension' => $this->faker->randomElement($imageExtensions),
             'mime_type' => 'image/' . $this->faker->randomElement(['jpeg', 'png', 'gif']),
@@ -75,10 +75,10 @@ class FileFactory extends Factory
     public function document(): static
     {
         $documentExtensions = ['doc', 'docx', 'txt', 'rtf', 'md', 'pdf'];
-        
+
         return $this->state(fn (array $attributes) => [
             'extension' => $this->faker->randomElement($documentExtensions),
             'mime_type' => 'application/' . $this->faker->randomElement(['pdf', 'msword', 'plain']),
         ]);
     }
-} 
+}

@@ -2,11 +2,11 @@
 
 namespace App\Console\Commands\Chat;
 
+use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
-use App\Models\Chat\ChatRoom;
-use Illuminate\Console\Command;
 use Carbon\Carbon;
+use Illuminate\Console\Command;
 
 class ManageChatModerations extends Command
 {
@@ -46,7 +46,8 @@ class ManageChatModerations extends Command
                 return $this->cleanupExpiredModerations();
             default:
                 $this->error("未知操作：{$action}");
-                $this->info("可用操作: list, unmute, unban, cleanup");
+                $this->info('可用操作: list, unmute, unban, cleanup');
+
                 return Command::FAILURE;
         }
     }
@@ -73,7 +74,7 @@ class ManageChatModerations extends Command
                     '房间' => $roomUser->room->name,
                     '操作人' => $roomUser->mutedByUser->name ?? '系统',
                     '截止时间' => $roomUser->muted_until ? $roomUser->muted_until->format('Y-m-d H:i:s') : '永久',
-                    '状态' => $roomUser->muted_until && $roomUser->muted_until->isPast() ? '已过期' : '生效中'
+                    '状态' => $roomUser->muted_until && $roomUser->muted_until->isPast() ? '已过期' : '生效中',
                 ];
             }
             $this->table(['用户', '房间', '操作人', '截止时间', '状态'], $muteData);
@@ -94,7 +95,7 @@ class ManageChatModerations extends Command
                     '房间' => $roomUser->room->name,
                     '操作人' => $roomUser->bannedByUser->name ?? '系统',
                     '截止时间' => $roomUser->banned_until ? $roomUser->banned_until->format('Y-m-d H:i:s') : '永久',
-                    '状态' => $roomUser->banned_until && $roomUser->banned_until->isPast() ? '已过期' : '生效中'
+                    '状态' => $roomUser->banned_until && $roomUser->banned_until->isPast() ? '已过期' : '生效中',
                 ];
             }
             $this->table(['用户', '房间', '操作人', '截止时间', '状态'], $banData);
@@ -116,32 +117,34 @@ class ManageChatModerations extends Command
         $roomIdentifier = $this->option('room');
         $all = $this->option('all');
 
-        if (!$all && (!$userIdentifier || !$roomIdentifier)) {
+        if (! $all && (! $userIdentifier || ! $roomIdentifier)) {
             $this->error('请指定 --user 和 --room，或者使用 --all 取消全部静音');
+
             return Command::FAILURE;
         }
 
         if ($all) {
             $mutedUsers = ChatRoomUser::where('is_muted', true)->get();
             $count = $mutedUsers->count();
-            
+
             foreach ($mutedUsers as $roomUser) {
                 $roomUser->unmute();
             }
-            
+
             $this->info("已取消全部房间共 {$count} 个用户的静音。");
+
             return Command::SUCCESS;
         }
 
         // 查找用户
         $user = $this->findUser($userIdentifier);
-        if (!$user) {
+        if (! $user) {
             return Command::FAILURE;
         }
 
         // 查找房间
         $room = $this->findRoom($roomIdentifier);
-        if (!$room) {
+        if (! $room) {
             return Command::FAILURE;
         }
 
@@ -150,13 +153,15 @@ class ManageChatModerations extends Command
             ->where('user_id', $user->id)
             ->first();
 
-        if (!$roomUser) {
+        if (! $roomUser) {
             $this->error("用户 {$user->name} 不在房间 {$room->name} 中。");
+
             return Command::FAILURE;
         }
 
-        if (!$roomUser->is_muted) {
+        if (! $roomUser->is_muted) {
             $this->info("用户 {$user->name} 在房间 {$room->name} 没有被静音。");
+
             return Command::SUCCESS;
         }
 
@@ -175,32 +180,34 @@ class ManageChatModerations extends Command
         $roomIdentifier = $this->option('room');
         $all = $this->option('all');
 
-        if (!$all && (!$userIdentifier || !$roomIdentifier)) {
+        if (! $all && (! $userIdentifier || ! $roomIdentifier)) {
             $this->error('请指定 --user 和 --room，或者使用 --all 解除全部封禁');
+
             return Command::FAILURE;
         }
 
         if ($all) {
             $bannedUsers = ChatRoomUser::where('is_banned', true)->get();
             $count = $bannedUsers->count();
-            
+
             foreach ($bannedUsers as $roomUser) {
                 $roomUser->unban();
             }
-            
+
             $this->info("已解除全部房间共 {$count} 个用户的封禁。");
+
             return Command::SUCCESS;
         }
 
         // 查找用户
         $user = $this->findUser($userIdentifier);
-        if (!$user) {
+        if (! $user) {
             return Command::FAILURE;
         }
 
         // 查找房间
         $room = $this->findRoom($roomIdentifier);
-        if (!$room) {
+        if (! $room) {
             return Command::FAILURE;
         }
 
@@ -209,13 +216,15 @@ class ManageChatModerations extends Command
             ->where('user_id', $user->id)
             ->first();
 
-        if (!$roomUser) {
+        if (! $roomUser) {
             $this->error("用户 {$user->name} 不在房间 {$room->name} 中。");
+
             return Command::FAILURE;
         }
 
-        if (!$roomUser->is_banned) {
+        if (! $roomUser->is_banned) {
             $this->info("用户 {$user->name} 在房间 {$room->name} 没有被封禁。");
+
             return Command::SUCCESS;
         }
 
@@ -271,8 +280,9 @@ class ManageChatModerations extends Command
             $user = User::where('email', $identifier)->first();
         }
 
-        if (!$user) {
+        if (! $user) {
             $this->error("未找到用户：{$identifier}");
+
             return null;
         }
 
@@ -292,8 +302,9 @@ class ManageChatModerations extends Command
             $room = ChatRoom::where('name', $identifier)->first();
         }
 
-        if (!$room) {
+        if (! $room) {
             $this->error("未找到房间：{$identifier}");
+
             return null;
         }
 

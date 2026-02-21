@@ -18,4 +18,4 @@ class ItemImageResource extends JsonResource
             'thumbnail_path' => $this->thumbnail_path,
         ];
     }
-} 
+}

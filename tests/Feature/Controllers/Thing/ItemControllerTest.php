@@ -18,16 +18,17 @@ class ItemControllerTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private ItemCategory $category;
 
     protected function setUp(): void
     {
         parent::setUp();
         Storage::fake('public');
-        
+
         $this->user = User::factory()->create();
         $this->category = ItemCategory::factory()->create();
-        
+
         Sanctum::actingAs($this->user);
     }
 
@@ -50,7 +51,7 @@ class ItemControllerTest extends TestCase
                     'status',
                     'created_at',
                     'updated_at',
-                ]
+                ],
             ],
             'links',
             'meta',
@@ -65,7 +66,7 @@ class ItemControllerTest extends TestCase
 
         // 以访客身份访问
         Auth::forgetGuards();
-        
+
         $response = $this->getJson('/api/things/items');
 
         $response->assertStatus(200);
@@ -129,7 +130,7 @@ class ItemControllerTest extends TestCase
         $response = $this->postJson('/api/things/items', $itemData);
 
         $response->assertStatus(201);
-        
+
         $item = Item::where('name', 'Test Item with Images')->first();
         $this->assertNotNull($item);
         $this->assertCount(2, $item->images);
@@ -151,7 +152,7 @@ class ItemControllerTest extends TestCase
         $response = $this->postJson('/api/things/items', $itemData);
 
         $response->assertStatus(201);
-        
+
         $item = Item::where('name', 'Test Item with Tags')->first();
         $this->assertNotNull($item);
         $this->assertCount(3, $item->tags);
@@ -339,4 +340,4 @@ class ItemControllerTest extends TestCase
         $this->assertCount(1, $data);
         $this->assertEquals($item->id, $data[0]['id']);
     }
-} 
+}

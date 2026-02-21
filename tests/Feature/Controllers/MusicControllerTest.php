@@ -20,7 +20,7 @@ class MusicControllerTest extends TestCase
     {
         // 创建测试音乐目录和文件
         $musicDir = public_path('musics');
-        if (!File::exists($musicDir)) {
+        if (! File::exists($musicDir)) {
             File::makeDirectory($musicDir, 0755, true);
         }
 
@@ -73,7 +73,7 @@ class MusicControllerTest extends TestCase
 
         $response->assertStatus(404);
         $response->assertJson([
-            'error' => '音乐目录不存在'
+            'error' => '音乐目录不存在',
         ]);
     }
 
@@ -82,7 +82,7 @@ class MusicControllerTest extends TestCase
     {
         // 创建空的音乐目录
         $musicDir = public_path('musics');
-        if (!File::exists($musicDir)) {
+        if (! File::exists($musicDir)) {
             File::makeDirectory($musicDir, 0755, true);
         }
 
@@ -105,7 +105,7 @@ class MusicControllerTest extends TestCase
     public function it_filters_only_audio_files()
     {
         $musicDir = public_path('musics');
-        if (!File::exists($musicDir)) {
+        if (! File::exists($musicDir)) {
             File::makeDirectory($musicDir, 0755, true);
         }
 
@@ -130,7 +130,7 @@ class MusicControllerTest extends TestCase
 
         // 只应该包含音频文件
         $this->assertCount(3, $data);
-        
+
         $filenames = array_column($data, 'name');
         $this->assertContains('audio1', $filenames);
         $this->assertContains('audio2', $filenames);
@@ -149,7 +149,7 @@ class MusicControllerTest extends TestCase
     public function it_returns_correct_file_information()
     {
         $musicDir = public_path('musics');
-        if (!File::exists($musicDir)) {
+        if (! File::exists($musicDir)) {
             File::makeDirectory($musicDir, 0755, true);
         }
 
@@ -174,4 +174,4 @@ class MusicControllerTest extends TestCase
         // 清理测试文件
         File::delete($musicDir . '/' . $filename);
     }
-} 
+}

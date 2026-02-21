@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Cloud\FileController;
+use Illuminate\Support\Facades\Route;
 
 // 云存储
 Route::get('/cloud/files', [FileController::class, 'index']);

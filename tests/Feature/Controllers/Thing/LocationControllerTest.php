@@ -2,20 +2,21 @@
 
 namespace Tests\Feature\Controllers\Thing;
 
-use Tests\TestCase;
 use App\Models\Thing\Area;
+use App\Models\Thing\Item;
 use App\Models\Thing\Room;
 use App\Models\Thing\Spot;
-use App\Models\Thing\Item;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Tests\TestCase;
 
 class LocationControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     private User $user;
+
     private User $otherUser;
 
     protected function setUp(): void
@@ -53,7 +54,7 @@ class LocationControllerTest extends TestCase
                 'area' => [
                     'name' => 'Test Area',
                     'user_id' => $this->user->id,
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('thing_areas', [
@@ -116,7 +117,7 @@ class LocationControllerTest extends TestCase
                 'area' => [
                     'id' => $area->id,
                     'name' => 'Updated Area',
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('thing_areas', [
@@ -227,7 +228,7 @@ class LocationControllerTest extends TestCase
                     'name' => 'Test Room',
                     'area_id' => $area->id,
                     'user_id' => $this->user->id,
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('thing_rooms', [
@@ -310,7 +311,7 @@ class LocationControllerTest extends TestCase
                 'room' => [
                     'id' => $room->id,
                     'name' => 'Updated Room',
-                ]
+                ],
             ]);
     }
 
@@ -355,7 +356,7 @@ class LocationControllerTest extends TestCase
                 'room' => [
                     'id' => $room->id,
                     'name' => 'Updated Room',
-                ]
+                ],
             ]);
     }
 
@@ -456,7 +457,7 @@ class LocationControllerTest extends TestCase
                     'name' => 'Test Spot',
                     'room_id' => $room->id,
                     'user_id' => $this->user->id,
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('thing_spots', [
@@ -541,7 +542,7 @@ class LocationControllerTest extends TestCase
                 'spot' => [
                     'id' => $spot->id,
                     'name' => 'Updated Spot',
-                ]
+                ],
             ]);
     }
 
@@ -588,7 +589,7 @@ class LocationControllerTest extends TestCase
                 'spot' => [
                     'id' => $spot->id,
                     'name' => 'Updated Spot',
-                ]
+                ],
             ]);
     }
 
@@ -728,27 +729,27 @@ class LocationControllerTest extends TestCase
                         'type',
                         'original_id',
                         'children',
-                        'items_count'
-                    ]
+                        'items_count',
+                    ],
                 ],
                 'areas',
                 'rooms',
-                'spots'
+                'spots',
             ])
             ->assertJsonFragment([
                 'id' => "area_{$area->id}",
                 'name' => $area->name,
-                'type' => 'area'
+                'type' => 'area',
             ])
             ->assertJsonFragment([
                 'id' => "room_{$room->id}",
                 'name' => $room->name,
-                'type' => 'room'
+                'type' => 'room',
             ])
             ->assertJsonFragment([
                 'id' => "spot_{$spot->id}",
                 'name' => $spot->name,
-                'type' => 'spot'
+                'type' => 'spot',
             ]);
     }
 
@@ -773,7 +774,7 @@ class LocationControllerTest extends TestCase
                 'tree' => [],
                 'areas' => [],
                 'rooms' => [],
-                'spots' => []
+                'spots' => [],
             ]);
     }
 
@@ -782,14 +783,14 @@ class LocationControllerTest extends TestCase
         $area = Area::factory()->create(['user_id' => $this->user->id]);
         $room = Room::factory()->create(['user_id' => $this->user->id, 'area_id' => $area->id]);
         $spot = Spot::factory()->create(['user_id' => $this->user->id, 'room_id' => $room->id]);
-        
+
         // Create items for testing items_count
         Item::factory()->create([
-            'spot_id' => $spot->id, 
+            'spot_id' => $spot->id,
             'area_id' => $area->id,
             'room_id' => $room->id,
             'user_id' => $this->user->id,
-            'quantity' => 5
+            'quantity' => 5,
         ]);
 
         $response = $this->getJson('/api/locations/tree');
@@ -797,15 +798,15 @@ class LocationControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonFragment([
                 'id' => "area_{$area->id}",
-                'items_count' => 5
+                'items_count' => 5,
             ])
             ->assertJsonFragment([
                 'id' => "room_{$room->id}",
-                'items_count' => 5
+                'items_count' => 5,
             ])
             ->assertJsonFragment([
                 'id' => "spot_{$spot->id}",
-                'items_count' => 1
+                'items_count' => 1,
             ]);
     }
 
@@ -821,7 +822,7 @@ class LocationControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonFragment([
                 'id' => $area->id,
-                'rooms_count' => 3
+                'rooms_count' => 3,
             ]);
     }
 
@@ -836,7 +837,7 @@ class LocationControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonFragment([
                 'id' => $room->id,
-                'spots_count' => 2
+                'spots_count' => 2,
             ]);
     }
 
@@ -852,7 +853,7 @@ class LocationControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonFragment([
                 'id' => $spot->id,
-                'items_count' => 3
+                'items_count' => 3,
             ]);
     }
 
@@ -871,9 +872,9 @@ class LocationControllerTest extends TestCase
                     '*' => [
                         'id',
                         'name',
-                        'area_id'
-                    ]
-                ]
+                        'area_id',
+                    ],
+                ],
             ]);
     }
 
@@ -891,15 +892,15 @@ class LocationControllerTest extends TestCase
                 'name',
                 'area' => [
                     'id',
-                    'name'
+                    'name',
                 ],
                 'spots' => [
                     '*' => [
                         'id',
                         'name',
-                        'room_id'
-                    ]
-                ]
+                        'room_id',
+                    ],
+                ],
             ]);
     }
 
@@ -921,15 +922,15 @@ class LocationControllerTest extends TestCase
                     'name',
                     'area' => [
                         'id',
-                        'name'
-                    ]
+                        'name',
+                    ],
                 ],
                 'items' => [
                     '*' => [
                         'id',
-                        'name'
-                    ]
-                ]
+                        'name',
+                    ],
+                ],
             ]);
     }
-} 
+}

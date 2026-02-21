@@ -10,4 +10,4 @@ class BroadcastServiceProvider extends LaravelBroadcastServiceProvider
     {
         require base_path('routes/channels.php');
     }
-} 
+}

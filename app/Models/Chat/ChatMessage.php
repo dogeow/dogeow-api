@@ -27,6 +27,7 @@ class ChatMessage extends Model
      * Message type constants
      */
     const TYPE_TEXT = 'text';
+
     const TYPE_SYSTEM = 'system';
 
     /**

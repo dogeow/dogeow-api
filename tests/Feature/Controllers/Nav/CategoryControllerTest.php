@@ -2,12 +2,11 @@
 
 namespace Tests\Feature\Controllers\Nav;
 
-use Tests\TestCase;
 use App\Models\Nav\Category;
 use App\Models\Nav\Item;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Auth;
+use Tests\TestCase;
 
 class CategoryControllerTest extends TestCase
 {
@@ -29,14 +28,14 @@ class CategoryControllerTest extends TestCase
         // 创建可见的分类
         $visibleCategory = Category::factory()->visible()->create();
         $hiddenCategory = Category::factory()->hidden()->create();
-        
+
         // 为可见分类创建导航项
         Item::factory()->count(3)->create(['nav_category_id' => $visibleCategory->id]);
 
         $response = $this->getJson('/api/nav/categories');
 
         $response->assertStatus(200);
-        
+
         $categories = $response->json();
         $this->assertCount(1, $categories);
         $this->assertEquals($visibleCategory->id, $categories[0]['id']);
@@ -65,17 +64,17 @@ class CategoryControllerTest extends TestCase
     public function test_index_filters_items_by_name()
     {
         $category = Category::factory()->visible()->create();
-        
+
         // 创建匹配的导航项
         Item::factory()->create([
             'nav_category_id' => $category->id,
-            'name' => 'Test Item'
+            'name' => 'Test Item',
         ]);
-        
+
         // 创建不匹配的导航项
         Item::factory()->create([
             'nav_category_id' => $category->id,
-            'name' => 'Other Item'
+            'name' => 'Other Item',
         ]);
 
         $response = $this->getJson('/api/nav/categories?filter[name]=Test');
@@ -92,15 +91,15 @@ class CategoryControllerTest extends TestCase
     {
         $categoryWithMatchingItem = Category::factory()->visible()->create();
         $categoryWithoutMatchingItem = Category::factory()->visible()->create();
-        
+
         Item::factory()->create([
             'nav_category_id' => $categoryWithMatchingItem->id,
-            'name' => 'Test Item'
+            'name' => 'Test Item',
         ]);
-        
+
         Item::factory()->create([
             'nav_category_id' => $categoryWithoutMatchingItem->id,
-            'name' => 'Other Item'
+            'name' => 'Other Item',
         ]);
 
         $response = $this->getJson('/api/nav/categories?filter[name]=Test');
@@ -118,7 +117,7 @@ class CategoryControllerTest extends TestCase
     {
         $category1 = Category::factory()->create();
         $category2 = Category::factory()->create();
-        
+
         Item::factory()->count(3)->create(['nav_category_id' => $category1->id]);
         Item::factory()->count(1)->create(['nav_category_id' => $category2->id]);
 
@@ -136,7 +135,7 @@ class CategoryControllerTest extends TestCase
     public function test_store_creates_new_category()
     {
         $this->actingAs($this->user);
-        
+
         $data = [
             'name' => 'Test Category',
             'icon' => 'test-icon',
@@ -156,7 +155,7 @@ class CategoryControllerTest extends TestCase
                     'description' => 'Test description',
                     'sort_order' => 5,
                     'is_visible' => true,
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('nav_categories', [
@@ -174,7 +173,7 @@ class CategoryControllerTest extends TestCase
     public function test_store_validation_fails_without_name()
     {
         $this->actingAs($this->user);
-        
+
         $data = [
             'icon' => 'test-icon',
             'description' => 'Test description',
@@ -192,7 +191,7 @@ class CategoryControllerTest extends TestCase
     public function test_store_validation_fails_with_long_name()
     {
         $this->actingAs($this->user);
-        
+
         $data = [
             'name' => str_repeat('a', 51), // 超过50字符限制
             'icon' => 'test-icon',
@@ -238,9 +237,9 @@ class CategoryControllerTest extends TestCase
     public function test_update_modifies_category()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
-        
+
         $updateData = [
             'name' => 'Updated Category',
             'icon' => 'updated-icon',
@@ -261,7 +260,7 @@ class CategoryControllerTest extends TestCase
                     'description' => 'Updated description',
                     'sort_order' => 10,
                     'is_visible' => false,
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('nav_categories', [
@@ -280,9 +279,9 @@ class CategoryControllerTest extends TestCase
     public function test_update_partial_fields()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
-        
+
         $updateData = [
             'name' => 'Updated Name',
         ];
@@ -294,7 +293,7 @@ class CategoryControllerTest extends TestCase
                 'category' => [
                     'id' => $category->id,
                     'name' => 'Updated Name',
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('nav_categories', [
@@ -309,9 +308,9 @@ class CategoryControllerTest extends TestCase
     public function test_update_validation_fails_with_long_name()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
-        
+
         $updateData = [
             'name' => str_repeat('a', 51),
         ];
@@ -328,14 +327,14 @@ class CategoryControllerTest extends TestCase
     public function test_destroy_deletes_category()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
 
         $response = $this->deleteJson("/api/nav/categories/{$category->id}");
 
         $response->assertStatus(200)
             ->assertJson([
-                'message' => '分类删除成功'
+                'message' => '分类删除成功',
             ]);
 
         $this->assertSoftDeleted('nav_categories', ['id' => $category->id]);
@@ -347,7 +346,7 @@ class CategoryControllerTest extends TestCase
     public function test_destroy_fails_when_category_has_items()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
         Item::factory()->create(['nav_category_id' => $category->id]);
 
@@ -355,7 +354,7 @@ class CategoryControllerTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJson([
-                'message' => '该分类下存在导航项，无法删除'
+                'message' => '该分类下存在导航项，无法删除',
             ]);
 
         $this->assertDatabaseHas('nav_categories', ['id' => $category->id]);
@@ -367,7 +366,7 @@ class CategoryControllerTest extends TestCase
     public function test_destroy_returns_404_for_nonexistent_category()
     {
         $this->actingAs($this->user);
-        
+
         $response = $this->deleteJson('/api/nav/categories/999');
 
         $response->assertStatus(404);
@@ -385,7 +384,7 @@ class CategoryControllerTest extends TestCase
         $response = $this->getJson('/api/nav/categories?show_all=1');
 
         $response->assertStatus(200);
-        
+
         $categories = $response->json();
         $this->assertEquals($category1->id, $categories[0]['id']);
         $this->assertEquals($category2->id, $categories[1]['id']);
@@ -400,7 +399,7 @@ class CategoryControllerTest extends TestCase
     public function test_store_validation_fails_with_long_icon()
     {
         $this->actingAs($this->user);
-        
+
         $data = [
             'name' => 'Test Category',
             'icon' => str_repeat('a', 101), // 超过100字符限制
@@ -418,7 +417,7 @@ class CategoryControllerTest extends TestCase
     public function test_store_validation_fails_with_invalid_sort_order()
     {
         $this->actingAs($this->user);
-        
+
         $data = [
             'name' => 'Test Category',
             'sort_order' => 'not-a-number',
@@ -436,7 +435,7 @@ class CategoryControllerTest extends TestCase
     public function test_store_validation_fails_with_invalid_is_visible()
     {
         $this->actingAs($this->user);
-        
+
         $data = [
             'name' => 'Test Category',
             'is_visible' => 'not-a-boolean',
@@ -454,7 +453,7 @@ class CategoryControllerTest extends TestCase
     public function test_store_creates_category_with_minimal_data()
     {
         $this->actingAs($this->user);
-        
+
         $data = [
             'name' => 'Minimal Category',
         ];
@@ -466,7 +465,7 @@ class CategoryControllerTest extends TestCase
                 'message' => '分类创建成功',
                 'category' => [
                     'name' => 'Minimal Category',
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('nav_categories', [
@@ -480,7 +479,7 @@ class CategoryControllerTest extends TestCase
     public function test_store_creates_category_with_all_fields()
     {
         $this->actingAs($this->user);
-        
+
         $data = [
             'name' => 'Complete Category',
             'icon' => 'complete-icon',
@@ -500,7 +499,7 @@ class CategoryControllerTest extends TestCase
                     'description' => 'Complete description with special chars: !@#$%^&*()',
                     'sort_order' => 999,
                     'is_visible' => false,
-                ]
+                ],
             ]);
     }
 
@@ -510,7 +509,7 @@ class CategoryControllerTest extends TestCase
     public function test_store_creates_category_with_special_characters()
     {
         $this->actingAs($this->user);
-        
+
         $data = [
             'name' => '特殊分类名称 🚀🌟',
             'icon' => 'special-icon-123',
@@ -526,7 +525,7 @@ class CategoryControllerTest extends TestCase
                     'name' => '特殊分类名称 🚀🌟',
                     'icon' => 'special-icon-123',
                     'description' => '特殊描述: !@#$%^&*()_+-=[]{}|;:,.<>?',
-                ]
+                ],
             ]);
     }
 
@@ -536,9 +535,9 @@ class CategoryControllerTest extends TestCase
     public function test_update_validation_fails_with_long_icon()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
-        
+
         $updateData = [
             'name' => 'Updated Category',
             'icon' => str_repeat('a', 101),
@@ -556,9 +555,9 @@ class CategoryControllerTest extends TestCase
     public function test_update_validation_fails_with_invalid_sort_order()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
-        
+
         $updateData = [
             'name' => 'Updated Category',
             'sort_order' => 'not-a-number',
@@ -576,9 +575,9 @@ class CategoryControllerTest extends TestCase
     public function test_update_only_icon_field()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
-        
+
         $updateData = [
             'name' => $category->name, // 保持原有名称
             'icon' => 'new-icon',
@@ -591,7 +590,7 @@ class CategoryControllerTest extends TestCase
                 'category' => [
                     'id' => $category->id,
                     'icon' => 'new-icon',
-                ]
+                ],
             ]);
     }
 
@@ -601,9 +600,9 @@ class CategoryControllerTest extends TestCase
     public function test_update_only_description_field()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
-        
+
         $updateData = [
             'name' => $category->name, // 保持原有名称
             'description' => 'Updated description only',
@@ -616,7 +615,7 @@ class CategoryControllerTest extends TestCase
                 'category' => [
                     'id' => $category->id,
                     'description' => 'Updated description only',
-                ]
+                ],
             ]);
     }
 
@@ -626,9 +625,9 @@ class CategoryControllerTest extends TestCase
     public function test_update_only_sort_order_field()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
-        
+
         $updateData = [
             'name' => $category->name, // 保持原有名称
             'sort_order' => 50,
@@ -641,7 +640,7 @@ class CategoryControllerTest extends TestCase
                 'category' => [
                     'id' => $category->id,
                     'sort_order' => 50,
-                ]
+                ],
             ]);
     }
 
@@ -651,9 +650,9 @@ class CategoryControllerTest extends TestCase
     public function test_update_only_is_visible_field()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create(['is_visible' => true]);
-        
+
         $updateData = [
             'name' => $category->name, // 保持原有名称
             'is_visible' => false,
@@ -666,7 +665,7 @@ class CategoryControllerTest extends TestCase
                 'category' => [
                     'id' => $category->id,
                     'is_visible' => false,
-                ]
+                ],
             ]);
     }
 
@@ -676,7 +675,7 @@ class CategoryControllerTest extends TestCase
     public function test_update_returns_404_for_nonexistent_category()
     {
         $this->actingAs($this->user);
-        
+
         $updateData = [
             'name' => 'Updated Category',
         ];
@@ -720,7 +719,7 @@ class CategoryControllerTest extends TestCase
         $category = Category::factory()->visible()->create();
         Item::factory()->create([
             'nav_category_id' => $category->id,
-            'name' => 'Other Item'
+            'name' => 'Other Item',
         ]);
 
         $response = $this->getJson('/api/nav/categories?filter[name]=NonExistent');
@@ -735,27 +734,27 @@ class CategoryControllerTest extends TestCase
     public function test_index_filters_items_with_partial_match()
     {
         $category = Category::factory()->visible()->create();
-        
+
         Item::factory()->create([
             'nav_category_id' => $category->id,
-            'name' => 'Test Item One'
+            'name' => 'Test Item One',
         ]);
-        
+
         Item::factory()->create([
             'nav_category_id' => $category->id,
-            'name' => 'Test Item Two'
+            'name' => 'Test Item Two',
         ]);
-        
+
         Item::factory()->create([
             'nav_category_id' => $category->id,
-            'name' => 'Other Item'
+            'name' => 'Other Item',
         ]);
 
         $response = $this->getJson('/api/nav/categories?filter[name]=Test');
 
         $response->assertStatus(200)
             ->assertJsonCount(1);
-        
+
         $categoryData = $response->json()[0];
         $this->assertCount(2, $categoryData['items']);
     }
@@ -766,10 +765,10 @@ class CategoryControllerTest extends TestCase
     public function test_index_filters_items_case_insensitive()
     {
         $category = Category::factory()->visible()->create();
-        
+
         Item::factory()->create([
             'nav_category_id' => $category->id,
-            'name' => 'Test Item'
+            'name' => 'Test Item',
         ]);
 
         $response = $this->getJson('/api/nav/categories?filter[name]=test');
@@ -790,15 +789,15 @@ class CategoryControllerTest extends TestCase
             'sort_order' => 5,
             'is_visible' => true,
         ]);
-        
+
         Item::factory()->create([
             'nav_category_id' => $category->id,
-            'name' => 'Test Item 1'
+            'name' => 'Test Item 1',
         ]);
-        
+
         Item::factory()->create([
             'nav_category_id' => $category->id,
-            'name' => 'Test Item 2'
+            'name' => 'Test Item 2',
         ]);
 
         $response = $this->getJson("/api/nav/categories/{$category->id}");
@@ -821,7 +820,7 @@ class CategoryControllerTest extends TestCase
     public function test_destroy_soft_deletes_category()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
 
         $response = $this->deleteJson("/api/nav/categories/{$category->id}");
@@ -830,7 +829,7 @@ class CategoryControllerTest extends TestCase
 
         // 验证软删除
         $this->assertSoftDeleted('nav_categories', ['id' => $category->id]);
-        
+
         // 验证数据库中仍然存在记录（软删除）
         $this->assertDatabaseHas('nav_categories', [
             'id' => $category->id,
@@ -844,7 +843,7 @@ class CategoryControllerTest extends TestCase
     public function test_destroy_fails_when_category_has_multiple_items()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
         Item::factory()->count(5)->create(['nav_category_id' => $category->id]);
 
@@ -852,7 +851,7 @@ class CategoryControllerTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJson([
-                'message' => '该分类下存在导航项，无法删除'
+                'message' => '该分类下存在导航项，无法删除',
             ]);
 
         $this->assertDatabaseHas('nav_categories', ['id' => $category->id]);
@@ -864,7 +863,7 @@ class CategoryControllerTest extends TestCase
     public function test_store_with_boundary_values()
     {
         $this->actingAs($this->user);
-        
+
         $data = [
             'name' => str_repeat('a', 50), // 最大长度
             'icon' => str_repeat('b', 100), // 最大长度
@@ -884,7 +883,7 @@ class CategoryControllerTest extends TestCase
                     'description' => str_repeat('c', 1000),
                     'sort_order' => 0,
                     'is_visible' => true,
-                ]
+                ],
             ]);
     }
 
@@ -894,9 +893,9 @@ class CategoryControllerTest extends TestCase
     public function test_update_with_boundary_values()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
-        
+
         $updateData = [
             'name' => str_repeat('a', 50), // 最大长度
             'icon' => str_repeat('b', 100), // 最大长度
@@ -917,7 +916,7 @@ class CategoryControllerTest extends TestCase
                     'description' => str_repeat('c', 1000),
                     'sort_order' => 999999,
                     'is_visible' => false,
-                ]
+                ],
             ]);
     }
 
@@ -927,7 +926,7 @@ class CategoryControllerTest extends TestCase
     public function test_store_with_empty_strings()
     {
         $this->actingAs($this->user);
-        
+
         $data = [
             'name' => 'Test Category',
             'icon' => '',
@@ -943,7 +942,7 @@ class CategoryControllerTest extends TestCase
                     'name' => 'Test Category',
                     'icon' => '',
                     'description' => '',
-                ]
+                ],
             ]);
     }
 
@@ -953,12 +952,12 @@ class CategoryControllerTest extends TestCase
     public function test_update_with_empty_strings()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create([
             'icon' => 'old-icon',
             'description' => 'old description',
         ]);
-        
+
         $updateData = [
             'name' => $category->name, // 保持原有名称
             'icon' => '',
@@ -973,7 +972,7 @@ class CategoryControllerTest extends TestCase
                     'id' => $category->id,
                     'icon' => '',
                     'description' => '',
-                ]
+                ],
             ]);
     }
-} 
+}

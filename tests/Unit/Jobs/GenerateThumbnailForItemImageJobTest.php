@@ -4,7 +4,6 @@ namespace Tests\Unit\Jobs;
 
 use App\Jobs\GenerateThumbnailForItemImageJob;
 use App\Models\Thing\ItemImage;
-use App\Utils\FileHelper;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
@@ -24,7 +23,7 @@ class GenerateThumbnailForItemImageJobTest extends TestCase
     public function test_job_can_be_constructed()
     {
         $itemImage = ItemImage::factory()->create();
-        
+
         $job = new GenerateThumbnailForItemImageJob($itemImage);
 
         $this->assertInstanceOf(GenerateThumbnailForItemImageJob::class, $job);
@@ -36,7 +35,7 @@ class GenerateThumbnailForItemImageJobTest extends TestCase
     public function test_job_can_be_constructed_with_custom_parameters()
     {
         $itemImage = ItemImage::factory()->create();
-        
+
         $job = new GenerateThumbnailForItemImageJob(
             $itemImage,
             300,
@@ -49,10 +48,10 @@ class GenerateThumbnailForItemImageJobTest extends TestCase
 
     public function test_job_skips_when_item_image_has_no_path()
     {
-        $itemImage = new ItemImage();
+        $itemImage = new ItemImage;
         $itemImage->id = 1;
         $itemImage->path = null;
-        
+
         $job = new GenerateThumbnailForItemImageJob($itemImage);
 
         $job->handle();
@@ -64,7 +63,7 @@ class GenerateThumbnailForItemImageJobTest extends TestCase
     public function test_job_skips_when_original_image_does_not_exist()
     {
         $itemImage = ItemImage::factory()->create(['path' => 'nonexistent/image.jpg']);
-        
+
         $job = new GenerateThumbnailForItemImageJob($itemImage);
 
         $job->handle();
@@ -81,7 +80,7 @@ class GenerateThumbnailForItemImageJobTest extends TestCase
         Storage::disk('public')->put($path, file_get_contents($imageFile->getRealPath()));
 
         $itemImage = ItemImage::factory()->create(['path' => $path]);
-        
+
         $job = new GenerateThumbnailForItemImageJob($itemImage);
 
         $job->handle();
@@ -103,7 +102,7 @@ class GenerateThumbnailForItemImageJobTest extends TestCase
         Storage::disk('public')->put($thumbnailPath, file_get_contents($imageFile->getRealPath()));
 
         $itemImage = ItemImage::factory()->create(['path' => $path]);
-        
+
         $job = new GenerateThumbnailForItemImageJob($itemImage);
 
         $job->handle();
@@ -120,7 +119,7 @@ class GenerateThumbnailForItemImageJobTest extends TestCase
         Storage::disk('public')->put($path, file_get_contents($imageFile->getRealPath()));
 
         $itemImage = ItemImage::factory()->create(['path' => $path]);
-        
+
         $job = new GenerateThumbnailForItemImageJob($itemImage, 200, 200, '-custom');
 
         $job->handle();
@@ -138,7 +137,7 @@ class GenerateThumbnailForItemImageJobTest extends TestCase
         Storage::disk('public')->put($path, file_get_contents($imageFile->getRealPath()));
 
         $itemImage = ItemImage::factory()->create(['path' => $path]);
-        
+
         $job = new GenerateThumbnailForItemImageJob($itemImage);
 
         $job->handle();
@@ -158,7 +157,7 @@ class GenerateThumbnailForItemImageJobTest extends TestCase
         Storage::disk('public')->put($path, file_get_contents($imageFile->getRealPath()));
 
         $itemImage = ItemImage::factory()->create(['path' => $path]);
-        
+
         $job = new GenerateThumbnailForItemImageJob($itemImage);
 
         $job->handle();
@@ -178,7 +177,7 @@ class GenerateThumbnailForItemImageJobTest extends TestCase
         Storage::disk('public')->put($path, 'invalid image content');
 
         $itemImage = ItemImage::factory()->create(['path' => $path]);
-        
+
         $job = new GenerateThumbnailForItemImageJob($itemImage);
 
         try {
@@ -214,4 +213,4 @@ class GenerateThumbnailForItemImageJobTest extends TestCase
         Storage::disk('public')->deleteDirectory('uploads');
         parent::tearDown();
     }
-} 
+}

@@ -6,7 +6,6 @@ use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Redis;
 
 class WebSocketDisconnectService
 {
@@ -19,10 +18,6 @@ class WebSocketDisconnectService
 
     /**
      * 处理 WebSocket 断开连接
-     *
-     * @param int $userId
-     * @param string|null $connectionId
-     * @return void
      */
     public function handleDisconnect(int $userId, ?string $connectionId = null): void
     {
@@ -37,6 +32,7 @@ class WebSocketDisconnectService
 
             if ($onlineRooms->isEmpty()) {
                 Log::info("User {$userId} was not in any rooms");
+
                 return;
             }
 
@@ -44,7 +40,7 @@ class WebSocketDisconnectService
 
             foreach ($onlineRooms as $roomUser) {
                 $roomId = $roomUser->room_id;
-                
+
                 Log::info("Marking user {$userId} as offline in room {$roomId}");
 
                 // 更新用户状态为离线
@@ -60,29 +56,26 @@ class WebSocketDisconnectService
                 if ($user) {
                     broadcast(new \App\Events\Chat\UserLeft($user, $roomId));
                     broadcast(new \App\Events\Chat\UserLeftRoom($roomId, $userId, $user->name, $onlineCount));
-                    
+
                     Log::info("Broadcasted user left event for user {$userId} in room {$roomId}");
                 }
             }
 
             DB::commit();
-            Log::info("Successfully processed disconnect for user {$userId} in " . $onlineRooms->count() . " rooms");
+            Log::info("Successfully processed disconnect for user {$userId} in " . $onlineRooms->count() . ' rooms');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Failed to process WebSocket disconnect: " . $e->getMessage(), [
+            Log::error('Failed to process WebSocket disconnect: ' . $e->getMessage(), [
                 'user_id' => $userId,
                 'connection_id' => $connectionId,
-                'error' => $e->getTraceAsString()
+                'error' => $e->getTraceAsString(),
             ]);
         }
     }
 
     /**
      * 检查并清理长时间未活跃的连接
-     *
-     * @param int $inactiveMinutes
-     * @return int
      */
     public function cleanupInactiveConnections(int $inactiveMinutes = 5): int
     {
@@ -98,25 +91,24 @@ class WebSocketDisconnectService
             $cleanedCount = 0;
             foreach ($inactiveUsers as $roomUser) {
                 Log::info("Cleaning up inactive user {$roomUser->user->name} in room {$roomUser->room->name}");
-                
+
                 $this->handleDisconnect($roomUser->user_id);
                 $cleanedCount++;
             }
 
             Log::info("Cleanup completed. Processed {$cleanedCount} inactive users");
+
             return $cleanedCount;
 
         } catch (\Exception $e) {
-            Log::error("Failed to cleanup inactive connections: " . $e->getMessage());
+            Log::error('Failed to cleanup inactive connections: ' . $e->getMessage());
+
             return 0;
         }
     }
 
     /**
      * 获取房间的实时在线用户数
-     *
-     * @param int $roomId
-     * @return int
      */
     public function getRoomOnlineCount(int $roomId): int
     {
@@ -127,10 +119,6 @@ class WebSocketDisconnectService
 
     /**
      * 检查用户是否在房间中在线
-     *
-     * @param int $userId
-     * @param int $roomId
-     * @return bool
      */
     public function isUserOnlineInRoom(int $userId, int $roomId): bool
     {
@@ -140,4 +128,3 @@ class WebSocketDisconnectService
             ->exists();
     }
 }
-

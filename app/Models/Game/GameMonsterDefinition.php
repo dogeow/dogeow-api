@@ -85,7 +85,8 @@ class GameMonsterDefinition extends Model
 
     /**
      * 生成掉落
-     * @param int $characterLevel 角色等级
+     *
+     * @param  int  $characterLevel  角色等级
      * @return array 掉落物品
      */
     public function generateLoot(int $characterLevel): array

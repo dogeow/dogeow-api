@@ -2,13 +2,9 @@
 
 namespace Tests\Feature\Controllers\Api\Thing;
 
-use App\Models\User;
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemImage;
-use App\Models\Thing\ItemCategory;
-use App\Models\Thing\Area;
-use App\Models\Thing\Room;
-use App\Models\Thing\Spot;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -42,14 +38,14 @@ class ProfileControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at']
+            'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at'],
         ]);
         $response->assertJson([
             'user' => [
                 'id' => $this->user->id,
                 'name' => $this->user->name,
                 'email' => $this->user->email,
-            ]
+            ],
         ]);
     }
 
@@ -68,14 +64,14 @@ class ProfileControllerTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonStructure([
             'message',
-            'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at']
+            'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at'],
         ]);
         $response->assertJson([
             'message' => 'Profile updated successfully',
             'user' => [
                 'name' => 'Updated Name',
                 'email' => 'updated@example.com',
-            ]
+            ],
         ]);
 
         $this->user->refresh();
@@ -165,14 +161,14 @@ class ProfileControllerTest extends TestCase
         $this->user->update(['password' => Hash::make('password123')]);
 
         $response = $this->deleteJson('/api/profile', [
-            'password' => 'password123'
+            'password' => 'password123',
         ]);
 
         $response->assertStatus(200);
         $response->assertJson([
-            'message' => 'Account deleted successfully'
+            'message' => 'Account deleted successfully',
         ]);
-        
+
         $this->assertDatabaseMissing('users', ['id' => $this->user->id]);
     }
 
@@ -184,12 +180,12 @@ class ProfileControllerTest extends TestCase
         $this->user->update(['password' => Hash::make('password123')]);
 
         $response = $this->deleteJson('/api/profile', [
-            'password' => 'wrongpassword'
+            'password' => 'wrongpassword',
         ]);
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['password']);
-        
+
         $this->assertDatabaseHas('users', ['id' => $this->user->id]);
     }
 
@@ -202,7 +198,7 @@ class ProfileControllerTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['password']);
-        
+
         $this->assertDatabaseHas('users', ['id' => $this->user->id]);
     }
 
@@ -218,17 +214,17 @@ class ProfileControllerTest extends TestCase
         $image = ItemImage::factory()->create(['item_id' => $item->id]);
 
         $response = $this->deleteJson('/api/profile', [
-            'password' => 'password123'
+            'password' => 'password123',
         ]);
 
         $response->assertStatus(200);
         $response->assertJson([
-            'message' => 'Account deleted successfully'
+            'message' => 'Account deleted successfully',
         ]);
-        
+
         // Verify user is deleted
         $this->assertDatabaseMissing('users', ['id' => $this->user->id]);
-        
+
         // Verify related data is deleted
         $this->assertDatabaseMissing('thing_items', ['id' => $item->id]);
         $this->assertDatabaseMissing('thing_item_images', ['id' => $image->id]);
@@ -242,7 +238,7 @@ class ProfileControllerTest extends TestCase
         $this->user->update(['password' => Hash::make('password123')]);
 
         $response = $this->deleteJson('/api/profile', [
-            'password' => 'password123'
+            'password' => 'password123',
         ]);
 
         $response->assertStatus(200);
@@ -258,7 +254,7 @@ class ProfileControllerTest extends TestCase
         $this->user->update(['password' => Hash::make('password123')]);
 
         $response = $this->deleteJson('/api/profile', [
-            'password' => 'password123'
+            'password' => 'password123',
         ]);
 
         $response->assertStatus(200);
@@ -300,7 +296,7 @@ class ProfileControllerTest extends TestCase
         $this->clearAuth();
 
         $response = $this->deleteJson('/api/profile', [
-            'password' => 'password123'
+            'password' => 'password123',
         ]);
 
         $response->assertStatus(401);
@@ -323,7 +319,7 @@ class ProfileControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJson([
-            'message' => 'Profile updated successfully'
+            'message' => 'Profile updated successfully',
         ]);
 
         $this->user->refresh();
@@ -365,26 +361,26 @@ class ProfileControllerTest extends TestCase
         // Create multiple items with related data
         $item1 = Item::factory()->create(['user_id' => $this->user->id]);
         $item2 = Item::factory()->create(['user_id' => $this->user->id]);
-        
+
         $image1 = ItemImage::factory()->create(['item_id' => $item1->id]);
         $image2 = ItemImage::factory()->create(['item_id' => $item2->id]);
 
         $response = $this->deleteJson('/api/profile', [
-            'password' => 'password123'
+            'password' => 'password123',
         ]);
 
         $response->assertStatus(200);
         $response->assertJson([
-            'message' => 'Account deleted successfully'
+            'message' => 'Account deleted successfully',
         ]);
-        
+
         // Verify user is deleted
         $this->assertDatabaseMissing('users', ['id' => $this->user->id]);
-        
+
         // Verify all items are deleted
         $this->assertDatabaseMissing('thing_items', ['id' => $item1->id]);
         $this->assertDatabaseMissing('thing_items', ['id' => $item2->id]);
-        
+
         // Verify all images are deleted
         $this->assertDatabaseMissing('thing_item_images', ['id' => $image1->id]);
         $this->assertDatabaseMissing('thing_item_images', ['id' => $image2->id]);
@@ -427,4 +423,4 @@ class ProfileControllerTest extends TestCase
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['email']);
     }
-} 
+}

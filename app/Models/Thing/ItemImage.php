@@ -39,10 +39,10 @@ class ItemImage extends Model
      */
     public function getUrlAttribute()
     {
-        if (!$this->path) {
+        if (! $this->path) {
             return null;
         }
-        
+
         return config('app.url') . '/storage/' . $this->path;
     }
 
@@ -51,25 +51,27 @@ class ItemImage extends Model
      */
     public function getThumbnailUrlAttribute()
     {
-        if (!$this->path) {
+        if (! $this->path) {
             return null;
         }
         $dirname = pathinfo($this->path, PATHINFO_DIRNAME);
         $filename = pathinfo($this->path, PATHINFO_FILENAME);
         $extension = pathinfo($this->path, PATHINFO_EXTENSION);
         $thumbPath = $dirname . '/' . $filename . '-thumb.' . $extension;
+
         return config('app.url') . '/storage/' . $thumbPath;
     }
 
     public function getThumbnailPathAttribute()
     {
-        if (!$this->path) {
+        if (! $this->path) {
             return null;
         }
         $dirname = pathinfo($this->path, PATHINFO_DIRNAME);
         $filename = pathinfo($this->path, PATHINFO_FILENAME);
         $extension = pathinfo($this->path, PATHINFO_EXTENSION);
         $thumbPath = $dirname . '/' . $filename . '-thumb.' . $extension;
+
         return Storage::url($thumbPath);
     }
-} 
+}

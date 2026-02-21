@@ -90,11 +90,11 @@ class NoteController extends Controller
                 'articles' => $notes,
             ], 'All wiki articles retrieved successfully');
         } catch (\Exception $e) {
-            Log::error('getAllWikiArticles error: '.$e->getMessage(), [
+            Log::error('getAllWikiArticles error: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to retrieve articles: '.$e->getMessage(), [], 500);
+            return $this->error('Failed to retrieve articles: ' . $e->getMessage(), [], 500);
         }
     }
 
@@ -176,7 +176,7 @@ class NoteController extends Controller
 
         if (! $note) {
             throw new \Illuminate\Database\Eloquent\ModelNotFoundException(
-                'No query results for model [App\\Models\\Note\\Note] '.$id
+                'No query results for model [App\\Models\\Note\\Note] ' . $id
             );
         }
 
@@ -190,7 +190,7 @@ class NoteController extends Controller
 
         if (! $isUserNote && ! $isWikiNode) {
             throw new \Illuminate\Database\Eloquent\ModelNotFoundException(
-                'No query results for model [App\\Models\\Note\\Note] '.$id
+                'No query results for model [App\\Models\\Note\\Note] ' . $id
             );
         }
 

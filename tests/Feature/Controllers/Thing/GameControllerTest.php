@@ -2,10 +2,10 @@
 
 namespace Tests\Feature\Controllers\Thing;
 
-use Tests\TestCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Tests\TestCase;
 
 class GameControllerTest extends TestCase
 {
@@ -83,4 +83,4 @@ class GameControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson(['message' => '游戏功能正在开发中']);
     }
-} 
+}

@@ -2,8 +2,8 @@
 
 namespace Database\Factories\Thing;
 
-use App\Models\Thing\ItemImage;
 use App\Models\Thing\Item;
+use App\Models\Thing\ItemImage;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -57,4 +57,4 @@ class ItemImageFactory extends Factory
             'sort_order' => $order,
         ]);
     }
-} 
+}

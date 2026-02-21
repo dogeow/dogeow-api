@@ -2,9 +2,9 @@
 
 namespace Tests\Unit\Requests\Nav;
 
-use Tests\TestCase;
 use App\Http\Requests\Nav\ItemRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class ItemRequestTest extends TestCase
 {
@@ -15,7 +15,7 @@ class ItemRequestTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->request = new ItemRequest();
+        $this->request = new ItemRequest;
     }
 
     public function test_authorize_returns_true()
@@ -173,4 +173,4 @@ class ItemRequestTest extends TestCase
 
         $this->assertEquals('是否新窗口打开', $attributes['is_new_window']);
     }
-} 
+}

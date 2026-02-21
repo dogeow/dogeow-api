@@ -7,8 +7,8 @@ use App\Models\Thing\ItemImage;
 use App\Services\File\ImageUploadService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ImageUploadServiceTest extends TestCase
@@ -16,18 +16,19 @@ class ImageUploadServiceTest extends TestCase
     use RefreshDatabase;
 
     protected ImageUploadService $imageUploadService;
+
     protected Item $item;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
-        $this->imageUploadService = new ImageUploadService();
+
+        $this->imageUploadService = new ImageUploadService;
         $this->item = Item::factory()->create();
-        
+
         // Fake the queue to avoid actual job processing
         Queue::fake();
-        
+
         // Create storage directory
         Storage::fake('public');
     }
@@ -102,10 +103,10 @@ class ImageUploadServiceTest extends TestCase
     {
         // Create temporary files
         $tempDir = storage_path('app/public/uploads');
-        if (!file_exists($tempDir)) {
+        if (! file_exists($tempDir)) {
             mkdir($tempDir, 0755, true);
         }
-        
+
         $tempFile = $tempDir . '/temp.jpg';
         file_put_contents($tempFile, 'fake image content');
 
@@ -130,10 +131,10 @@ class ImageUploadServiceTest extends TestCase
     {
         // Create temporary files including thumbnail
         $tempDir = storage_path('app/public/uploads');
-        if (!file_exists($tempDir)) {
+        if (! file_exists($tempDir)) {
             mkdir($tempDir, 0755, true);
         }
-        
+
         $tempFile = $tempDir . '/temp.jpg';
         $thumbFile = $tempDir . '/temp-thumb.jpg';
         file_put_contents($tempFile, 'fake image content');

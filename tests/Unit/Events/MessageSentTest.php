@@ -120,4 +120,4 @@ class MessageSentTest extends TestCase
         $this->assertContains(\Illuminate\Broadcasting\InteractsWithSockets::class, class_uses($event));
         $this->assertContains(\Illuminate\Queue\SerializesModels::class, class_uses($event));
     }
-} 
+}

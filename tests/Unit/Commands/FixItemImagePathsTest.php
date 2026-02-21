@@ -2,16 +2,16 @@
 
 namespace Tests\Unit\Commands;
 
-use Tests\TestCase;
 use App\Console\Commands\FixItemImagePaths;
-use App\Models\Thing\ItemImage;
 use App\Models\Thing\Item;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
+use App\Models\Thing\ItemImage;
 use Illuminate\Console\OutputStyle;
-use Symfony\Component\Console\Output\BufferedOutput;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
+use Tests\TestCase;
 
 class FixItemImagePathsTest extends TestCase
 {
@@ -20,7 +20,7 @@ class FixItemImagePathsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // 手动创建必要的表
         Schema::create('users', function (Blueprint $table) {
             $table->id();
@@ -31,7 +31,7 @@ class FixItemImagePathsTest extends TestCase
             $table->rememberToken();
             $table->timestamps();
         });
-        
+
         Schema::create('thing_items', function (Blueprint $table) {
             $table->id();
             $table->string('name');
@@ -49,7 +49,7 @@ class FixItemImagePathsTest extends TestCase
             $table->boolean('is_public')->default(false);
             $table->timestamps();
         });
-        
+
         Schema::create('thing_item_images', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('item_id');
@@ -59,14 +59,14 @@ class FixItemImagePathsTest extends TestCase
             $table->integer('sort_order')->default(0);
             $table->timestamps();
         });
-        
-        $this->command = new FixItemImagePaths();
+
+        $this->command = new FixItemImagePaths;
         $this->command->setLaravel($this->app);
-        
+
         // 设置输出接口
-        $output = new BufferedOutput();
+        $output = new BufferedOutput;
         $this->command->setOutput(new OutputStyle(new ArrayInput([]), $output));
-        
+
         // 创建测试存储目录
         Storage::fake('public');
     }
@@ -91,9 +91,9 @@ class FixItemImagePathsTest extends TestCase
         ]);
 
         $result = $this->command->handle();
-        
+
         $this->assertEquals(0, $result);
-        
+
         // 验证数据库记录没有改变
         $image->refresh();
         $this->assertEquals('', $image->path);
@@ -108,9 +108,9 @@ class FixItemImagePathsTest extends TestCase
         ]);
 
         $result = $this->command->handle();
-        
+
         $this->assertEquals(0, $result);
-        
+
         // 验证数据库记录没有改变
         $image->refresh();
         $this->assertNull($image->path);
@@ -125,9 +125,9 @@ class FixItemImagePathsTest extends TestCase
         ]);
 
         $result = $this->command->handle();
-        
+
         $this->assertEquals(0, $result);
-        
+
         // 验证数据库记录没有改变
         $image->refresh();
         $this->assertEquals('old/path/image.jpg', $image->path);
@@ -143,7 +143,7 @@ class FixItemImagePathsTest extends TestCase
             'quantity' => 1,
             'status' => 'active',
         ]);
-        
+
         $image = ItemImage::create([
             'item_id' => $item->id,
             'path' => 'old/path/image.jpg',
@@ -162,12 +162,12 @@ class FixItemImagePathsTest extends TestCase
         $extension = $pathInfo['extension'] ?? 'jpg';
         $itemId = $image->item_id;
         $expectedNewPath = "items/{$itemId}/{$filename}.{$extension}";
-        
+
         // 验证路径构建逻辑
         $this->assertEquals('image', $filename);
         $this->assertEquals('jpg', $extension);
         $this->assertEquals($expectedNewPath, $newPath);
-        
+
         // 验证文件存在
         $this->assertTrue(Storage::disk('public')->exists($newPath));
     }
@@ -185,9 +185,9 @@ class FixItemImagePathsTest extends TestCase
         Storage::disk('public')->put($newPath, 'test image content');
 
         $result = $this->command->handle();
-        
+
         $this->assertEquals(0, $result);
-        
+
         // 验证数据库记录没有改变（因为文件不存在于预期位置）
         $image->refresh();
         $this->assertEquals('old/path/image.png', $image->path);
@@ -206,9 +206,9 @@ class FixItemImagePathsTest extends TestCase
         Storage::disk('public')->put($newPath, 'test image content');
 
         $result = $this->command->handle();
-        
+
         $this->assertEquals(0, $result);
-        
+
         // 验证数据库记录没有改变
         $image->refresh();
         $this->assertEquals('old/path/image', $image->path);
@@ -217,7 +217,7 @@ class FixItemImagePathsTest extends TestCase
     public function test_command_handles_multiple_images()
     {
         $item = Item::factory()->create();
-        
+
         // 创建多个图片记录
         $images = [];
         for ($i = 1; $i <= 3; $i++) {
@@ -228,9 +228,9 @@ class FixItemImagePathsTest extends TestCase
         }
 
         $result = $this->command->handle();
-        
+
         $this->assertEquals(0, $result);
-        
+
         // 验证所有数据库记录都没有改变
         foreach ($images as $image) {
             $image->refresh();
@@ -241,13 +241,13 @@ class FixItemImagePathsTest extends TestCase
     public function test_command_handles_mixed_success_and_failure()
     {
         $item = Item::factory()->create();
-        
+
         // 创建一个有效的图片和一个无效的图片
         $validImage = ItemImage::factory()->create([
             'item_id' => $item->id,
             'path' => 'old/path/valid.jpg',
         ]);
-        
+
         $invalidImage = ItemImage::factory()->create([
             'item_id' => $item->id,
             'path' => 'old/path/invalid.jpg',
@@ -258,9 +258,9 @@ class FixItemImagePathsTest extends TestCase
         Storage::disk('public')->put($validPath, 'test image content');
 
         $result = $this->command->handle();
-        
+
         $this->assertEquals(0, $result);
-        
+
         // 验证有效图片的路径被更新，无效图片的路径保持不变
         $validImage->refresh();
         $invalidImage->refresh();
@@ -281,9 +281,9 @@ class FixItemImagePathsTest extends TestCase
         Storage::disk('public')->put($newPath, 'test image content');
 
         $result = $this->command->handle();
-        
+
         $this->assertEquals(0, $result);
-        
+
         // 验证数据库记录没有改变
         $image->refresh();
         $this->assertEquals('old/path/complex-filename_with.underscores.jpg', $image->path);
@@ -292,7 +292,7 @@ class FixItemImagePathsTest extends TestCase
     public function test_command_handles_large_number_of_images()
     {
         $item = Item::factory()->create();
-        
+
         // 创建大量图片记录
         $images = [];
         for ($i = 1; $i <= 50; $i++) {
@@ -303,9 +303,9 @@ class FixItemImagePathsTest extends TestCase
         }
 
         $result = $this->command->handle();
-        
+
         $this->assertEquals(0, $result);
-        
+
         // 验证所有数据库记录都没有改变
         foreach ($images as $image) {
             $image->refresh();
@@ -326,11 +326,11 @@ class FixItemImagePathsTest extends TestCase
         Storage::disk('public')->put($newPath, 'test image content');
 
         $result = $this->command->handle();
-        
+
         $this->assertEquals(0, $result);
-        
+
         // 验证数据库记录没有改变
         $image->refresh();
         $this->assertEquals('old/path/special-chars-!@#$%^&*().jpg', $image->path);
     }
-} 
+}

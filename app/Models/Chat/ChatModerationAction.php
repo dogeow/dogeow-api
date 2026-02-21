@@ -31,13 +31,21 @@ class ChatModerationAction extends Model
      * Action type constants
      */
     const ACTION_DELETE_MESSAGE = 'delete_message';
+
     const ACTION_MUTE_USER = 'mute_user';
+
     const ACTION_UNMUTE_USER = 'unmute_user';
+
     const ACTION_TIMEOUT_USER = 'timeout_user';
+
     const ACTION_BAN_USER = 'ban_user';
+
     const ACTION_UNBAN_USER = 'unban_user';
+
     const ACTION_CONTENT_FILTER = 'content_filter';
+
     const ACTION_SPAM_DETECTION = 'spam_detection';
+
     const ACTION_REPORT_MESSAGE = 'report_message';
 
     /**

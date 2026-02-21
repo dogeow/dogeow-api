@@ -2,17 +2,18 @@
 
 namespace Tests\Feature\Controllers;
 
-use Tests\TestCase;
 use App\Models\Note\NoteCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Tests\TestCase;
 
 class NoteCategoryControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     private User $user;
+
     private User $otherUser;
 
     protected function setUp(): void
@@ -406,4 +407,4 @@ class NoteCategoryControllerTest extends TestCase
                 'description' => null,
             ]);
     }
-} 
+}

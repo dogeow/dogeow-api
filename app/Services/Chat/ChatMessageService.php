@@ -47,7 +47,7 @@ class ChatMessageService
         }
 
         if (strlen($message) > self::MAX_MESSAGE_LENGTH) {
-            $errors[] = 'Message cannot exceed '.self::MAX_MESSAGE_LENGTH.' characters';
+            $errors[] = 'Message cannot exceed ' . self::MAX_MESSAGE_LENGTH . ' characters';
         }
 
         return [
@@ -110,8 +110,8 @@ class ChatMessageService
     {
         // Process mentions - wrap with special tags for frontend highlighting
         foreach ($mentions as $mention) {
-            $pattern = '/@'.preg_quote($mention['username'], '/').'/i';
-            $replacement = '<mention data-user-id="'.$mention['user_id'].'">@'.$mention['username'].'</mention>';
+            $pattern = '/@' . preg_quote($mention['username'], '/') . '/i';
+            $replacement = '<mention data-user-id="' . $mention['user_id'] . '">@' . $mention['username'] . '</mention>';
             $message = preg_replace($pattern, $replacement, $message);
         }
 
@@ -240,7 +240,7 @@ class ChatMessageService
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'errors' => ['Failed to save message: '.$e->getMessage()],
+                'errors' => ['Failed to save message: ' . $e->getMessage()],
             ];
         }
     }

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('name')->comment('级别名称：初中、高中、CET4、CET6、考研');
             $table->integer('sort_order')->default(0)->comment('排序');
             $table->timestamps();
-            
+
             $table->index('sort_order');
         });
 
@@ -28,7 +28,7 @@ return new class extends Migration
             $table->unsignedBigInteger('word_id')->comment('单词ID');
             $table->unsignedBigInteger('education_level_id')->comment('教育级别ID');
             $table->timestamps();
-            
+
             $table->unique(['word_id', 'education_level_id']);
             $table->index('word_id');
             $table->index('education_level_id');

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\Thing;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Thing\TagRequest;
 use App\Models\Thing\Tag;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
@@ -69,12 +68,12 @@ class TagController extends Controller
     {
         $tag = Tag::where('user_id', Auth::id())
             ->findOrFail($id);
-            
+
         // 先删除关联关系
         $tag->items()->detach();
-        
+
         $tag->delete();
 
         return response()->json(null, 204);
     }
-} 
+}

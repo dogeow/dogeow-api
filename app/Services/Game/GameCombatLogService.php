@@ -143,7 +143,7 @@ class GameCombatLogService
             ->where('id', $logId)
             ->first();
 
-        if (!$log) {
+        if (! $log) {
             return ['error' => '日志不存在'];
         }
 

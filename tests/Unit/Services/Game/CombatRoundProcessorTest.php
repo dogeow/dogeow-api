@@ -17,7 +17,7 @@ class CombatRoundProcessorTest extends TestCase
     {
         parent::setUp();
 
-        $this->processor = new CombatRoundProcessor();
+        $this->processor = new CombatRoundProcessor;
     }
 
     public function test_process_one_round_with_no_monsters_returns_default_values(): void

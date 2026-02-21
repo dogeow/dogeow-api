@@ -5,11 +5,10 @@ namespace App\Models\Note;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Note extends Model
 {
@@ -108,19 +107,19 @@ class Note extends Model
     {
         // 转换为小写
         $slug = mb_strtolower($title, 'UTF-8');
-        
+
         // 替换空格为连字符
         $slug = preg_replace('/\s+/', '-', $slug);
-        
+
         // 移除特殊字符，保留中文、字母、数字、连字符
         $slug = preg_replace('/[^\w\s\x{4e00}-\x{9fa5}-]/u', '', $slug);
-        
+
         // 合并多个连字符
         $slug = preg_replace('/-+/', '-', $slug);
-        
+
         // 去除首尾连字符
         $slug = trim($slug, '-');
-        
+
         // 如果为空，使用原始标题
         return $slug ?: $title;
     }
@@ -134,7 +133,7 @@ class Note extends Model
         $counter = 1;
 
         while (static::where('slug', $slug)
-            ->when($excludeId, fn($query) => $query->where('id', '!=', $excludeId))
+            ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))
             ->exists()) {
             $slug = $originalSlug . '-' . $counter;
             $counter++;

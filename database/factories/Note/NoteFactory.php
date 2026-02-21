@@ -62,7 +62,7 @@ class NoteFactory extends Factory
     public function withMarkdown(): static
     {
         return $this->state(fn (array $attributes) => [
-            'content_markdown' => "# " . $this->faker->sentence() . "\n\n" . $this->faker->paragraphs(2, true),
+            'content_markdown' => '# ' . $this->faker->sentence() . "\n\n" . $this->faker->paragraphs(2, true),
         ]);
     }
-} 
+}

@@ -13,8 +13,11 @@ class UserUnbanned implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public int $roomId;
+
     public int $userId;
+
     public int $moderatorId;
+
     public ?string $reason;
 
     /**

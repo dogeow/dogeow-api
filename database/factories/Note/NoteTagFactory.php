@@ -31,4 +31,4 @@ class NoteTagFactory extends Factory
             'color' => $this->faker->hexColor(),
         ];
     }
-} 
+}

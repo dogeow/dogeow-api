@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\Thing;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class TodoController extends Controller
 {
@@ -14,7 +13,7 @@ class TodoController extends Controller
     public function index()
     {
         return response()->json([
-            'message' => '待办事项功能正在开发中'
+            'message' => '待办事项功能正在开发中',
         ]);
     }
 
@@ -24,7 +23,7 @@ class TodoController extends Controller
     public function store(Request $request)
     {
         return response()->json([
-            'message' => '待办事项功能正在开发中'
+            'message' => '待办事项功能正在开发中',
         ]);
     }
 
@@ -34,7 +33,7 @@ class TodoController extends Controller
     public function show($id)
     {
         return response()->json([
-            'message' => '待办事项功能正在开发中'
+            'message' => '待办事项功能正在开发中',
         ]);
     }
 
@@ -44,7 +43,7 @@ class TodoController extends Controller
     public function update(Request $request, $id)
     {
         return response()->json([
-            'message' => '待办事项功能正在开发中'
+            'message' => '待办事项功能正在开发中',
         ]);
     }
 
@@ -54,7 +53,7 @@ class TodoController extends Controller
     public function destroy($id)
     {
         return response()->json([
-            'message' => '待办事项功能正在开发中'
+            'message' => '待办事项功能正在开发中',
         ]);
     }
-} 
+}

@@ -2,10 +2,10 @@
 
 namespace Database\Factories;
 
+use App\Models\Chat\ChatMessage;
 use App\Models\Chat\ChatModerationAction;
 use App\Models\Chat\ChatRoom;
 use App\Models\User;
-use App\Models\Chat\ChatMessage;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -97,4 +97,4 @@ class ChatModerationActionFactory extends Factory
             ],
         ]);
     }
-} 
+}

@@ -2,10 +2,10 @@
 
 namespace Tests\Unit\Models;
 
+use App\Models\Chat\ChatMessage;
 use App\Models\Chat\ChatModerationAction;
 use App\Models\Chat\ChatRoom;
 use App\Models\User;
-use App\Models\Chat\ChatMessage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,15 +14,19 @@ class ChatModerationActionTest extends TestCase
     use RefreshDatabase;
 
     private ChatModerationAction $action;
+
     private User $moderator;
+
     private User $targetUser;
+
     private ChatRoom $room;
+
     private ChatMessage $message;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->moderator = User::factory()->create();
         $this->targetUser = User::factory()->create();
         $this->room = ChatRoom::factory()->create();
@@ -30,7 +34,7 @@ class ChatModerationActionTest extends TestCase
             'room_id' => $this->room->id,
             'user_id' => $this->targetUser->id,
         ]);
-        
+
         $this->action = ChatModerationAction::factory()->create([
             'room_id' => $this->room->id,
             'moderator_id' => $this->moderator->id,
@@ -53,7 +57,7 @@ class ChatModerationActionTest extends TestCase
             'reason',
             'metadata',
         ];
-        
+
         $this->assertEquals($fillable, $this->action->getFillable());
     }
 
@@ -64,7 +68,7 @@ class ChatModerationActionTest extends TestCase
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
-        
+
         foreach ($casts as $attribute => $cast) {
             $this->assertEquals($cast, $this->action->getCasts()[$attribute]);
         }
@@ -166,12 +170,12 @@ class ChatModerationActionTest extends TestCase
         // Note: These action types are not in the database enum, so we'll test with existing types
         // and mock the isAutomated method behavior
         $this->assertFalse($this->action->isAutomated());
-        
+
         // Test with a different action type that exists in the enum
         $muteAction = ChatModerationAction::factory()->create([
             'action_type' => ChatModerationAction::ACTION_MUTE_USER,
         ]);
-        
+
         $this->assertFalse($muteAction->isAutomated());
     }
 
@@ -180,11 +184,11 @@ class ChatModerationActionTest extends TestCase
         $deleteAction = ChatModerationAction::factory()->create([
             'action_type' => ChatModerationAction::ACTION_DELETE_MESSAGE,
         ]);
-        
+
         $muteAction = ChatModerationAction::factory()->create([
             'action_type' => ChatModerationAction::ACTION_MUTE_USER,
         ]);
-        
+
         $banAction = ChatModerationAction::factory()->create([
             'action_type' => ChatModerationAction::ACTION_BAN_USER,
         ]);
@@ -258,16 +262,16 @@ class ChatModerationActionTest extends TestCase
         $action = ChatModerationAction::factory()->create([
             'action_type' => ChatModerationAction::ACTION_DELETE_MESSAGE,
         ]);
-        
+
         // Test the method with a known action type that returns 'low'
         $this->assertEquals('low', $action->getSeverityLevel());
-        
+
         // Test that the method handles unknown types gracefully
         // We'll test this by ensuring the default case returns 'low'
         $banAction = ChatModerationAction::factory()->create([
             'action_type' => ChatModerationAction::ACTION_BAN_USER,
         ]);
-        
+
         $this->assertEquals('high', $banAction->getSeverityLevel());
     }
-} 
+}

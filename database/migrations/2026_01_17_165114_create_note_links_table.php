@@ -17,7 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('target_id')->index();
             $table->string('type')->nullable();
             $table->timestamps();
-            
+
             // 唯一约束：防止重复链接
             $table->unique(['source_id', 'target_id']);
         });

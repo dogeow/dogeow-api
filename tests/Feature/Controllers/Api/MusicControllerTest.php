@@ -13,10 +13,10 @@ class MusicControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // 创建测试音乐目录
         $musicDir = public_path('musics');
-        if (!File::exists($musicDir)) {
+        if (! File::exists($musicDir)) {
             File::makeDirectory($musicDir, 0755, true);
         }
     }
@@ -28,7 +28,7 @@ class MusicControllerTest extends TestCase
         if (File::exists($musicDir)) {
             File::deleteDirectory($musicDir);
         }
-        
+
         parent::tearDown();
     }
 
@@ -43,7 +43,7 @@ class MusicControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $this->assertCount(2, $data);
         $this->assertArrayHasKey('name', $data[0]);
         $this->assertArrayHasKey('path', $data[0]);
@@ -76,12 +76,12 @@ class MusicControllerTest extends TestCase
     public function test_index_filters_only_audio_files()
     {
         $musicDir = public_path('musics');
-        
+
         // 创建音频文件
         $this->createTestMusicFile($musicDir, 'audio1.mp3', 1024);
         $this->createTestMusicFile($musicDir, 'audio2.ogg', 2048);
         $this->createTestMusicFile($musicDir, 'audio3.wav', 3072);
-        
+
         // 创建非音频文件
         $this->createTestMusicFile($musicDir, 'document.txt', 100);
         $this->createTestMusicFile($musicDir, 'image.jpg', 200);
@@ -90,9 +90,9 @@ class MusicControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $this->assertCount(3, $data);
-        
+
         $extensions = collect($data)->pluck('extension')->toArray();
         $this->assertContains('mp3', $extensions);
         $this->assertContains('ogg', $extensions);
@@ -104,7 +104,7 @@ class MusicControllerTest extends TestCase
     public function test_index_handles_different_audio_formats()
     {
         $musicDir = public_path('musics');
-        
+
         $this->createTestMusicFile($musicDir, 'test1.mp3', 1024);
         $this->createTestMusicFile($musicDir, 'test2.ogg', 2048);
         $this->createTestMusicFile($musicDir, 'test3.wav', 3072);
@@ -114,9 +114,9 @@ class MusicControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $this->assertCount(4, $data);
-        
+
         $names = collect($data)->pluck('name')->toArray();
         $this->assertContains('test1', $names);
         $this->assertContains('test2', $names);
@@ -133,7 +133,7 @@ class MusicControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $this->assertCount(1, $data);
         $this->assertEquals('/musics/test.mp3', $data[0]['path']);
     }
@@ -147,7 +147,7 @@ class MusicControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $this->assertCount(1, $data);
         $this->assertEquals(1024, $data[0]['size']);
     }
@@ -161,7 +161,7 @@ class MusicControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $this->assertCount(1, $data);
         $this->assertEquals('mp3', $data[0]['extension']);
     }
@@ -175,7 +175,7 @@ class MusicControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         // 没有扩展名的文件应该被忽略
         $this->assertCount(0, $data);
     }
@@ -190,9 +190,9 @@ class MusicControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $this->assertCount(2, $data);
-        
+
         $names = collect($data)->pluck('name')->toArray();
         $this->assertContains('test file with spaces', $names);
         $this->assertContains('test-file-with-dashes', $names);
@@ -204,4 +204,4 @@ class MusicControllerTest extends TestCase
         $content = str_repeat('0', $size);
         File::put($filePath, $content);
     }
-} 
+}

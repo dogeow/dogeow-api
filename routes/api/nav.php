@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\Nav\ItemController;
 use App\Http\Controllers\Api\Nav\CategoryController;
+use App\Http\Controllers\Api\Nav\ItemController;
+use Illuminate\Support\Facades\Route;
 
 Route::prefix('nav')->group(function () {
     Route::get('items', [ItemController::class, 'index'])->name('nav.items.index');
@@ -15,7 +15,7 @@ Route::prefix('nav')->group(function () {
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/categories/all', [CategoryController::class, 'all']);
     Route::get('/categories/{category}', [CategoryController::class, 'show']);
-}); 
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     // 导航管理相关路由需要认证

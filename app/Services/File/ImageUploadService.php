@@ -2,19 +2,19 @@
 
 namespace App\Services\File;
 
+use App\Jobs\GenerateThumbnailForItemImageJob;
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemImage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use App\Jobs\GenerateThumbnailForItemImageJob;
 
 class ImageUploadService
 {
     /**
      * 处理上传的图片，保存并创建缩略图
      *
-     * @param array $uploadedImages 上传的文件数组
-     * @param Item $item 关联的物品
+     * @param  array  $uploadedImages  上传的文件数组
+     * @param  Item  $item  关联的物品
      * @return int 成功处理的图片数量
      */
     public function processUploadedImages(array $uploadedImages, Item $item): int
@@ -24,7 +24,7 @@ class ImageUploadService
 
         // 确保存储目录存在
         $dirPath = storage_path('app/public/items/' . $item->id);
-        if (!file_exists($dirPath)) {
+        if (! file_exists($dirPath)) {
             mkdir($dirPath, 0755, true);
         }
 
@@ -35,7 +35,7 @@ class ImageUploadService
                 $relativePath = 'items/' . $item->id . '/' . $filename;
 
                 if ($image->move($dirPath, $filename)) {
-                    $isPrimary = ($sortOrder === 1 && !ItemImage::where('item_id', $item->id)
+                    $isPrimary = ($sortOrder === 1 && ! ItemImage::where('item_id', $item->id)
                         ->where('is_primary', true)->exists());
 
                     $itemImage = ItemImage::create([
@@ -47,40 +47,45 @@ class ImageUploadService
 
                     GenerateThumbnailForItemImageJob::dispatch($itemImage);
                     $successCount++;
-                    
+
                 } else {
                     throw new \Exception('移动图片文件失败');
                 }
             } catch (\Exception $e) {
                 Log::error('图片处理错误: ' . $e->getMessage(), [
                     'file' => $image->getClientOriginalName(),
-                    'trace' => $e->getTraceAsString()
+                    'trace' => $e->getTraceAsString(),
                 ]);
             }
         }
+
         return $successCount;
     }
 
     /**
      * 处理来自'uploads'目录的图片路径，将它们移动到物品目录并创建缩略图
      *
-     * @param array $imagePaths 图片路径数组（例如：'uploads/tempfile.jpg'）
-     * @param Item $item 关联的物品
+     * @param  array  $imagePaths  图片路径数组（例如：'uploads/tempfile.jpg'）
+     * @param  Item  $item  关联的物品
      */
     public function processImagePaths(array $imagePaths, Item $item): void
     {
         $dirPath = storage_path('app/public/items/' . $item->id);
-        if (!file_exists($dirPath)) {
+        if (! file_exists($dirPath)) {
             mkdir($dirPath, 0755, true);
         }
 
         $currentMaxSortOrder = ItemImage::where('item_id', $item->id)->max('sort_order') ?? 0;
 
         foreach ($imagePaths as $originPath) {
-            if (!str_starts_with($originPath, 'uploads/')) continue;
+            if (! str_starts_with($originPath, 'uploads/')) {
+                continue;
+            }
 
             $originAbsPath = storage_path('app/public/' . $originPath);
-            if (!file_exists($originAbsPath)) continue;
+            if (! file_exists($originAbsPath)) {
+                continue;
+            }
 
             $filename = substr($originPath, strrpos($originPath, '/') + 1);
             $itemPath = 'items/' . $item->id . '/' . $filename;
@@ -97,7 +102,7 @@ class ImageUploadService
                 }
 
                 $currentMaxSortOrder++;
-                $isPrimary = ($currentMaxSortOrder === 1 && !ItemImage::where('item_id', $item->id)->where('is_primary', true)->exists());
+                $isPrimary = ($currentMaxSortOrder === 1 && ! ItemImage::where('item_id', $item->id)->where('is_primary', true)->exists());
 
                 $itemImage = ItemImage::create([
                     'item_id' => $item->id,
@@ -117,8 +122,8 @@ class ImageUploadService
     /**
      * 更新物品图片的排序
      *
-     * @param array $imageOrder 排序数组，键为排序顺序（从0开始），值为图片ID
-     * @param Item $item 要重新排序的物品
+     * @param  array  $imageOrder  排序数组，键为排序顺序（从0开始），值为图片ID
+     * @param  Item  $item  要重新排序的物品
      */
     public function updateImageOrder(array $imageOrder, Item $item): void
     {
@@ -132,8 +137,8 @@ class ImageUploadService
     /**
      * 设置物品的主图
      *
-     * @param int $primaryImageId 要设置为主图的图片ID
-     * @param Item $item 要设置主图的物品
+     * @param  int  $primaryImageId  要设置为主图的图片ID
+     * @param  Item  $item  要设置主图的物品
      */
     public function setPrimaryImage(int $primaryImageId, Item $item): void
     {
@@ -148,8 +153,8 @@ class ImageUploadService
     /**
      * 删除指定ID的图片及其文件
      *
-     * @param array $imageIdsToDelete 要删除的图片ID数组
-     * @param Item $item 要删除图片的物品
+     * @param  array  $imageIdsToDelete  要删除的图片ID数组
+     * @param  Item  $item  要删除图片的物品
      */
     public function deleteImagesByIds(array $imageIdsToDelete, Item $item): void
     {
@@ -167,7 +172,7 @@ class ImageUploadService
      * 删除与物品关联的所有图片（文件和记录）
      * 通常在删除物品本身时使用
      *
-     * @param Item $item 要删除图片的物品
+     * @param  Item  $item  要删除图片的物品
      */
     public function deleteAllItemImages(Item $item): void
     {

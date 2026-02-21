@@ -3,32 +3,32 @@
 namespace Tests\Unit\Services;
 
 use App\Services\File\ImageProcessingService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class ImageProcessingServiceTest extends TestCase
 {
-
     protected ImageProcessingService $imageProcessingService;
+
     protected string $testImagePath;
+
     protected string $testCompressedPath;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
-        $this->imageProcessingService = new ImageProcessingService();
-        
+
+        $this->imageProcessingService = new ImageProcessingService;
+
         // Create test image directory
         $testDir = storage_path('app/public/test');
-        if (!file_exists($testDir)) {
+        if (! file_exists($testDir)) {
             mkdir($testDir, 0755, true);
         }
-        
+
         $this->testImagePath = $testDir . '/test-origin.jpg';
         $this->testCompressedPath = $testDir . '/test-compressed.jpg';
-        
+
         // Create a simple test image (1x1 pixel JPEG)
         $this->createTestImage();
     }
@@ -44,12 +44,12 @@ class ImageProcessingServiceTest extends TestCase
                 }
             }
         }
-        
+
         // Remove test directory
         if (file_exists($testDir) && is_dir($testDir)) {
             rmdir($testDir);
         }
-        
+
         parent::tearDown();
     }
 
@@ -72,7 +72,7 @@ class ImageProcessingServiceTest extends TestCase
         $this->assertArrayHasKey('height', $result);
         $this->assertEquals(1, $result['width']);
         $this->assertEquals(1, $result['height']);
-        
+
         // Check that compressed and thumbnail files were created
         $this->assertFileExists($this->testCompressedPath);
         $this->assertFileExists(str_replace('-origin.', '-thumb.', $this->testImagePath));
@@ -81,7 +81,7 @@ class ImageProcessingServiceTest extends TestCase
     public function test_process_image_with_nonexistent_file()
     {
         $nonexistentPath = '/nonexistent/path/image.jpg';
-        
+
         $result = $this->imageProcessingService->processImage($nonexistentPath, $this->testCompressedPath);
 
         $this->assertIsArray($result);
@@ -93,9 +93,9 @@ class ImageProcessingServiceTest extends TestCase
     public function test_process_image_logs_error_on_failure()
     {
         Log::spy();
-        
+
         $nonexistentPath = '/nonexistent/path/image.jpg';
-        
+
         $this->imageProcessingService->processImage($nonexistentPath, $this->testCompressedPath);
 
         Log::shouldHaveReceived('error')->once();
@@ -113,11 +113,11 @@ class ImageProcessingServiceTest extends TestCase
         $result = $this->imageProcessingService->processImage($smallImagePath, $this->testCompressedPath);
 
         $this->assertTrue($result['success']);
-        
+
         // Check thumbnail was created
         $thumbnailPath = str_replace('-origin.', '-thumb.', $smallImagePath);
         $this->assertFileExists($thumbnailPath);
-        
+
         // Clean up
         unlink($smallImagePath);
         unlink($thumbnailPath);
@@ -135,11 +135,11 @@ class ImageProcessingServiceTest extends TestCase
         $result = $this->imageProcessingService->processImage($largeImagePath, $this->testCompressedPath);
 
         $this->assertTrue($result['success']);
-        
+
         // Check thumbnail was created and scaled
         $thumbnailPath = str_replace('-origin.', '-thumb.', $largeImagePath);
         $this->assertFileExists($thumbnailPath);
-        
+
         // Clean up
         unlink($largeImagePath);
         unlink($thumbnailPath);
@@ -157,10 +157,10 @@ class ImageProcessingServiceTest extends TestCase
         $result = $this->imageProcessingService->processImage($largeImagePath, $this->testCompressedPath);
 
         $this->assertTrue($result['success']);
-        
+
         // Check compressed image was created
         $this->assertFileExists($this->testCompressedPath);
-        
+
         // Clean up
         unlink($largeImagePath);
     }
@@ -175,7 +175,7 @@ class ImageProcessingServiceTest extends TestCase
 
         $this->assertFalse($result['success']);
         $this->assertArrayHasKey('message', $result);
-        
+
         // Clean up
         unlink($invalidImagePath);
     }
@@ -190,15 +190,15 @@ class ImageProcessingServiceTest extends TestCase
         imagedestroy($image);
 
         $pngCompressedPath = storage_path('app/public/test/test-compressed.png');
-        
+
         $result = $this->imageProcessingService->processImage($pngImagePath, $pngCompressedPath);
 
         $this->assertTrue($result['success']);
         $this->assertFileExists($pngCompressedPath);
-        
+
         // Clean up
         unlink($pngImagePath);
         unlink($pngCompressedPath);
         unlink(str_replace('-origin.', '-thumb.', $pngImagePath));
     }
-} 
+}

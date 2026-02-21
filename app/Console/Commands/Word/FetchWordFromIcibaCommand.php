@@ -22,6 +22,7 @@ class FetchWordFromIcibaCommand extends Command
     protected $description = '从词典API获取单词的音标、中文释义和例句';
 
     private int $successCount = 0;
+
     private int $failCount = 0;
 
     public function handle(): int
@@ -33,7 +34,7 @@ class FetchWordFromIcibaCommand extends Command
         $force = $this->option('force');
 
         // 优先处理指定单词
-        if (!empty($wordOption)) {
+        if (! empty($wordOption)) {
             return $this->handleSpecifiedWords(
                 array_filter(array_map('trim', explode(',', $wordOption))),
                 $sleep
@@ -42,7 +43,7 @@ class FetchWordFromIcibaCommand extends Command
 
         $query = Word::query();
 
-        if (!$force) {
+        if (! $force) {
             $query->where(function ($q) {
                 $q->whereNull('explanation')
                     ->orWhere('explanation', '')
@@ -61,6 +62,7 @@ class FetchWordFromIcibaCommand extends Command
 
         if ($total === 0) {
             $this->info('所有单词数据已完整');
+
             return Command::SUCCESS;
         }
 
@@ -86,6 +88,7 @@ class FetchWordFromIcibaCommand extends Command
     {
         if (empty($contents)) {
             $this->warn('未提供有效单词，请使用 --word=单词1,单词2');
+
             return Command::FAILURE;
         }
 
@@ -154,13 +157,13 @@ class FetchWordFromIcibaCommand extends Command
             }
 
             // 有释义但无例句时，从有道网页补抓例句
-            if (empty($examples) || !empty($zhMeaning) || !empty($phonetic)) {
+            if (empty($examples) || ! empty($zhMeaning) || ! empty($phonetic)) {
                 $examples = $this->fetchExamplesFromYoudaoWeb($word->content);
             }
 
-            $hasChineseExamples = !empty($examples) && $this->hasChineseExamples($examples);
+            $hasChineseExamples = ! empty($examples) && $this->hasChineseExamples($examples);
             $hasMeaningOrPhonetic = (bool) ($zhMeaning || $phonetic);
-            if (!$source && $hasChineseExamples) {
+            if (! $source && $hasChineseExamples) {
                 $source = '有道(网页)';
             }
 
@@ -180,10 +183,12 @@ class FetchWordFromIcibaCommand extends Command
 
                 $this->newLine();
                 $this->info("✓ {$word->content} [{$source}]");
-                if ($phonetic) $this->line("  音标: /{$phonetic}/");
-                $this->line("  释义: " . ($zhMeaning ?: '（无）'));
-                if (!empty($newExamples) && $this->hasChineseExamples($newExamples)) {
-                    $this->line("  例句: " . count($newExamples) . " 条（含中文）");
+                if ($phonetic) {
+                    $this->line("  音标: /{$phonetic}/");
+                }
+                $this->line('  释义: ' . ($zhMeaning ?: '（无）'));
+                if (! empty($newExamples) && $this->hasChineseExamples($newExamples)) {
+                    $this->line('  例句: ' . count($newExamples) . ' 条（含中文）');
                 }
                 $this->successCount++;
             } else {
@@ -192,7 +197,7 @@ class FetchWordFromIcibaCommand extends Command
                 $this->line('  已尝试: 有道 API、有道(网页)');
                 $this->line('  已获取音标: ' . ($phonetic ? "/{$phonetic}/" : '（无）'));
                 $this->line('  已获取释义: （无）');
-                if (!empty($examples)) {
+                if (! empty($examples)) {
                     $hasZh = $this->hasChineseExamples($examples);
                     $this->line('  已获取例句: ' . count($examples) . ' 条（' . ($hasZh ? '含中文，但因释义/音标未获取未写入' : '无中文未采用') . '）');
                     foreach (array_slice($examples, 0, 5) as $i => $ex) {
@@ -218,26 +223,32 @@ class FetchWordFromIcibaCommand extends Command
     private function fetchFromYoudao(string $word): ?array
     {
         try {
-            $response = Http::timeout(10)->get("https://dict.youdao.com/jsonapi_s", [
+            $response = Http::timeout(10)->get('https://dict.youdao.com/jsonapi_s', [
                 'q' => $word,
                 'le' => 'en',
                 'client' => 'mobile',
             ]);
-            if (!$response->successful()) return null;
+            if (! $response->successful()) {
+                return null;
+            }
 
             $data = $response->json();
             $input = isset($data['input']) ? $data['input'] : '';
             if (strtolower($input) !== strtolower($word)) {
                 Log::warning("有道API单词不匹配: 请求 {$word}, 返回 {$input}");
+
                 return null;
             }
 
             $wordData = $data['ec']['word'][0] ?? $data['simple']['word'][0] ?? null;
-            if (!$wordData) return null;
+            if (! $wordData) {
+                return null;
+            }
 
             $returnPhrase = strtolower($wordData['return-phrase']['l']['i'] ?? '');
             if ($returnPhrase && $returnPhrase !== strtolower($word)) {
                 Log::warning("有道API单词不匹配(二次): 请求 {$word}, 返回 {$returnPhrase}");
+
                 return null;
             }
 
@@ -246,24 +257,32 @@ class FetchWordFromIcibaCommand extends Command
             $zhMeaningParts = [];
             foreach (array_slice($wordData['trs'] ?? [], 0, 5) as $tr) {
                 $items = $tr['tr'][0]['l']['i'] ?? [];
-                if (!is_array($items)) continue;
+                if (! is_array($items)) {
+                    continue;
+                }
                 foreach ($items as $item) {
-                    if (!is_string($item) || !trim($item)) continue;
+                    if (! is_string($item) || ! trim($item)) {
+                        continue;
+                    }
                     $text = trim($item);
-                    if (!preg_match('/^[a-z]+\.\s+/i', $text)) {
+                    if (! preg_match('/^[a-z]+\.\s+/i', $text)) {
                         $pos = $tr['pos'] ?? '';
-                        if ($pos) $text = $pos . '. ' . $text;
+                        if ($pos) {
+                            $text = $pos . '. ' . $text;
+                        }
                     }
                     $zhMeaningParts[] = $text;
                 }
             }
             $zhMeaning = implode("\n", array_unique($zhMeaningParts));
-            if (empty($zhMeaning)) return null;
+            if (empty($zhMeaning)) {
+                return null;
+            }
 
             // 优先双语例句
             $examples = [];
             foreach (array_slice($data['blng_sents_part']['sentence-pair'] ?? [], 0, 2) as $sent) {
-                if (!empty($sent['sentence']) && !empty($sent['sentence-translation'])) {
+                if (! empty($sent['sentence']) && ! empty($sent['sentence-translation'])) {
                     $examples[] = [
                         'en' => strip_tags($sent['sentence']),
                         'zh' => strip_tags($sent['sentence-translation']),
@@ -281,7 +300,7 @@ class FetchWordFromIcibaCommand extends Command
                 'examples' => $examples,
             ];
         } catch (\Throwable $e) {
-            //log略
+            // log略
             return null;
         }
     }
@@ -293,7 +312,9 @@ class FetchWordFromIcibaCommand extends Command
     {
         try {
             $html = $this->fetchYoudaoResultHtml($word);
-            if ($html === null) return [];
+            if ($html === null) {
+                return [];
+            }
 
             $crawler = $this->createCrawler($html);
             $examples = [];
@@ -313,6 +334,7 @@ class FetchWordFromIcibaCommand extends Command
             return $examples;
         } catch (\Throwable $e) {
             Log::warning("从有道网页获取例句失败: {$word}", ['error' => $e->getMessage()]);
+
             return [];
         }
     }
@@ -328,7 +350,9 @@ class FetchWordFromIcibaCommand extends Command
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             ])->get($url);
 
-        if (!$response->successful()) return null;
+        if (! $response->successful()) {
+            return null;
+        }
 
         return $response->body();
     }
@@ -340,9 +364,11 @@ class FetchWordFromIcibaCommand extends Command
     {
         try {
             $html = $this->fetchYoudaoResultHtml($word);
-            if ($html === null) return null;
+            if ($html === null) {
+                return null;
+            }
 
-            if (stripos($html, 'word=' . urlencode($word)) === false && !preg_match('/' . preg_quote($word, '/') . '/i', $html)) {
+            if (stripos($html, 'word=' . urlencode($word)) === false && ! preg_match('/' . preg_quote($word, '/') . '/i', $html)) {
                 return null;
             }
 
@@ -358,7 +384,9 @@ class FetchWordFromIcibaCommand extends Command
             }
 
             $zhMeaning = implode("\n", array_slice($zhMeaningParts, 0, 6));
-            if (empty($zhMeaning)) return null;
+            if (empty($zhMeaning)) {
+                return null;
+            }
 
             return [
                 'phonetic' => $phonetic,
@@ -366,6 +394,7 @@ class FetchWordFromIcibaCommand extends Command
             ];
         } catch (\Throwable $e) {
             Log::warning("从有道网页获取释义失败: {$word}", ['error' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -379,10 +408,12 @@ class FetchWordFromIcibaCommand extends Command
             $html = $this->fetchYoudaoResultHtml($word);
             if ($html === null) {
                 $this->line('  诊断: 有道网页请求失败或超时');
+
                 return;
             }
             if (stripos($html, $word) === false && stripos($html, 'word=' . urlencode($word)) === false) {
                 $this->line('  诊断: 网页已返回，但内容中未包含该词');
+
                 return;
             }
             $crawler = $this->createCrawler($html);
@@ -400,8 +431,9 @@ class FetchWordFromIcibaCommand extends Command
      */
     private function createCrawler(string $html): Crawler
     {
-        $crawler = new Crawler();
+        $crawler = new Crawler;
         $crawler->addHtmlContent($html, 'UTF-8');
+
         return $crawler;
     }
 
@@ -420,6 +452,7 @@ class FetchWordFromIcibaCommand extends Command
         if (preg_match('/class="phonetic"[^>]*>([^<]+)</u', $html, $m)) {
             return trim($m[1], "/ \t\n\r");
         }
+
         return null;
     }
 
@@ -436,6 +469,7 @@ class FetchWordFromIcibaCommand extends Command
                     $phoneticNode = $block->filter('.phonetic');
                     if ($phoneticNode->count() > 0) {
                         $text = trim($phoneticNode->text());
+
                         return trim($text, "/ \t\n\r");
                     }
                 }
@@ -443,11 +477,13 @@ class FetchWordFromIcibaCommand extends Command
             $phoneticNodes = $crawler->filter('.phonetic');
             if ($phoneticNodes->count() > 0) {
                 $text = trim($phoneticNodes->last()->text());
+
                 return trim($text, "/ \t\n\r");
             }
         } catch (\Throwable $e) {
             return null;
         }
+
         return null;
     }
 
@@ -466,12 +502,12 @@ class FetchWordFromIcibaCommand extends Command
                 $trans = trim($transNodes->eq($i)->text());
                 if ($pos !== '' && $trans !== '') {
                     $line = $pos . ' ' . $trans;
-                    if (!in_array($line, $parts, true)) {
+                    if (! in_array($line, $parts, true)) {
                         $parts[] = $line;
                     }
                 }
             }
-            if (!empty($parts)) {
+            if (! empty($parts)) {
                 return $parts;
             }
             $transOnly = $crawler->filter('.word-exp .trans');
@@ -484,6 +520,7 @@ class FetchWordFromIcibaCommand extends Command
         } catch (\Throwable $e) {
             return [];
         }
+
         return $parts;
     }
 
@@ -499,7 +536,7 @@ class FetchWordFromIcibaCommand extends Command
                 $def = trim(preg_replace('/\s+/', ' ', $m[2]));
                 if (mb_strlen($def) < 500) {
                     $line = $pos . ' ' . $def;
-                    if (!in_array($line, $parts, true)) {
+                    if (! in_array($line, $parts, true)) {
                         $parts[] = $line;
                     }
                 }
@@ -510,12 +547,13 @@ class FetchWordFromIcibaCommand extends Command
                 $def = trim(preg_replace('/\s+/', ' ', $m[2]));
                 if (mb_strlen($def) < 500) {
                     $line = $m[1] . ' ' . $def;
-                    if (!in_array($line, $parts, true)) {
+                    if (! in_array($line, $parts, true)) {
                         $parts[] = $line;
                     }
                 }
             }
         }
+
         return $parts;
     }
 
@@ -524,7 +562,9 @@ class FetchWordFromIcibaCommand extends Command
      */
     private function syncEducationLevels(Word $word): void
     {
-        if (!Schema::hasTable('word_education_levels')) return;
+        if (! Schema::hasTable('word_education_levels')) {
+            return;
+        }
 
         try {
             // 加载所有级别 id
@@ -536,9 +576,9 @@ class FetchWordFromIcibaCommand extends Command
             if ($levelIds) {
                 $word->educationLevels()->sync($levelIds);
                 $levelNames = EducationLevel::whereIn('id', $levelIds)->pluck('name')->all();
-                $this->line("  教育级别: " . implode(', ', $levelNames));
+                $this->line('  教育级别: ' . implode(', ', $levelNames));
             } else {
-                $this->line("  教育级别: 无（小学或未匹配）");
+                $this->line('  教育级别: 无（小学或未匹配）');
             }
         } catch (\Throwable $e) {
             $this->warn("  警告: 关联教育级别失败: {$e->getMessage()}");
@@ -552,8 +592,11 @@ class FetchWordFromIcibaCommand extends Command
     private function hasChineseExamples(array $examples): bool
     {
         foreach ($examples as $ex) {
-            if (!empty($ex['zh'])) return true;
+            if (! empty($ex['zh'])) {
+                return true;
+            }
         }
+
         return false;
     }
 
@@ -562,9 +605,11 @@ class FetchWordFromIcibaCommand extends Command
      */
     private function printDivider($current, $total, $word = null)
     {
-        $this->line("─────────────────────────────────────");
+        $this->line('─────────────────────────────────────');
         $msg = "[{$current}/{$total}]";
-        if ($word) $msg .= " {$word}";
+        if ($word) {
+            $msg .= " {$word}";
+        }
         $this->line($msg);
     }
 

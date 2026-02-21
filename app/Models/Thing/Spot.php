@@ -2,9 +2,9 @@
 
 namespace App\Models\Thing;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
 
 class Spot extends Model
 {
@@ -32,4 +32,4 @@ class Spot extends Model
     {
         return $this->belongsTo(User::class);
     }
-} 
+}

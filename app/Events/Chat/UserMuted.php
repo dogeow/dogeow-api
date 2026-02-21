@@ -13,9 +13,13 @@ class UserMuted implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public int $roomId;
+
     public int $userId;
+
     public int $moderatorId;
+
     public ?int $duration;
+
     public ?string $reason;
 
     /**

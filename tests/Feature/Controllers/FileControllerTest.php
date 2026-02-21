@@ -2,14 +2,13 @@
 
 namespace Tests\Feature\Controllers;
 
-use Tests\TestCase;
-use App\Models\User;
 use App\Models\Cloud\File;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
 
 class FileControllerTest extends TestCase
 {
@@ -34,13 +33,13 @@ class FileControllerTest extends TestCase
             'user_id' => $this->user->id,
             'is_folder' => false,
             'name' => 'test1.txt',
-            'extension' => 'txt'
+            'extension' => 'txt',
         ]);
-        
+
         $file2 = File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => true,
-            'name' => 'test_folder'
+            'name' => 'test_folder',
         ]);
 
         $response = $this->getJson('/api/cloud/files');
@@ -52,16 +51,16 @@ class FileControllerTest extends TestCase
     public function test_index_returns_files_for_guest_user()
     {
         Auth::forgetGuards();
-        
+
         // Delete the existing user and create a new one with ID 1
         $this->user->delete();
         $guestUser = User::factory()->create(['id' => 1]);
-        
+
         // Create files for user ID 1 (default guest user)
         $file = File::factory()->create([
             'user_id' => 1,
             'is_folder' => false,
-            'name' => 'test.txt'
+            'name' => 'test.txt',
         ]);
 
         $response = $this->getJson('/api/cloud/files');
@@ -75,14 +74,14 @@ class FileControllerTest extends TestCase
         $parentFolder = File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => true,
-            'name' => 'parent_folder'
+            'name' => 'parent_folder',
         ]);
 
         $childFile = File::factory()->create([
             'user_id' => $this->user->id,
             'parent_id' => $parentFolder->id,
             'is_folder' => false,
-            'name' => 'child.txt'
+            'name' => 'child.txt',
         ]);
 
         $response = $this->getJson("/api/cloud/files?parent_id={$parentFolder->id}");
@@ -95,12 +94,12 @@ class FileControllerTest extends TestCase
     {
         File::factory()->create([
             'user_id' => $this->user->id,
-            'name' => 'test_file.txt'
+            'name' => 'test_file.txt',
         ]);
 
         File::factory()->create([
             'user_id' => $this->user->id,
-            'name' => 'another_file.txt'
+            'name' => 'another_file.txt',
         ]);
 
         $response = $this->getJson('/api/cloud/files?search=test');
@@ -114,14 +113,14 @@ class FileControllerTest extends TestCase
         File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => true,
-            'name' => 'folder1'
+            'name' => 'folder1',
         ]);
 
         File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => false,
             'name' => 'file.txt',
-            'extension' => 'txt'
+            'extension' => 'txt',
         ]);
 
         $response = $this->getJson('/api/cloud/files?type=folder');
@@ -136,14 +135,14 @@ class FileControllerTest extends TestCase
             'user_id' => $this->user->id,
             'is_folder' => false,
             'name' => 'image.jpg',
-            'extension' => 'jpg'
+            'extension' => 'jpg',
         ]);
 
         File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => false,
             'name' => 'document.txt',
-            'extension' => 'txt'
+            'extension' => 'txt',
         ]);
 
         $response = $this->getJson('/api/cloud/files?type=image');
@@ -157,13 +156,13 @@ class FileControllerTest extends TestCase
         $file1 = File::factory()->create([
             'user_id' => $this->user->id,
             'name' => 'first.txt',
-            'created_at' => now()->subDay()
+            'created_at' => now()->subDay(),
         ]);
 
         $file2 = File::factory()->create([
             'user_id' => $this->user->id,
             'name' => 'second.txt',
-            'created_at' => now()
+            'created_at' => now(),
         ]);
 
         $response = $this->getJson('/api/cloud/files?sort_by=created_at&sort_direction=desc');
@@ -179,20 +178,20 @@ class FileControllerTest extends TestCase
     {
         $response = $this->postJson('/api/cloud/folders', [
             'name' => 'Test Folder',
-            'description' => 'Test description'
+            'description' => 'Test description',
         ]);
 
         $response->assertStatus(201)
             ->assertJson([
                 'name' => 'Test Folder',
                 'description' => 'Test description',
-                'is_folder' => true
+                'is_folder' => true,
             ]);
 
         $this->assertDatabaseHas('cloud_files', [
             'name' => 'Test Folder',
             'user_id' => $this->user->id,
-            'is_folder' => true
+            'is_folder' => true,
         ]);
     }
 
@@ -200,18 +199,18 @@ class FileControllerTest extends TestCase
     {
         $parentFolder = File::factory()->create([
             'user_id' => $this->user->id,
-            'is_folder' => true
+            'is_folder' => true,
         ]);
 
         $response = $this->postJson('/api/cloud/folders', [
             'name' => 'Child Folder',
-            'parent_id' => $parentFolder->id
+            'parent_id' => $parentFolder->id,
         ]);
 
         $response->assertStatus(201)
             ->assertJson([
                 'name' => 'Child Folder',
-                'parent_id' => $parentFolder->id
+                'parent_id' => $parentFolder->id,
             ]);
     }
 
@@ -226,7 +225,7 @@ class FileControllerTest extends TestCase
     public function test_create_folder_validation_name_max_length()
     {
         $response = $this->postJson('/api/cloud/folders', [
-            'name' => str_repeat('a', 256)
+            'name' => str_repeat('a', 256),
         ]);
 
         $response->assertStatus(422)
@@ -237,7 +236,7 @@ class FileControllerTest extends TestCase
     {
         $response = $this->postJson('/api/cloud/folders', [
             'name' => 'Test Folder',
-            'parent_id' => 999
+            'parent_id' => 999,
         ]);
 
         $response->assertStatus(422)
@@ -252,7 +251,7 @@ class FileControllerTest extends TestCase
 
         $response = $this->postJson('/api/cloud/files', [
             'file' => $file,
-            'description' => 'Test file'
+            'description' => 'Test file',
         ]);
 
         $response->assertStatus(201)
@@ -260,13 +259,13 @@ class FileControllerTest extends TestCase
                 'name' => 'test',
                 'original_name' => 'test.txt',
                 'extension' => 'txt',
-                'description' => 'Test file'
+                'description' => 'Test file',
             ]);
 
         $this->assertDatabaseHas('cloud_files', [
             'name' => 'test',
             'user_id' => $this->user->id,
-            'is_folder' => false
+            'is_folder' => false,
         ]);
     }
 
@@ -274,19 +273,19 @@ class FileControllerTest extends TestCase
     {
         $parentFolder = File::factory()->create([
             'user_id' => $this->user->id,
-            'is_folder' => true
+            'is_folder' => true,
         ]);
 
         $file = UploadedFile::fake()->create('test.txt', 100);
 
         $response = $this->postJson('/api/cloud/files', [
             'file' => $file,
-            'parent_id' => $parentFolder->id
+            'parent_id' => $parentFolder->id,
         ]);
 
         $response->assertStatus(201)
             ->assertJson([
-                'parent_id' => $parentFolder->id
+                'parent_id' => $parentFolder->id,
             ]);
     }
 
@@ -303,7 +302,7 @@ class FileControllerTest extends TestCase
         $file = UploadedFile::fake()->create('large.txt', 102401); // 100MB + 1KB
 
         $response = $this->postJson('/api/cloud/files', [
-            'file' => $file
+            'file' => $file,
         ]);
 
         $response->assertStatus(422)
@@ -316,7 +315,7 @@ class FileControllerTest extends TestCase
 
         $response = $this->postJson('/api/cloud/files', [
             'file' => $file,
-            'parent_id' => 999
+            'parent_id' => 999,
         ]);
 
         $response->assertStatus(422)
@@ -331,7 +330,7 @@ class FileControllerTest extends TestCase
             'user_id' => $this->user->id,
             'is_folder' => false,
             'path' => 'cloud/1/2024/01/test.txt',
-            'original_name' => 'test.txt'
+            'original_name' => 'test.txt',
         ]);
 
         // Create a fake file in storage
@@ -339,7 +338,7 @@ class FileControllerTest extends TestCase
 
         // Test that the file exists check passes
         $this->assertTrue(Storage::disk('public')->exists($file->path));
-        
+
         // Note: The actual download response test is skipped because it requires real filesystem access
         // The controller logic is tested through the file existence check above
     }
@@ -348,7 +347,7 @@ class FileControllerTest extends TestCase
     {
         $folder = File::factory()->create([
             'user_id' => $this->user->id,
-            'is_folder' => true
+            'is_folder' => true,
         ]);
 
         $response = $this->getJson("/api/cloud/files/{$folder->id}/download");
@@ -362,7 +361,7 @@ class FileControllerTest extends TestCase
         $file = File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => false,
-            'path' => 'nonexistent/path.txt'
+            'path' => 'nonexistent/path.txt',
         ]);
 
         $response = $this->getJson("/api/cloud/files/{$file->id}/download");
@@ -385,7 +384,7 @@ class FileControllerTest extends TestCase
         $file = File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => false,
-            'path' => 'cloud/1/2024/01/test.txt'
+            'path' => 'cloud/1/2024/01/test.txt',
         ]);
 
         // Create a fake file in storage
@@ -403,14 +402,14 @@ class FileControllerTest extends TestCase
     {
         $folder = File::factory()->create([
             'user_id' => $this->user->id,
-            'is_folder' => true
+            'is_folder' => true,
         ]);
 
         $childFile = File::factory()->create([
             'user_id' => $this->user->id,
             'parent_id' => $folder->id,
             'is_folder' => false,
-            'path' => 'cloud/1/2024/01/child.txt'
+            'path' => 'cloud/1/2024/01/child.txt',
         ]);
 
         // Create a fake file in storage
@@ -436,7 +435,7 @@ class FileControllerTest extends TestCase
     {
         $otherUser = User::factory()->create();
         $file = File::factory()->create([
-            'user_id' => $otherUser->id
+            'user_id' => $otherUser->id,
         ]);
 
         $response = $this->deleteJson("/api/cloud/files/{$file->id}");
@@ -450,7 +449,7 @@ class FileControllerTest extends TestCase
     {
         $file = File::factory()->create([
             'user_id' => $this->user->id,
-            'name' => 'test.txt'
+            'name' => 'test.txt',
         ]);
 
         $response = $this->getJson("/api/cloud/files/{$file->id}");
@@ -458,7 +457,7 @@ class FileControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'id' => $file->id,
-                'name' => 'test.txt'
+                'name' => 'test.txt',
             ]);
     }
 
@@ -473,7 +472,7 @@ class FileControllerTest extends TestCase
     {
         $otherUser = User::factory()->create();
         $file = File::factory()->create([
-            'user_id' => $otherUser->id
+            'user_id' => $otherUser->id,
         ]);
 
         $response = $this->getJson("/api/cloud/files/{$file->id}");
@@ -487,31 +486,31 @@ class FileControllerTest extends TestCase
     {
         $file = File::factory()->create([
             'user_id' => $this->user->id,
-            'name' => 'old_name.txt'
+            'name' => 'old_name.txt',
         ]);
 
         $response = $this->putJson("/api/cloud/files/{$file->id}", [
             'name' => 'new_name.txt',
-            'description' => 'Updated description'
+            'description' => 'Updated description',
         ]);
 
         $response->assertStatus(200)
             ->assertJson([
                 'name' => 'new_name.txt',
-                'description' => 'Updated description'
+                'description' => 'Updated description',
             ]);
 
         $this->assertDatabaseHas('cloud_files', [
             'id' => $file->id,
             'name' => 'new_name.txt',
-            'description' => 'Updated description'
+            'description' => 'Updated description',
         ]);
     }
 
     public function test_update_file_validation_requires_name()
     {
         $file = File::factory()->create([
-            'user_id' => $this->user->id
+            'user_id' => $this->user->id,
         ]);
 
         $response = $this->putJson("/api/cloud/files/{$file->id}", []);
@@ -523,7 +522,7 @@ class FileControllerTest extends TestCase
     public function test_update_file_not_found()
     {
         $response = $this->putJson('/api/cloud/files/999', [
-            'name' => 'new_name.txt'
+            'name' => 'new_name.txt',
         ]);
 
         $response->assertStatus(404);
@@ -533,11 +532,11 @@ class FileControllerTest extends TestCase
     {
         $otherUser = User::factory()->create();
         $file = File::factory()->create([
-            'user_id' => $otherUser->id
+            'user_id' => $otherUser->id,
         ]);
 
         $response = $this->putJson("/api/cloud/files/{$file->id}", [
-            'name' => 'new_name.txt'
+            'name' => 'new_name.txt',
         ]);
 
         $response->assertStatus(404);
@@ -549,22 +548,22 @@ class FileControllerTest extends TestCase
     {
         $targetFolder = File::factory()->create([
             'user_id' => $this->user->id,
-            'is_folder' => true
+            'is_folder' => true,
         ]);
 
         $file1 = File::factory()->create([
             'user_id' => $this->user->id,
-            'is_folder' => false
+            'is_folder' => false,
         ]);
 
         $file2 = File::factory()->create([
             'user_id' => $this->user->id,
-            'is_folder' => false
+            'is_folder' => false,
         ]);
 
         $response = $this->postJson('/api/cloud/files/move', [
             'file_ids' => [$file1->id, $file2->id],
-            'target_folder_id' => $targetFolder->id
+            'target_folder_id' => $targetFolder->id,
         ]);
 
         $response->assertStatus(200)
@@ -572,12 +571,12 @@ class FileControllerTest extends TestCase
 
         $this->assertDatabaseHas('cloud_files', [
             'id' => $file1->id,
-            'parent_id' => $targetFolder->id
+            'parent_id' => $targetFolder->id,
         ]);
 
         $this->assertDatabaseHas('cloud_files', [
             'id' => $file2->id,
-            'parent_id' => $targetFolder->id
+            'parent_id' => $targetFolder->id,
         ]);
     }
 
@@ -585,12 +584,12 @@ class FileControllerTest extends TestCase
     {
         $file = File::factory()->create([
             'user_id' => $this->user->id,
-            'parent_id' => 1
+            'parent_id' => 1,
         ]);
 
         $response = $this->postJson('/api/cloud/files/move', [
             'file_ids' => [$file->id],
-            'target_folder_id' => null
+            'target_folder_id' => null,
         ]);
 
         $response->assertStatus(200)
@@ -598,7 +597,7 @@ class FileControllerTest extends TestCase
 
         $this->assertDatabaseHas('cloud_files', [
             'id' => $file->id,
-            'parent_id' => null
+            'parent_id' => null,
         ]);
     }
 
@@ -613,12 +612,12 @@ class FileControllerTest extends TestCase
     public function test_move_files_with_invalid_target_folder()
     {
         $file = File::factory()->create([
-            'user_id' => $this->user->id
+            'user_id' => $this->user->id,
         ]);
 
         $response = $this->postJson('/api/cloud/files/move', [
             'file_ids' => [$file->id],
-            'target_folder_id' => 999
+            'target_folder_id' => 999,
         ]);
 
         $response->assertStatus(422)
@@ -629,16 +628,16 @@ class FileControllerTest extends TestCase
     {
         $targetFile = File::factory()->create([
             'user_id' => $this->user->id,
-            'is_folder' => false
+            'is_folder' => false,
         ]);
 
         $file = File::factory()->create([
-            'user_id' => $this->user->id
+            'user_id' => $this->user->id,
         ]);
 
         $response = $this->postJson('/api/cloud/files/move', [
             'file_ids' => [$file->id],
-            'target_folder_id' => $targetFile->id
+            'target_folder_id' => $targetFile->id,
         ]);
 
         $response->assertStatus(404);
@@ -653,19 +652,19 @@ class FileControllerTest extends TestCase
             'user_id' => $this->user->id,
             'is_folder' => false,
             'size' => 1024,
-            'extension' => 'jpg'
+            'extension' => 'jpg',
         ]);
 
         File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => false,
             'size' => 2048,
-            'extension' => 'pdf'
+            'extension' => 'pdf',
         ]);
 
         File::factory()->create([
             'user_id' => $this->user->id,
-            'is_folder' => true
+            'is_folder' => true,
         ]);
 
         $response = $this->getJson('/api/cloud/statistics');
@@ -674,7 +673,7 @@ class FileControllerTest extends TestCase
             ->assertJson([
                 'total_size' => 3072,
                 'file_count' => 2,
-                'folder_count' => 1
+                'folder_count' => 1,
             ]);
 
         $data = $response->json();
@@ -694,7 +693,7 @@ class FileControllerTest extends TestCase
         File::factory()->create([
             'user_id' => 1,
             'is_folder' => false,
-            'size' => 1024
+            'size' => 1024,
         ]);
 
         $response = $this->getJson('/api/cloud/statistics');
@@ -703,7 +702,7 @@ class FileControllerTest extends TestCase
             ->assertJson([
                 'total_size' => 1024,
                 'file_count' => 1,
-                'folder_count' => 0
+                'folder_count' => 0,
             ]);
     }
 
@@ -714,21 +713,21 @@ class FileControllerTest extends TestCase
         $rootFolder = File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => true,
-            'name' => 'Root Folder'
+            'name' => 'Root Folder',
         ]);
 
         $childFolder = File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => true,
             'name' => 'Child Folder',
-            'parent_id' => $rootFolder->id
+            'parent_id' => $rootFolder->id,
         ]);
 
         $response = $this->getJson('/api/cloud/tree');
 
         $response->assertStatus(200);
         $tree = $response->json();
-        
+
         $this->assertCount(1, $tree);
         $this->assertEquals('Root Folder', $tree[0]['name']);
         $this->assertCount(1, $tree[0]['children']);
@@ -739,7 +738,7 @@ class FileControllerTest extends TestCase
     {
         File::factory()->create([
             'user_id' => $this->user->id,
-            'is_folder' => false
+            'is_folder' => false,
         ]);
 
         $response = $this->getJson('/api/cloud/tree');
@@ -757,7 +756,7 @@ class FileControllerTest extends TestCase
             'is_folder' => false,
             'extension' => 'jpg',
             'path' => 'cloud/1/2024/01/test.jpg',
-            'mime_type' => 'image/jpeg'
+            'mime_type' => 'image/jpeg',
         ]);
 
         // Create a fake image file
@@ -767,7 +766,7 @@ class FileControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-                'type' => 'image'
+                'type' => 'image',
             ]);
 
         $data = $response->json();
@@ -781,7 +780,7 @@ class FileControllerTest extends TestCase
             'is_folder' => false,
             'extension' => 'pdf',
             'path' => 'cloud/1/2024/01/test.pdf',
-            'mime_type' => 'application/pdf'
+            'mime_type' => 'application/pdf',
         ]);
 
         Storage::disk('public')->put($file->path, 'fake pdf content');
@@ -790,7 +789,7 @@ class FileControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-                'type' => 'pdf'
+                'type' => 'pdf',
             ]);
     }
 
@@ -801,7 +800,7 @@ class FileControllerTest extends TestCase
             'is_folder' => false,
             'extension' => 'txt',
             'path' => 'cloud/1/2024/01/test.txt',
-            'mime_type' => 'text/plain'
+            'mime_type' => 'text/plain',
         ]);
 
         Storage::disk('public')->put($file->path, 'Hello World');
@@ -811,7 +810,7 @@ class FileControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'type' => 'text',
-                'content' => 'Hello World'
+                'content' => 'Hello World',
             ]);
     }
 
@@ -819,7 +818,7 @@ class FileControllerTest extends TestCase
     {
         $folder = File::factory()->create([
             'user_id' => $this->user->id,
-            'is_folder' => true
+            'is_folder' => true,
         ]);
 
         $response = $this->getJson("/api/cloud/files/{$folder->id}/preview");
@@ -833,7 +832,7 @@ class FileControllerTest extends TestCase
         $file = File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => false,
-            'path' => 'nonexistent/path.txt'
+            'path' => 'nonexistent/path.txt',
         ]);
 
         $response = $this->getJson("/api/cloud/files/{$file->id}/preview");
@@ -848,7 +847,7 @@ class FileControllerTest extends TestCase
             'user_id' => $this->user->id,
             'is_folder' => false,
             'extension' => 'xyz',
-            'path' => 'cloud/1/2024/01/test.xyz'
+            'path' => 'cloud/1/2024/01/test.xyz',
         ]);
 
         Storage::disk('public')->put($file->path, 'unknown content');
@@ -858,7 +857,7 @@ class FileControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'type' => 'unknown',
-                'message' => '此文件类型不支持预览，请下载后查看'
+                'message' => '此文件类型不支持预览，请下载后查看',
             ]);
     }
 
@@ -869,7 +868,7 @@ class FileControllerTest extends TestCase
             'is_folder' => false,
             'extension' => 'doc',
             'path' => 'cloud/1/2024/01/test.doc',
-            'mime_type' => 'application/msword'
+            'mime_type' => 'application/msword',
         ]);
 
         Storage::disk('public')->put($file->path, 'document content');
@@ -879,7 +878,7 @@ class FileControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'type' => 'document',
-                'message' => '此文件是 Microsoft Office 格式，需要使用相应的应用程序打开'
+                'message' => '此文件是 Microsoft Office 格式，需要使用相应的应用程序打开',
             ]);
     }
 
@@ -889,7 +888,7 @@ class FileControllerTest extends TestCase
     {
         // Test all file type filters
         $types = ['image', 'pdf', 'document', 'spreadsheet', 'archive', 'audio', 'video'];
-        
+
         foreach ($types as $type) {
             $response = $this->getJson("/api/cloud/files?type={$type}");
             $response->assertStatus(200);
@@ -901,13 +900,13 @@ class FileControllerTest extends TestCase
         $file1 = File::factory()->create([
             'user_id' => $this->user->id,
             'name' => 'A file',
-            'size' => 100
+            'size' => 100,
         ]);
 
         $file2 = File::factory()->create([
             'user_id' => $this->user->id,
             'name' => 'B file',
-            'size' => 200
+            'size' => 200,
         ]);
 
         // Test sorting by name
@@ -928,7 +927,7 @@ class FileControllerTest extends TestCase
         $file = UploadedFile::fake()->create('large.txt', 102400); // 100MB
 
         $response = $this->postJson('/api/cloud/files', [
-            'file' => $file
+            'file' => $file,
         ]);
 
         $response->assertStatus(201);
@@ -939,12 +938,12 @@ class FileControllerTest extends TestCase
         $file = UploadedFile::fake()->create('test-文件-123.txt', 100);
 
         $response = $this->postJson('/api/cloud/files', [
-            'file' => $file
+            'file' => $file,
         ]);
 
         $response->assertStatus(201)
             ->assertJson([
-                'original_name' => 'test-文件-123.txt'
+                'original_name' => 'test-文件-123.txt',
             ]);
     }
 
@@ -952,20 +951,20 @@ class FileControllerTest extends TestCase
     {
         $response = $this->postJson('/api/cloud/folders', [
             'name' => '测试文件夹-123',
-            'description' => '测试描述'
+            'description' => '测试描述',
         ]);
 
         $response->assertStatus(201)
             ->assertJson([
                 'name' => '测试文件夹-123',
-                'description' => '测试描述'
+                'description' => '测试描述',
             ]);
     }
 
     public function test_move_files_with_empty_array()
     {
         $response = $this->postJson('/api/cloud/files/move', [
-            'file_ids' => []
+            'file_ids' => [],
         ]);
 
         $response->assertStatus(422)
@@ -976,7 +975,7 @@ class FileControllerTest extends TestCase
     {
         $response = $this->postJson('/api/cloud/files/move', [
             'file_ids' => [999],
-            'target_folder_id' => null
+            'target_folder_id' => null,
         ]);
 
         $response->assertStatus(422)
@@ -991,7 +990,7 @@ class FileControllerTest extends TestCase
             ->assertJson([
                 'total_size' => 0,
                 'file_count' => 0,
-                'folder_count' => 0
+                'folder_count' => 0,
             ]);
     }
 
@@ -1000,28 +999,28 @@ class FileControllerTest extends TestCase
         $rootFolder = File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => true,
-            'name' => 'Root'
+            'name' => 'Root',
         ]);
 
         $childFolder = File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => true,
             'name' => 'Child',
-            'parent_id' => $rootFolder->id
+            'parent_id' => $rootFolder->id,
         ]);
 
         $grandchildFolder = File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => true,
             'name' => 'Grandchild',
-            'parent_id' => $childFolder->id
+            'parent_id' => $childFolder->id,
         ]);
 
         $response = $this->getJson('/api/cloud/tree');
 
         $response->assertStatus(200);
         $tree = $response->json();
-        
+
         $this->assertCount(1, $tree);
         $this->assertEquals('Root', $tree[0]['name']);
         $this->assertCount(1, $tree[0]['children']);
@@ -1037,7 +1036,7 @@ class FileControllerTest extends TestCase
             'is_folder' => false,
             'extension' => 'jpg',
             'path' => 'cloud/1/2024/01/test.jpg',
-            'mime_type' => 'image/jpeg'
+            'mime_type' => 'image/jpeg',
         ]);
 
         Storage::disk('public')->put($file->path, 'fake image content');
@@ -1046,7 +1045,7 @@ class FileControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-                'type' => 'image'
+                'type' => 'image',
             ]);
     }
 
@@ -1056,7 +1055,7 @@ class FileControllerTest extends TestCase
             'user_id' => $this->user->id,
             'is_folder' => false,
             'extension' => 'pages',
-            'path' => 'cloud/1/2024/01/test.pages'
+            'path' => 'cloud/1/2024/01/test.pages',
         ]);
 
         Storage::disk('public')->put($file->path, 'pages content');
@@ -1066,7 +1065,7 @@ class FileControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'type' => 'document',
-                'message' => '此文件是苹果 PAGES 格式，需要在 Mac 上使用相应的应用程序打开'
+                'message' => '此文件是苹果 PAGES 格式，需要在 Mac 上使用相应的应用程序打开',
             ]);
     }
 
@@ -1077,7 +1076,7 @@ class FileControllerTest extends TestCase
             'is_folder' => false,
             'extension' => 'xlsx',
             'path' => 'cloud/1/2024/01/test.xlsx',
-            'mime_type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            'mime_type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
 
         Storage::disk('public')->put($file->path, 'spreadsheet content');
@@ -1087,7 +1086,7 @@ class FileControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'type' => 'document',
-                'message' => '此文件是 Microsoft Office 格式，需要使用相应的应用程序打开'
+                'message' => '此文件是 Microsoft Office 格式，需要使用相应的应用程序打开',
             ]);
     }
 
@@ -1098,7 +1097,7 @@ class FileControllerTest extends TestCase
             'is_folder' => false,
             'extension' => 'mp3',
             'path' => 'cloud/1/2024/01/test.mp3',
-            'mime_type' => 'audio/mpeg'
+            'mime_type' => 'audio/mpeg',
         ]);
 
         Storage::disk('public')->put($file->path, 'audio content');
@@ -1108,7 +1107,7 @@ class FileControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'type' => 'unknown',
-                'message' => '此文件类型不支持预览，请下载后查看'
+                'message' => '此文件类型不支持预览，请下载后查看',
             ]);
     }
 
@@ -1119,7 +1118,7 @@ class FileControllerTest extends TestCase
             'is_folder' => false,
             'extension' => 'mp4',
             'path' => 'cloud/1/2024/01/test.mp4',
-            'mime_type' => 'video/mp4'
+            'mime_type' => 'video/mp4',
         ]);
 
         Storage::disk('public')->put($file->path, 'video content');
@@ -1129,7 +1128,7 @@ class FileControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'type' => 'unknown',
-                'message' => '此文件类型不支持预览，请下载后查看'
+                'message' => '此文件类型不支持预览，请下载后查看',
             ]);
     }
 
@@ -1140,7 +1139,7 @@ class FileControllerTest extends TestCase
             'is_folder' => false,
             'extension' => 'zip',
             'path' => 'cloud/1/2024/01/test.zip',
-            'mime_type' => 'application/zip'
+            'mime_type' => 'application/zip',
         ]);
 
         Storage::disk('public')->put($file->path, 'archive content');
@@ -1150,7 +1149,7 @@ class FileControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'type' => 'unknown',
-                'message' => '此文件类型不支持预览，请下载后查看'
+                'message' => '此文件类型不支持预览，请下载后查看',
             ]);
     }
 
@@ -1158,20 +1157,20 @@ class FileControllerTest extends TestCase
     {
         $rootFolder = File::factory()->create([
             'user_id' => $this->user->id,
-            'is_folder' => true
+            'is_folder' => true,
         ]);
 
         $childFolder = File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => true,
-            'parent_id' => $rootFolder->id
+            'parent_id' => $rootFolder->id,
         ]);
 
         $childFile = File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => false,
             'path' => 'cloud/1/2024/01/child.txt',
-            'parent_id' => $childFolder->id
+            'parent_id' => $childFolder->id,
         ]);
 
         Storage::disk('public')->put($childFile->path, 'test content');
@@ -1193,7 +1192,7 @@ class FileControllerTest extends TestCase
         $file = UploadedFile::fake()->create('test.txt', 100);
 
         $response = $this->postJson('/api/cloud/files', [
-            'file' => $file
+            'file' => $file,
         ]);
 
         $response->assertStatus(201);
@@ -1204,13 +1203,13 @@ class FileControllerTest extends TestCase
         Auth::forgetGuards();
 
         $response = $this->postJson('/api/cloud/folders', [
-            'name' => 'Guest Folder'
+            'name' => 'Guest Folder',
         ]);
 
         $response->assertStatus(201)
             ->assertJson([
                 'name' => 'Guest Folder',
-                'user_id' => 1
+                'user_id' => 1,
             ]);
     }
 
@@ -1221,32 +1220,32 @@ class FileControllerTest extends TestCase
             'user_id' => $this->user->id,
             'is_folder' => false,
             'size' => 1024,
-            'extension' => 'jpg'
+            'extension' => 'jpg',
         ]);
 
         File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => false,
             'size' => 2048,
-            'extension' => 'pdf'
+            'extension' => 'pdf',
         ]);
 
         File::factory()->create([
             'user_id' => $this->user->id,
             'is_folder' => false,
             'size' => 3072,
-            'extension' => 'doc'
+            'extension' => 'doc',
         ]);
 
         $response = $this->getJson('/api/cloud/statistics');
 
         $response->assertStatus(200);
         $data = $response->json();
-        
+
         $this->assertArrayHasKey('files_by_type', $data);
         $filesByType = $data['files_by_type'];
-        
+
         // Check that we have statistics for different file types
         $this->assertGreaterThan(0, count($filesByType));
     }
-} 
+}

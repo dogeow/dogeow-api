@@ -196,4 +196,4 @@ class AuthControllerTest extends TestCase
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['name', 'email']);
     }
-} 
+}

@@ -1,0 +1,7 @@
+parameters:
+    paths:
+        - app
+    level: 0
+    ignoreErrors:
+        - '#Class App\\Models\\Game\\GameCharacterMap not found#'
+        - '#Class App\\Models\\Thing\\ThingItem not found#'

@@ -224,7 +224,7 @@ class GameCombatLootService
                 'base_stats' => [$statKey => $config['restore']],
                 'required_level' => 1,
                 'icon' => 'potion',
-                'description' => "恢复{$config['restore']}点".($type === 'hp' ? '生命值' : '法力值'),
+                'description' => "恢复{$config['restore']}点" . ($type === 'hp' ? '生命值' : '法力值'),
                 'is_active' => true,
                 'sockets' => 0,
                 'gem_stats' => ['restore' => $config['restore']],

@@ -313,7 +313,7 @@ class ChatController extends Controller
             if ($roomUser->isBanned()) {
                 $msg = 'You are banned from this room';
                 if ($roomUser->banned_until) {
-                    $msg .= ' until '.$roomUser->banned_until->format('Y-m-d H:i:s');
+                    $msg .= ' until ' . $roomUser->banned_until->format('Y-m-d H:i:s');
                 }
 
                 return ['allowed' => false, 'message' => $msg];
@@ -321,7 +321,7 @@ class ChatController extends Controller
             if ($roomUser->isMuted()) {
                 $msg = 'You are muted in this room';
                 if ($roomUser->muted_until) {
-                    $msg .= ' until '.$roomUser->muted_until->format('Y-m-d H:i:s');
+                    $msg .= ' until ' . $roomUser->muted_until->format('Y-m-d H:i:s');
                 }
 
                 return ['allowed' => false, 'message' => $msg];

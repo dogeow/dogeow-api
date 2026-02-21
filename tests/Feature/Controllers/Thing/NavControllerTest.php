@@ -2,10 +2,10 @@
 
 namespace Tests\Feature\Controllers\Thing;
 
-use Tests\TestCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Tests\TestCase;
 
 class NavControllerTest extends TestCase
 {
@@ -40,7 +40,7 @@ class NavControllerTest extends TestCase
     public function test_index_without_authentication_returns_401()
     {
         Auth::forgetGuards();
-        
+
         $response = $this->getJson('/api/things/nav');
 
         $response->assertStatus(401);
@@ -74,7 +74,7 @@ class NavControllerTest extends TestCase
             'description' => 'Test description',
             'category_id' => 1,
             'sort_order' => 1,
-            'is_visible' => true
+            'is_visible' => true,
         ];
 
         $response = $this->postJson('/api/things/nav', $data);
@@ -86,7 +86,7 @@ class NavControllerTest extends TestCase
     public function test_store_without_authentication_returns_401()
     {
         Auth::forgetGuards();
-        
+
         $data = ['name' => 'Test Navigation'];
         $response = $this->postJson('/api/things/nav', $data);
 
@@ -109,7 +109,7 @@ class NavControllerTest extends TestCase
 
         foreach ($testIds as $id) {
             $response = $this->getJson("/api/things/nav/{$id}");
-            
+
             $response->assertStatus(200)
                 ->assertJson(['message' => '导航功能正在开发中']);
         }
@@ -118,7 +118,7 @@ class NavControllerTest extends TestCase
     public function test_show_without_authentication_returns_401()
     {
         Auth::forgetGuards();
-        
+
         $response = $this->getJson('/api/things/nav/1');
 
         $response->assertStatus(401);
@@ -161,7 +161,7 @@ class NavControllerTest extends TestCase
 
         foreach ($testIds as $id) {
             $response = $this->putJson("/api/things/nav/{$id}", $data);
-            
+
             $response->assertStatus(200)
                 ->assertJson(['message' => '导航功能正在开发中']);
         }
@@ -170,7 +170,7 @@ class NavControllerTest extends TestCase
     public function test_update_without_authentication_returns_401()
     {
         Auth::forgetGuards();
-        
+
         $data = ['name' => 'Updated Navigation'];
         $response = $this->putJson('/api/things/nav/1', $data);
 
@@ -193,7 +193,7 @@ class NavControllerTest extends TestCase
 
         foreach ($testIds as $id) {
             $response = $this->deleteJson("/api/things/nav/{$id}");
-            
+
             $response->assertStatus(200)
                 ->assertJson(['message' => '导航功能正在开发中']);
         }
@@ -202,7 +202,7 @@ class NavControllerTest extends TestCase
     public function test_destroy_without_authentication_returns_401()
     {
         Auth::forgetGuards();
-        
+
         $response = $this->deleteJson('/api/things/nav/1');
 
         $response->assertStatus(401);
@@ -228,7 +228,7 @@ class NavControllerTest extends TestCase
     public function test_categories_without_authentication_returns_401()
     {
         Auth::forgetGuards();
-        
+
         $response = $this->getJson('/api/things/nav/categories');
 
         $response->assertStatus(401);
@@ -241,15 +241,15 @@ class NavControllerTest extends TestCase
         $endpoints = [
             'POST' => '/api/things/nav',
             'PUT' => '/api/things/nav/1',
-            'PATCH' => '/api/things/nav/1'
+            'PATCH' => '/api/things/nav/1',
         ];
 
         foreach ($endpoints as $method => $url) {
             $response = $this->call($method, $url, [], [], [], [
                 'CONTENT_TYPE' => 'application/json',
-                'HTTP_ACCEPT' => 'application/json'
+                'HTTP_ACCEPT' => 'application/json',
             ], '{"invalid": json}');
-            
+
             // Should still return 200 with development message
             $response->assertStatus(200);
         }
@@ -260,12 +260,12 @@ class NavControllerTest extends TestCase
         $endpoints = [
             'GET /api/things/nav' => '/api/things/nav?page=1&limit=10',
             'GET /api/things/nav/1' => '/api/things/nav/1?include=category',
-            'GET /api/things/nav/categories' => '/api/things/nav/categories?sort=name'
+            'GET /api/things/nav/categories' => '/api/things/nav/categories?sort=name',
         ];
 
         foreach ($endpoints as $method => $url) {
             $response = $this->getJson($url);
-            
+
             $response->assertStatus(200);
         }
     }
@@ -275,16 +275,16 @@ class NavControllerTest extends TestCase
         $endpoints = [
             'GET /api/things/nav' => '/api/things/nav',
             'GET /api/things/nav/1' => '/api/things/nav/1',
-            'GET /api/things/nav/categories' => '/api/things/nav/categories'
+            'GET /api/things/nav/categories' => '/api/things/nav/categories',
         ];
 
         foreach ($endpoints as $method => $url) {
             $response = $this->withHeaders([
                 'Accept' => 'application/json',
                 'X-Requested-With' => 'XMLHttpRequest',
-                'User-Agent' => 'Test Agent'
+                'User-Agent' => 'Test Agent',
             ])->getJson($url);
-            
+
             $response->assertStatus(200);
         }
     }
@@ -299,7 +299,7 @@ class NavControllerTest extends TestCase
             'GET /api/things/nav/1' => ['GET', '/api/things/nav/1'],
             'PUT /api/things/nav/1' => ['PUT', '/api/things/nav/1'],
             'DELETE /api/things/nav/1' => ['DELETE', '/api/things/nav/1'],
-            'GET /api/things/nav/categories' => ['GET', '/api/things/nav/categories']
+            'GET /api/things/nav/categories' => ['GET', '/api/things/nav/categories'],
         ];
 
         foreach ($endpoints as $name => [$method, $url]) {
@@ -307,4 +307,4 @@ class NavControllerTest extends TestCase
             $response->assertStatus(200);
         }
     }
-} 
+}

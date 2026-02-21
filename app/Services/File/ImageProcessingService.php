@@ -3,13 +3,13 @@
 namespace App\Services\File;
 
 use App\Services\BaseService;
-use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Imagick\Driver;
+use Intervention\Image\ImageManager;
 
 class ImageProcessingService extends BaseService
 {
     private ImageManager $manager;
-    
+
     // 图片尺寸配置
     private function getThumbnailSize(): int
     {
@@ -33,7 +33,7 @@ class ImageProcessingService extends BaseService
 
     public function __construct()
     {
-        $this->manager = new ImageManager(new Driver());
+        $this->manager = new ImageManager(new Driver);
     }
 
     /**
@@ -42,38 +42,39 @@ class ImageProcessingService extends BaseService
     public function processImage(string $originPath, string $compressedPath): array
     {
         try {
-            if (!file_exists($originPath)) {
+            if (! file_exists($originPath)) {
                 $this->logError('Original image file not found', [
-                    'path' => $originPath
+                    'path' => $originPath,
                 ]);
+
                 return $this->error('Original image file not found');
             }
 
             $img = $this->manager->read($originPath);
             $dimensions = [
                 'width' => $img->width(),
-                'height' => $img->height()
+                'height' => $img->height(),
             ];
-            
+
             // 生成缩略图
             $thumbnailResult = $this->createThumbnail($originPath);
-            if (!$thumbnailResult['success']) {
+            if (! $thumbnailResult['success']) {
                 return $thumbnailResult;
             }
-            
+
             // 生成压缩图
             $compressedResult = $this->createCompressedImage($originPath, $compressedPath);
-            if (!$compressedResult['success']) {
+            if (! $compressedResult['success']) {
                 return $compressedResult;
             }
-            
+
             $this->logInfo('Image processed successfully', [
                 'original_path' => $originPath,
-                'dimensions' => $dimensions
+                'dimensions' => $dimensions,
             ]);
-            
+
             return $this->success($dimensions, 'Image processed successfully');
-            
+
         } catch (\Throwable $e) {
             return $this->handleException($e, 'process image');
         }
@@ -99,9 +100,9 @@ class ImageProcessingService extends BaseService
 
             $thumbnailPath = $this->getThumbnailPath($originPath);
             $thumbnail->save($thumbnailPath, quality: $this->getQualityThumbnail());
-            
+
             return $this->success(['thumbnail_path' => $thumbnailPath]);
-            
+
         } catch (\Throwable $e) {
             return $this->handleException($e, 'create thumbnail');
         }
@@ -122,11 +123,11 @@ class ImageProcessingService extends BaseService
             if ($originalWidth > $compressedMaxSize || $originalHeight > $compressedMaxSize) {
                 $compressed = $this->resizeImage($compressed, $compressedMaxSize);
             }
-            
+
             $compressed->save($compressedPath, quality: $this->getQualityCompressed());
-            
+
             return $this->success(['compressed_path' => $compressedPath]);
-            
+
         } catch (\Throwable $e) {
             return $this->handleException($e, 'create compressed image');
         }
@@ -169,21 +170,21 @@ class ImageProcessingService extends BaseService
     public function getImageInfo(string $imagePath): array
     {
         try {
-            if (!file_exists($imagePath)) {
+            if (! file_exists($imagePath)) {
                 return $this->error('Image file not found');
             }
 
             $img = $this->manager->read($imagePath);
-            
+
             return $this->success([
                 'width' => $img->width(),
                 'height' => $img->height(),
                 'size' => filesize($imagePath),
-                'mime_type' => mime_content_type($imagePath)
+                'mime_type' => mime_content_type($imagePath),
             ]);
-            
+
         } catch (\Throwable $e) {
             return $this->handleException($e, 'get image info');
         }
     }
-} 
+}

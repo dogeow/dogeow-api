@@ -2,16 +2,17 @@
 
 namespace Tests\Feature\Controllers\Thing;
 
-use Tests\TestCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class TodoControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     private User $user;
+
     private User $otherUser;
 
     protected function setUp(): void
@@ -34,7 +35,7 @@ class TodoControllerTest extends TestCase
     {
         $data = [
             'title' => 'Test Todo',
-            'description' => 'Test Description'
+            'description' => 'Test Description',
         ];
 
         $response = $this->postJson('/api/things/todos', $data);
@@ -53,7 +54,7 @@ class TodoControllerTest extends TestCase
     {
         $data = [
             'title' => 'Updated Todo',
-            'description' => 'Updated Description'
+            'description' => 'Updated Description',
         ];
 
         $response = $this->putJson('/api/things/todos/1', $data);
@@ -101,7 +102,7 @@ class TodoControllerTest extends TestCase
             'description' => 'Test Description',
             'priority' => 'high',
             'due_date' => '2024-12-31',
-            'completed' => false
+            'completed' => false,
         ];
 
         $response = $this->postJson('/api/things/todos', $data);
@@ -115,7 +116,7 @@ class TodoControllerTest extends TestCase
         Sanctum::actingAs($this->user);
 
         $data = [
-            'title' => 'Test Todo'
+            'title' => 'Test Todo',
         ];
 
         $response = $this->postJson('/api/things/todos', $data);
@@ -142,7 +143,7 @@ class TodoControllerTest extends TestCase
             'title' => '', // Empty title
             'description' => str_repeat('a', 1001), // Too long description
             'priority' => 'invalid_priority',
-            'due_date' => 'invalid-date'
+            'due_date' => 'invalid-date',
         ];
 
         $response = $this->postJson('/api/things/todos', $data);
@@ -204,7 +205,7 @@ class TodoControllerTest extends TestCase
             'description' => 'Updated Description',
             'priority' => 'medium',
             'due_date' => '2024-12-31',
-            'completed' => true
+            'completed' => true,
         ];
 
         $response = $this->putJson('/api/things/todos/1', $data);
@@ -218,7 +219,7 @@ class TodoControllerTest extends TestCase
         Sanctum::actingAs($this->user);
 
         $data = [
-            'title' => 'Updated Todo'
+            'title' => 'Updated Todo',
         ];
 
         $response = $this->putJson('/api/things/todos/1', $data);
@@ -242,7 +243,7 @@ class TodoControllerTest extends TestCase
         Sanctum::actingAs($this->user);
 
         $data = [
-            'title' => 'Updated Todo'
+            'title' => 'Updated Todo',
         ];
 
         $response = $this->putJson('/api/things/todos/999999', $data);
@@ -259,7 +260,7 @@ class TodoControllerTest extends TestCase
             'title' => '', // Empty title
             'description' => str_repeat('a', 1001), // Too long description
             'priority' => 'invalid_priority',
-            'due_date' => 'invalid-date'
+            'due_date' => 'invalid-date',
         ];
 
         $response = $this->putJson('/api/things/todos/1', $data);
@@ -273,7 +274,7 @@ class TodoControllerTest extends TestCase
         Sanctum::actingAs($this->user);
 
         $data = [
-            'title' => 'Patched Todo'
+            'title' => 'Patched Todo',
         ];
 
         $response = $this->patchJson('/api/things/todos/1', $data);
@@ -342,7 +343,7 @@ class TodoControllerTest extends TestCase
 
         $response = $this->withHeaders([
             'Accept' => 'application/json',
-            'Content-Type' => 'application/json'
+            'Content-Type' => 'application/json',
         ])->getJson('/api/things/todos');
 
         $response->assertStatus(200)
@@ -354,7 +355,7 @@ class TodoControllerTest extends TestCase
         Sanctum::actingAs($this->user);
 
         $response = $this->withHeaders([
-            'Accept' => 'application/xml'
+            'Accept' => 'application/xml',
         ])->getJson('/api/things/todos');
 
         $response->assertStatus(200);
@@ -375,15 +376,13 @@ class TodoControllerTest extends TestCase
 
     // ==================== Error Handling Tests ====================
 
-
-
     public function test_handles_large_payload(): void
     {
         Sanctum::actingAs($this->user);
 
         $largeData = [
             'title' => str_repeat('a', 10000),
-            'description' => str_repeat('b', 10000)
+            'description' => str_repeat('b', 10000),
         ];
 
         $response = $this->postJson('/api/things/todos', $largeData);
@@ -403,7 +402,7 @@ class TodoControllerTest extends TestCase
 
         // When implemented, this should return a proper structure
         $response->assertStatus(200);
-        
+
         // Future structure should include:
         // - pagination
         // - todo items with proper fields
@@ -420,14 +419,14 @@ class TodoControllerTest extends TestCase
             'description' => str_repeat('a', 1001), // Should have max length
             'priority' => 'invalid', // Should be enum
             'due_date' => 'invalid-date', // Should be valid date
-            'completed' => 'not-boolean' // Should be boolean
+            'completed' => 'not-boolean', // Should be boolean
         ];
 
         $response = $this->postJson('/api/things/todos', $invalidData);
 
         // When implemented, this should return validation errors
         $response->assertStatus(200);
-        
+
         // Future implementation should:
         // - Validate required fields
         // - Validate field types and formats
@@ -443,11 +442,11 @@ class TodoControllerTest extends TestCase
         $response = $this->getJson('/api/things/todos');
 
         $response->assertStatus(200);
-        
+
         // Future implementation should:
         // - Filter todos by user_id
         // - Prevent access to other users' todos
         // - Handle soft deletes properly
         // - Implement proper authorization
     }
-} 
+}

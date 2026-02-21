@@ -19,7 +19,7 @@ return new class extends Migration
             $table->unsignedBigInteger('current_book_id')->nullable()->comment('当前学习的单词书ID');
             $table->boolean('is_auto_pronounce')->default(true)->comment('是否自动发音');
             $table->timestamps();
-            
+
             $table->unique('user_id');
             $table->index('current_book_id');
         });

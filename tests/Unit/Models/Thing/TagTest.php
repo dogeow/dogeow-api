@@ -2,11 +2,11 @@
 
 namespace Tests\Unit\Models\Thing;
 
-use Tests\TestCase;
-use App\Models\Thing\Tag;
 use App\Models\Thing\Item;
+use App\Models\Thing\Tag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class TagTest extends TestCase
 {
@@ -96,4 +96,4 @@ class TagTest extends TestCase
 
         $this->assertEquals('Important', $tag->name);
     }
-} 
+}

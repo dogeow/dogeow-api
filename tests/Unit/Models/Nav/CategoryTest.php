@@ -2,10 +2,10 @@
 
 namespace Tests\Unit\Models\Nav;
 
-use Tests\TestCase;
 use App\Models\Nav\Category;
 use App\Models\Nav\Item;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class CategoryTest extends TestCase
 {
@@ -106,4 +106,4 @@ class CategoryTest extends TestCase
 
         $this->assertFalse($category->is_visible);
     }
-} 
+}

@@ -39,7 +39,7 @@ class WarmChatCache extends Command
         try {
             $this->cacheService->warmUpCache();
             $this->info('聊天缓存预热成功！');
-            
+
             // 展示缓存统计信息
             $stats = $this->cacheService->getCacheStats();
             $this->table(['指标', '值'], [
@@ -49,10 +49,11 @@ class WarmChatCache extends Command
                 ['键命中次数', $stats['keyspace_hits'] ?? '无'],
                 ['键未命中次数', $stats['keyspace_misses'] ?? '无'],
             ]);
-            
+
             return Command::SUCCESS;
         } catch (\Exception $e) {
             $this->error('预热缓存失败：' . $e->getMessage());
+
             return Command::FAILURE;
         }
     }

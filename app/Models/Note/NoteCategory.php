@@ -5,14 +5,14 @@ namespace App\Models\Note;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class NoteCategory extends Model
 {
     use HasFactory, SoftDeletes;
-    
+
     /**
      * 可批量赋值的属性
      *
@@ -23,7 +23,7 @@ class NoteCategory extends Model
         'name',
         'description',
     ];
-    
+
     /**
      * 应该被调整为日期的属性
      *
@@ -34,7 +34,7 @@ class NoteCategory extends Model
         'updated_at',
         'deleted_at',
     ];
-    
+
     /**
      * 获取分类所属用户
      */
@@ -42,7 +42,7 @@ class NoteCategory extends Model
     {
         return $this->belongsTo(User::class);
     }
-    
+
     /**
      * 获取此分类下的笔记
      */

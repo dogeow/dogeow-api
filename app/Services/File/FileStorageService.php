@@ -32,7 +32,7 @@ class FileStorageService extends BaseService
         try {
             // 验证文件
             $validation = $this->validateFile($file);
-            if (!$validation['valid']) {
+            if (! $validation['valid']) {
                 return $this->error('File validation failed', $validation['errors']);
             }
 
@@ -41,7 +41,7 @@ class FileStorageService extends BaseService
 
             // 生成文件信息
             $fileInfo = $this->generateFileInfo($file);
-            
+
             // 移动文件到目标目录（优先使用 Storage，兼容测试环境）
             $originPath = $directory . '/' . $fileInfo['origin_filename'];
             $publicRoot = storage_path('app/public');
@@ -58,7 +58,7 @@ class FileStorageService extends BaseService
             $this->logInfo('File stored successfully', [
                 'original_name' => $file->getClientOriginalName(),
                 'stored_path' => $originPath,
-                'size' => $file->getSize()
+                'size' => $file->getSize(),
             ]);
 
             return $this->success(array_merge($fileInfo, [
@@ -78,8 +78,8 @@ class FileStorageService extends BaseService
     {
         try {
             $dirPath = storage_path("app/public/uploads/{$userId}");
-            
-            if (!$this->ensureDirectoryExists($dirPath)) {
+
+            if (! $this->ensureDirectoryExists($dirPath)) {
                 return $this->error('Failed to create user directory');
             }
 
@@ -96,7 +96,7 @@ class FileStorageService extends BaseService
     public function getPublicUrls(string $userId, array $filenames): array
     {
         $baseUrl = "uploads/{$userId}/";
-        
+
         return [
             'compressed_url' => url("storage/{$baseUrl}{$filenames['compressed_filename']}"),
             'thumbnail_url' => url("storage/{$baseUrl}{$filenames['thumbnail_filename']}"),
@@ -110,16 +110,16 @@ class FileStorageService extends BaseService
     public function deleteFile(string $filePath): array
     {
         try {
-            if (!file_exists($filePath)) {
+            if (! file_exists($filePath)) {
                 return $this->error('File not found');
             }
 
-            if (!unlink($filePath)) {
+            if (! unlink($filePath)) {
                 return $this->error('Failed to delete file');
             }
 
             $this->logInfo('File deleted successfully', ['file_path' => $filePath]);
-            
+
             return $this->success();
 
         } catch (\Throwable $e) {
@@ -177,18 +177,18 @@ class FileStorageService extends BaseService
         $allowedExtensions = $this->getAllowedExtensions();
         if ($extension === '') {
             $extension = $this->getDefaultExtension();
-        } elseif (!in_array($extension, $allowedExtensions)) {
+        } elseif (! in_array($extension, $allowedExtensions)) {
             $errors[] = 'File type not allowed. Allowed types: ' . implode(', ', $allowedExtensions);
         }
 
         // 仅在有明确扩展名且允许的图片扩展名时验证图片内容
-        if ($originalExtension !== '' && in_array($extension, $allowedExtensions) && !$this->isValidImage($file)) {
+        if ($originalExtension !== '' && in_array($extension, $allowedExtensions) && ! $this->isValidImage($file)) {
             $errors[] = 'File is not a valid image';
         }
 
         return [
             'valid' => empty($errors),
-            'errors' => $errors
+            'errors' => $errors,
         ];
     }
 
@@ -198,6 +198,7 @@ class FileStorageService extends BaseService
     private function isValidImage(UploadedFile $file): bool
     {
         $imageInfo = @getimagesize($file->getPathname());
+
         return $imageInfo !== false;
     }
 
@@ -208,7 +209,7 @@ class FileStorageService extends BaseService
     {
         $basename = Str::random(32);
         $extension = strtolower($file->getClientOriginalExtension()) ?: $this->getDefaultExtension();
-        
+
         return [
             'basename' => $basename,
             'extension' => $extension,
@@ -226,9 +227,10 @@ class FileStorageService extends BaseService
      */
     private function ensureDirectoryExists(string $directory): bool
     {
-        if (!file_exists($directory)) {
+        if (! file_exists($directory)) {
             return mkdir($directory, 0755, true);
         }
+
         return true;
     }
-} 
+}

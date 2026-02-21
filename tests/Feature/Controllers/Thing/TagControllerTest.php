@@ -2,19 +2,19 @@
 
 namespace Tests\Feature\Controllers\Thing;
 
-use Tests\TestCase;
-use App\Models\Thing\Tag;
 use App\Models\Thing\Item;
+use App\Models\Thing\Tag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Auth;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class TagControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     private User $user;
+
     private User $otherUser;
 
     protected function setUp(): void
@@ -57,8 +57,8 @@ class TagControllerTest extends TestCase
                     'user_id',
                     'created_at',
                     'updated_at',
-                    'items_count'
-                ]
+                    'items_count',
+                ],
             ])
             ->assertJsonFragment(['items_count' => 1]);
     }
@@ -67,11 +67,11 @@ class TagControllerTest extends TestCase
     {
         $tag1 = Tag::factory()->create([
             'user_id' => $this->user->id,
-            'created_at' => now()->subDay()
+            'created_at' => now()->subDay(),
         ]);
         $tag2 = Tag::factory()->create([
             'user_id' => $this->user->id,
-            'created_at' => now()
+            'created_at' => now(),
         ]);
 
         $response = $this->getJson('/api/things/tags');
@@ -102,7 +102,7 @@ class TagControllerTest extends TestCase
             ->assertJson([
                 'name' => 'Test Tag',
                 'user_id' => $this->user->id,
-                'color' => '#3b82f6'
+                'color' => '#3b82f6',
             ])
             ->assertJsonStructure([
                 'id',
@@ -110,13 +110,13 @@ class TagControllerTest extends TestCase
                 'color',
                 'user_id',
                 'created_at',
-                'updated_at'
+                'updated_at',
             ]);
 
         $this->assertDatabaseHas('thing_tags', [
             'name' => 'Test Tag',
             'user_id' => $this->user->id,
-            'color' => '#3b82f6'
+            'color' => '#3b82f6',
         ]);
     }
 
@@ -124,7 +124,7 @@ class TagControllerTest extends TestCase
     {
         $data = [
             'name' => 'Test Tag',
-            'color' => '#ff0000'
+            'color' => '#ff0000',
         ];
 
         $response = $this->postJson('/api/things/tags', $data);
@@ -132,12 +132,12 @@ class TagControllerTest extends TestCase
         $response->assertStatus(201)
             ->assertJson([
                 'name' => 'Test Tag',
-                'color' => '#ff0000'
+                'color' => '#ff0000',
             ]);
 
         $this->assertDatabaseHas('thing_tags', [
             'name' => 'Test Tag',
-            'color' => '#ff0000'
+            'color' => '#ff0000',
         ]);
     }
 
@@ -163,7 +163,7 @@ class TagControllerTest extends TestCase
     {
         $data = [
             'name' => 'Test Tag',
-            'color' => 'invalid-color'
+            'color' => 'invalid-color',
         ];
 
         $response = $this->postJson('/api/things/tags', $data);
@@ -176,7 +176,7 @@ class TagControllerTest extends TestCase
     {
         Tag::factory()->create([
             'user_id' => $this->user->id,
-            'name' => 'Existing Tag'
+            'name' => 'Existing Tag',
         ]);
 
         $data = ['name' => 'Existing Tag'];
@@ -191,7 +191,7 @@ class TagControllerTest extends TestCase
     {
         Tag::factory()->create([
             'user_id' => $this->otherUser->id,
-            'name' => 'Shared Tag'
+            'name' => 'Shared Tag',
         ]);
 
         $data = ['name' => 'Shared Tag'];
@@ -203,7 +203,7 @@ class TagControllerTest extends TestCase
 
         $this->assertDatabaseHas('thing_tags', [
             'name' => 'Shared Tag',
-            'user_id' => $this->user->id
+            'user_id' => $this->user->id,
         ]);
     }
 
@@ -211,7 +211,7 @@ class TagControllerTest extends TestCase
     {
         $data = [
             'name' => 'Test Tag',
-            'color' => '#GGGGGG'
+            'color' => '#GGGGGG',
         ];
 
         $response = $this->postJson('/api/things/tags', $data);
@@ -223,11 +223,11 @@ class TagControllerTest extends TestCase
     public function test_store_accepts_valid_hex_colors()
     {
         $validColors = ['#ff0000', '#00ff00', '#0000ff', '#ffffff', '#000000'];
-        
+
         foreach ($validColors as $color) {
             $data = [
                 'name' => "Tag with color {$color}",
-                'color' => $color
+                'color' => $color,
             ];
 
             $response = $this->postJson('/api/things/tags', $data);
@@ -248,7 +248,7 @@ class TagControllerTest extends TestCase
                 'id' => $tag->id,
                 'name' => $tag->name,
                 'color' => $tag->color,
-                'user_id' => $this->user->id
+                'user_id' => $this->user->id,
             ])
             ->assertJsonStructure([
                 'id',
@@ -256,7 +256,7 @@ class TagControllerTest extends TestCase
                 'color',
                 'user_id',
                 'created_at',
-                'updated_at'
+                'updated_at',
             ]);
     }
 
@@ -271,7 +271,7 @@ class TagControllerTest extends TestCase
 
     public function test_show_returns_404_for_nonexistent_tag()
     {
-        $response = $this->getJson("/api/things/tags/999");
+        $response = $this->getJson('/api/things/tags/999');
 
         $response->assertStatus(404);
     }
@@ -293,7 +293,7 @@ class TagControllerTest extends TestCase
         $tag = Tag::factory()->create(['user_id' => $this->user->id]);
         $data = [
             'name' => 'Updated Tag',
-            'color' => '#00ff00'
+            'color' => '#00ff00',
         ];
 
         $response = $this->putJson("/api/things/tags/{$tag->id}", $data);
@@ -302,13 +302,13 @@ class TagControllerTest extends TestCase
             ->assertJson([
                 'id' => $tag->id,
                 'name' => 'Updated Tag',
-                'color' => '#00ff00'
+                'color' => '#00ff00',
             ]);
 
         $this->assertDatabaseHas('thing_tags', [
             'id' => $tag->id,
             'name' => 'Updated Tag',
-            'color' => '#00ff00'
+            'color' => '#00ff00',
         ]);
     }
 
@@ -317,30 +317,30 @@ class TagControllerTest extends TestCase
         $tag = Tag::factory()->create([
             'user_id' => $this->user->id,
             'name' => 'Original Name',
-            'color' => '#ff0000'
+            'color' => '#ff0000',
         ]);
 
         // Update only name
         $response = $this->putJson("/api/things/tags/{$tag->id}", [
-            'name' => 'Updated Name'
+            'name' => 'Updated Name',
         ]);
 
         $response->assertStatus(200)
             ->assertJson([
                 'name' => 'Updated Name',
-                'color' => '#ff0000'
+                'color' => '#ff0000',
             ]);
 
         // Update only color (must include name as it's required)
         $response = $this->putJson("/api/things/tags/{$tag->id}", [
             'name' => 'Updated Name',
-            'color' => '#00ff00'
+            'color' => '#00ff00',
         ]);
 
         $response->assertStatus(200)
             ->assertJson([
                 'name' => 'Updated Name',
-                'color' => '#00ff00'
+                'color' => '#00ff00',
             ]);
     }
 
@@ -370,7 +370,7 @@ class TagControllerTest extends TestCase
         $tag = Tag::factory()->create(['user_id' => $this->user->id]);
         $data = [
             'name' => 'Test Tag',
-            'color' => 'invalid-color'
+            'color' => 'invalid-color',
         ];
 
         $response = $this->putJson("/api/things/tags/{$tag->id}", $data);
@@ -383,15 +383,15 @@ class TagControllerTest extends TestCase
     {
         $tag1 = Tag::factory()->create([
             'user_id' => $this->user->id,
-            'name' => 'Tag 1'
+            'name' => 'Tag 1',
         ]);
         $tag2 = Tag::factory()->create([
             'user_id' => $this->user->id,
-            'name' => 'Tag 2'
+            'name' => 'Tag 2',
         ]);
 
         $response = $this->putJson("/api/things/tags/{$tag2->id}", [
-            'name' => 'Tag 1'
+            'name' => 'Tag 1',
         ]);
 
         $response->assertStatus(422)
@@ -402,15 +402,15 @@ class TagControllerTest extends TestCase
     {
         $otherUserTag = Tag::factory()->create([
             'user_id' => $this->otherUser->id,
-            'name' => 'Shared Tag'
+            'name' => 'Shared Tag',
         ]);
         $userTag = Tag::factory()->create([
             'user_id' => $this->user->id,
-            'name' => 'Original Tag'
+            'name' => 'Original Tag',
         ]);
 
         $response = $this->putJson("/api/things/tags/{$userTag->id}", [
-            'name' => 'Shared Tag'
+            'name' => 'Shared Tag',
         ]);
 
         $response->assertStatus(200)
@@ -419,8 +419,8 @@ class TagControllerTest extends TestCase
 
     public function test_update_returns_404_for_nonexistent_tag()
     {
-        $response = $this->putJson("/api/things/tags/999", [
-            'name' => 'Updated Tag'
+        $response = $this->putJson('/api/things/tags/999', [
+            'name' => 'Updated Tag',
         ]);
 
         $response->assertStatus(404);
@@ -432,7 +432,7 @@ class TagControllerTest extends TestCase
         $tag->delete();
 
         $response = $this->putJson("/api/things/tags/{$tag->id}", [
-            'name' => 'Updated Tag'
+            'name' => 'Updated Tag',
         ]);
 
         $response->assertStatus(404);
@@ -483,7 +483,7 @@ class TagControllerTest extends TestCase
 
     public function test_destroy_returns_404_for_nonexistent_tag()
     {
-        $response = $this->deleteJson("/api/things/tags/999");
+        $response = $this->deleteJson('/api/things/tags/999');
 
         $response->assertStatus(404);
     }
@@ -529,7 +529,7 @@ class TagControllerTest extends TestCase
     public function test_store_with_null_color_uses_default()
     {
         $response = $this->postJson('/api/things/tags', [
-            'name' => 'Test Tag'
+            'name' => 'Test Tag',
             // Don't send color at all, let it use default
         ]);
 
@@ -541,15 +541,15 @@ class TagControllerTest extends TestCase
     {
         $tag = Tag::factory()->create([
             'user_id' => $this->user->id,
-            'color' => '#ff0000'
+            'color' => '#ff0000',
         ]);
 
         $response = $this->putJson("/api/things/tags/{$tag->id}", [
-            'name' => 'Updated Tag'
+            'name' => 'Updated Tag',
             // Don't send color at all, let it keep existing
         ]);
 
         $response->assertStatus(200)
             ->assertJson(['color' => '#ff0000']);
     }
-} 
+}

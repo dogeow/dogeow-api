@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api\Game;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\CharacterConcern;
+use App\Http\Controllers\Controller;
 use App\Models\Game\GameItemDefinition;
 use App\Models\Game\GameMonsterDefinition;
 use Illuminate\Http\JsonResponse;

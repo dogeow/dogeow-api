@@ -2,26 +2,27 @@
 
 namespace Tests\Unit\Services;
 
-use Tests\TestCase;
-use App\Services\Location\LocationTreeService;
 use App\Models\Thing\Area;
+use App\Models\Thing\Item;
 use App\Models\Thing\Room;
 use App\Models\Thing\Spot;
-use App\Models\Thing\Item;
 use App\Models\User;
+use App\Services\Location\LocationTreeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class LocationTreeServiceTest extends TestCase
 {
     use RefreshDatabase;
 
     private LocationTreeService $service;
+
     private User $user;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new LocationTreeService();
+        $this->service = new LocationTreeService;
         $this->user = User::factory()->create();
     }
 

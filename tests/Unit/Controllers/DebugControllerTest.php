@@ -2,14 +2,12 @@
 
 namespace Tests\Unit\Controllers;
 
-use Tests\TestCase;
 use App\Http\Controllers\Api\DebugController;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use ReflectionClass;
+use Tests\TestCase;
 
 class DebugControllerTest extends TestCase
 {
@@ -20,7 +18,7 @@ class DebugControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->controller = new DebugController();
+        $this->controller = new DebugController;
     }
 
     /**
@@ -283,17 +281,17 @@ class DebugControllerTest extends TestCase
             'stack_trace' => [
                 'file' => 'app.js',
                 'line' => 123,
-                'function' => 'handleError'
+                'function' => 'handleError',
             ],
             'context' => [
                 'user_id' => 456,
                 'session_id' => 'abc123',
-                'browser' => 'Chrome'
+                'browser' => 'Chrome',
             ],
             'performance' => [
                 'load_time' => 2.5,
-                'memory_usage' => '128MB'
-            ]
+                'memory_usage' => '128MB',
+            ],
         ];
 
         $request = new Request([
@@ -530,16 +528,16 @@ class DebugControllerTest extends TestCase
                 'level2' => [
                     'level3' => [
                         'level4' => [
-                            'level5' => 'deep nested value'
-                        ]
-                    ]
-                ]
+                            'level5' => 'deep nested value',
+                        ],
+                    ],
+                ],
             ],
             'array' => [
                 'nested' => [
-                    'items' => [1, 2, 3, 4, 5]
-                ]
-            ]
+                    'items' => [1, 2, 3, 4, 5],
+                ],
+            ],
         ];
 
         $request = new Request([
@@ -596,4 +594,4 @@ class DebugControllerTest extends TestCase
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertEquals('错误日志已记录', $response->getData()->message);
     }
-} 
+}

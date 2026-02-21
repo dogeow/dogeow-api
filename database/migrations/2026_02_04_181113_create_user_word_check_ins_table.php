@@ -19,7 +19,7 @@ return new class extends Migration
             $table->integer('review_words_count')->default(0)->comment('复习单词数');
             $table->integer('study_duration')->default(0)->comment('学习时长(秒)');
             $table->timestamps();
-            
+
             $table->unique(['user_id', 'check_in_date']);
             $table->index('check_in_date');
         });

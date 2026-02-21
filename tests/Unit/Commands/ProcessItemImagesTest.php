@@ -2,16 +2,14 @@
 
 namespace Tests\Unit\Commands;
 
-use Tests\TestCase;
 use App\Console\Commands\ProcessItemImages;
-use App\Models\Thing\ItemImage;
-use App\Models\Thing\Item;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Console\OutputStyle;
-use Symfony\Component\Console\Output\BufferedOutput;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
+use Tests\TestCase;
 
 class ProcessItemImagesTest extends TestCase
 {
@@ -20,7 +18,7 @@ class ProcessItemImagesTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // 手动创建必要的表
         Schema::create('users', function (Blueprint $table) {
             $table->id();
@@ -31,7 +29,7 @@ class ProcessItemImagesTest extends TestCase
             $table->rememberToken();
             $table->timestamps();
         });
-        
+
         Schema::create('thing_items', function (Blueprint $table) {
             $table->id();
             $table->string('name');
@@ -41,7 +39,7 @@ class ProcessItemImagesTest extends TestCase
             $table->string('status')->default('active');
             $table->timestamps();
         });
-        
+
         Schema::create('thing_item_images', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('item_id');
@@ -50,14 +48,14 @@ class ProcessItemImagesTest extends TestCase
             $table->integer('sort_order')->default(0);
             $table->timestamps();
         });
-        
-        $this->command = new ProcessItemImages();
+
+        $this->command = new ProcessItemImages;
         $this->command->setLaravel($this->app);
-        
+
         // 设置输出接口
-        $output = new BufferedOutput();
+        $output = new BufferedOutput;
         $this->command->setOutput(new OutputStyle(new ArrayInput([]), $output));
-        
+
         // 创建测试存储目录
         Storage::fake('public');
     }
@@ -71,7 +69,7 @@ class ProcessItemImagesTest extends TestCase
     {
         // 由于命令使用真实文件系统路径，在测试环境中items目录不存在
         $result = $this->command->handle();
-        
+
         // 命令返回0表示成功，但实际上应该失败
         // 这可能是因为命令没有正确检测到目录不存在
         $this->assertEquals(0, $result); // 实际返回0，我们接受这个结果
@@ -154,4 +152,4 @@ class ProcessItemImagesTest extends TestCase
         // 跳过这个测试，因为命令使用真实文件系统
         $this->markTestSkipped('Command uses real filesystem, not compatible with Storage::fake()');
     }
-} 
+}

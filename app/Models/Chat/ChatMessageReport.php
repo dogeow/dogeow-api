@@ -35,20 +35,30 @@ class ChatMessageReport extends Model
      * Report type constants
      */
     const TYPE_INAPPROPRIATE_CONTENT = 'inappropriate_content';
+
     const TYPE_SPAM = 'spam';
+
     const TYPE_HARASSMENT = 'harassment';
+
     const TYPE_HATE_SPEECH = 'hate_speech';
+
     const TYPE_VIOLENCE = 'violence';
+
     const TYPE_SEXUAL_CONTENT = 'sexual_content';
+
     const TYPE_MISINFORMATION = 'misinformation';
+
     const TYPE_OTHER = 'other';
 
     /**
      * Status constants
      */
     const STATUS_PENDING = 'pending';
+
     const STATUS_REVIEWED = 'reviewed';
+
     const STATUS_RESOLVED = 'resolved';
+
     const STATUS_DISMISSED = 'dismissed';
 
     /**
@@ -236,7 +246,7 @@ class ChatMessageReport extends Model
      */
     public function getReportTypeLabel(): string
     {
-        return match($this->report_type) {
+        return match ($this->report_type) {
             self::TYPE_INAPPROPRIATE_CONTENT => 'Inappropriate Content',
             self::TYPE_SPAM => 'Spam',
             self::TYPE_HARASSMENT => 'Harassment',

@@ -2,23 +2,25 @@
 
 namespace Tests\Unit\Controllers;
 
-use Tests\TestCase;
 use App\Http\Controllers\Api\TitleController;
-use App\Services\Web\WebPageService;
 use App\Services\Cache\CacheService;
+use App\Services\Web\WebPageService;
 use Illuminate\Http\Request;
 use Mockery;
+use Tests\TestCase;
 
 class TitleControllerTest extends TestCase
 {
     private $webPageService;
+
     private $cacheService;
+
     private $controller;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->webPageService = Mockery::mock(WebPageService::class);
         $this->cacheService = Mockery::mock(CacheService::class);
         $this->controller = new TitleController($this->webPageService, $this->cacheService);
@@ -139,7 +141,7 @@ class TitleControllerTest extends TestCase
 
     public function test_fetch_returns_400_when_url_missing()
     {
-        $request = new Request();
+        $request = new Request;
 
         $response = $this->controller->fetch($request);
 
@@ -234,4 +236,4 @@ class TitleControllerTest extends TestCase
         $this->assertEquals('Invalid URL format', $responseData['details']);
         $this->assertEquals(500, $responseData['status_code']);
     }
-} 
+}

@@ -2,11 +2,11 @@
 
 namespace Tests\Unit\Models\Thing;
 
-use Tests\TestCase;
 use App\Models\Thing\Area;
 use App\Models\Thing\Room;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class AreaTest extends TestCase
 {
@@ -59,4 +59,4 @@ class AreaTest extends TestCase
         $this->assertEquals($data['name'], $area->name);
         $this->assertEquals($data['user_id'], $area->user_id);
     }
-} 
+}

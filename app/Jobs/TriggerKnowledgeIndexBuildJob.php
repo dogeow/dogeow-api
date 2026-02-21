@@ -12,11 +12,12 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class TriggerKnowledgeIndexBuildJob implements ShouldQueue, ShouldBeUnique
+class TriggerKnowledgeIndexBuildJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 2;
+
     public int $timeout = 300;
 
     /** 唯一锁持有时间（秒），避免重复入队 */
@@ -37,8 +38,9 @@ class TriggerKnowledgeIndexBuildJob implements ShouldQueue, ShouldBeUnique
     {
         $url = config('services.knowledge.build_index_url');
 
-        if (!$url) {
+        if (! $url) {
             Log::warning('KnowledgeIndexBuild: 构建接口 URL 未配置，跳过构建');
+
             return;
         }
 
@@ -70,9 +72,6 @@ class TriggerKnowledgeIndexBuildJob implements ShouldQueue, ShouldBeUnique
         }
     }
 
-    /**
-     * @return string
-     */
     public function uniqueId(): string
     {
         return 'knowledge-index-build';

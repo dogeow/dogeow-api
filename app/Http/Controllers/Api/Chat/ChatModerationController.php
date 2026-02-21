@@ -2,22 +2,22 @@
 
 namespace App\Http\Controllers\Api\Chat;
 
-use App\Http\Controllers\Controller;
-use App\Models\Chat\ChatRoom;
-use App\Models\Chat\ChatMessage;
-use App\Models\Chat\ChatRoomUser;
-use App\Models\Chat\ChatModerationAction;
 use App\Events\Chat\MessageDeleted;
-use App\Events\Chat\UserMuted;
-use App\Events\Chat\UserUnmuted;
 use App\Events\Chat\UserBanned;
+use App\Events\Chat\UserMuted;
 use App\Events\Chat\UserUnbanned;
+use App\Events\Chat\UserUnmuted;
+use App\Http\Controllers\Controller;
+use App\Models\Chat\ChatMessage;
+use App\Models\Chat\ChatModerationAction;
+use App\Models\Chat\ChatRoom;
+use App\Models\Chat\ChatRoomUser;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
-use App\Models\User;
+use Illuminate\Support\Facades\Log;
 
 class ChatModerationController extends Controller
 {
@@ -42,7 +42,7 @@ class ChatModerationController extends Controller
      */
     private function ensureCanModerate(User $moderator, ChatRoom $room, string $message): ?JsonResponse
     {
-        if (!$moderator->canModerate($room)) {
+        if (! $moderator->canModerate($room)) {
             return $this->error($message, [], 403);
         }
 
@@ -76,7 +76,7 @@ class ChatModerationController extends Controller
      */
     private function logAndError(string $logMessage, \Throwable $e, array $context, string $userMessage, int $statusCode = 500): JsonResponse
     {
-        \Log::error($logMessage, array_merge($context, [
+        Log::error($logMessage, array_merge($context, [
             'error' => $e->getMessage(),
         ]));
 
@@ -150,6 +150,7 @@ class ChatModerationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return $this->logAndError(
                 'Failed to delete message',
                 $e,
@@ -190,7 +191,7 @@ class ChatModerationController extends Controller
 
         $roomUser = $this->findRoomUser($roomId, $userId);
 
-        if (!$roomUser) {
+        if (! $roomUser) {
             return $this->error('User is not in this room', [], 404);
         }
 
@@ -229,6 +230,7 @@ class ChatModerationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return $this->logAndError(
                 'Failed to mute user',
                 $e,
@@ -262,11 +264,11 @@ class ChatModerationController extends Controller
 
         $roomUser = $this->findRoomUser($roomId, $userId);
 
-        if (!$roomUser) {
+        if (! $roomUser) {
             return $this->error('User is not in this room', [], 404);
         }
 
-        if (!$roomUser->isMuted()) {
+        if (! $roomUser->isMuted()) {
             return $this->error('User is not muted', [], 422);
         }
 
@@ -299,6 +301,7 @@ class ChatModerationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return $this->logAndError(
                 'Failed to unmute user',
                 $e,
@@ -339,7 +342,7 @@ class ChatModerationController extends Controller
 
         $roomUser = $this->findRoomUser($roomId, $userId);
 
-        if (!$roomUser) {
+        if (! $roomUser) {
             return $this->error('User is not in this room', [], 404);
         }
 
@@ -378,6 +381,7 @@ class ChatModerationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return $this->logAndError(
                 'Failed to ban user',
                 $e,
@@ -411,11 +415,11 @@ class ChatModerationController extends Controller
 
         $roomUser = $this->findRoomUser($roomId, $userId);
 
-        if (!$roomUser) {
+        if (! $roomUser) {
             return $this->error('User is not in this room', [], 404);
         }
 
-        if (!$roomUser->isBanned()) {
+        if (! $roomUser->isBanned()) {
             return $this->error('User is not banned', [], 422);
         }
 
@@ -448,6 +452,7 @@ class ChatModerationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return $this->logAndError(
                 'Failed to unban user',
                 $e,
@@ -514,7 +519,7 @@ class ChatModerationController extends Controller
             $roomUser->load(['user:id,name,email', 'mutedByUser:id,name', 'bannedByUser:id,name']);
         }
 
-        if (!$roomUser) {
+        if (! $roomUser) {
             return $this->error('User is not in this room', [], 404);
         }
 

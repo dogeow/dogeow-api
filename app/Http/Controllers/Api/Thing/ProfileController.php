@@ -2,14 +2,10 @@
 
 namespace App\Http\Controllers\Api\Thing;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\View\View;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ProfileUpdateRequest;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProfileController extends Controller
 {
@@ -19,7 +15,7 @@ class ProfileController extends Controller
     public function edit(Request $request)
     {
         return response()->json([
-            'user' => $request->user()->only(['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at'])
+            'user' => $request->user()->only(['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at']),
         ]);
     }
 
@@ -38,7 +34,7 @@ class ProfileController extends Controller
 
         return response()->json([
             'message' => 'Profile updated successfully',
-            'user' => $request->user()->only(['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at'])
+            'user' => $request->user()->only(['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at']),
         ]);
     }
 
@@ -59,12 +55,12 @@ class ProfileController extends Controller
                 $item->images()->delete();
                 $item->delete();
             });
-            
+
             $user->delete();
         });
 
         return response()->json([
-            'message' => 'Account deleted successfully'
+            'message' => 'Account deleted successfully',
         ]);
     }
 }

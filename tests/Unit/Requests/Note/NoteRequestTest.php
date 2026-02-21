@@ -2,9 +2,9 @@
 
 namespace Tests\Unit\Requests\Note;
 
-use Tests\TestCase;
 use App\Http\Requests\Note\NoteRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class NoteRequestTest extends TestCase
 {
@@ -15,7 +15,7 @@ class NoteRequestTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->request = new NoteRequest();
+        $this->request = new NoteRequest;
     }
 
     public function test_authorize_returns_true()
@@ -103,4 +103,4 @@ class NoteRequestTest extends TestCase
 
         $this->assertEquals('草稿状态', $attributes['is_draft']);
     }
-} 
+}

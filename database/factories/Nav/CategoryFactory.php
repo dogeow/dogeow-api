@@ -52,4 +52,4 @@ class CategoryFactory extends Factory
             'is_visible' => false,
         ]);
     }
-} 
+}

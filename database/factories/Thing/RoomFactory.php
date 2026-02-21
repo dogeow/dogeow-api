@@ -2,8 +2,8 @@
 
 namespace Database\Factories\Thing;
 
-use App\Models\Thing\Room;
 use App\Models\Thing\Area;
+use App\Models\Thing\Room;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -32,4 +32,4 @@ class RoomFactory extends Factory
             'user_id' => User::factory(),
         ];
     }
-} 
+}

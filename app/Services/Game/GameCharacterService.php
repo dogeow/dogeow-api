@@ -3,9 +3,8 @@
 namespace App\Services\Game;
 
 use App\Models\Game\GameCharacter;
-use App\Models\Game\GameMapDefinition;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 /**
  * 角色服务类
@@ -23,7 +22,7 @@ class GameCharacterService
     /**
      * 获取用户角色列表
      *
-     * @param int $userId 用户ID
+     * @param  int  $userId  用户ID
      * @return array 角色列表和经验表
      */
     public function getCharacterList(int $userId): array
@@ -40,7 +39,7 @@ class GameCharacterService
 
             return [
                 'characters' => $characters->map(fn ($c) => $c->only([
-                    'id', 'name', 'class', 'level', 'experience', 'copper', 'is_fighting', 'difficulty_tier'
+                    'id', 'name', 'class', 'level', 'experience', 'copper', 'is_fighting', 'difficulty_tier',
                 ])),
                 'experience_table' => config('game.experience_table', []),
             ];
@@ -50,8 +49,8 @@ class GameCharacterService
     /**
      * 获取角色详情
      *
-     * @param int $userId 用户ID
-     * @param int|null $characterId 角色ID（可选）
+     * @param  int  $userId  用户ID
+     * @param  int|null  $characterId  角色ID（可选）
      * @return array|null 角色详情数组
      */
     public function getCharacterDetail(int $userId, ?int $characterId = null): ?array
@@ -61,7 +60,7 @@ class GameCharacterService
             ->with([
                 'equipment.item.definition',
                 'skills.skill',
-                'currentMap'
+                'currentMap',
             ]);
 
         if ($characterId) {
@@ -90,10 +89,11 @@ class GameCharacterService
     /**
      * 创建新角色
      *
-     * @param int $userId 用户ID
-     * @param string $name 角色名称
-     * @param string $class 职业类型
+     * @param  int  $userId  用户ID
+     * @param  string  $name  角色名称
+     * @param  string  $class  职业类型
      * @return GameCharacter 创建的角色
+     *
      * @throws \InvalidArgumentException 角色名已存在
      */
     public function createCharacter(int $userId, string $name, string $class): GameCharacter
@@ -139,8 +139,9 @@ class GameCharacterService
     /**
      * 删除角色
      *
-     * @param int $userId 用户ID
-     * @param int $characterId 角色ID
+     * @param  int  $userId  用户ID
+     * @param  int  $characterId  角色ID
+     *
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException 角色不存在
      */
     public function deleteCharacter(int $userId, int $characterId): void
@@ -159,10 +160,11 @@ class GameCharacterService
     /**
      * 分配属性点
      *
-     * @param int $userId 用户ID
-     * @param int $characterId 角色ID
-     * @param array $stats 要分配的属性 ['strength' => 1, 'dexterity' => 2, ...]
+     * @param  int  $userId  用户ID
+     * @param  int  $characterId  角色ID
+     * @param  array  $stats  要分配的属性 ['strength' => 1, 'dexterity' => 2, ...]
      * @return array 更新后的角色数据
+     *
      * @throws \InvalidArgumentException 属性点不足
      */
     public function allocateStats(int $userId, int $characterId, array $stats): array
@@ -202,9 +204,9 @@ class GameCharacterService
     /**
      * 更新难度设置
      *
-     * @param int $userId 用户ID
-     * @param int $difficultyTier 难度等级 (1-4)
-     * @param int|null $characterId 角色ID（可选）
+     * @param  int  $userId  用户ID
+     * @param  int  $difficultyTier  难度等级 (1-4)
+     * @param  int|null  $characterId  角色ID（可选）
      * @return GameCharacter 更新后的角色
      */
     public function updateDifficulty(int $userId, int $difficultyTier, ?int $characterId = null): GameCharacter
@@ -225,8 +227,8 @@ class GameCharacterService
     /**
      * 获取角色完整详情（包含背包、技能等）
      *
-     * @param int $userId 用户ID
-     * @param int|null $characterId 角色ID（可选）
+     * @param  int  $userId  用户ID
+     * @param  int|null  $characterId  角色ID（可选）
      * @return array 完整角色数据
      */
     public function getCharacterFullDetail(int $userId, ?int $characterId = null): array
@@ -275,7 +277,7 @@ class GameCharacterService
     /**
      * 检查离线奖励信息
      *
-     * @param GameCharacter $character 角色实例
+     * @param  GameCharacter  $character  角色实例
      * @return array 离线奖励信息
      */
     public function checkOfflineRewards(GameCharacter $character): array
@@ -317,7 +319,7 @@ class GameCharacterService
     /**
      * 领取离线奖励
      *
-     * @param GameCharacter $character 角色实例
+     * @param  GameCharacter  $character  角色实例
      * @return array 领取结果
      */
     public function claimOfflineRewards(GameCharacter $character): array
@@ -359,7 +361,8 @@ class GameCharacterService
     /**
      * 验证角色名称
      *
-     * @param string $name 角色名称
+     * @param  string  $name  角色名称
+     *
      * @throws \InvalidArgumentException 名称不符合要求
      */
     private function validateCharacterName(string $name): void
@@ -382,7 +385,7 @@ class GameCharacterService
     /**
      * 检查角色名是否已被使用
      *
-     * @param string $name 角色名称
+     * @param  string  $name  角色名称
      * @return bool 是否已被使用
      */
     private function isCharacterNameTaken(string $name): bool
@@ -393,7 +396,7 @@ class GameCharacterService
     /**
      * 获取职业基础属性
      *
-     * @param string $class 职业类型
+     * @param  string  $class  职业类型
      * @return array 基础属性数组
      */
     private function getClassBaseStats(string $class): array
@@ -409,7 +412,7 @@ class GameCharacterService
     /**
      * 获取初始铜币
      *
-     * @param string $class 职业类型
+     * @param  string  $class  职业类型
      * @return int 初始铜币数量
      */
     private function getStartingCopper(string $class): int
@@ -420,7 +423,7 @@ class GameCharacterService
     /**
      * 初始化装备槽位
      *
-     * @param GameCharacter $character 角色实例
+     * @param  GameCharacter  $character  角色实例
      */
     private function initializeEquipmentSlots(GameCharacter $character): void
     {
@@ -432,7 +435,7 @@ class GameCharacterService
     /**
      * 计算总属性点数
      *
-     * @param array $stats 属性数组
+     * @param  array  $stats  属性数组
      * @return int 总点数
      */
     private function calculateTotalStatPoints(array $stats): int
@@ -443,7 +446,7 @@ class GameCharacterService
     /**
      * 获取可用技能列表
      *
-     * @param GameCharacter $character 角色实例
+     * @param  GameCharacter  $character  角色实例
      * @return \Illuminate\Database\Eloquent\Collection 可用技能集合
      */
     private function getAvailableSkills(GameCharacter $character)
@@ -460,11 +463,11 @@ class GameCharacterService
     /**
      * 格式化离线奖励返回数据
      *
-     * @param int $offlineSeconds 离线秒数
-     * @param bool $available 是否可领取
-     * @param int $experience 经验（可选）
-     * @param int $copper 铜币（可选）
-     * @param bool $levelUp 是否升级（可选）
+     * @param  int  $offlineSeconds  离线秒数
+     * @param  bool  $available  是否可领取
+     * @param  int  $experience  经验（可选）
+     * @param  int  $copper  铜币（可选）
+     * @param  bool  $levelUp  是否升级（可选）
      * @return array 格式化后的数据
      */
     private function formatOfflineRewards(
@@ -486,7 +489,7 @@ class GameCharacterService
     /**
      * 清除角色相关缓存
      *
-     * @param int $userId 用户ID
+     * @param  int  $userId  用户ID
      */
     private function clearCharacterCache(int $userId): void
     {

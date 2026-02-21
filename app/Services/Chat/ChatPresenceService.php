@@ -73,7 +73,7 @@ class ChatPresenceService
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'errors' => ['Failed to update user status: '.$e->getMessage()],
+                'errors' => ['Failed to update user status: ' . $e->getMessage()],
             ];
         }
     }
@@ -149,7 +149,7 @@ class ChatPresenceService
 
             return [
                 'success' => false,
-                'errors' => ['Failed to join room: '.$e->getMessage()],
+                'errors' => ['Failed to join room: ' . $e->getMessage()],
             ];
         }
     }
@@ -210,7 +210,7 @@ class ChatPresenceService
 
             return [
                 'success' => false,
-                'errors' => ['Failed to leave room: '.$e->getMessage()],
+                'errors' => ['Failed to leave room: ' . $e->getMessage()],
             ];
         }
     }
@@ -253,7 +253,7 @@ class ChatPresenceService
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'errors' => ['Failed to process heartbeat: '.$e->getMessage()],
+                'errors' => ['Failed to process heartbeat: ' . $e->getMessage()],
             ];
         }
     }
@@ -297,7 +297,7 @@ class ChatPresenceService
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'errors' => ['Failed to cleanup inactive users: '.$e->getMessage()],
+                'errors' => ['Failed to cleanup inactive users: ' . $e->getMessage()],
             ];
         }
     }

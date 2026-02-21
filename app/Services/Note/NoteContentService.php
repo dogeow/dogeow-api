@@ -85,6 +85,7 @@ class NoteContentService
 
         if (empty($normalized)) {
             $note->tags()->sync([]);
+
             return;
         }
 

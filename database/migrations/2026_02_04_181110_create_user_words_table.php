@@ -25,7 +25,7 @@ return new class extends Migration
             $table->timestamp('next_review_at')->nullable()->comment('下次复习时间');
             $table->text('personal_note')->nullable()->comment('个人笔记');
             $table->timestamps();
-            
+
             // 索引
             $table->index(['user_id', 'word_id']);
             $table->index(['user_id', 'status']);

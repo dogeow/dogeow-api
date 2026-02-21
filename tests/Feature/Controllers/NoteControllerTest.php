@@ -2,13 +2,11 @@
 
 namespace Tests\Feature\Controllers;
 
-use Tests\TestCase;
 use App\Models\Note\Note;
-use App\Models\Note\NoteCategory;
-use App\Models\Note\NoteTag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Tests\TestCase;
 
 class NoteControllerTest extends TestCase
 {
@@ -265,4 +263,4 @@ class NoteControllerTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['title']);
     }
-} 
+}

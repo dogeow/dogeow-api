@@ -28,4 +28,4 @@ Route::get('spots', [LocationController::class, 'spotIndex']);
 Route::post('spots', [LocationController::class, 'spotStore']);
 Route::get('spots/{spot}', [LocationController::class, 'spotShow']);
 Route::put('spots/{spot}', [LocationController::class, 'spotUpdate']);
-Route::delete('spots/{spot}', [LocationController::class, 'spotDestroy']); 
+Route::delete('spots/{spot}', [LocationController::class, 'spotDestroy']);

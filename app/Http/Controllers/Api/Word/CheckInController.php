@@ -7,7 +7,6 @@ use App\Models\Word\CheckIn;
 use App\Models\Word\UserWord;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class CheckInController extends Controller
 {
@@ -205,7 +204,7 @@ class CheckInController extends Controller
                     ->where('status', '!=', 0)
                     ->distinct('word_id')
                     ->count('word_id');
-                
+
                 if ($totalWords > 0) {
                     $progressPercentage = round(($learnedInBook / $totalWords) * 100, 2);
                 }

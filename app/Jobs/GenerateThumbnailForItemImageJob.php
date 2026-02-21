@@ -11,20 +11,25 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 
 class GenerateThumbnailForItemImageJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $timeout = 120;
+
     public int $maxExceptions = 3;
 
     protected ItemImage $itemImage;
+
     protected int $thumbnailWidth;
+
     protected int $thumbnailHeight;
+
     protected string $thumbnailSuffix;
 
     /**
@@ -50,15 +55,16 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
         // 刷新模型获取最新数据
         $this->itemImage->refresh();
 
-        if (!$this->validateOriginalImage()) {
+        if (! $this->validateOriginalImage()) {
             return;
         }
 
         $thumbnailPath = $this->generateThumbnailPath();
-        
+
         // 如果缩略图已存在且比原图新，则跳过
         if ($this->thumbnailExistsAndIsNewer($thumbnailPath)) {
             Log::info("缩略图已存在且是最新的，ItemImage ID: {$this->itemImage->id}");
+
             return;
         }
 
@@ -70,21 +76,24 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
      */
     protected function validateOriginalImage(): bool
     {
-        if (!$this->itemImage->path) {
+        if (! $this->itemImage->path) {
             Log::warning("ItemImage ID: {$this->itemImage->id} 未设置路径");
+
             return false;
         }
 
         $disk = Storage::disk('public');
-        if (!$disk->exists($this->itemImage->path)) {
+        if (! $disk->exists($this->itemImage->path)) {
             Log::error("找不到原始图片，ItemImage ID: {$this->itemImage->id}, 路径: {$this->itemImage->path}");
+
             return false;
         }
 
         // 检查文件是否可读且未损坏
         $originalPath = $disk->path($this->itemImage->path);
-        if (!FileHelper::isValidFile($originalPath)) {
+        if (! FileHelper::isValidFile($originalPath)) {
             Log::error("原始图片不可读或为空，ItemImage ID: {$this->itemImage->id}");
+
             return false;
         }
 
@@ -99,7 +108,7 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
         $pathInfo = pathinfo($this->itemImage->path);
         $extension = $pathInfo['extension'] ?? 'jpg';
         $thumbnailFilename = $pathInfo['filename'] . $this->thumbnailSuffix . '.' . $extension;
-        
+
         return $pathInfo['dirname'] . '/' . $thumbnailFilename;
     }
 
@@ -109,8 +118,8 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
     protected function thumbnailExistsAndIsNewer(string $thumbnailPath): bool
     {
         $disk = Storage::disk('public');
-        
-        if (!$disk->exists($thumbnailPath)) {
+
+        if (! $disk->exists($thumbnailPath)) {
             return false;
         }
 
@@ -133,18 +142,18 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
             // 确保目录存在
             FileHelper::ensureDirectoryExists(dirname($thumbnailFullPath));
 
-            $manager = new ImageManager(new Driver());
+            $manager = new ImageManager(new Driver);
             $image = $manager->read($originalFullPath);
-            
+
             // 获取原始尺寸用于日志记录
             $originalWidth = $image->width();
             $originalHeight = $image->height();
-            
+
             // 只有当图片大于缩略图尺寸时才调整大小
             if ($originalWidth > $this->thumbnailWidth || $originalHeight > $this->thumbnailHeight) {
                 $image->cover($this->thumbnailWidth, $this->thumbnailHeight);
             }
-            
+
             // 保存时进行质量优化
             $image->save($thumbnailFullPath, quality: 85);
 
@@ -153,7 +162,7 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
                 'thumbnail_path' => $thumbnailPath,
                 'original_size' => "{$originalWidth}x{$originalHeight}",
                 'thumbnail_size' => "{$this->thumbnailWidth}x{$this->thumbnailHeight}",
-                'file_size' => FileHelper::getFormattedFileSize($thumbnailFullPath)
+                'file_size' => FileHelper::getFormattedFileSize($thumbnailFullPath),
             ]);
 
         } catch (\Exception $e) {
@@ -162,14 +171,14 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
                 'original_path' => $this->itemImage->path,
                 'thumbnail_path' => $thumbnailPath,
                 'attempt' => $this->attempts(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             // 清理部分生成的文件
             if (file_exists($thumbnailFullPath)) {
                 unlink($thumbnailFullPath);
             }
-            
+
             throw $e; // 重新抛出异常以触发重试机制
         }
     }
@@ -182,7 +191,7 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
         Log::error("缩略图生成任务永久失败，ItemImage ID: {$this->itemImage->id}", [
             'error' => $exception->getMessage(),
             'attempts' => $this->attempts(),
-            'path' => $this->itemImage->path
+            'path' => $this->itemImage->path,
         ]);
     }
 }

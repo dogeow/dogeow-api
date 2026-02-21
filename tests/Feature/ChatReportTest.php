@@ -15,27 +15,30 @@ class ChatReportTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected User $admin;
+
     protected ChatRoom $room;
+
     protected ChatMessage $message;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create system user with ID 1 for auto-moderation
         User::factory()->create(['id' => 1, 'name' => 'System', 'email' => 'system@example.com']);
-        
+
         $this->user = User::factory()->create();
         $this->admin = User::factory()->create(['is_admin' => true]);
         $this->room = ChatRoom::factory()->create(['created_by' => $this->admin->id]);
-        
+
         // Create a message from admin that user can report
         $this->message = ChatMessage::create([
             'room_id' => $this->room->id,
             'user_id' => $this->admin->id,
             'message' => 'This is a test message',
-            'message_type' => 'text'
+            'message_type' => 'text',
         ]);
     }
 
@@ -45,7 +48,7 @@ class ChatReportTest extends TestCase
 
         $response = $this->postJson("/api/chat/reports/rooms/{$this->room->id}/messages/{$this->message->id}", [
             'report_type' => ChatMessageReport::TYPE_INAPPROPRIATE_CONTENT,
-            'reason' => 'This message contains inappropriate content'
+            'reason' => 'This message contains inappropriate content',
         ]);
 
         $response->assertStatus(201)
@@ -58,15 +61,15 @@ class ChatReportTest extends TestCase
                     'room_id',
                     'report_type',
                     'reason',
-                    'status'
-                ]
+                    'status',
+                ],
             ]);
 
         $this->assertDatabaseHas('chat_message_reports', [
             'message_id' => $this->message->id,
             'reported_by' => $this->user->id,
             'report_type' => ChatMessageReport::TYPE_INAPPROPRIATE_CONTENT,
-            'status' => ChatMessageReport::STATUS_PENDING
+            'status' => ChatMessageReport::STATUS_PENDING,
         ]);
     }
 
@@ -76,12 +79,12 @@ class ChatReportTest extends TestCase
 
         $response = $this->postJson("/api/chat/reports/rooms/{$this->room->id}/messages/{$this->message->id}", [
             'report_type' => ChatMessageReport::TYPE_SPAM,
-            'reason' => 'Testing self-report'
+            'reason' => 'Testing self-report',
         ]);
 
         $response->assertStatus(422)
             ->assertJson([
-                'message' => 'You cannot report your own message'
+                'message' => 'You cannot report your own message',
             ]);
     }
 
@@ -92,18 +95,18 @@ class ChatReportTest extends TestCase
         // First report
         $this->postJson("/api/chat/reports/rooms/{$this->room->id}/messages/{$this->message->id}", [
             'report_type' => ChatMessageReport::TYPE_SPAM,
-            'reason' => 'First report'
+            'reason' => 'First report',
         ])->assertStatus(201);
 
         // Second report should fail
         $response = $this->postJson("/api/chat/reports/rooms/{$this->room->id}/messages/{$this->message->id}", [
             'report_type' => ChatMessageReport::TYPE_HARASSMENT,
-            'reason' => 'Second report'
+            'reason' => 'Second report',
         ]);
 
         $response->assertStatus(422)
             ->assertJson([
-                'message' => 'You have already reported this message'
+                'message' => 'You have already reported this message',
             ]);
     }
 
@@ -116,7 +119,7 @@ class ChatReportTest extends TestCase
             'room_id' => $this->room->id,
             'report_type' => ChatMessageReport::TYPE_SPAM,
             'reason' => 'Test report',
-            'status' => ChatMessageReport::STATUS_PENDING
+            'status' => ChatMessageReport::STATUS_PENDING,
         ]);
 
         Sanctum::actingAs($this->admin);
@@ -134,10 +137,10 @@ class ChatReportTest extends TestCase
                         'reason',
                         'status',
                         'reporter',
-                        'message'
-                    ]
+                        'message',
+                    ],
                 ],
-                'pagination'
+                'pagination',
             ]);
     }
 
@@ -149,7 +152,7 @@ class ChatReportTest extends TestCase
 
         $response->assertStatus(403)
             ->assertJson([
-                'message' => 'You are not authorized to view reports for this room'
+                'message' => 'You are not authorized to view reports for this room',
             ]);
     }
 
@@ -161,7 +164,7 @@ class ChatReportTest extends TestCase
             'room_id' => $this->room->id,
             'report_type' => ChatMessageReport::TYPE_INAPPROPRIATE_CONTENT,
             'reason' => 'Test report',
-            'status' => ChatMessageReport::STATUS_PENDING
+            'status' => ChatMessageReport::STATUS_PENDING,
         ]);
 
         Sanctum::actingAs($this->admin);
@@ -170,7 +173,7 @@ class ChatReportTest extends TestCase
             'action' => 'resolve',
             'notes' => 'Report reviewed and resolved',
             'delete_message' => false,
-            'mute_user' => false
+            'mute_user' => false,
         ]);
 
         $response->assertStatus(200)
@@ -178,14 +181,14 @@ class ChatReportTest extends TestCase
                 'message',
                 'report',
                 'action',
-                'actions_performed'
+                'actions_performed',
             ]);
 
         $this->assertDatabaseHas('chat_message_reports', [
             'id' => $report->id,
             'status' => ChatMessageReport::STATUS_RESOLVED,
             'reviewed_by' => $this->admin->id,
-            'review_notes' => 'Report reviewed and resolved'
+            'review_notes' => 'Report reviewed and resolved',
         ]);
     }
 
@@ -198,7 +201,7 @@ class ChatReportTest extends TestCase
             'room_id' => $this->room->id,
             'report_type' => ChatMessageReport::TYPE_SPAM,
             'reason' => 'Spam report',
-            'status' => ChatMessageReport::STATUS_PENDING
+            'status' => ChatMessageReport::STATUS_PENDING,
         ]);
 
         Sanctum::actingAs($this->admin);
@@ -216,7 +219,7 @@ class ChatReportTest extends TestCase
                 'top_reporters',
                 'top_reported_users',
                 'content_filter',
-                'period_days'
+                'period_days',
             ]);
     }
 
@@ -231,7 +234,7 @@ class ChatReportTest extends TestCase
                 'room_id' => $this->room->id,
                 'report_type' => ChatMessageReport::TYPE_INAPPROPRIATE_CONTENT,
                 'reason' => "Report #{$i}",
-                'status' => ChatMessageReport::STATUS_PENDING
+                'status' => ChatMessageReport::STATUS_PENDING,
             ]);
         }
 
@@ -240,7 +243,7 @@ class ChatReportTest extends TestCase
         // This should trigger auto-moderation
         $response = $this->postJson("/api/chat/reports/rooms/{$this->room->id}/messages/{$this->message->id}", [
             'report_type' => ChatMessageReport::TYPE_HARASSMENT,
-            'reason' => 'Final report that triggers auto-moderation'
+            'reason' => 'Final report that triggers auto-moderation',
         ]);
 
         if ($response->status() !== 201) {
@@ -251,7 +254,7 @@ class ChatReportTest extends TestCase
 
         // Check that the message was deleted
         $this->assertDatabaseMissing('chat_messages', [
-            'id' => $this->message->id
+            'id' => $this->message->id,
         ]);
 
         // Check that all reports were auto-resolved (message_id will be null after deletion)

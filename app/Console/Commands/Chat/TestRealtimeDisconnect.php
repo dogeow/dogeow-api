@@ -43,8 +43,9 @@ class TestRealtimeDisconnect extends Command
         $isOnline = $this->disconnectService->isUserOnlineInRoom($userId, $roomId);
         $this->info("用户 {$userId} 当前在房间 {$roomId} 中" . ($isOnline ? '在线' : '离线'));
 
-        if (!$isOnline) {
-            $this->warn("用户不在房间中在线。无法测试断开连接。");
+        if (! $isOnline) {
+            $this->warn('用户不在房间中在线。无法测试断开连接。');
+
             return Command::SUCCESS;
         }
 
@@ -63,10 +64,10 @@ class TestRealtimeDisconnect extends Command
         $isStillOnline = $this->disconnectService->isUserOnlineInRoom($userId, $roomId);
         $this->info("用户 {$userId} 现在在房间 {$roomId} 中" . ($isStillOnline ? '在线' : '离线'));
 
-        if (!$isStillOnline && $newOnlineCount === $onlineCount - 1) {
-            $this->info("✅ 实时断开连接检测工作正常！");
+        if (! $isStillOnline && $newOnlineCount === $onlineCount - 1) {
+            $this->info('✅ 实时断开连接检测工作正常！');
         } else {
-            $this->error("❌ 实时断开连接检测失败！");
+            $this->error('❌ 实时断开连接检测失败！');
         }
 
         return Command::SUCCESS;

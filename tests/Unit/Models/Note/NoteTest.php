@@ -2,12 +2,12 @@
 
 namespace Tests\Unit\Models\Note;
 
-use Tests\TestCase;
 use App\Models\Note\Note;
 use App\Models\Note\NoteCategory;
 use App\Models\Note\NoteTag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class NoteTest extends TestCase
 {
@@ -17,7 +17,7 @@ class NoteTest extends TestCase
     {
         $user = User::factory()->create();
         $category = NoteCategory::factory()->create();
-        
+
         $note = Note::factory()->create([
             'user_id' => $user->id,
             'note_category_id' => $category->id,
@@ -126,9 +126,9 @@ class NoteTest extends TestCase
 
     public function test_note_can_have_plain_content()
     {
-        $content = "This is plain text content.";
+        $content = 'This is plain text content.';
         $note = Note::factory()->create(['content' => $content]);
 
         $this->assertEquals($content, $note->content);
     }
-} 
+}

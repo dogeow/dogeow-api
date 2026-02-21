@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api\Cloud;
 
+use App\Http\Controllers\Concerns\GetCurrentUserId;
 use App\Http\Controllers\Controller;
 use App\Models\Cloud\File;
-use App\Http\Controllers\Concerns\GetCurrentUserId;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -31,7 +31,7 @@ class FileController extends Controller
 
         // 搜索
         if ($request->has('search')) {
-            $query->where('name', 'like', '%'.$request->search.'%');
+            $query->where('name', 'like', '%' . $request->search . '%');
         }
 
         // 类型过滤
@@ -67,7 +67,7 @@ class FileController extends Controller
         $file->parent_id = $request->parent_id;
         $file->user_id = $userId;
         $file->is_folder = true;
-        $file->path = 'folders/'.Str::uuid();
+        $file->path = 'folders/' . Str::uuid();
         $file->description = $request->description;
         $file->save();
 
@@ -96,8 +96,8 @@ class FileController extends Controller
         $userId = $this->getCurrentUserId();
 
         // 生成唯一文件路径
-        $fileName = Str::uuid().'.'.$extension;
-        $path = 'cloud/'.$userId.'/'.date('Y/m/d').'/'.$fileName;
+        $fileName = Str::uuid() . '.' . $extension;
+        $path = 'cloud/' . $userId . '/' . date('Y/m/d') . '/' . $fileName;
 
         Log::info("存储路径: {$path}");
 
@@ -149,7 +149,7 @@ class FileController extends Controller
             return response()->json(['error' => '文件不存在'], 404);
         }
 
-        return response()->download(storage_path('app/public/'.$file->path), $file->original_name);
+        return response()->download(storage_path('app/public/' . $file->path), $file->original_name);
     }
 
     /**
@@ -363,7 +363,7 @@ class FileController extends Controller
 
         $bytes /= (1 << (10 * $pow));
 
-        return round($bytes, 2).' '.$units[$pow];
+        return round($bytes, 2) . ' ' . $units[$pow];
     }
 
     /**
@@ -452,7 +452,7 @@ class FileController extends Controller
             $isThumb = $request->has('thumb') && $request->thumb === 'true';
             Log::info("图片预览请求: ID={$id}, 是否缩略图={$isThumb}, 扩展名={$extension}");
 
-            $publicUrl = url('storage/'.$file->path);
+            $publicUrl = url('storage/' . $file->path);
             Log::info("返回图片URL: {$publicUrl}");
 
             return response()->json([
@@ -465,7 +465,7 @@ class FileController extends Controller
         if ($extension === 'pdf') {
             return response()->json([
                 'type' => 'pdf',
-                'url' => url('storage/'.$file->path),
+                'url' => url('storage/' . $file->path),
             ]);
         }
 
@@ -482,7 +482,7 @@ class FileController extends Controller
         if (in_array($extension, ['pages', 'key', 'numbers'])) {
             return response()->json([
                 'type' => 'document',
-                'message' => '此文件是苹果 '.strtoupper($extension).' 格式，需要在 Mac 上使用相应的应用程序打开',
+                'message' => '此文件是苹果 ' . strtoupper($extension) . ' 格式，需要在 Mac 上使用相应的应用程序打开',
                 'suggestion' => '您可以下载文件后在 Mac 上打开，或者将其导出为 PDF 格式以便在线预览',
             ]);
         }

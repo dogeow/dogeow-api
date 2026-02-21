@@ -53,4 +53,4 @@ class NoteFactory extends Factory
             'is_draft' => false,
         ]);
     }
-} 
+}

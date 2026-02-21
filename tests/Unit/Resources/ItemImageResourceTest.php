@@ -55,4 +55,4 @@ class ItemImageResourceTest extends TestCase
             'thumbnail_path' => null,
         ], $array);
     }
-} 
+}

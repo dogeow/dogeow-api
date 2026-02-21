@@ -36,7 +36,7 @@ class ClientInfoService
                     'city' => $ipInfo['city'] ?? null,
                     'isp' => $ipInfo['isp'] ?? null,
                     'timezone' => $ipInfo['timezone'] ?? null,
-                ]
+                ],
             ];
         } catch (\Exception $e) {
             Log::error('Failed to fetch location info', [
@@ -52,7 +52,7 @@ class ClientInfoService
                     'isp' => null,
                     'timezone' => null,
                 ],
-                'error' => '地理位置信息获取失败'
+                'error' => '地理位置信息获取失败',
             ];
         }
     }

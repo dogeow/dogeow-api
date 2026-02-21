@@ -17,11 +17,11 @@ class ClientInfoControllerTest extends TestCase
             'regionName' => 'Beijing',
             'city' => 'Beijing',
             'isp' => 'China Mobile',
-            'timezone' => 'Asia/Shanghai'
+            'timezone' => 'Asia/Shanghai',
         ];
 
         Http::fake([
-            'http://ip-api.com/json/*' => Http::response($ipInfo, 200)
+            'http://ip-api.com/json/*' => Http::response($ipInfo, 200),
         ]);
 
         $response = $this->get('/api/client-info');
@@ -35,15 +35,15 @@ class ClientInfoControllerTest extends TestCase
                 'region',
                 'city',
                 'isp',
-                'timezone'
-            ]
+                'timezone',
+            ],
         ]);
     }
 
     public function test_get_client_info_handles_missing_ip_info()
     {
         Http::fake([
-            'http://ip-api.com/json/*' => Http::response([], 200)
+            'http://ip-api.com/json/*' => Http::response([], 200),
         ]);
 
         $response = $this->get('/api/client-info');
@@ -55,15 +55,15 @@ class ClientInfoControllerTest extends TestCase
                 'region' => null,
                 'city' => null,
                 'isp' => null,
-                'timezone' => null
-            ]
+                'timezone' => null,
+            ],
         ]);
     }
 
     public function test_get_client_info_handles_api_failure()
     {
         Http::fake([
-            'http://ip-api.com/json/*' => Http::response([], 500)
+            'http://ip-api.com/json/*' => Http::response([], 500),
         ]);
 
         $response = $this->get('/api/client-info');
@@ -75,8 +75,8 @@ class ClientInfoControllerTest extends TestCase
                 'region' => null,
                 'city' => null,
                 'isp' => null,
-                'timezone' => null
-            ]
+                'timezone' => null,
+            ],
         ]);
     }
 
@@ -87,20 +87,20 @@ class ClientInfoControllerTest extends TestCase
             'regionName' => 'Beijing',
             'city' => 'Beijing',
             'isp' => 'China Mobile',
-            'timezone' => 'Asia/Shanghai'
+            'timezone' => 'Asia/Shanghai',
         ];
 
         Http::fake([
-            'http://ip-api.com/json/*' => Http::response($ipInfo, 200)
+            'http://ip-api.com/json/*' => Http::response($ipInfo, 200),
         ]);
 
         $response = $this->withHeaders([
-            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         ])->get('/api/client-info');
 
         $response->assertStatus(200);
         $response->assertJson([
-            'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         ]);
     }
 
@@ -111,18 +111,18 @@ class ClientInfoControllerTest extends TestCase
             'regionName' => 'Beijing',
             'city' => 'Beijing',
             'isp' => 'China Mobile',
-            'timezone' => 'Asia/Shanghai'
+            'timezone' => 'Asia/Shanghai',
         ];
 
         Http::fake([
-            'http://ip-api.com/json/*' => Http::response($ipInfo, 200)
+            'http://ip-api.com/json/*' => Http::response($ipInfo, 200),
         ]);
 
         $response = $this->get('/api/client-info');
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'ip'
+            'ip',
         ]);
     }
-} 
+}

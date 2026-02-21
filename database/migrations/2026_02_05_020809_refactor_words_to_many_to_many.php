@@ -9,7 +9,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * 重构 words 表为多对多关系
      * 1. 创建中间表 word_book_word
      * 2. 合并重复单词，保留数据最完整的记录
@@ -25,7 +25,7 @@ return new class extends Migration
             $table->unsignedBigInteger('word_id')->comment('单词ID');
             $table->integer('sort_order')->default(0)->comment('排序');
             $table->timestamps();
-            
+
             $table->unique(['word_book_id', 'word_id']);
             $table->index('word_book_id');
             $table->index('word_id');
@@ -43,7 +43,7 @@ return new class extends Migration
 
         foreach ($duplicates as $dup) {
             $ids = explode(',', $dup->ids);
-            
+
             // 获取所有重复的单词记录
             $words = DB::table('words')
                 ->whereIn('id', $ids)
@@ -52,28 +52,28 @@ return new class extends Migration
             // 选择数据最完整的记录（优先有中文释义的）
             $bestWord = null;
             $bestScore = -1;
-            
+
             foreach ($words as $w) {
                 $score = 0;
-                
+
                 // 有中文释义加分
-                if (!empty($w->explanation) && !str_starts_with($w->explanation ?? '', '【英】')) {
+                if (! empty($w->explanation) && ! str_starts_with($w->explanation ?? '', '【英】')) {
                     $score += 10;
                 }
                 // 有音标加分
-                if (!empty($w->phonetic_us)) {
+                if (! empty($w->phonetic_us)) {
                     $score += 5;
                 }
                 // 有例句加分
                 $examples = json_decode($w->example_sentences ?? '[]', true);
-                if (!empty($examples)) {
+                if (! empty($examples)) {
                     $score += 3;
                     // 例句有中文加更多分
-                    if (!empty($examples[0]['zh'])) {
+                    if (! empty($examples[0]['zh'])) {
                         $score += 5;
                     }
                 }
-                
+
                 if ($score > $bestScore) {
                     $bestScore = $score;
                     $bestWord = $w;
@@ -97,10 +97,10 @@ return new class extends Migration
             // 如果是重复的单词，使用映射后的ID
             $wordId = $wordMapping[$word->id] ?? $word->id;
             $bookId = $word->word_book_id;
-            
+
             // 避免重复插入
             $pairKey = "{$bookId}-{$wordId}";
-            if (!isset($processedPairs[$pairKey])) {
+            if (! isset($processedPairs[$pairKey])) {
                 $pivotData[] = [
                     'word_book_id' => $bookId,
                     'word_id' => $wordId,
@@ -125,7 +125,7 @@ return new class extends Migration
         }
 
         // 5. 删除重复的单词记录
-        if (!empty($wordMapping)) {
+        if (! empty($wordMapping)) {
             DB::table('words')
                 ->whereIn('id', array_keys($wordMapping))
                 ->delete();

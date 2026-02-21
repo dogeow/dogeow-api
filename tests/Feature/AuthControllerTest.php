@@ -436,26 +436,26 @@ class AuthControllerTest extends TestCase
     public function test_logout_deletes_current_token_only()
     {
         $user = User::factory()->create();
-        
+
         // Create multiple tokens
         $token1 = $user->createToken('auth_token')->plainTextToken;
         $token2 = $user->createToken('auth_token')->plainTextToken;
-        
+
         // Use the first token for authentication
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token1,
         ])->postJson('/api/logout');
-        
+
         $response->assertStatus(200);
 
         // Verify that one token was deleted (the current one)
         $tokenCount = \Laravel\Sanctum\PersonalAccessToken::where('tokenable_id', $user->id)->count();
         $this->assertEquals(1, $tokenCount, 'One token should have been deleted');
-        
+
         // Verify that the second token still exists
         $this->assertDatabaseHas('personal_access_tokens', [
             'tokenable_id' => $user->id,
             'name' => 'auth_token',
         ]);
     }
-} 
+}

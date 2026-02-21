@@ -2,15 +2,9 @@
 
 namespace Tests\Unit\Requests\Thing;
 
-use Tests\TestCase;
 use App\Http\Requests\Thing\ItemRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
-use App\Models\Thing\ItemCategory;
-use App\Models\Thing\Area;
-use App\Models\Thing\Room;
-use App\Models\Thing\Spot;
-use App\Models\Thing\ItemImage;
+use Tests\TestCase;
 
 class ItemRequestTest extends TestCase
 {
@@ -21,7 +15,7 @@ class ItemRequestTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->request = new ItemRequest();
+        $this->request = new ItemRequest;
     }
 
     public function test_authorize_returns_true()
@@ -272,4 +266,4 @@ class ItemRequestTest extends TestCase
 
         $this->assertEquals('标签长度不能超过255个字符', $messages['tags.*.max']);
     }
-} 
+}

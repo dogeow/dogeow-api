@@ -4,10 +4,7 @@ namespace Tests\Feature\Controllers;
 
 use App\Models\Chat\ChatMessage;
 use App\Models\Chat\ChatRoom;
-use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
-use App\Services\Chat\ChatService;
-use App\Services\Chat\ChatCacheService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -40,7 +37,7 @@ class ChatControllerTest extends TestCase
         $user = User::factory()->create();
         $roomData = [
             'name' => 'Test Room',
-            'description' => 'A test room'
+            'description' => 'A test room',
         ];
 
         $response = $this->actingAs($user)
@@ -58,7 +55,7 @@ class ChatControllerTest extends TestCase
         $user = User::factory()->create();
         $invalidData = [
             'name' => 'ab', // Too short
-            'description' => 'A test room'
+            'description' => 'A test room',
         ];
 
         $response = $this->actingAs($user)
@@ -139,15 +136,15 @@ class ChatControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $room = ChatRoom::factory()->create();
-        
+
         // Join the room first
         $this->actingAs($user)
             ->post("/api/chat/rooms/{$room->id}/join");
-        
+
         // Create some messages
         ChatMessage::factory()->count(5)->create([
             'room_id' => $room->id,
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         $response = $this->actingAs($user)
@@ -164,14 +161,14 @@ class ChatControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $room = ChatRoom::factory()->create();
-        
+
         // Join the room first
         $this->actingAs($user)
             ->post("/api/chat/rooms/{$room->id}/join");
 
         $messageData = [
             'message' => 'Hello, this is a test message!',
-            'message_type' => 'text'
+            'message_type' => 'text',
         ];
 
         $response = $this->actingAs($user)
@@ -197,7 +194,7 @@ class ChatControllerTest extends TestCase
         $room = ChatRoom::factory()->create();
         $message = ChatMessage::factory()->create([
             'room_id' => $room->id,
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         $response = $this->actingAs($user)
@@ -216,7 +213,7 @@ class ChatControllerTest extends TestCase
         $room = ChatRoom::factory()->create();
         $message = ChatMessage::factory()->create([
             'room_id' => $room->id,
-            'user_id' => $owner->id
+            'user_id' => $owner->id,
         ]);
 
         $response = $this->actingAs($otherUser)
@@ -232,7 +229,7 @@ class ChatControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $room = ChatRoom::factory()->create();
-        
+
         // Join the room
         $this->actingAs($user)
             ->post("/api/chat/rooms/{$room->id}/join");
@@ -251,13 +248,13 @@ class ChatControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $room = ChatRoom::factory()->create();
-        
+
         // Join the room first
         $this->actingAs($user)
             ->post("/api/chat/rooms/{$room->id}/join");
 
         $statusData = [
-            'is_online' => true
+            'is_online' => true,
         ];
 
         $response = $this->actingAs($user)
@@ -286,7 +283,7 @@ class ChatControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $room = ChatRoom::factory()->create();
-        
+
         // Join the room first
         $this->actingAs($user)
             ->post("/api/chat/rooms/{$room->id}/join");
@@ -329,4 +326,4 @@ class ChatControllerTest extends TestCase
     {
         $this->markTestSkipped('Invalid room ID test needs proper type handling');
     }
-} 
+}

@@ -31,12 +31,12 @@ class LearningController extends Controller
         $user = Auth::user();
         $setting = $this->getUserSetting($user->id);
 
-        if (!$setting->current_book_id) {
+        if (! $setting->current_book_id) {
             return WordResource::collection(collect());
         }
 
         $book = Book::find($setting->current_book_id);
-        if (!$book) {
+        if (! $book) {
             return WordResource::collection(collect());
         }
         $dailyCount = $setting->daily_new_words;
@@ -52,7 +52,7 @@ class LearningController extends Controller
             ->limit($reviewCount)
             ->get();
 
-        $reviewWords = $reviewUserWords->map(fn($userWord) => $userWord->word)->filter();
+        $reviewWords = $reviewUserWords->map(fn ($userWord) => $userWord->word)->filter();
 
         // 2. 获取用户已学习的单词ID（该单词书下的）
         $learnedWordIds = UserWord::where('user_id', $user->id)
@@ -92,7 +92,7 @@ class LearningController extends Controller
             ->limit($reviewCount)
             ->get();
 
-        $words = $userWords->map(fn($userWord) => $userWord->word);
+        $words = $userWords->map(fn ($userWord) => $userWord->word);
 
         return WordResource::collection($words);
     }
@@ -151,7 +151,7 @@ class LearningController extends Controller
         $setting = $this->getUserSetting($user->id);
 
         $bookId = $setting->current_book_id;
-        if (!$bookId) {
+        if (! $bookId) {
             return $this->error('请先选择单词书', [], 422);
         }
 
@@ -184,7 +184,7 @@ class LearningController extends Controller
         $setting = $this->getUserSetting($user->id);
 
         $bookId = $setting->current_book_id;
-        if (!$bookId) {
+        if (! $bookId) {
             return $this->success([
                 'total_words' => 0,
                 'learned_words' => 0,
@@ -196,7 +196,7 @@ class LearningController extends Controller
         }
 
         $book = Book::find($bookId);
-        if (!$book) {
+        if (! $book) {
             return $this->error('单词书不存在', [], 404);
         }
         $totalWords = $book->total_words;
@@ -221,8 +221,8 @@ class LearningController extends Controller
             ->where('status', 4)
             ->count();
 
-        $progressPercentage = $totalWords > 0 
-            ? round(($learnedWords / $totalWords) * 100, 2) 
+        $progressPercentage = $totalWords > 0
+            ? round(($learnedWords / $totalWords) * 100, 2)
             : 0;
 
         return $this->success([
@@ -307,9 +307,9 @@ class LearningController extends Controller
         ]);
 
         $codes = $validated['education_level_codes'] ?? [];
-        if (!empty($codes)) {
+        if (! empty($codes)) {
             $levelIds = EducationLevel::whereIn('code', $codes)->pluck('id')->all();
-            if (!empty($levelIds)) {
+            if (! empty($levelIds)) {
                 $word->educationLevels()->sync($levelIds);
                 $books = Book::whereHas('educationLevels', fn ($q) => $q->whereIn('word_education_levels.id', $levelIds))->get();
                 foreach ($books as $book) {
@@ -359,7 +359,7 @@ class LearningController extends Controller
         $selectedWords = $wordsWithExamples
             ->shuffle()
             ->take($count)
-            ->map(fn($userWord) => $userWord->word);
+            ->map(fn ($userWord) => $userWord->word);
 
         return WordResource::collection($selectedWords);
     }

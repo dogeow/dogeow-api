@@ -18,7 +18,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!$this->isMySQL()) {
+        if (! $this->isMySQL()) {
             return;
         }
 

@@ -2,10 +2,10 @@
 
 namespace Tests\Unit\Models\Cloud;
 
-use Tests\TestCase;
 use App\Models\Cloud\File;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class FileTest extends TestCase
 {
@@ -249,4 +249,4 @@ class FileTest extends TestCase
 
         $this->assertArrayHasKey('type', $file->toArray());
     }
-} 
+}

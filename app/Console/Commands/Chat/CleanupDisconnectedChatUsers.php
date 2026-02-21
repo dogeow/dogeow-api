@@ -15,7 +15,7 @@ class CleanupDisconnectedChatUsers extends Command
      *
      * 调用示例:
      * php artisan chat:cleanup-disconnected --minutes=10
-     * 
+     *
      * 参数说明:
      * --minutes  指定聊天室用户的非活跃时间阈值（分钟），达到该时长未活跃的用户会被标记为离线。默认为5分钟。
      */
@@ -30,8 +30,6 @@ class CleanupDisconnectedChatUsers extends Command
 
     /**
      * 执行控制台命令
-     *
-     * @return int
      */
     public function handle(): int
     {
@@ -63,7 +61,8 @@ class CleanupDisconnectedChatUsers extends Command
 
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->error("清理异常：" . $e->getMessage());
+            $this->error('清理异常：' . $e->getMessage());
+
             return Command::FAILURE;
         }
     }

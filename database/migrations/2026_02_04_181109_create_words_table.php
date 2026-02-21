@@ -22,7 +22,7 @@ return new class extends Migration
             $table->integer('difficulty')->default(1)->comment('难度等级 1-5');
             $table->integer('frequency')->default(1)->comment('词频等级 1-5');
             $table->timestamps();
-            
+
             $table->index('word_book_id');
             $table->index('content');
             $table->index('difficulty');

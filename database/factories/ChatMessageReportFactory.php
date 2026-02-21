@@ -2,10 +2,10 @@
 
 namespace Database\Factories;
 
+use App\Models\Chat\ChatMessage;
 use App\Models\Chat\ChatMessageReport;
 use App\Models\Chat\ChatRoom;
 use App\Models\User;
-use App\Models\Chat\ChatMessage;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -158,4 +158,4 @@ class ChatMessageReportFactory extends Factory
             ],
         ]);
     }
-} 
+}

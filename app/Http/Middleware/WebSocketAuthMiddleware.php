@@ -13,25 +13,24 @@ class WebSocketAuthMiddleware
     /**
      * 处理 WebSocket 认证请求。
      *
-     * @param  \Illuminate\Http\Request  $request
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
         // 优先从 query 参数获取 token，其次获取 Bearer Token
         $token = $request->query('token');
-        if (!$token) {
+        if (! $token) {
             $token = $request->bearerToken();
         }
 
-        if (!$token) {
+        if (! $token) {
             return response()->json(['error' => '未授权：缺少 token'], 401);
         }
 
         // 通过 Sanctum 查找并验证 AccessToken
         $accessToken = PersonalAccessToken::findToken($token);
 
-        if (!$accessToken || !$accessToken->tokenable) {
+        if (! $accessToken || ! $accessToken->tokenable) {
             return response()->json(['error' => '未授权：Token 无效'], 401);
         }
 

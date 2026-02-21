@@ -19,10 +19,10 @@ return new class extends Migration
             $table->timestamp('last_seen_at')->nullable();
             $table->boolean('is_online')->default(false);
             $table->timestamps();
-            
+
             // Unique constraint to prevent duplicate room-user combinations
             $table->unique(['room_id', 'user_id'], 'unique_room_user');
-            
+
             // Indexes for performance optimization
             $table->index(['room_id', 'is_online']);
             $table->index(['user_id', 'is_online']);

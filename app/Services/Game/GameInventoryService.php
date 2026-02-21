@@ -4,8 +4,8 @@ namespace App\Services\Game;
 
 use App\Models\Game\GameCharacter;
 use App\Models\Game\GameItem;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 /**
  * 背包服务类
@@ -29,7 +29,7 @@ class GameInventoryService
     /**
      * 获取背包物品
      *
-     * @param GameCharacter $character 角色实例
+     * @param  GameCharacter  $character  角色实例
      * @return array 背包数据
      */
     public function getInventory(GameCharacter $character): array
@@ -97,7 +97,7 @@ class GameInventoryService
     /**
      * 获取背包数据（用于 WebSocket 广播）
      *
-     * @param GameCharacter $character 角色实例
+     * @param  GameCharacter  $character  角色实例
      * @return array 背包数组数据
      */
     public function getInventoryForBroadcast(GameCharacter $character): array
@@ -121,9 +121,10 @@ class GameInventoryService
     /**
      * 装备物品
      *
-     * @param GameCharacter $character 角色实例
-     * @param int $itemId 物品ID
+     * @param  GameCharacter  $character  角色实例
+     * @param  int  $itemId  物品ID
      * @return array 装备结果
+     *
      * @throws \InvalidArgumentException 物品不存在或无法装备
      */
     public function equipItem(GameCharacter $character, int $itemId): array
@@ -172,9 +173,10 @@ class GameInventoryService
     /**
      * 卸下装备
      *
-     * @param GameCharacter $character 角色实例
-     * @param string $slot 装备槽位
+     * @param  GameCharacter  $character  角色实例
+     * @param  string  $slot  装备槽位
      * @return array 卸下结果
+     *
      * @throws \InvalidArgumentException 槽位没有装备或背包已满
      */
     public function unequipItem(GameCharacter $character, string $slot): array
@@ -220,10 +222,11 @@ class GameInventoryService
     /**
      * 出售物品
      *
-     * @param GameCharacter $character 角色实例
-     * @param int $itemId 物品ID
-     * @param int $quantity 数量
+     * @param  GameCharacter  $character  角色实例
+     * @param  int  $itemId  物品ID
+     * @param  int  $quantity  数量
      * @return array 出售结果
+     *
      * @throws \InvalidArgumentException 物品不存在或数量不足
      */
     public function sellItem(GameCharacter $character, int $itemId, int $quantity = 1): array
@@ -268,11 +271,12 @@ class GameInventoryService
     /**
      * 移动物品
      *
-     * @param GameCharacter $character 角色实例
-     * @param int $itemId 物品ID
-     * @param bool $toStorage 是否移动到仓库
-     * @param int|null $slotIndex 指定槽位（可选）
+     * @param  GameCharacter  $character  角色实例
+     * @param  int  $itemId  物品ID
+     * @param  bool  $toStorage  是否移动到仓库
+     * @param  int|null  $slotIndex  指定槽位（可选）
      * @return array 移动结果
+     *
      * @throws \InvalidArgumentException 目标位置已满
      */
     public function moveItem(GameCharacter $character, int $itemId, bool $toStorage, ?int $slotIndex = null): array
@@ -295,9 +299,10 @@ class GameInventoryService
     /**
      * 使用药品
      *
-     * @param GameCharacter $character 角色实例
-     * @param int $itemId 物品ID
+     * @param  GameCharacter  $character  角色实例
+     * @param  int  $itemId  物品ID
      * @return array 使用结果
+     *
      * @throws \InvalidArgumentException 物品不存在或不是药品
      */
     public function usePotion(GameCharacter $character, int $itemId): array
@@ -364,8 +369,8 @@ class GameInventoryService
     /**
      * 整理背包
      *
-     * @param GameCharacter $character 角色实例
-     * @param string $sortBy 排序方式: quality, price, default
+     * @param  GameCharacter  $character  角色实例
+     * @param  string  $sortBy  排序方式: quality, price, default
      * @return array 整理结果
      */
     public function sortInventory(GameCharacter $character, string $sortBy = 'default'): array
@@ -394,8 +399,8 @@ class GameInventoryService
     /**
      * 批量出售指定品质的物品
      *
-     * @param GameCharacter $character 角色实例
-     * @param string $quality 品质
+     * @param  GameCharacter  $character  角色实例
+     * @param  string  $quality  品质
      * @return array 出售结果
      */
     public function sellItemsByQuality(GameCharacter $character, string $quality): array
@@ -444,8 +449,8 @@ class GameInventoryService
     /**
      * 查找空槽位
      *
-     * @param GameCharacter $character 角色实例
-     * @param bool $inStorage 是否在仓库中
+     * @param  GameCharacter  $character  角色实例
+     * @param  bool  $inStorage  是否在仓库中
      * @return int|null 空槽位索引
      */
     public function findEmptySlot(GameCharacter $character, bool $inStorage): ?int

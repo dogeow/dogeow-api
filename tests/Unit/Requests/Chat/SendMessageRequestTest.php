@@ -2,18 +2,17 @@
 
 namespace Tests\Unit\Requests\Chat;
 
-use Tests\TestCase;
 use App\Http\Requests\Chat\SendMessageRequest;
+use Tests\TestCase;
 
 class SendMessageRequestTest extends TestCase
 {
-
     private SendMessageRequest $request;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->request = new SendMessageRequest();
+        $this->request = new SendMessageRequest;
     }
 
     public function test_authorize_returns_true()
@@ -86,8 +85,4 @@ class SendMessageRequestTest extends TestCase
 
         $this->assertEquals('Message type must be either text or system.', $messages['message_type.in']);
     }
-
-
-
-
-} 
+}

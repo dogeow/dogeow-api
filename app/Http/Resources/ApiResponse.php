@@ -68,7 +68,7 @@ class ApiResponse
                 'has_more_pages' => $paginator->hasMorePages(),
                 'prev_page_url' => $paginator->previousPageUrl(),
                 'next_page_url' => $paginator->nextPageUrl(),
-            ]
+            ],
         ]);
     }
 
@@ -86,7 +86,7 @@ class ApiResponse
             'data' => $collection,
         ];
 
-        if (!empty($meta)) {
+        if (! empty($meta)) {
             $response['meta'] = $meta;
         }
 
@@ -180,7 +180,7 @@ class ApiResponse
             'message' => $message,
         ];
 
-        if (!empty($meta)) {
+        if (! empty($meta)) {
             $response['meta'] = $meta;
         }
 

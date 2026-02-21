@@ -15,8 +15,11 @@ class ChatReportControllerTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private User $messageUser;
+
     private ChatRoom $room;
+
     private ChatMessage $message;
 
     protected function setUp(): void
@@ -29,7 +32,7 @@ class ChatReportControllerTest extends TestCase
             'room_id' => $this->room->id,
             'user_id' => $this->messageUser->id,
         ]);
-        
+
         Sanctum::actingAs($this->user);
     }
 
@@ -37,14 +40,14 @@ class ChatReportControllerTest extends TestCase
     {
         $reportData = [
             'report_type' => ChatMessageReport::TYPE_INAPPROPRIATE_CONTENT,
-            'reason' => 'Inappropriate content'
+            'reason' => 'Inappropriate content',
         ];
 
         $response = $this->postJson("/api/chat/reports/rooms/{$this->room->id}/messages/{$this->message->id}", $reportData);
 
         $response->assertStatus(201);
         $response->assertJson([
-            'message' => 'Message reported successfully'
+            'message' => 'Message reported successfully',
         ]);
 
         $this->assertDatabaseHas('chat_message_reports', [
@@ -66,14 +69,14 @@ class ChatReportControllerTest extends TestCase
 
         $reportData = [
             'report_type' => ChatMessageReport::TYPE_SPAM,
-            'reason' => 'Test'
+            'reason' => 'Test',
         ];
 
         $response = $this->postJson("/api/chat/reports/rooms/{$this->room->id}/messages/{$ownMessage->id}", $reportData);
 
         $response->assertStatus(422);
         $response->assertJson([
-            'message' => 'You cannot report your own message'
+            'message' => 'You cannot report your own message',
         ]);
     }
 
@@ -81,7 +84,7 @@ class ChatReportControllerTest extends TestCase
     {
         $reportData = [
             'report_type' => 'invalid_type',
-            'reason' => 'Test'
+            'reason' => 'Test',
         ];
 
         $response = $this->postJson("/api/chat/reports/rooms/{$this->room->id}/messages/{$this->message->id}", $reportData);
@@ -116,14 +119,14 @@ class ChatReportControllerTest extends TestCase
 
         $reportData = [
             'report_type' => ChatMessageReport::TYPE_HARASSMENT,
-            'reason' => 'Another report'
+            'reason' => 'Another report',
         ];
 
         $response = $this->postJson("/api/chat/reports/rooms/{$this->room->id}/messages/{$this->message->id}", $reportData);
 
         $response->assertStatus(422);
         $response->assertJson([
-            'message' => 'You have already reported this message'
+            'message' => 'You have already reported this message',
         ]);
     }
 
@@ -151,9 +154,9 @@ class ChatReportControllerTest extends TestCase
                     'report_type',
                     'reason',
                     'status',
-                    'created_at'
-                ]
-            ]
+                    'created_at',
+                ],
+            ],
         ]);
     }
 
@@ -161,7 +164,7 @@ class ChatReportControllerTest extends TestCase
     {
         // Make user admin for this test
         $this->user->update(['is_admin' => true]);
-        
+
         // Create reports in different rooms
         $otherRoom = ChatRoom::factory()->create();
         $otherMessage = ChatMessage::factory()->create(['room_id' => $otherRoom->id]);
@@ -194,9 +197,9 @@ class ChatReportControllerTest extends TestCase
                     'room_id',
                     'report_type',
                     'reason',
-                    'status'
-                ]
-            ]
+                    'status',
+                ],
+            ],
         ]);
 
         $data = $response->json('reports');
@@ -215,14 +218,14 @@ class ChatReportControllerTest extends TestCase
 
         $reviewData = [
             'action' => 'resolve',
-            'notes' => 'Content violates community guidelines'
+            'notes' => 'Content violates community guidelines',
         ];
 
         $response = $this->postJson("/api/chat/reports/{$report->id}/review", $reviewData);
 
         $response->assertStatus(200);
         $response->assertJson([
-            'message' => 'Report reviewed successfully'
+            'message' => 'Report reviewed successfully',
         ]);
 
         $this->assertDatabaseHas('chat_message_reports', [
@@ -243,14 +246,14 @@ class ChatReportControllerTest extends TestCase
 
         $reviewData = [
             'action' => 'dismiss',
-            'notes' => 'False report'
+            'notes' => 'False report',
         ];
 
         $response = $this->postJson("/api/chat/reports/{$report->id}/review", $reviewData);
 
         $response->assertStatus(200);
         $response->assertJson([
-            'message' => 'Report reviewed successfully'
+            'message' => 'Report reviewed successfully',
         ]);
 
         $this->assertDatabaseHas('chat_message_reports', [
@@ -271,7 +274,7 @@ class ChatReportControllerTest extends TestCase
 
         $reviewData = [
             'action' => 'invalid_action',
-            'moderator_notes' => 'Test'
+            'moderator_notes' => 'Test',
         ];
 
         $response = $this->postJson("/api/chat/reports/{$report->id}/review", $reviewData);
@@ -284,7 +287,7 @@ class ChatReportControllerTest extends TestCase
     {
         // Make user admin for this test
         $this->user->update(['is_admin' => true]);
-        
+
         // Create reports with different statuses
         ChatMessageReport::create([
             'message_id' => $this->message->id,
@@ -311,7 +314,7 @@ class ChatReportControllerTest extends TestCase
             'resolved_reports',
             'dismissed_reports',
             'report_types',
-            'severity_breakdown'
+            'severity_breakdown',
         ]);
     }
 
@@ -319,7 +322,7 @@ class ChatReportControllerTest extends TestCase
     {
         $reportData = [
             'report_type' => ChatMessageReport::TYPE_INAPPROPRIATE_CONTENT,
-            'reason' => 'Test report'
+            'reason' => 'Test report',
         ];
 
         $response = $this->postJson("/api/chat/reports/rooms/{$this->room->id}/messages/{$this->message->id}", $reportData);
@@ -332,4 +335,4 @@ class ChatReportControllerTest extends TestCase
         $this->assertArrayHasKey('user_agent', $report->metadata);
         $this->assertArrayHasKey('message_content', $report->metadata);
     }
-} 
+}

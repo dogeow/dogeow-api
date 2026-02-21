@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Controllers;
 
-use App\Models\User;
 use App\Models\Thing\Item;
-use App\Models\Thing\ItemImage;
 use App\Models\Thing\ItemCategory;
+use App\Models\Thing\ItemImage;
 use App\Models\Thing\Spot;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
@@ -27,7 +27,7 @@ class ProfileControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at']
+            'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at'],
         ]);
     }
 
@@ -36,12 +36,12 @@ class ProfileControllerTest extends TestCase
     {
         $user = User::factory()->create([
             'name' => 'Old Name',
-            'email' => 'old@example.com'
+            'email' => 'old@example.com',
         ]);
 
         $updateData = [
             'name' => 'New Name',
-            'email' => 'new@example.com'
+            'email' => 'new@example.com',
         ];
 
         Sanctum::actingAs($user);
@@ -56,7 +56,7 @@ class ProfileControllerTest extends TestCase
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
             'name' => 'New Name',
-            'email' => 'new@example.com'
+            'email' => 'new@example.com',
         ]);
     }
 
@@ -67,7 +67,7 @@ class ProfileControllerTest extends TestCase
 
         $invalidData = [
             'name' => '', // Empty name
-            'email' => 'invalid-email' // Invalid email
+            'email' => 'invalid-email', // Invalid email
         ];
 
         Sanctum::actingAs($user);
@@ -83,12 +83,12 @@ class ProfileControllerTest extends TestCase
     {
         $user = User::factory()->create([
             'email' => 'old@example.com',
-            'email_verified_at' => now()
+            'email_verified_at' => now(),
         ]);
 
         $updateData = [
             'name' => $user->name,
-            'email' => 'new@example.com'
+            'email' => 'new@example.com',
         ];
 
         Sanctum::actingAs($user);
@@ -107,12 +107,12 @@ class ProfileControllerTest extends TestCase
     {
         $user = User::factory()->create([
             'email' => 'test@example.com',
-            'email_verified_at' => now()
+            'email_verified_at' => now(),
         ]);
 
         $updateData = [
             'name' => 'New Name',
-            'email' => 'test@example.com' // Same email
+            'email' => 'test@example.com', // Same email
         ];
 
         Sanctum::actingAs($user);
@@ -130,7 +130,7 @@ class ProfileControllerTest extends TestCase
     public function it_can_delete_user_account()
     {
         $user = User::factory()->create([
-            'password' => Hash::make('password123')
+            'password' => Hash::make('password123'),
         ]);
 
         // Create some related data
@@ -142,12 +142,12 @@ class ProfileControllerTest extends TestCase
         Sanctum::actingAs($user);
 
         $response = $this->deleteJson('/api/profile', [
-            'password' => 'password123'
+            'password' => 'password123',
         ]);
 
         $response->assertStatus(200);
         $response->assertJsonFragment([
-            'message' => 'Account deleted successfully'
+            'message' => 'Account deleted successfully',
         ]);
 
         // Check that user is deleted
@@ -161,13 +161,13 @@ class ProfileControllerTest extends TestCase
     public function it_validates_password_for_account_deletion()
     {
         $user = User::factory()->create([
-            'password' => Hash::make('password123')
+            'password' => Hash::make('password123'),
         ]);
 
         Sanctum::actingAs($user);
 
         $response = $this->deleteJson('/api/profile', [
-            'password' => 'wrong-password'
+            'password' => 'wrong-password',
         ]);
 
         $response->assertStatus(422);
@@ -197,7 +197,7 @@ class ProfileControllerTest extends TestCase
     public function it_cleans_up_user_related_data_on_deletion()
     {
         $user = User::factory()->create([
-            'password' => Hash::make('password123')
+            'password' => Hash::make('password123'),
         ]);
 
         // Create items with related data
@@ -219,7 +219,7 @@ class ProfileControllerTest extends TestCase
         Sanctum::actingAs($user);
 
         $response = $this->deleteJson('/api/profile', [
-            'password' => 'password123'
+            'password' => 'password123',
         ]);
 
         $response->assertStatus(200);
@@ -235,13 +235,13 @@ class ProfileControllerTest extends TestCase
     public function it_logs_out_user_after_account_deletion()
     {
         $user = User::factory()->create([
-            'password' => Hash::make('password123')
+            'password' => Hash::make('password123'),
         ]);
 
         Sanctum::actingAs($user);
 
         $response = $this->deleteJson('/api/profile', [
-            'password' => 'password123'
+            'password' => 'password123',
         ]);
 
         $response->assertStatus(200);
@@ -252,13 +252,13 @@ class ProfileControllerTest extends TestCase
     public function it_invalidates_session_after_account_deletion()
     {
         $user = User::factory()->create([
-            'password' => Hash::make('password123')
+            'password' => Hash::make('password123'),
         ]);
 
         Sanctum::actingAs($user);
 
         $response = $this->deleteJson('/api/profile', [
-            'password' => 'password123'
+            'password' => 'password123',
         ]);
 
         $response->assertStatus(200);
@@ -270,11 +270,11 @@ class ProfileControllerTest extends TestCase
     {
         $user = User::factory()->create([
             'name' => 'Old Name',
-            'email' => 'old@example.com'
+            'email' => 'old@example.com',
         ]);
 
         $updateData = [
-            'name' => 'New Name'
+            'name' => 'New Name',
             // Email not provided
         ];
 
@@ -298,7 +298,7 @@ class ProfileControllerTest extends TestCase
 
         $updateData = [
             'name' => $user1->name,
-            'email' => 'user2@example.com' // Try to use user2's email
+            'email' => 'user2@example.com', // Try to use user2's email
         ];
 
         Sanctum::actingAs($user1);
@@ -308,4 +308,4 @@ class ProfileControllerTest extends TestCase
         $response->assertStatus(422);
         $response->assertJsonValidationErrors('email');
     }
-} 
+}

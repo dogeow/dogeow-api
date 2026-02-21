@@ -8,7 +8,6 @@ use App\Models\Chat\ChatMessage;
 use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
-use App\Services\Chat\ChatService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
@@ -20,20 +19,21 @@ class ChatControllerTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private ChatRoom $room;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Disable broadcasting to avoid Pusher connection issues in tests
         Event::fake();
-        
+
         $this->user = User::factory()->create();
         $this->room = ChatRoom::factory()->create([
             'created_by' => $this->user->id,
         ]);
-        
+
         Sanctum::actingAs($this->user);
     }
 
@@ -125,7 +125,7 @@ class ChatControllerTest extends TestCase
         $response->assertStatus(200);
         $this->assertDatabaseHas('chat_rooms', [
             'id' => $this->room->id,
-            'is_active' => false
+            'is_active' => false,
         ]);
     }
 
@@ -231,7 +231,7 @@ class ChatControllerTest extends TestCase
     public function test_send_message_respects_rate_limiting()
     {
         $this->markTestSkipped('Rate limiting test needs to be fixed');
-        
+
         // Mock the content filter service to allow all messages
         $this->mock(\App\Services\Chat\ContentFilterService::class, function ($mock) {
             $mock->shouldReceive('processMessage')->andReturn([
@@ -239,7 +239,7 @@ class ChatControllerTest extends TestCase
                 'filtered_message' => 'Test message',
                 'violations' => [],
                 'actions_taken' => [],
-                'severity' => 'none'
+                'severity' => 'none',
             ]);
         });
 
@@ -253,7 +253,7 @@ class ChatControllerTest extends TestCase
         // Clear any existing rate limit and spam detection cache
         $rateLimitKey = "send_message:{$this->user->id}:{$this->room->id}";
         RateLimiter::clear($rateLimitKey);
-        
+
         // Clear spam detection cache
         $spamCacheKey = "chat_message_frequency_{$this->user->id}_{$this->room->id}";
         \Illuminate\Support\Facades\Cache::forget($spamCacheKey);
@@ -350,7 +350,7 @@ class ChatControllerTest extends TestCase
     {
         $otherUser = User::factory()->create();
         $otherRoom = ChatRoom::factory()->create(['created_by' => $otherUser->id]);
-        
+
         $message = ChatMessage::factory()->create([
             'room_id' => $otherRoom->id,
             'user_id' => $otherUser->id,

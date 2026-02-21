@@ -208,4 +208,4 @@ class UploadControllerTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonCount(10);
     }
-} 
+}

@@ -15,6 +15,7 @@ class UserLeft implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public User $user;
+
     public int $roomId;
 
     /**

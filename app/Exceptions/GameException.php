@@ -11,15 +11,25 @@ class GameException extends Exception
      * 错误代码常量
      */
     public const CODE_CHARACTER_NOT_FOUND = 1001;
+
     public const CODE_INSUFFICIENT_LEVEL = 1002;
+
     public const CODE_INSUFFICIENT_RESOURCES = 1003;
+
     public const CODE_COMBAT_NOT_IN_PROGRESS = 1004;
+
     public const CODE_INVALID_SKILL = 1005;
+
     public const CODE_SKILL_ON_COOLDOWN = 1006;
+
     public const CODE_INSUFFICIENT_MANA = 1007;
+
     public const CODE_INVALID_OPERATION = 1008;
+
     public const CODE_MAP_NOT_FOUND = 1009;
+
     public const CODE_MONSTER_NOT_FOUND = 1010;
+
     public const CODE_INVALID_DIFFICULTY = 1011;
 
     /**
@@ -42,9 +52,9 @@ class GameException extends Exception
     ];
 
     /**
-     * @param int $code 错误代码
-     * @param string|null $message 自定义错误消息
-     * @param Throwable|null $previous 上一级异常
+     * @param  int  $code  错误代码
+     * @param  string|null  $message  自定义错误消息
+     * @param  Throwable|null  $previous  上一级异常
      */
     public function __construct(
         int $code,

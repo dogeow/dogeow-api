@@ -19,7 +19,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         });
-        
+
         // 给笔记表添加分类ID字段
         Schema::table('notes', function (Blueprint $table) {
             $table->unsignedBigInteger('note_category_id')->nullable()->after('user_id')->index();
@@ -34,7 +34,7 @@ return new class extends Migration
         Schema::table('notes', function (Blueprint $table) {
             $table->dropColumn('note_category_id');
         });
-        
+
         Schema::dropIfExists('note_categories');
     }
 };

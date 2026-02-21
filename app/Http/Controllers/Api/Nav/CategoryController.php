@@ -22,6 +22,7 @@ class CategoryController extends Controller
             $categories = $query->withCount('items')
                 ->orderBy('sort_order')
                 ->get();
+
             return response()->json($categories);
         }
 
@@ -32,9 +33,9 @@ class CategoryController extends Controller
                 $itemQuery->where('name', 'like', '%' . $name . '%');
             }
         }])
-        ->orderBy('sort_order')
-        ->where('is_visible', true)
-        ->get();
+            ->orderBy('sort_order')
+            ->where('is_visible', true)
+            ->get();
 
         // 只返回有 items 的分类
         if ($request->has('filter') && isset($request->input('filter')['name'])) {
@@ -67,7 +68,7 @@ class CategoryController extends Controller
 
         return response()->json([
             'message' => '分类创建成功',
-            'category' => $category
+            'category' => $category,
         ], 201);
     }
 
@@ -90,7 +91,7 @@ class CategoryController extends Controller
 
         return response()->json([
             'message' => '分类更新成功',
-            'category' => $category
+            'category' => $category,
         ]);
     }
 
@@ -102,14 +103,14 @@ class CategoryController extends Controller
         // 检查分类下是否有导航项
         if ($category->items()->count() > 0) {
             return response()->json([
-                'message' => '该分类下存在导航项，无法删除'
+                'message' => '该分类下存在导航项，无法删除',
             ], 422);
         }
 
         $category->delete();
 
         return response()->json([
-            'message' => '分类删除成功'
+            'message' => '分类删除成功',
         ]);
     }
-} 
+}

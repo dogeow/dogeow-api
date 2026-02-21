@@ -14,14 +14,14 @@ class CreateRoomRequestTest extends TestCase
 
     public function test_authorize_returns_true()
     {
-        $request = new CreateRoomRequest();
-        
+        $request = new CreateRoomRequest;
+
         $this->assertTrue($request->authorize());
     }
 
     public function test_rules_returns_correct_validation_rules()
     {
-        $request = new CreateRoomRequest();
+        $request = new CreateRoomRequest;
         $rules = $request->rules();
 
         $this->assertArrayHasKey('name', $rules);
@@ -37,7 +37,7 @@ class CreateRoomRequestTest extends TestCase
 
     public function test_attributes_returns_correct_attributes()
     {
-        $request = new CreateRoomRequest();
+        $request = new CreateRoomRequest;
         $attributes = $request->attributes();
 
         $this->assertEquals('Room Name', $attributes['name']);
@@ -46,7 +46,7 @@ class CreateRoomRequestTest extends TestCase
 
     public function test_messages_returns_custom_error_messages()
     {
-        $request = new CreateRoomRequest();
+        $request = new CreateRoomRequest;
         $messages = $request->messages();
 
         $this->assertEquals('Room name is required.', $messages['name.required']);
@@ -57,7 +57,7 @@ class CreateRoomRequestTest extends TestCase
 
     public function test_validation_passes_with_valid_data()
     {
-        $request = new CreateRoomRequest();
+        $request = new CreateRoomRequest;
         $rules = $request->rules();
         $messages = $request->messages();
 
@@ -67,13 +67,13 @@ class CreateRoomRequestTest extends TestCase
         ];
 
         $validator = Validator::make($data, $rules, $messages);
-        
+
         $this->assertTrue($validator->passes());
     }
 
     public function test_validation_fails_without_name()
     {
-        $request = new CreateRoomRequest();
+        $request = new CreateRoomRequest;
         $rules = $request->rules();
         $messages = $request->messages();
 
@@ -82,7 +82,7 @@ class CreateRoomRequestTest extends TestCase
         ];
 
         $validator = Validator::make($data, $rules, $messages);
-        
+
         $this->assertTrue($validator->fails());
         $this->assertTrue($validator->errors()->has('name'));
     }
@@ -91,7 +91,7 @@ class CreateRoomRequestTest extends TestCase
     {
         ChatRoom::factory()->create(['name' => 'Existing Room']);
 
-        $request = new CreateRoomRequest();
+        $request = new CreateRoomRequest;
         $rules = $request->rules();
         $messages = $request->messages();
 
@@ -101,14 +101,14 @@ class CreateRoomRequestTest extends TestCase
         ];
 
         $validator = Validator::make($data, $rules, $messages);
-        
+
         $this->assertTrue($validator->fails());
         $this->assertTrue($validator->errors()->has('name'));
     }
 
     public function test_validation_fails_with_name_too_long()
     {
-        $request = new CreateRoomRequest();
+        $request = new CreateRoomRequest;
         $rules = $request->rules();
         $messages = $request->messages();
 
@@ -118,14 +118,14 @@ class CreateRoomRequestTest extends TestCase
         ];
 
         $validator = Validator::make($data, $rules, $messages);
-        
+
         $this->assertTrue($validator->fails());
         $this->assertTrue($validator->errors()->has('name'));
     }
 
     public function test_validation_fails_with_description_too_long()
     {
-        $request = new CreateRoomRequest();
+        $request = new CreateRoomRequest;
         $rules = $request->rules();
         $messages = $request->messages();
 
@@ -135,14 +135,14 @@ class CreateRoomRequestTest extends TestCase
         ];
 
         $validator = Validator::make($data, $rules, $messages);
-        
+
         $this->assertTrue($validator->fails());
         $this->assertTrue($validator->errors()->has('description'));
     }
 
     public function test_validation_passes_with_null_description()
     {
-        $request = new CreateRoomRequest();
+        $request = new CreateRoomRequest;
         $rules = $request->rules();
         $messages = $request->messages();
 
@@ -152,13 +152,13 @@ class CreateRoomRequestTest extends TestCase
         ];
 
         $validator = Validator::make($data, $rules, $messages);
-        
+
         $this->assertTrue($validator->passes());
     }
 
     public function test_validation_passes_without_description()
     {
-        $request = new CreateRoomRequest();
+        $request = new CreateRoomRequest;
         $rules = $request->rules();
         $messages = $request->messages();
 
@@ -167,7 +167,7 @@ class CreateRoomRequestTest extends TestCase
         ];
 
         $validator = Validator::make($data, $rules, $messages);
-        
+
         $this->assertTrue($validator->passes());
     }
-} 
+}

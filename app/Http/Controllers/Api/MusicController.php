@@ -3,9 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 class MusicController extends Controller
@@ -17,7 +15,7 @@ class MusicController extends Controller
     {
         $musicDir = public_path('musics');
 
-        if (!File::exists($musicDir)) {
+        if (! File::exists($musicDir)) {
             return response()->json(['error' => '音乐目录不存在'], 404);
         }
 
@@ -51,7 +49,7 @@ class MusicController extends Controller
     {
         $filePath = public_path('musics/' . $filename);
 
-        if (!File::exists($filePath)) {
+        if (! File::exists($filePath)) {
             return response()->json(['error' => '文件不存在'], 404);
         }
 
@@ -60,10 +58,10 @@ class MusicController extends Controller
 
         // 设置正确的响应头
         $headers = [
-            'Content-Type'        => $mimeType,
-            'Content-Length'      => $fileSize,
-            'Accept-Ranges'       => 'bytes',
-            'Cache-Control'       => 'public, max-age=3600',
+            'Content-Type' => $mimeType,
+            'Content-Length' => $fileSize,
+            'Accept-Ranges' => 'bytes',
+            'Cache-Control' => 'public, max-age=3600',
             'Content-Disposition' => 'inline; filename="' . addslashes($filename) . '"',
         ];
 
@@ -71,15 +69,15 @@ class MusicController extends Controller
         $rangeHeader = request()->header('Range');
         if ($rangeHeader) {
             if (preg_match('/bytes=(\d*)-(\d*)/', $rangeHeader, $matches)) {
-                $start = $matches[1] === '' ? 0 : (int)$matches[1];
-                $end = ($matches[2] !== '') ? (int)$matches[2] : ($fileSize - 1);
+                $start = $matches[1] === '' ? 0 : (int) $matches[1];
+                $end = ($matches[2] !== '') ? (int) $matches[2] : ($fileSize - 1);
 
                 // 保证范围合法
                 $start = max(0, min($start, $fileSize - 1));
                 $end = max($start, min($end, $fileSize - 1));
                 $length = $end - $start + 1;
 
-                $headers['Content-Range']  = "bytes $start-$end/$fileSize";
+                $headers['Content-Range'] = "bytes $start-$end/$fileSize";
                 $headers['Content-Length'] = $length;
 
                 return response()->stream(
@@ -91,7 +89,7 @@ class MusicController extends Controller
                         fseek($handle, $start);
                         $bufferSize = 8192;
                         $remaining = $length;
-                        while ($remaining > 0 && !feof($handle)) {
+                        while ($remaining > 0 && ! feof($handle)) {
                             $read = min($bufferSize, $remaining);
                             $buffer = fread($handle, $read);
                             if ($buffer === false) {
@@ -122,12 +120,12 @@ class MusicController extends Controller
         $defaultType = 'application/octet-stream';
 
         $mimeTypes = [
-            'mp3'  => 'audio/mpeg',
-            'ogg'  => 'audio/ogg',
-            'wav'  => 'audio/wav',
+            'mp3' => 'audio/mpeg',
+            'ogg' => 'audio/ogg',
+            'wav' => 'audio/wav',
             'flac' => 'audio/flac',
-            'm4a'  => 'audio/mp4',
-            'aac'  => 'audio/aac',
+            'm4a' => 'audio/mp4',
+            'aac' => 'audio/aac',
         ];
 
         return $mimeTypes[$extension] ?? $defaultType;

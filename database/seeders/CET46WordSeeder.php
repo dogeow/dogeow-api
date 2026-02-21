@@ -26,10 +26,10 @@ class CET46WordSeeder extends Seeder
 
         foreach ($categories as $catData) {
             $category = Category::firstOrCreate(['name' => $catData['name']], $catData);
-            
+
             $bookName = $catData['name'] . '词汇';
             $difficulty = $catData['sort_order'];
-            
+
             $book = Book::firstOrCreate(
                 ['name' => $bookName],
                 [
@@ -50,21 +50,25 @@ class CET46WordSeeder extends Seeder
 
     private function importWords(Book $book, array $words, string $type): void
     {
-        $this->command->info("正在导入{$type}单词 (" . count($words) . " 个)...");
-        
+        $this->command->info("正在导入{$type}单词 (" . count($words) . ' 个)...');
+
         // 获取该书已关联的单词
         $existingWordIds = $book->words()->pluck('words.id')->toArray();
         $existingContents = Word::whereIn('id', $existingWordIds)->pluck('content')->toArray();
-        
+
         $count = 0;
         $wordIdsToAttach = [];
 
         foreach ($words as $wordData) {
             $content = $wordData['word'] ?? $wordData['content'] ?? '';
-            if (empty($content)) continue;
-            
+            if (empty($content)) {
+                continue;
+            }
+
             // 跳过已关联到该书的单词
-            if (in_array($content, $existingContents)) continue;
+            if (in_array($content, $existingContents)) {
+                continue;
+            }
 
             // 查找或创建单词（全局唯一）
             $word = Word::firstOrCreate(
@@ -83,7 +87,7 @@ class CET46WordSeeder extends Seeder
         }
 
         // 批量关联单词到书籍
-        if (!empty($wordIdsToAttach)) {
+        if (! empty($wordIdsToAttach)) {
             // 分批附加，避免一次性操作太多数据
             foreach (array_chunk($wordIdsToAttach, 500) as $chunk) {
                 $book->words()->syncWithoutDetaching($chunk);
@@ -96,7 +100,7 @@ class CET46WordSeeder extends Seeder
 
     private function getWordsForLevel(string $level): array
     {
-        return match($level) {
+        return match ($level) {
             '小学英语' => $this->getPrimaryWords(),
             '初中英语' => $this->getJuniorWords(),
             '高中英语' => $this->getSeniorWords(),
@@ -108,35 +112,35 @@ class CET46WordSeeder extends Seeder
 
     private function getPrimaryWords(): array
     {
-        $path = __DIR__.'/CET46WordData/primary.php';
+        $path = __DIR__ . '/CET46WordData/primary.php';
 
         return file_exists($path) ? require $path : [];
     }
 
     private function getJuniorWords(): array
     {
-        $path = __DIR__.'/CET46WordData/junior.php';
+        $path = __DIR__ . '/CET46WordData/junior.php';
 
         return file_exists($path) ? require $path : [];
     }
 
     private function getSeniorWords(): array
     {
-        $path = __DIR__.'/CET46WordData/senior.php';
+        $path = __DIR__ . '/CET46WordData/senior.php';
 
         return file_exists($path) ? require $path : [];
     }
 
     private function getCET4Words(): array
     {
-        $path = __DIR__.'/CET46WordData/cet4.php';
+        $path = __DIR__ . '/CET46WordData/cet4.php';
 
         return file_exists($path) ? require $path : [];
     }
 
     private function getCET6Words(): array
     {
-        $path = __DIR__.'/CET46WordData/cet6.php';
+        $path = __DIR__ . '/CET46WordData/cet6.php';
 
         return file_exists($path) ? require $path : [];
     }

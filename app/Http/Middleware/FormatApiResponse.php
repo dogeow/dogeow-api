@@ -3,8 +3,8 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class FormatApiResponse
@@ -18,8 +18,8 @@ class FormatApiResponse
 
         // 仅格式化 API 路径下的 JSON 响应
         if (
-            !$request->is('api/*') ||
-            !$response instanceof JsonResponse
+            ! $request->is('api/*') ||
+            ! $response instanceof JsonResponse
         ) {
             return $response;
         }

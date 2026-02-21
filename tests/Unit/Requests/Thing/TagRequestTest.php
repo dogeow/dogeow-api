@@ -2,9 +2,9 @@
 
 namespace Tests\Unit\Requests\Thing;
 
-use Tests\TestCase;
 use App\Http\Requests\Thing\TagRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class TagRequestTest extends TestCase
 {
@@ -15,7 +15,7 @@ class TagRequestTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->request = new TagRequest();
+        $this->request = new TagRequest;
     }
 
     public function test_authorize_returns_true()
@@ -73,4 +73,4 @@ class TagRequestTest extends TestCase
 
         $this->assertEquals('标签颜色', $attributes['color']);
     }
-} 
+}

@@ -303,7 +303,7 @@ class ItemController extends Controller
                 return response()->json(['message' => '该关联已存在'], 400);
             }
 
-            return response()->json(['message' => '添加关联失败: '.$e->getMessage()], 500);
+            return response()->json(['message' => '添加关联失败: ' . $e->getMessage()], 500);
         }
     }
 

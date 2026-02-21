@@ -51,4 +51,4 @@ class ItemRequest extends FormRequest
             'is_new_window' => '是否新窗口打开',
         ];
     }
-} 
+}

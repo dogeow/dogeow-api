@@ -4,7 +4,6 @@ namespace App\Utils;
 
 class Constants
 {
-
     /**
      * 获取聊天配置
      */

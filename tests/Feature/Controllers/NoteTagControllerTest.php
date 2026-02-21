@@ -2,17 +2,18 @@
 
 namespace Tests\Feature\Controllers;
 
-use Tests\TestCase;
 use App\Models\Note\NoteTag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Tests\TestCase;
 
 class NoteTagControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     private User $user;
+
     private User $otherUser;
 
     protected function setUp(): void
@@ -221,10 +222,10 @@ class NoteTagControllerTest extends TestCase
     public function test_destroy_detaches_notes_before_deletion()
     {
         $tag = NoteTag::factory()->create(['user_id' => $this->user->id]);
-        
+
         // 模拟笔记关联（这里需要根据实际的关联关系调整）
         // 假设有一个 notes 关联方法
-        
+
         $response = $this->deleteJson("/api/notes/tags/{$tag->id}");
 
         $response->assertStatus(204);
@@ -250,4 +251,4 @@ class NoteTagControllerTest extends TestCase
         $this->assertEquals($tag2->id, $tags[0]['id']);
         $this->assertEquals($tag1->id, $tags[1]['id']);
     }
-} 
+}

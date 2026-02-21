@@ -30,7 +30,7 @@ class AutoCombatRoundJob implements ShouldQueue
 
     public function handle(GameCombatService $combatService): void
     {
-        $key = self::REDIS_KEY_PREFIX.$this->characterId;
+        $key = self::REDIS_KEY_PREFIX . $this->characterId;
         $payload = Redis::get($key);
         if ($payload === null) {
             return;
@@ -120,6 +120,6 @@ class AutoCombatRoundJob implements ShouldQueue
 
     public static function redisKey(int $characterId): string
     {
-        return self::REDIS_KEY_PREFIX.$characterId;
+        return self::REDIS_KEY_PREFIX . $characterId;
     }
 }

@@ -45,4 +45,4 @@ class CategoryRequest extends FormRequest
             'is_visible' => '是否可见',
         ];
     }
-} 
+}

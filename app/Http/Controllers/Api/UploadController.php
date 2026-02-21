@@ -81,8 +81,8 @@ class UploadController extends Controller
 
                     // 添加到上传图片列表
                     $uploadedImages[] = [
-                        'path' => 'uploads/'.$userId.'/'.$fileInfo['compressed_filename'],
-                        'origin_path' => 'uploads/'.$userId.'/'.$fileInfo['origin_filename'],
+                        'path' => 'uploads/' . $userId . '/' . $fileInfo['compressed_filename'],
+                        'origin_path' => 'uploads/' . $userId . '/' . $fileInfo['origin_filename'],
                         'url' => $urls['compressed_url'],
                         'origin_url' => $urls['origin_url'],
                     ];
@@ -90,7 +90,7 @@ class UploadController extends Controller
                     $fileCount++;
                 } catch (\Exception $e) {
                     $errorCount++;
-                    Log::error('处理单张图片失败: '.$e->getMessage(), [
+                    Log::error('处理单张图片失败: ' . $e->getMessage(), [
                         'file' => $image->getClientOriginalName(),
                         'trace' => $e->getTraceAsString(),
                     ]);
@@ -107,7 +107,7 @@ class UploadController extends Controller
 
         } catch (\Exception $e) {
             return response()->json([
-                'message' => '图片上传失败: '.$e->getMessage(),
+                'message' => '图片上传失败: ' . $e->getMessage(),
             ], 500);
         }
     }

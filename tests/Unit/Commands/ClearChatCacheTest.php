@@ -2,12 +2,12 @@
 
 namespace Tests\Unit\Commands;
 
-use Tests\TestCase;
 use App\Console\Commands\Chat\ClearChatCache;
 use App\Services\Chat\ChatCacheService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Exception;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use ReflectionClass;
+use Tests\TestCase;
 
 class ClearChatCacheTest extends TestCase
 {
@@ -18,22 +18,23 @@ class ClearChatCacheTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create a simple mock service for basic tests
-        $mockService = new class extends ChatCacheService {
+        $mockService = new class extends ChatCacheService
+        {
             public function clearAllCache(): void
             {
                 // Do nothing - simulate successful cache clearing
             }
         };
-        
+
         // Create command instance with mocked service
         $this->command = new ClearChatCache($mockService);
-        
+
         // Set up output for the command
         $this->command->setOutput(new \Illuminate\Console\OutputStyle(
             new \Symfony\Component\Console\Input\ArrayInput([]),
-            new \Symfony\Component\Console\Output\NullOutput()
+            new \Symfony\Component\Console\Output\NullOutput
         ));
     }
 
@@ -43,19 +44,20 @@ class ClearChatCacheTest extends TestCase
     public function test_handle_clears_cache_successfully(): void
     {
         // Arrange - create a simple mock that doesn't throw exceptions
-        $mockService = new class extends ChatCacheService {
+        $mockService = new class extends ChatCacheService
+        {
             public function clearAllCache(): void
             {
                 // Do nothing - simulate successful cache clearing
             }
         };
-        
+
         $command = new ClearChatCache($mockService);
-        
+
         // Set up output for the command
         $command->setOutput(new \Illuminate\Console\OutputStyle(
             new \Symfony\Component\Console\Input\ArrayInput([]),
-            new \Symfony\Component\Console\Output\NullOutput()
+            new \Symfony\Component\Console\Output\NullOutput
         ));
 
         // Act
@@ -71,19 +73,20 @@ class ClearChatCacheTest extends TestCase
     public function test_handle_returns_failure_when_cache_service_throws_exception(): void
     {
         // Arrange - create a mock that throws an exception
-        $mockService = new class extends ChatCacheService {
+        $mockService = new class extends ChatCacheService
+        {
             public function clearAllCache(): void
             {
                 throw new Exception('Cache connection failed');
             }
         };
-        
+
         $command = new ClearChatCache($mockService);
-        
+
         // Set up output for the command
         $command->setOutput(new \Illuminate\Console\OutputStyle(
             new \Symfony\Component\Console\Input\ArrayInput([]),
-            new \Symfony\Component\Console\Output\NullOutput()
+            new \Symfony\Component\Console\Output\NullOutput
         ));
 
         // Act
@@ -120,14 +123,15 @@ class ClearChatCacheTest extends TestCase
     public function test_constructor_injects_cache_service(): void
     {
         // Arrange & Act
-        $mockService = new class extends ChatCacheService {
+        $mockService = new class extends ChatCacheService
+        {
             public function clearAllCache(): void
             {
                 // Do nothing
             }
         };
         $command = new ClearChatCache($mockService);
-        
+
         // Assert - use reflection to access private property
         $reflection = new ReflectionClass($command);
         $property = $reflection->getProperty('cacheService');
@@ -159,41 +163,43 @@ class ClearChatCacheTest extends TestCase
     public function test_handle_handles_different_exception_types(): void
     {
         // Test with RuntimeException
-        $mockService = new class extends ChatCacheService {
+        $mockService = new class extends ChatCacheService
+        {
             public function clearAllCache(): void
             {
                 throw new \RuntimeException('Runtime error');
             }
         };
-        
+
         $command = new ClearChatCache($mockService);
-        
+
         // Set up output for the command
         $command->setOutput(new \Illuminate\Console\OutputStyle(
             new \Symfony\Component\Console\Input\ArrayInput([]),
-            new \Symfony\Component\Console\Output\NullOutput()
+            new \Symfony\Component\Console\Output\NullOutput
         ));
-        
+
         $result = $command->handle();
         $this->assertEquals(1, $result);
 
         // Test with InvalidArgumentException
-        $mockService = new class extends ChatCacheService {
+        $mockService = new class extends ChatCacheService
+        {
             public function clearAllCache(): void
             {
                 throw new \InvalidArgumentException('Invalid argument');
             }
         };
-        
+
         $command = new ClearChatCache($mockService);
-        
+
         // Set up output for the command
         $command->setOutput(new \Illuminate\Console\OutputStyle(
             new \Symfony\Component\Console\Input\ArrayInput([]),
-            new \Symfony\Component\Console\Output\NullOutput()
+            new \Symfony\Component\Console\Output\NullOutput
         ));
-        
+
         $result = $command->handle();
         $this->assertEquals(1, $result);
     }
-} 
+}

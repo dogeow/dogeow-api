@@ -3,8 +3,6 @@
 namespace Tests\Unit\Commands;
 
 use App\Console\Commands\TestReverbSetup;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Redis;
 use Tests\TestCase;
 
@@ -15,7 +13,7 @@ class TestReverbSetupTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->command = new TestReverbSetup();
+        $this->command = new TestReverbSetup;
     }
 
     public function test_command_exists_and_has_correct_signature()
@@ -49,4 +47,4 @@ class TestReverbSetupTest extends TestCase
     {
         $this->assertInstanceOf(\Illuminate\Console\Command::class, $this->command);
     }
-} 
+}

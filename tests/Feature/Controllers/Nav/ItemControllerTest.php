@@ -2,12 +2,11 @@
 
 namespace Tests\Feature\Controllers\Nav;
 
-use Tests\TestCase;
 use App\Models\Nav\Category;
 use App\Models\Nav\Item;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Auth;
+use Tests\TestCase;
 
 class ItemControllerTest extends TestCase
 {
@@ -62,7 +61,7 @@ class ItemControllerTest extends TestCase
     {
         $category1 = Category::factory()->create();
         $category2 = Category::factory()->create();
-        
+
         $item1 = Item::factory()->visible()->create(['nav_category_id' => $category1->id]);
         $item2 = Item::factory()->visible()->create(['nav_category_id' => $category2->id]);
 
@@ -80,7 +79,7 @@ class ItemControllerTest extends TestCase
     public function test_items_are_ordered_by_sort_order()
     {
         $category = Category::factory()->create();
-        
+
         $item3 = Item::factory()->create(['nav_category_id' => $category->id, 'sort_order' => 3]);
         $item1 = Item::factory()->create(['nav_category_id' => $category->id, 'sort_order' => 1]);
         $item2 = Item::factory()->create(['nav_category_id' => $category->id, 'sort_order' => 2]);
@@ -88,7 +87,7 @@ class ItemControllerTest extends TestCase
         $response = $this->getJson('/api/nav/items?show_all=1');
 
         $response->assertStatus(200);
-        
+
         $items = $response->json();
         $this->assertEquals($item1->id, $items[0]['id']);
         $this->assertEquals($item2->id, $items[1]['id']);
@@ -101,9 +100,9 @@ class ItemControllerTest extends TestCase
     public function test_store_creates_new_item()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
-        
+
         $data = [
             'nav_category_id' => $category->id,
             'name' => 'Test Item',
@@ -129,7 +128,7 @@ class ItemControllerTest extends TestCase
                     'sort_order' => 5,
                     'is_visible' => true,
                     'is_new_window' => false,
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('nav_items', [
@@ -150,7 +149,7 @@ class ItemControllerTest extends TestCase
     public function test_store_validation_fails_without_required_fields()
     {
         $this->actingAs($this->user);
-        
+
         $data = [
             'name' => 'Test Item',
             // 缺少 nav_category_id 和 url
@@ -168,7 +167,7 @@ class ItemControllerTest extends TestCase
     public function test_store_validation_fails_with_nonexistent_category()
     {
         $this->actingAs($this->user);
-        
+
         $data = [
             'nav_category_id' => 999,
             'name' => 'Test Item',
@@ -187,9 +186,9 @@ class ItemControllerTest extends TestCase
     public function test_store_validation_fails_with_long_name()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
-        
+
         $data = [
             'nav_category_id' => $category->id,
             'name' => str_repeat('a', 51), // 超过50字符限制
@@ -208,9 +207,9 @@ class ItemControllerTest extends TestCase
     public function test_store_validation_fails_with_long_url()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
-        
+
         $data = [
             'nav_category_id' => $category->id,
             'name' => 'Test Item',
@@ -241,7 +240,7 @@ class ItemControllerTest extends TestCase
                 'category' => [
                     'id' => $category->id,
                     'name' => $category->name,
-                ]
+                ],
             ]);
     }
 
@@ -261,10 +260,10 @@ class ItemControllerTest extends TestCase
     public function test_update_modifies_item()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
         $item = Item::factory()->create(['nav_category_id' => $category->id]);
-        
+
         $updateData = [
             'nav_category_id' => $category->id,
             'name' => 'Updated Item',
@@ -290,7 +289,7 @@ class ItemControllerTest extends TestCase
                     'sort_order' => 10,
                     'is_visible' => false,
                     'is_new_window' => true,
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('nav_items', [
@@ -311,10 +310,10 @@ class ItemControllerTest extends TestCase
     public function test_update_partial_fields()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
         $item = Item::factory()->create(['nav_category_id' => $category->id]);
-        
+
         $updateData = [
             'nav_category_id' => $category->id,
             'name' => 'Updated Name',
@@ -328,7 +327,7 @@ class ItemControllerTest extends TestCase
                 'item' => [
                     'id' => $item->id,
                     'name' => 'Updated Name',
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('nav_items', [
@@ -343,10 +342,10 @@ class ItemControllerTest extends TestCase
     public function test_update_validation_fails_with_long_name()
     {
         $this->actingAs($this->user);
-        
+
         $category = Category::factory()->create();
         $item = Item::factory()->create(['nav_category_id' => $category->id]);
-        
+
         $updateData = [
             'name' => str_repeat('a', 51),
         ];
@@ -363,14 +362,14 @@ class ItemControllerTest extends TestCase
     public function test_destroy_deletes_item()
     {
         $this->actingAs($this->user);
-        
+
         $item = Item::factory()->create();
 
         $response = $this->deleteJson("/api/nav/items/{$item->id}");
 
         $response->assertStatus(200)
             ->assertJson([
-                'message' => '导航项删除成功'
+                'message' => '导航项删除成功',
             ]);
 
         $this->assertSoftDeleted('nav_items', ['id' => $item->id]);
@@ -382,7 +381,7 @@ class ItemControllerTest extends TestCase
     public function test_destroy_returns_404_for_nonexistent_item()
     {
         $this->actingAs($this->user);
-        
+
         $response = $this->deleteJson('/api/nav/items/999');
 
         $response->assertStatus(404);
@@ -400,12 +399,12 @@ class ItemControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '点击记录成功',
-                'clicks' => 6
+                'clicks' => 6,
             ]);
 
         $this->assertDatabaseHas('nav_items', [
             'id' => $item->id,
-            'clicks' => 6
+            'clicks' => 6,
         ]);
     }
 
@@ -440,7 +439,7 @@ class ItemControllerTest extends TestCase
 
         $this->assertDatabaseHas('nav_items', [
             'id' => $item->id,
-            'clicks' => 3
+            'clicks' => 3,
         ]);
     }
 
@@ -455,14 +454,14 @@ class ItemControllerTest extends TestCase
         $response = $this->getJson('/api/nav/items?show_all=1');
 
         $response->assertStatus(200);
-        
+
         $items = $response->json();
         $this->assertNotEmpty($items);
-        
+
         $foundItem = collect($items)->firstWhere('id', $item->id);
         $this->assertNotNull($foundItem);
         $this->assertArrayHasKey('category', $foundItem);
         $this->assertEquals($category->id, $foundItem['category']['id']);
         $this->assertEquals($category->name, $foundItem['category']['name']);
     }
-} 
+}

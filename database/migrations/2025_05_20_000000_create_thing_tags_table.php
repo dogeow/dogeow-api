@@ -19,14 +19,14 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         });
-        
+
         // 创建物品与标签的多对多关联表
         Schema::create('thing_item_tag', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('item_id')->index();
             $table->unsignedBigInteger('thing_tag_id')->index();
             $table->timestamps();
-            
+
             // 确保一个物品不会重复添加同一个标签
             $table->unique(['item_id', 'thing_tag_id']);
         });
@@ -40,4 +40,4 @@ return new class extends Migration
         Schema::dropIfExists('thing_item_tag');
         Schema::dropIfExists('thing_tags');
     }
-}; 
+};

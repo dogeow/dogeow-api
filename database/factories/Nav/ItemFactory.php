@@ -2,8 +2,8 @@
 
 namespace Database\Factories\Nav;
 
-use App\Models\Nav\Item;
 use App\Models\Nav\Category;
+use App\Models\Nav\Item;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -67,4 +67,4 @@ class ItemFactory extends Factory
             'is_new_window' => true,
         ]);
     }
-} 
+}

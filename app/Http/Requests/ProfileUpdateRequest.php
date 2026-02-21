@@ -36,8 +36,6 @@ class ProfileUpdateRequest extends FormRequest
 
     /**
      * Get custom messages for validator errors.
-     *
-     * @return array
      */
     public function messages(): array
     {
@@ -52,4 +50,4 @@ class ProfileUpdateRequest extends FormRequest
             'email.unique' => '该邮箱已被使用',
         ];
     }
-} 
+}

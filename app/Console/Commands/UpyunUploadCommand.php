@@ -52,9 +52,9 @@ class UpyunUploadCommand extends Command
 
         $this->info('上传成功。');
         if (! empty($result['url'])) {
-            $this->line('URL: '.$result['url']);
+            $this->line('URL: ' . $result['url']);
         } else {
-            $this->line('路径: '.$result['path']);
+            $this->line('路径: ' . $result['path']);
             $this->comment('若需公开 URL，请在 .env 中设置 UPYUN_DOMAIN（CDN 域名）');
         }
 

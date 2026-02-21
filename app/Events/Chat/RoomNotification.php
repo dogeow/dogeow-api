@@ -15,8 +15,11 @@ class RoomNotification implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public ChatRoom $room;
+
     public string $message;
+
     public string $type;
+
     public ?User $triggeredBy;
 
     /**

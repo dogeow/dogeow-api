@@ -20,7 +20,7 @@ return new class extends Migration
             $table->integer('total_words')->default(0)->comment('总单词数');
             $table->integer('sort_order')->default(0)->comment('排序');
             $table->timestamps();
-            
+
             $table->index('word_category_id');
             $table->index('difficulty');
             $table->index('sort_order');

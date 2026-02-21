@@ -17,7 +17,7 @@ class GameCombatLootServiceTest extends TestCase
     {
         parent::setUp();
 
-        $this->service = new GameCombatLootService();
+        $this->service = new GameCombatLootService;
     }
 
     public function test_process_death_loot_returns_empty_array_when_no_dead_monsters(): void

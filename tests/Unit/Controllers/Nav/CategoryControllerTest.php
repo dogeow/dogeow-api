@@ -2,27 +2,27 @@
 
 namespace Tests\Unit\Controllers\Nav;
 
-use Tests\TestCase;
 use App\Http\Controllers\Api\Nav\CategoryController;
-use App\Http\Requests\Nav\CategoryRequest;
 use App\Models\Nav\Category;
 use App\Models\Nav\Item;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Tests\TestCase;
 
 class CategoryControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     private CategoryController $controller;
+
     private User $user;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->controller = new CategoryController();
+        $this->controller = new CategoryController;
         $this->user = User::factory()->create();
     }
 
@@ -33,10 +33,10 @@ class CategoryControllerTest extends TestCase
     {
         $visibleCategory = Category::factory()->visible()->create();
         $hiddenCategory = Category::factory()->hidden()->create();
-        
+
         Item::factory()->count(3)->create(['nav_category_id' => $visibleCategory->id]);
 
-        $request = new Request();
+        $request = new Request;
         $response = $this->controller->index($request);
 
         $this->assertEquals(200, $response->getStatusCode());
@@ -67,19 +67,19 @@ class CategoryControllerTest extends TestCase
     public function test_index_method_with_name_filter()
     {
         $category = Category::factory()->visible()->create();
-        
+
         Item::factory()->create([
             'nav_category_id' => $category->id,
-            'name' => 'Test Item'
+            'name' => 'Test Item',
         ]);
-        
+
         Item::factory()->create([
             'nav_category_id' => $category->id,
-            'name' => 'Other Item'
+            'name' => 'Other Item',
         ]);
 
         $request = new Request([
-            'filter' => ['name' => 'Test']
+            'filter' => ['name' => 'Test'],
         ]);
         $response = $this->controller->index($request);
 
@@ -96,7 +96,7 @@ class CategoryControllerTest extends TestCase
     {
         $category1 = Category::factory()->create();
         $category2 = Category::factory()->create();
-        
+
         Item::factory()->count(3)->create(['nav_category_id' => $category1->id]);
         Item::factory()->count(1)->create(['nav_category_id' => $category2->id]);
 
@@ -105,11 +105,11 @@ class CategoryControllerTest extends TestCase
         $this->assertEquals(200, $response->getStatusCode());
         $data = $response->getData();
         $this->assertCount(2, $data);
-        
+
         // Check that items_count is included
         $category1Data = collect($data)->firstWhere('id', $category1->id);
         $this->assertEquals(3, $category1Data->items_count);
-        
+
         $category2Data = collect($data)->firstWhere('id', $category2->id);
         $this->assertEquals(1, $category2Data->items_count);
     }
@@ -120,7 +120,7 @@ class CategoryControllerTest extends TestCase
     public function test_store_method_with_valid_data()
     {
         Auth::login($this->user);
-        
+
         // Skip this test as FormRequest validation is better tested in feature tests
         $this->markTestSkipped('FormRequest validation is better tested in feature tests');
     }
@@ -131,7 +131,7 @@ class CategoryControllerTest extends TestCase
     public function test_store_method_with_minimal_data()
     {
         Auth::login($this->user);
-        
+
         // Skip this test as FormRequest validation is better tested in feature tests
         $this->markTestSkipped('FormRequest validation is better tested in feature tests');
     }
@@ -158,7 +158,7 @@ class CategoryControllerTest extends TestCase
     public function test_update_method_with_valid_data()
     {
         Auth::login($this->user);
-        
+
         // Skip this test as FormRequest validation is better tested in feature tests
         $this->markTestSkipped('FormRequest validation is better tested in feature tests');
     }
@@ -169,7 +169,7 @@ class CategoryControllerTest extends TestCase
     public function test_update_method_with_partial_data()
     {
         Auth::login($this->user);
-        
+
         // Skip this test as FormRequest validation is better tested in feature tests
         $this->markTestSkipped('FormRequest validation is better tested in feature tests');
     }
@@ -180,7 +180,7 @@ class CategoryControllerTest extends TestCase
     public function test_destroy_method_with_empty_category()
     {
         Auth::login($this->user);
-        
+
         $category = Category::factory()->create();
 
         $response = $this->controller->destroy($category);
@@ -188,7 +188,7 @@ class CategoryControllerTest extends TestCase
         $this->assertEquals(200, $response->getStatusCode());
         $data = $response->getData();
         $this->assertEquals('分类删除成功', $data->message);
-        
+
         $this->assertSoftDeleted('nav_categories', ['id' => $category->id]);
     }
 
@@ -198,7 +198,7 @@ class CategoryControllerTest extends TestCase
     public function test_destroy_method_with_category_has_items()
     {
         Auth::login($this->user);
-        
+
         $category = Category::factory()->create();
         Item::factory()->create(['nav_category_id' => $category->id]);
 
@@ -207,7 +207,7 @@ class CategoryControllerTest extends TestCase
         $this->assertEquals(422, $response->getStatusCode());
         $data = $response->getData();
         $this->assertEquals('该分类下存在导航项，无法删除', $data->message);
-        
+
         $this->assertDatabaseHas('nav_categories', ['id' => $category->id]);
     }
 
@@ -217,7 +217,7 @@ class CategoryControllerTest extends TestCase
     public function test_destroy_method_with_category_has_multiple_items()
     {
         Auth::login($this->user);
-        
+
         $category = Category::factory()->create();
         Item::factory()->count(5)->create(['nav_category_id' => $category->id]);
 
@@ -226,7 +226,7 @@ class CategoryControllerTest extends TestCase
         $this->assertEquals(422, $response->getStatusCode());
         $data = $response->getData();
         $this->assertEquals('该分类下存在导航项，无法删除', $data->message);
-        
+
         $this->assertDatabaseHas('nav_categories', ['id' => $category->id]);
     }
 
@@ -235,7 +235,7 @@ class CategoryControllerTest extends TestCase
      */
     public function test_index_method_with_empty_result()
     {
-        $request = new Request();
+        $request = new Request;
         $response = $this->controller->index($request);
 
         $this->assertEquals(200, $response->getStatusCode());
@@ -263,11 +263,11 @@ class CategoryControllerTest extends TestCase
         $category = Category::factory()->visible()->create();
         Item::factory()->create([
             'nav_category_id' => $category->id,
-            'name' => 'Other Item'
+            'name' => 'Other Item',
         ]);
 
         $request = new Request([
-            'filter' => ['name' => 'NonExistent']
+            'filter' => ['name' => 'NonExistent'],
         ]);
         $response = $this->controller->index($request);
 
@@ -282,24 +282,24 @@ class CategoryControllerTest extends TestCase
     public function test_index_method_with_name_filter_partial_matches()
     {
         $category = Category::factory()->visible()->create();
-        
+
         Item::factory()->create([
             'nav_category_id' => $category->id,
-            'name' => 'Test Item One'
+            'name' => 'Test Item One',
         ]);
-        
+
         Item::factory()->create([
             'nav_category_id' => $category->id,
-            'name' => 'Test Item Two'
+            'name' => 'Test Item Two',
         ]);
-        
+
         Item::factory()->create([
             'nav_category_id' => $category->id,
-            'name' => 'Other Item'
+            'name' => 'Other Item',
         ]);
 
         $request = new Request([
-            'filter' => ['name' => 'Test']
+            'filter' => ['name' => 'Test'],
         ]);
         $response = $this->controller->index($request);
 
@@ -315,14 +315,14 @@ class CategoryControllerTest extends TestCase
     public function test_index_method_with_case_insensitive_filter()
     {
         $category = Category::factory()->visible()->create();
-        
+
         Item::factory()->create([
             'nav_category_id' => $category->id,
-            'name' => 'Test Item'
+            'name' => 'Test Item',
         ]);
 
         $request = new Request([
-            'filter' => ['name' => 'test']
+            'filter' => ['name' => 'test'],
         ]);
         $response = $this->controller->index($request);
 
@@ -356,7 +356,7 @@ class CategoryControllerTest extends TestCase
         Category::factory()->hidden()->create();
         Category::factory()->hidden()->create();
 
-        $request = new Request();
+        $request = new Request;
         $response = $this->controller->index($request);
 
         $this->assertEquals(200, $response->getStatusCode());
@@ -371,11 +371,11 @@ class CategoryControllerTest extends TestCase
     {
         $visibleCategory = Category::factory()->visible()->create();
         $hiddenCategory = Category::factory()->hidden()->create();
-        
+
         Item::factory()->create(['nav_category_id' => $visibleCategory->id]);
         Item::factory()->create(['nav_category_id' => $hiddenCategory->id]);
 
-        $request = new Request();
+        $request = new Request;
         $response = $this->controller->index($request);
 
         $this->assertEquals(200, $response->getStatusCode());
@@ -434,4 +434,4 @@ class CategoryControllerTest extends TestCase
         $this->assertEquals($category->id, $data->id);
         $this->assertCount(5, $data->items);
     }
-} 
+}

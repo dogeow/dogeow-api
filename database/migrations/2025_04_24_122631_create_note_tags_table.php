@@ -19,14 +19,14 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         });
-        
+
         // 创建笔记与标签的多对多关联表
         Schema::create('note_note_tag', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('note_id')->index();
             $table->unsignedBigInteger('note_tag_id')->index();
             $table->timestamps();
-            
+
             // 确保一个笔记不会重复添加同一个标签
             $table->unique(['note_id', 'note_tag_id']);
         });

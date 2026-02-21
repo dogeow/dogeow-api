@@ -12,6 +12,7 @@ abstract class BaseService
     protected function success(array $data = [], string $message = 'Success'): array
     {
         $result = ['success' => true, 'message' => $message];
+
         return array_merge($result, $data);
     }
 
@@ -21,9 +22,10 @@ abstract class BaseService
     protected function error(string $message, array $errors = []): array
     {
         $result = ['success' => false, 'message' => $message];
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             $result['errors'] = $errors;
         }
+
         return $result;
     }
 
@@ -34,7 +36,7 @@ abstract class BaseService
     {
         Log::error($message, array_merge($context, [
             'service' => static::class,
-            'timestamp' => now()->toISOString()
+            'timestamp' => now()->toISOString(),
         ]));
     }
 
@@ -45,7 +47,7 @@ abstract class BaseService
     {
         Log::info($message, array_merge($context, [
             'service' => static::class,
-            'timestamp' => now()->toISOString()
+            'timestamp' => now()->toISOString(),
         ]));
     }
 
@@ -75,7 +77,7 @@ abstract class BaseService
 
         return [
             'valid' => empty($errors),
-            'errors' => $errors
+            'errors' => $errors,
         ];
     }
 
@@ -86,7 +88,7 @@ abstract class BaseService
     {
         $this->logError("Failed to {$operation}", [
             'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
+            'trace' => $e->getTraceAsString(),
         ]);
 
         return $this->error("Failed to {$operation}");

@@ -15,7 +15,9 @@ class UserStatusChanged implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public User $user;
+
     public int $roomId;
+
     public bool $isOnline;
 
     /**

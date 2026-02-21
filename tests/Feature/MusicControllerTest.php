@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class MusicControllerTest extends TestCase
@@ -14,10 +13,10 @@ class MusicControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create test music directory
         $musicDir = public_path('musics');
-        if (!File::exists($musicDir)) {
+        if (! File::exists($musicDir)) {
             File::makeDirectory($musicDir, 0755, true);
         }
     }
@@ -29,7 +28,7 @@ class MusicControllerTest extends TestCase
         if (File::exists($musicDir)) {
             File::deleteDirectory($musicDir);
         }
-        
+
         parent::tearDown();
     }
 
@@ -41,7 +40,7 @@ class MusicControllerTest extends TestCase
             'test-song-1.mp3' => 'test content 1',
             'test-song-2.ogg' => 'test content 2',
             'test-song-3.wav' => 'test content 3',
-            'invalid-file.txt' => 'not a music file'
+            'invalid-file.txt' => 'not a music file',
         ];
 
         foreach ($testFiles as $filename => $content) {
@@ -56,24 +55,24 @@ class MusicControllerTest extends TestCase
                     'name',
                     'path',
                     'size',
-                    'extension'
-                ]
+                    'extension',
+                ],
             ]);
 
         $responseData = $response->json();
-        
+
         // Should return 3 music files (excluding .txt file)
         $this->assertCount(3, $responseData);
-        
+
         // Verify music files are included
         $musicNames = collect($responseData)->pluck('name')->toArray();
         $this->assertContains('test-song-1', $musicNames);
         $this->assertContains('test-song-2', $musicNames);
         $this->assertContains('test-song-3', $musicNames);
-        
+
         // Verify .txt file is excluded
         $this->assertNotContains('invalid-file', $musicNames);
-        
+
         // Verify file paths are correct
         foreach ($responseData as $music) {
             $this->assertStringStartsWith('/musics/', $music['path']);
@@ -94,7 +93,7 @@ class MusicControllerTest extends TestCase
 
         $response->assertStatus(404)
             ->assertJson([
-                'error' => '音乐目录不存在'
+                'error' => '音乐目录不存在',
             ]);
     }
 
@@ -102,7 +101,7 @@ class MusicControllerTest extends TestCase
     {
         // Ensure music directory exists but is empty
         $musicDir = public_path('musics');
-        if (!File::exists($musicDir)) {
+        if (! File::exists($musicDir)) {
             File::makeDirectory($musicDir, 0755, true);
         }
 
@@ -124,7 +123,7 @@ class MusicControllerTest extends TestCase
             'valid-6.aac' => 'content',
             'invalid-1.txt' => 'content',
             'invalid-2.jpg' => 'content',
-            'invalid-3.pdf' => 'content'
+            'invalid-3.pdf' => 'content',
         ];
 
         foreach ($testFiles as $filename => $content) {
@@ -134,20 +133,20 @@ class MusicControllerTest extends TestCase
         $response = $this->getJson('/api/music');
 
         $response->assertStatus(200);
-        
+
         $responseData = $response->json();
-        
+
         // Should return 6 valid audio files
         $this->assertCount(6, $responseData);
-        
+
         // Verify only supported formats are included
         $extensions = collect($responseData)->pluck('extension')->toArray();
         $supportedFormats = ['mp3', 'ogg', 'wav', 'flac', 'm4a', 'aac'];
-        
+
         foreach ($extensions as $extension) {
             $this->assertContains($extension, $supportedFormats);
         }
-        
+
         // Verify invalid files are excluded
         $names = collect($responseData)->pluck('name')->toArray();
         $this->assertNotContains('invalid-1', $names);
@@ -161,7 +160,7 @@ class MusicControllerTest extends TestCase
         $testFiles = [
             'song-1.MP3' => 'content',
             'song-2.Ogg' => 'content',
-            'song-3.WAV' => 'content'
+            'song-3.WAV' => 'content',
         ];
 
         foreach ($testFiles as $filename => $content) {
@@ -171,12 +170,12 @@ class MusicControllerTest extends TestCase
         $response = $this->getJson('/api/music');
 
         $response->assertStatus(200);
-        
+
         $responseData = $response->json();
-        
+
         // Should return 3 files with case-insensitive extensions
         $this->assertCount(3, $responseData);
-        
+
         // Verify extensions are normalized to lowercase
         foreach ($responseData as $music) {
             $this->assertContains($music['extension'], ['mp3', 'ogg', 'wav']);
@@ -189,7 +188,7 @@ class MusicControllerTest extends TestCase
         $testFiles = [
             'song-without-extension' => 'content',
             'song-with-dot.' => 'content',
-            'valid-song.mp3' => 'content'
+            'valid-song.mp3' => 'content',
         ];
 
         foreach ($testFiles as $filename => $content) {
@@ -199,11 +198,11 @@ class MusicControllerTest extends TestCase
         $response = $this->getJson('/api/music');
 
         $response->assertStatus(200);
-        
+
         $responseData = $response->json();
-        
+
         // Should only return the valid .mp3 file
         $this->assertCount(1, $responseData);
         $this->assertEquals('valid-song', $responseData[0]['name']);
     }
-} 
+}

@@ -2,9 +2,9 @@
 
 namespace Tests\Unit\Requests\Thing;
 
-use Tests\TestCase;
 use App\Http\Requests\Thing\LocationRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class LocationRequestTest extends TestCase
 {
@@ -15,7 +15,7 @@ class LocationRequestTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->request = new LocationRequest();
+        $this->request = new LocationRequest;
     }
 
     public function test_authorize_returns_true()
@@ -131,4 +131,4 @@ class LocationRequestTest extends TestCase
         $this->assertArrayNotHasKey('area_id', $rules);
         $this->assertArrayNotHasKey('room_id', $rules);
     }
-} 
+}

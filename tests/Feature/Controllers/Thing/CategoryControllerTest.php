@@ -2,18 +2,19 @@
 
 namespace Tests\Feature\Controllers\Thing;
 
-use Tests\TestCase;
-use App\Models\Thing\ItemCategory;
 use App\Models\Thing\Item;
+use App\Models\Thing\ItemCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Tests\TestCase;
 
 class CategoryControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     private User $user;
+
     private User $otherUser;
 
     protected function setUp(): void
@@ -43,11 +44,11 @@ class CategoryControllerTest extends TestCase
     {
         $parentCategory = ItemCategory::factory()->create([
             'user_id' => $this->user->id,
-            'parent_id' => null
+            'parent_id' => null,
         ]);
         $childCategory = ItemCategory::factory()->create([
             'user_id' => $this->user->id,
-            'parent_id' => $parentCategory->id
+            'parent_id' => $parentCategory->id,
         ]);
 
         $response = $this->getJson('/api/things/categories');
@@ -59,8 +60,8 @@ class CategoryControllerTest extends TestCase
                     'name',
                     'parent',
                     'children',
-                    'items_count'
-                ]
+                    'items_count',
+                ],
             ]);
     }
 
@@ -77,24 +78,24 @@ class CategoryControllerTest extends TestCase
         $categoryB = ItemCategory::factory()->create([
             'user_id' => $this->user->id,
             'name' => 'B Category',
-            'parent_id' => null
+            'parent_id' => null,
         ]);
         $categoryA = ItemCategory::factory()->create([
             'user_id' => $this->user->id,
             'name' => 'A Category',
-            'parent_id' => null
+            'parent_id' => null,
         ]);
         $childCategory = ItemCategory::factory()->create([
             'user_id' => $this->user->id,
             'name' => 'Child Category',
-            'parent_id' => $categoryA->id
+            'parent_id' => $categoryA->id,
         ]);
 
         $response = $this->getJson('/api/things/categories');
 
         $response->assertStatus(200);
         $categories = $response->json();
-        
+
         // Should be ordered by parent_id (null first), then by name
         $this->assertEquals($categoryA->id, $categories[0]['id']);
         $this->assertEquals($categoryB->id, $categories[1]['id']);
@@ -115,7 +116,7 @@ class CategoryControllerTest extends TestCase
                 'category' => [
                     'name' => 'Test Category',
                     'user_id' => $this->user->id,
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('thing_item_categories', [
@@ -128,12 +129,12 @@ class CategoryControllerTest extends TestCase
     {
         $parentCategory = ItemCategory::factory()->create([
             'user_id' => $this->user->id,
-            'parent_id' => null
+            'parent_id' => null,
         ]);
 
         $data = [
             'name' => 'Child Category',
-            'parent_id' => $parentCategory->id
+            'parent_id' => $parentCategory->id,
         ];
 
         $response = $this->postJson('/api/things/categories', $data);
@@ -145,7 +146,7 @@ class CategoryControllerTest extends TestCase
                     'name' => 'Child Category',
                     'parent_id' => $parentCategory->id,
                     'user_id' => $this->user->id,
-                ]
+                ],
             ]);
     }
 
@@ -153,7 +154,7 @@ class CategoryControllerTest extends TestCase
     {
         $data = [
             'name' => 'Test Category',
-            'parent_id' => 999
+            'parent_id' => 999,
         ];
 
         $response = $this->postJson('/api/things/categories', $data);
@@ -168,7 +169,7 @@ class CategoryControllerTest extends TestCase
 
         $data = [
             'name' => 'Test Category',
-            'parent_id' => $otherUserParent->id
+            'parent_id' => $otherUserParent->id,
         ];
 
         $response = $this->postJson('/api/things/categories', $data);
@@ -181,16 +182,16 @@ class CategoryControllerTest extends TestCase
     {
         $parentCategory = ItemCategory::factory()->create([
             'user_id' => $this->user->id,
-            'parent_id' => null
+            'parent_id' => null,
         ]);
         $childCategory = ItemCategory::factory()->create([
             'user_id' => $this->user->id,
-            'parent_id' => $parentCategory->id
+            'parent_id' => $parentCategory->id,
         ]);
 
         $data = [
             'name' => 'Third Level Category',
-            'parent_id' => $childCategory->id
+            'parent_id' => $childCategory->id,
         ];
 
         $response = $this->postJson('/api/things/categories', $data);
@@ -241,7 +242,7 @@ class CategoryControllerTest extends TestCase
     {
         $data = [
             'name' => 'Test Category',
-            'parent_id' => 'not-an-integer'
+            'parent_id' => 'not-an-integer',
         ];
 
         $response = $this->postJson('/api/things/categories', $data);
@@ -254,7 +255,7 @@ class CategoryControllerTest extends TestCase
     {
         $data = [
             'name' => 'Test Category',
-            'parent_id' => null
+            'parent_id' => null,
         ];
 
         $response = $this->postJson('/api/things/categories', $data);
@@ -297,7 +298,7 @@ class CategoryControllerTest extends TestCase
         $category = ItemCategory::factory()->create(['user_id' => $this->user->id]);
         $item = Item::factory()->create([
             'user_id' => $this->user->id,
-            'category_id' => $category->id
+            'category_id' => $category->id,
         ]);
 
         $response = $this->getJson("/api/things/categories/{$category->id}");
@@ -309,15 +310,15 @@ class CategoryControllerTest extends TestCase
                 'items' => [
                     '*' => [
                         'id',
-                        'name'
-                    ]
-                ]
+                        'name',
+                    ],
+                ],
             ]);
     }
 
     public function test_show_returns_404_for_nonexistent_category()
     {
-        $response = $this->getJson("/api/things/categories/999");
+        $response = $this->getJson('/api/things/categories/999');
 
         $response->assertStatus(404);
     }
@@ -332,9 +333,9 @@ class CategoryControllerTest extends TestCase
             ->assertJsonStructure([
                 'id',
                 'name',
-                'items'
+                'items',
             ]);
-        
+
         $this->assertEmpty($response->json('items'));
     }
 
@@ -353,7 +354,7 @@ class CategoryControllerTest extends TestCase
                 'category' => [
                     'id' => $category->id,
                     'name' => 'Updated Category',
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('thing_item_categories', [
@@ -388,7 +389,7 @@ class CategoryControllerTest extends TestCase
     {
         $data = ['name' => 'Updated Category'];
 
-        $response = $this->putJson("/api/things/categories/999", $data);
+        $response = $this->putJson('/api/things/categories/999', $data);
 
         $response->assertStatus(404);
     }
@@ -430,7 +431,7 @@ class CategoryControllerTest extends TestCase
         $category = ItemCategory::factory()->create(['user_id' => $this->user->id]);
         $data = [
             'name' => 'Updated Category',
-            'parent_id' => 999
+            'parent_id' => 999,
         ];
 
         $response = $this->putJson("/api/things/categories/{$category->id}", $data);
@@ -470,7 +471,7 @@ class CategoryControllerTest extends TestCase
         $category = ItemCategory::factory()->create(['user_id' => $this->user->id]);
         $item = Item::factory()->create([
             'user_id' => $this->user->id,
-            'category_id' => $category->id
+            'category_id' => $category->id,
         ]);
 
         $response = $this->deleteJson("/api/things/categories/{$category->id}");
@@ -483,11 +484,11 @@ class CategoryControllerTest extends TestCase
     {
         $parentCategory = ItemCategory::factory()->create([
             'user_id' => $this->user->id,
-            'parent_id' => null
+            'parent_id' => null,
         ]);
         $childCategory = ItemCategory::factory()->create([
             'user_id' => $this->user->id,
-            'parent_id' => $parentCategory->id
+            'parent_id' => $parentCategory->id,
         ]);
 
         $response = $this->deleteJson("/api/things/categories/{$parentCategory->id}");
@@ -498,7 +499,7 @@ class CategoryControllerTest extends TestCase
 
     public function test_destroy_returns_404_for_nonexistent_category()
     {
-        $response = $this->deleteJson("/api/things/categories/999");
+        $response = $this->deleteJson('/api/things/categories/999');
 
         $response->assertStatus(404);
     }
@@ -506,11 +507,11 @@ class CategoryControllerTest extends TestCase
     public function test_destroy_can_delete_category_with_multiple_items()
     {
         $category = ItemCategory::factory()->create(['user_id' => $this->user->id]);
-        
+
         // Create multiple items
         Item::factory()->count(3)->create([
             'user_id' => $this->user->id,
-            'category_id' => $category->id
+            'category_id' => $category->id,
         ]);
 
         $response = $this->deleteJson("/api/things/categories/{$category->id}");
@@ -523,13 +524,13 @@ class CategoryControllerTest extends TestCase
     {
         $parentCategory = ItemCategory::factory()->create([
             'user_id' => $this->user->id,
-            'parent_id' => null
+            'parent_id' => null,
         ]);
-        
+
         // Create multiple children
         ItemCategory::factory()->count(3)->create([
             'user_id' => $this->user->id,
-            'parent_id' => $parentCategory->id
+            'parent_id' => $parentCategory->id,
         ]);
 
         $response = $this->deleteJson("/api/things/categories/{$parentCategory->id}");
@@ -581,4 +582,4 @@ class CategoryControllerTest extends TestCase
 
         $response->assertStatus(401);
     }
-} 
+}

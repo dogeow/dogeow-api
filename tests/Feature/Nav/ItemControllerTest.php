@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Nav;
 
-use App\Models\Nav\Item;
 use App\Models\Nav\Category;
+use App\Models\Nav\Item;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -12,6 +12,7 @@ class ItemControllerTest extends TestCase
     use RefreshDatabase;
 
     protected Category $category;
+
     protected Item $item;
 
     protected function setUp(): void
@@ -19,7 +20,7 @@ class ItemControllerTest extends TestCase
         parent::setUp();
         $this->category = Category::factory()->create();
         $this->item = Item::factory()->visible()->create([
-            'nav_category_id' => $this->category->id
+            'nav_category_id' => $this->category->id,
         ]);
     }
 
@@ -27,12 +28,12 @@ class ItemControllerTest extends TestCase
     {
         // Create visible items
         $visibleItems = Item::factory()->count(3)->visible()->create([
-            'nav_category_id' => $this->category->id
+            'nav_category_id' => $this->category->id,
         ]);
 
         // Create hidden items (should not be returned by default)
         Item::factory()->count(2)->hidden()->create([
-            'nav_category_id' => $this->category->id
+            'nav_category_id' => $this->category->id,
         ]);
 
         $response = $this->getJson('/api/nav/items');
@@ -61,9 +62,9 @@ class ItemControllerTest extends TestCase
                         'sort_order',
                         'is_visible',
                         'created_at',
-                        'updated_at'
-                    ]
-                ]
+                        'updated_at',
+                    ],
+                ],
             ]);
 
         // Verify only visible items are returned
@@ -77,10 +78,10 @@ class ItemControllerTest extends TestCase
     {
         // Create visible and hidden items
         Item::factory()->count(2)->visible()->create([
-            'nav_category_id' => $this->category->id
+            'nav_category_id' => $this->category->id,
         ]);
         Item::factory()->count(2)->hidden()->create([
-            'nav_category_id' => $this->category->id
+            'nav_category_id' => $this->category->id,
         ]);
 
         $response = $this->getJson('/api/nav/items?show_all=1');
@@ -92,13 +93,13 @@ class ItemControllerTest extends TestCase
     public function test_index_filters_by_category_id(): void
     {
         $category2 = Category::factory()->create();
-        
+
         // Create visible items for different categories
         Item::factory()->count(3)->visible()->create([
-            'nav_category_id' => $this->category->id
+            'nav_category_id' => $this->category->id,
         ]);
         Item::factory()->count(2)->visible()->create([
-            'nav_category_id' => $category2->id
+            'nav_category_id' => $category2->id,
         ]);
 
         $response = $this->getJson('/api/nav/items?category_id=' . $this->category->id);
@@ -118,15 +119,15 @@ class ItemControllerTest extends TestCase
         // Create items with different sort orders
         $item1 = Item::factory()->create([
             'nav_category_id' => $this->category->id,
-            'sort_order' => 3
+            'sort_order' => 3,
         ]);
         $item2 = Item::factory()->create([
             'nav_category_id' => $this->category->id,
-            'sort_order' => 1
+            'sort_order' => 1,
         ]);
         $item3 = Item::factory()->create([
             'nav_category_id' => $this->category->id,
-            'sort_order' => 2
+            'sort_order' => 2,
         ]);
 
         $response = $this->getJson('/api/nav/items');
@@ -148,7 +149,7 @@ class ItemControllerTest extends TestCase
             'description' => 'Test description',
             'sort_order' => 5,
             'is_visible' => true,
-            'is_new_window' => false
+            'is_new_window' => false,
         ];
 
         $response = $this->postJson('/api/nav/items', $itemData);
@@ -164,14 +165,14 @@ class ItemControllerTest extends TestCase
                     'sort_order' => 5,
                     'is_visible' => true,
                     'is_new_window' => false,
-                    'nav_category_id' => $this->category->id
-                ]
+                    'nav_category_id' => $this->category->id,
+                ],
             ]);
 
         $this->assertDatabaseHas('nav_items', [
             'name' => 'Test Navigation',
             'url' => 'https://example.com',
-            'nav_category_id' => $this->category->id
+            'nav_category_id' => $this->category->id,
         ]);
     }
 
@@ -188,7 +189,7 @@ class ItemControllerTest extends TestCase
         $itemData = [
             'nav_category_id' => 99999, // Non-existent category
             'name' => 'Test Navigation',
-            'url' => 'https://example.com'
+            'url' => 'https://example.com',
         ];
 
         $response = $this->postJson('/api/nav/items', $itemData);
@@ -203,7 +204,7 @@ class ItemControllerTest extends TestCase
             'nav_category_id' => $this->category->id,
             'name' => str_repeat('a', 51), // Exceeds max length
             'url' => str_repeat('a', 256), // Exceeds max length
-            'icon' => str_repeat('a', 101) // Exceeds max length
+            'icon' => str_repeat('a', 101), // Exceeds max length
         ];
 
         $response = $this->postJson('/api/nav/items', $itemData);
@@ -224,8 +225,8 @@ class ItemControllerTest extends TestCase
                 'nav_category_id' => $this->category->id,
                 'category' => [
                     'id' => $this->category->id,
-                    'name' => $this->category->name
-                ]
+                    'name' => $this->category->name,
+                ],
             ]);
     }
 
@@ -246,7 +247,7 @@ class ItemControllerTest extends TestCase
             'description' => 'Updated description',
             'sort_order' => 10,
             'is_visible' => false,
-            'is_new_window' => true
+            'is_new_window' => true,
         ];
 
         $response = $this->putJson('/api/nav/items/' . $this->item->id, $updateData);
@@ -262,14 +263,14 @@ class ItemControllerTest extends TestCase
                     'description' => 'Updated description',
                     'sort_order' => 10,
                     'is_visible' => false,
-                    'is_new_window' => true
-                ]
+                    'is_new_window' => true,
+                ],
             ]);
 
         $this->assertDatabaseHas('nav_items', [
             'id' => $this->item->id,
             'name' => 'Updated Navigation',
-            'url' => 'https://updated-example.com'
+            'url' => 'https://updated-example.com',
         ]);
     }
 
@@ -278,7 +279,7 @@ class ItemControllerTest extends TestCase
         $updateData = [
             'nav_category_id' => $this->category->id,
             'name' => 'Partially Updated',
-            'url' => 'https://partial-update.com'
+            'url' => 'https://partial-update.com',
         ];
 
         $response = $this->putJson('/api/nav/items/' . $this->item->id, $updateData);
@@ -288,8 +289,8 @@ class ItemControllerTest extends TestCase
                 'item' => [
                     'id' => $this->item->id,
                     'name' => 'Partially Updated',
-                    'url' => 'https://partial-update.com'
-                ]
+                    'url' => 'https://partial-update.com',
+                ],
             ]);
 
         // Verify other fields remain unchanged
@@ -298,7 +299,7 @@ class ItemControllerTest extends TestCase
             'name' => 'Partially Updated',
             'url' => 'https://partial-update.com',
             'icon' => $this->item->icon,
-            'description' => $this->item->description
+            'description' => $this->item->description,
         ]);
     }
 
@@ -307,7 +308,7 @@ class ItemControllerTest extends TestCase
         $updateData = [
             'nav_category_id' => $this->category->id,
             'name' => str_repeat('a', 51), // Exceeds max length
-            'url' => str_repeat('a', 256) // Exceeds max length
+            'url' => str_repeat('a', 256), // Exceeds max length
         ];
 
         $response = $this->putJson('/api/nav/items/' . $this->item->id, $updateData);
@@ -320,7 +321,7 @@ class ItemControllerTest extends TestCase
     {
         $updateData = [
             'name' => 'Updated Name',
-            'url' => 'https://example.com'
+            'url' => 'https://example.com',
         ];
 
         $response = $this->putJson('/api/nav/items/99999', $updateData);
@@ -334,12 +335,12 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-                'message' => '导航项删除成功'
+                'message' => '导航项删除成功',
             ]);
 
         // Verify soft delete (item should still exist in database but with deleted_at)
         $this->assertDatabaseHas('nav_items', [
-            'id' => $this->item->id
+            'id' => $this->item->id,
         ]);
 
         // Verify the item is soft deleted (has deleted_at timestamp)
@@ -363,12 +364,12 @@ class ItemControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '点击记录成功',
-                'clicks' => $initialClicks + 1
+                'clicks' => $initialClicks + 1,
             ]);
 
         $this->assertDatabaseHas('nav_items', [
             'id' => $this->item->id,
-            'clicks' => $initialClicks + 1
+            'clicks' => $initialClicks + 1,
         ]);
     }
 
@@ -391,7 +392,7 @@ class ItemControllerTest extends TestCase
 
         $this->assertDatabaseHas('nav_items', [
             'id' => $this->item->id,
-            'clicks' => $initialClicks + 3
+            'clicks' => $initialClicks + 3,
         ]);
     }
-} 
+}

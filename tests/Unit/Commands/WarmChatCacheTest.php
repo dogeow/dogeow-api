@@ -2,12 +2,12 @@
 
 namespace Tests\Unit\Commands;
 
-use Tests\TestCase;
 use App\Console\Commands\Chat\WarmChatCache;
 use App\Services\Chat\ChatCacheService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Exception;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use ReflectionClass;
+use Tests\TestCase;
 
 class WarmChatCacheTest extends TestCase
 {
@@ -18,14 +18,15 @@ class WarmChatCacheTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create a simple mock service for basic tests
-        $mockService = new class extends ChatCacheService {
+        $mockService = new class extends ChatCacheService
+        {
             public function warmUpCache(): void
             {
                 // Do nothing - simulate successful cache warming
             }
-            
+
             public function getCacheStats(): array
             {
                 return [
@@ -37,14 +38,14 @@ class WarmChatCacheTest extends TestCase
                 ];
             }
         };
-        
+
         // Create command instance with mocked service
         $this->command = new WarmChatCache($mockService);
-        
+
         // Set up output for the command
         $this->command->setOutput(new \Illuminate\Console\OutputStyle(
             new \Symfony\Component\Console\Input\ArrayInput([]),
-            new \Symfony\Component\Console\Output\NullOutput()
+            new \Symfony\Component\Console\Output\NullOutput
         ));
     }
 
@@ -54,12 +55,13 @@ class WarmChatCacheTest extends TestCase
     public function test_handle_warms_cache_successfully(): void
     {
         // Arrange - create a mock that doesn't throw exceptions
-        $mockService = new class extends ChatCacheService {
+        $mockService = new class extends ChatCacheService
+        {
             public function warmUpCache(): void
             {
                 // Do nothing - simulate successful cache warming
             }
-            
+
             public function getCacheStats(): array
             {
                 return [
@@ -71,13 +73,13 @@ class WarmChatCacheTest extends TestCase
                 ];
             }
         };
-        
+
         $command = new WarmChatCache($mockService);
-        
+
         // Set up output for the command
         $command->setOutput(new \Illuminate\Console\OutputStyle(
             new \Symfony\Component\Console\Input\ArrayInput([]),
-            new \Symfony\Component\Console\Output\NullOutput()
+            new \Symfony\Component\Console\Output\NullOutput
         ));
 
         // Act
@@ -93,24 +95,25 @@ class WarmChatCacheTest extends TestCase
     public function test_handle_returns_failure_when_cache_service_throws_exception(): void
     {
         // Arrange - create a mock that throws an exception
-        $mockService = new class extends ChatCacheService {
+        $mockService = new class extends ChatCacheService
+        {
             public function warmUpCache(): void
             {
                 throw new Exception('Cache warming failed');
             }
-            
+
             public function getCacheStats(): array
             {
                 return [];
             }
         };
-        
+
         $command = new WarmChatCache($mockService);
-        
+
         // Set up output for the command
         $command->setOutput(new \Illuminate\Console\OutputStyle(
             new \Symfony\Component\Console\Input\ArrayInput([]),
-            new \Symfony\Component\Console\Output\NullOutput()
+            new \Symfony\Component\Console\Output\NullOutput
         ));
 
         // Act
@@ -147,19 +150,20 @@ class WarmChatCacheTest extends TestCase
     public function test_constructor_injects_cache_service(): void
     {
         // Arrange & Act
-        $mockService = new class extends ChatCacheService {
+        $mockService = new class extends ChatCacheService
+        {
             public function warmUpCache(): void
             {
                 // Do nothing
             }
-            
+
             public function getCacheStats(): array
             {
                 return [];
             }
         };
         $command = new WarmChatCache($mockService);
-        
+
         // Assert - use reflection to access private property
         $reflection = new ReflectionClass($command);
         $property = $reflection->getProperty('cacheService');
@@ -191,50 +195,52 @@ class WarmChatCacheTest extends TestCase
     public function test_handle_handles_different_exception_types(): void
     {
         // Test with RuntimeException
-        $mockService = new class extends ChatCacheService {
+        $mockService = new class extends ChatCacheService
+        {
             public function warmUpCache(): void
             {
                 throw new \RuntimeException('Runtime error');
             }
-            
+
             public function getCacheStats(): array
             {
                 return [];
             }
         };
-        
+
         $command = new WarmChatCache($mockService);
-        
+
         // Set up output for the command
         $command->setOutput(new \Illuminate\Console\OutputStyle(
             new \Symfony\Component\Console\Input\ArrayInput([]),
-            new \Symfony\Component\Console\Output\NullOutput()
+            new \Symfony\Component\Console\Output\NullOutput
         ));
-        
+
         $result = $command->handle();
         $this->assertEquals(1, $result);
 
         // Test with InvalidArgumentException
-        $mockService = new class extends ChatCacheService {
+        $mockService = new class extends ChatCacheService
+        {
             public function warmUpCache(): void
             {
                 throw new \InvalidArgumentException('Invalid argument');
             }
-            
+
             public function getCacheStats(): array
             {
                 return [];
             }
         };
-        
+
         $command = new WarmChatCache($mockService);
-        
+
         // Set up output for the command
         $command->setOutput(new \Illuminate\Console\OutputStyle(
             new \Symfony\Component\Console\Input\ArrayInput([]),
-            new \Symfony\Component\Console\Output\NullOutput()
+            new \Symfony\Component\Console\Output\NullOutput
         ));
-        
+
         $result = $command->handle();
         $this->assertEquals(1, $result);
     }
@@ -246,22 +252,24 @@ class WarmChatCacheTest extends TestCase
     {
         // Arrange - create a mock that tracks method calls
         $statsCalled = false;
-        $mockService = new class($statsCalled) extends ChatCacheService {
+        $mockService = new class($statsCalled) extends ChatCacheService
+        {
             private $statsCalled;
-            
+
             public function __construct(&$statsCalled)
             {
                 $this->statsCalled = &$statsCalled;
             }
-            
+
             public function warmUpCache(): void
             {
                 // Do nothing - simulate successful cache warming
             }
-            
+
             public function getCacheStats(): array
             {
                 $this->statsCalled = true;
+
                 return [
                     'driver' => 'redis',
                     'memory_usage' => '1.2MB',
@@ -271,13 +279,13 @@ class WarmChatCacheTest extends TestCase
                 ];
             }
         };
-        
+
         $command = new WarmChatCache($mockService);
-        
+
         // Set up output for the command
         $command->setOutput(new \Illuminate\Console\OutputStyle(
             new \Symfony\Component\Console\Input\ArrayInput([]),
-            new \Symfony\Component\Console\Output\NullOutput()
+            new \Symfony\Component\Console\Output\NullOutput
         ));
 
         // Act
@@ -294,32 +302,34 @@ class WarmChatCacheTest extends TestCase
     {
         // Arrange - create a mock that tracks method calls
         $statsCalled = false;
-        $mockService = new class($statsCalled) extends ChatCacheService {
+        $mockService = new class($statsCalled) extends ChatCacheService
+        {
             private $statsCalled;
-            
+
             public function __construct(&$statsCalled)
             {
                 $this->statsCalled = &$statsCalled;
             }
-            
+
             public function warmUpCache(): void
             {
                 throw new Exception('Warm up failed');
             }
-            
+
             public function getCacheStats(): array
             {
                 $this->statsCalled = true;
+
                 return [];
             }
         };
-        
+
         $command = new WarmChatCache($mockService);
-        
+
         // Set up output for the command
         $command->setOutput(new \Illuminate\Console\OutputStyle(
             new \Symfony\Component\Console\Input\ArrayInput([]),
-            new \Symfony\Component\Console\Output\NullOutput()
+            new \Symfony\Component\Console\Output\NullOutput
         ));
 
         // Act
@@ -328,4 +338,4 @@ class WarmChatCacheTest extends TestCase
         // Assert
         $this->assertFalse($statsCalled, 'getCacheStats should not be called when warm up fails');
     }
-} 
+}

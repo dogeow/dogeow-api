@@ -13,7 +13,6 @@ use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -23,38 +22,42 @@ class ChatModerationControllerTest extends TestCase
     use RefreshDatabase;
 
     private User $moderator;
+
     private User $targetUser;
+
     private User $regularUser;
+
     private ChatRoom $room;
+
     private ChatMessage $message;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->moderator = User::factory()->create(['is_admin' => true]);
         $this->targetUser = User::factory()->create();
         $this->regularUser = User::factory()->create();
         $this->room = ChatRoom::factory()->create(['created_by' => $this->moderator->id]);
-        
+
         // Join users to room
         ChatRoomUser::create([
             'room_id' => $this->room->id,
             'user_id' => $this->moderator->id,
             'is_online' => true,
         ]);
-        
+
         ChatRoomUser::create([
             'room_id' => $this->room->id,
             'user_id' => $this->targetUser->id,
             'is_online' => true,
         ]);
-        
+
         $this->message = ChatMessage::factory()->create([
             'room_id' => $this->room->id,
             'user_id' => $this->targetUser->id,
         ]);
-        
+
         Sanctum::actingAs($this->moderator);
         Event::fake();
     }
@@ -64,7 +67,7 @@ class ChatModerationControllerTest extends TestCase
     public function test_delete_message_success()
     {
         $response = $this->deleteJson("/api/chat/moderation/rooms/{$this->room->id}/messages/{$this->message->id}", [
-            'reason' => 'Inappropriate content'
+            'reason' => 'Inappropriate content',
         ]);
 
         $response->assertStatus(200)
@@ -89,7 +92,7 @@ class ChatModerationControllerTest extends TestCase
 
         $response->assertStatus(403)
             ->assertJson([
-                'message' => 'You are not authorized to moderate this room'
+                'message' => 'You are not authorized to moderate this room',
             ]);
 
         $this->assertDatabaseHas('chat_messages', ['id' => $this->message->id]);
@@ -127,7 +130,7 @@ class ChatModerationControllerTest extends TestCase
     {
         $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->targetUser->id}/mute", [
             'duration' => 60,
-            'reason' => 'Spam behavior'
+            'reason' => 'Spam behavior',
         ]);
 
         $response->assertStatus(200)
@@ -155,12 +158,12 @@ class ChatModerationControllerTest extends TestCase
     {
         $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->moderator->id}/mute", [
             'duration' => 60,
-            'reason' => 'Self moderation'
+            'reason' => 'Self moderation',
         ]);
 
         $response->assertStatus(422)
             ->assertJson([
-                'message' => 'You cannot mute yourself'
+                'message' => 'You cannot mute yourself',
             ]);
 
         Event::assertNotDispatched(UserMuted::class);
@@ -169,14 +172,14 @@ class ChatModerationControllerTest extends TestCase
     public function test_mute_user_not_in_room()
     {
         $otherUser = User::factory()->create();
-        
+
         $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$otherUser->id}/mute", [
-            'duration' => 60
+            'duration' => 60,
         ]);
 
         $response->assertStatus(404)
             ->assertJson([
-                'message' => 'User is not in this room'
+                'message' => 'User is not in this room',
             ]);
 
         Event::assertNotDispatched(UserMuted::class);
@@ -187,12 +190,12 @@ class ChatModerationControllerTest extends TestCase
         Sanctum::actingAs($this->regularUser);
 
         $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->targetUser->id}/mute", [
-            'duration' => 60
+            'duration' => 60,
         ]);
 
         $response->assertStatus(403)
             ->assertJson([
-                'message' => 'You are not authorized to moderate this room'
+                'message' => 'You are not authorized to moderate this room',
             ]);
 
         Event::assertNotDispatched(UserMuted::class);
@@ -201,7 +204,7 @@ class ChatModerationControllerTest extends TestCase
     public function test_mute_user_permanent()
     {
         $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->targetUser->id}/mute", [
-            'reason' => 'Permanent mute'
+            'reason' => 'Permanent mute',
         ]);
 
         $response->assertStatus(200)
@@ -214,7 +217,7 @@ class ChatModerationControllerTest extends TestCase
     public function test_mute_user_invalid_duration()
     {
         $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->targetUser->id}/mute", [
-            'duration' => 0
+            'duration' => 0,
         ]);
 
         $response->assertStatus(422);
@@ -231,7 +234,7 @@ class ChatModerationControllerTest extends TestCase
         $roomUser->mute($this->moderator->id, 60, 'Test mute');
 
         $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->targetUser->id}/unmute", [
-            'reason' => 'Appeal granted'
+            'reason' => 'Appeal granted',
         ]);
 
         $response->assertStatus(200)
@@ -257,12 +260,12 @@ class ChatModerationControllerTest extends TestCase
     public function test_unmute_user_not_muted()
     {
         $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->targetUser->id}/unmute", [
-            'reason' => 'Not muted'
+            'reason' => 'Not muted',
         ]);
 
         $response->assertStatus(422)
             ->assertJson([
-                'message' => 'User is not muted'
+                'message' => 'User is not muted',
             ]);
 
         Event::assertNotDispatched(UserUnmuted::class);
@@ -283,7 +286,7 @@ class ChatModerationControllerTest extends TestCase
     {
         $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->targetUser->id}/ban", [
             'duration' => 1440, // 24 hours
-            'reason' => 'Repeated violations'
+            'reason' => 'Repeated violations',
         ]);
 
         $response->assertStatus(200)
@@ -311,12 +314,12 @@ class ChatModerationControllerTest extends TestCase
     {
         $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->moderator->id}/ban", [
             'duration' => 1440,
-            'reason' => 'Self ban'
+            'reason' => 'Self ban',
         ]);
 
         $response->assertStatus(422)
             ->assertJson([
-                'message' => 'You cannot ban yourself'
+                'message' => 'You cannot ban yourself',
             ]);
 
         Event::assertNotDispatched(UserBanned::class);
@@ -325,7 +328,7 @@ class ChatModerationControllerTest extends TestCase
     public function test_ban_user_permanent()
     {
         $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->targetUser->id}/ban", [
-            'reason' => 'Permanent ban'
+            'reason' => 'Permanent ban',
         ]);
 
         $response->assertStatus(200)
@@ -338,7 +341,7 @@ class ChatModerationControllerTest extends TestCase
     public function test_ban_user_invalid_duration()
     {
         $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->targetUser->id}/ban", [
-            'duration' => 600000 // More than 1 year
+            'duration' => 600000, // More than 1 year
         ]);
 
         $response->assertStatus(422);
@@ -355,7 +358,7 @@ class ChatModerationControllerTest extends TestCase
         $roomUser->ban($this->moderator->id, 1440, 'Test ban');
 
         $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->targetUser->id}/unban", [
-            'reason' => 'Appeal granted'
+            'reason' => 'Appeal granted',
         ]);
 
         $response->assertStatus(200)
@@ -381,12 +384,12 @@ class ChatModerationControllerTest extends TestCase
     public function test_unban_user_not_banned()
     {
         $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->targetUser->id}/unban", [
-            'reason' => 'Not banned'
+            'reason' => 'Not banned',
         ]);
 
         $response->assertStatus(422)
             ->assertJson([
-                'message' => 'User is not banned'
+                'message' => 'User is not banned',
             ]);
 
         Event::assertNotDispatched(UserUnbanned::class);
@@ -428,7 +431,7 @@ class ChatModerationControllerTest extends TestCase
                         'created_at',
                         'moderator' => ['id', 'name', 'email'],
                         'target_user' => ['id', 'name', 'email'],
-                    ]
+                    ],
                 ],
                 'pagination' => [
                     'current_page',
@@ -436,7 +439,7 @@ class ChatModerationControllerTest extends TestCase
                     'per_page',
                     'total',
                     'has_more_pages',
-                ]
+                ],
             ]);
     }
 
@@ -454,7 +457,7 @@ class ChatModerationControllerTest extends TestCase
         $response = $this->getJson("/api/chat/moderation/rooms/{$this->room->id}/actions?" . http_build_query([
             'action_type' => ChatModerationAction::ACTION_MUTE_USER,
             'target_user_id' => $this->targetUser->id,
-            'per_page' => 10
+            'per_page' => 10,
         ]));
 
         $response->assertStatus(200);
@@ -468,7 +471,7 @@ class ChatModerationControllerTest extends TestCase
 
         $response->assertStatus(403)
             ->assertJson([
-                'message' => 'You are not authorized to view moderation actions for this room'
+                'message' => 'You are not authorized to view moderation actions for this room',
             ]);
     }
 
@@ -489,7 +492,7 @@ class ChatModerationControllerTest extends TestCase
                     'banned_until',
                     'banned_by',
                     'can_send_messages',
-                ]
+                ],
             ]);
     }
 
@@ -508,7 +511,7 @@ class ChatModerationControllerTest extends TestCase
                 'moderation_status' => [
                     'is_muted' => true,
                     'can_send_messages' => false,
-                ]
+                ],
             ]);
     }
 
@@ -527,7 +530,7 @@ class ChatModerationControllerTest extends TestCase
                 'moderation_status' => [
                     'is_banned' => true,
                     'can_send_messages' => false,
-                ]
+                ],
             ]);
     }
 
@@ -539,7 +542,7 @@ class ChatModerationControllerTest extends TestCase
 
         $response->assertStatus(404)
             ->assertJson([
-                'message' => 'User is not in this room'
+                'message' => 'User is not in this room',
             ]);
     }
 
@@ -551,7 +554,7 @@ class ChatModerationControllerTest extends TestCase
 
         $response->assertStatus(403)
             ->assertJson([
-                'message' => 'You are not authorized to view moderation status for this room'
+                'message' => 'You are not authorized to view moderation status for this room',
             ]);
     }
 
@@ -562,20 +565,20 @@ class ChatModerationControllerTest extends TestCase
         // Create a room with a non-admin creator
         $roomCreator = User::factory()->create(['is_admin' => false]);
         $room = ChatRoom::factory()->create(['created_by' => $roomCreator->id]);
-        
+
         // Join users to room
         ChatRoomUser::create([
             'room_id' => $room->id,
             'user_id' => $roomCreator->id,
             'is_online' => true,
         ]);
-        
+
         ChatRoomUser::create([
             'room_id' => $room->id,
             'user_id' => $this->targetUser->id,
             'is_online' => true,
         ]);
-        
+
         $message = ChatMessage::factory()->create([
             'room_id' => $room->id,
             'user_id' => $this->targetUser->id,
@@ -589,7 +592,7 @@ class ChatModerationControllerTest extends TestCase
 
         // Test that room creator can mute users
         $response = $this->postJson("/api/chat/moderation/rooms/{$room->id}/users/{$this->targetUser->id}/mute", [
-            'duration' => 60
+            'duration' => 60,
         ]);
         $response->assertStatus(200);
     }
@@ -600,9 +603,9 @@ class ChatModerationControllerTest extends TestCase
     {
         // This test would require mocking the database to force an exception
         // For now, we'll test that the controller handles exceptions gracefully
-        
+
         $response = $this->deleteJson("/api/chat/moderation/rooms/{$this->room->id}/messages/{$this->message->id}", [
-            'reason' => str_repeat('a', 501) // Exceeds max length
+            'reason' => str_repeat('a', 501), // Exceeds max length
         ]);
 
         $response->assertStatus(422);
@@ -613,11 +616,11 @@ class ChatModerationControllerTest extends TestCase
         // Create an inactive room
         $inactiveRoom = ChatRoom::factory()->create([
             'created_by' => $this->moderator->id,
-            'is_active' => false
+            'is_active' => false,
         ]);
 
         $response = $this->getJson("/api/chat/moderation/rooms/{$inactiveRoom->id}/actions");
 
         $response->assertStatus(404);
     }
-} 
+}

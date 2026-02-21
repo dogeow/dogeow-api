@@ -11,12 +11,6 @@ class RateLimitMiddleware
 {
     /**
      * 处理传入的请求。
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
-     * @param  string  $maxAttempts
-     * @param  string  $decayMinutes
-     * @return \Symfony\Component\HttpFoundation\Response
      */
     public function handle(Request $request, Closure $next, string $maxAttempts = '60', string $decayMinutes = '1'): Response
     {
@@ -55,9 +49,6 @@ class RateLimitMiddleware
 
     /**
      * 根据用户或 IP 获取限流标识 key。
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return string
      */
     protected function resolveRequestSignature(Request $request): string
     {

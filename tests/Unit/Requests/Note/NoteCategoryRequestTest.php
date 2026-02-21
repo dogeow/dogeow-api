@@ -2,9 +2,9 @@
 
 namespace Tests\Unit\Requests\Note;
 
-use Tests\TestCase;
 use App\Http\Requests\Note\NoteCategoryRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class NoteCategoryRequestTest extends TestCase
 {
@@ -15,7 +15,7 @@ class NoteCategoryRequestTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->request = new NoteCategoryRequest();
+        $this->request = new NoteCategoryRequest;
     }
 
     public function test_authorize_returns_true()
@@ -70,4 +70,4 @@ class NoteCategoryRequestTest extends TestCase
 
         $this->assertEquals('分类描述', $attributes['description']);
     }
-} 
+}

@@ -2,11 +2,11 @@
 
 namespace Tests\Unit\Models\Note;
 
-use Tests\TestCase;
-use App\Models\Note\NoteTag;
 use App\Models\Note\Note;
+use App\Models\Note\NoteTag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class NoteTagTest extends TestCase
 {
@@ -96,4 +96,4 @@ class NoteTagTest extends TestCase
 
         $this->assertEquals('#0000FF', $tag->color);
     }
-} 
+}

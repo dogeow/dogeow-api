@@ -19,25 +19,25 @@ class ItemSearchService
             ->where(function ($q) use ($searchTerm) {
                 // 搜索名称和描述
                 $q->where('name', 'like', "%{$searchTerm}%")
-                  ->orWhere('description', 'like', "%{$searchTerm}%")
+                    ->orWhere('description', 'like', "%{$searchTerm}%")
                   // 搜索分类名称
-                  ->orWhereHas('category', function($subQ) use ($searchTerm) {
-                      $subQ->where('name', 'like', "%{$searchTerm}%");
-                  })
+                    ->orWhereHas('category', function ($subQ) use ($searchTerm) {
+                        $subQ->where('name', 'like', "%{$searchTerm}%");
+                    })
                   // 搜索标签名称
-                  ->orWhereHas('tags', function($subQ) use ($searchTerm) {
-                      $subQ->where('name', 'like', "%{$searchTerm}%");
-                  })
+                    ->orWhereHas('tags', function ($subQ) use ($searchTerm) {
+                        $subQ->where('name', 'like', "%{$searchTerm}%");
+                    })
                   // 搜索位置信息
-                  ->orWhereHas('spot', function($subQ) use ($searchTerm) {
-                      $subQ->where('name', 'like', "%{$searchTerm}%");
-                  })
-                  ->orWhereHas('spot.room', function($subQ) use ($searchTerm) {
-                      $subQ->where('name', 'like', "%{$searchTerm}%");
-                  })
-                  ->orWhereHas('spot.room.area', function($subQ) use ($searchTerm) {
-                      $subQ->where('name', 'like', "%{$searchTerm}%");
-                  });
+                    ->orWhereHas('spot', function ($subQ) use ($searchTerm) {
+                        $subQ->where('name', 'like', "%{$searchTerm}%");
+                    })
+                    ->orWhereHas('spot.room', function ($subQ) use ($searchTerm) {
+                        $subQ->where('name', 'like', "%{$searchTerm}%");
+                    })
+                    ->orWhereHas('spot.room.area', function ($subQ) use ($searchTerm) {
+                        $subQ->where('name', 'like', "%{$searchTerm}%");
+                    });
             });
     }
 
@@ -74,7 +74,7 @@ class ItemSearchService
         return DB::table('thing_search_history')
             ->select('search_term', DB::raw('COUNT(*) as frequency'))
             ->where('search_term', 'like', "%{$query}%")
-            ->when(Auth::check(), function($q) {
+            ->when(Auth::check(), function ($q) {
                 return $q->where('user_id', Auth::id());
             })
             ->groupBy('search_term')
@@ -90,7 +90,7 @@ class ItemSearchService
      */
     public function getUserHistory(?int $userId, int $limit = 10)
     {
-        if (!$userId) {
+        if (! $userId) {
             return collect();
         }
 

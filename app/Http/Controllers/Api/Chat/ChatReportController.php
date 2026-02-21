@@ -44,9 +44,9 @@ class ChatReportController extends Controller
      */
     private function ensureCanModerate(User $user, ChatRoom $room, string $message): ?JsonResponse
     {
-        if (!$user->canModerate($room)) {
+        if (! $user->canModerate($room)) {
             return response()->json([
-                'message' => $message
+                'message' => $message,
             ], 403);
         }
 
@@ -58,9 +58,9 @@ class ChatReportController extends Controller
      */
     private function ensureAdmin(User $user, string $message): ?JsonResponse
     {
-        if (!$user->hasRole('admin')) {
+        if (! $user->hasRole('admin')) {
             return response()->json([
-                'message' => $message
+                'message' => $message,
             ], 403);
         }
 
@@ -79,7 +79,7 @@ class ChatReportController extends Controller
         // Prevent self-reporting
         if ($message->user_id === $reporter->id) {
             return response()->json([
-                'message' => 'You cannot report your own message'
+                'message' => 'You cannot report your own message',
             ], 422);
         }
 
@@ -95,7 +95,7 @@ class ChatReportController extends Controller
                     ChatMessageReport::TYPE_SEXUAL_CONTENT,
                     ChatMessageReport::TYPE_MISINFORMATION,
                     ChatMessageReport::TYPE_OTHER,
-                ])
+                ]),
             ],
             'reason' => 'nullable|string|max:500',
         ]);
@@ -110,7 +110,7 @@ class ChatReportController extends Controller
             if ($existingReport) {
                 return response()->json([
                     'message' => 'You have already reported this message',
-                    'existing_report' => $existingReport
+                    'existing_report' => $existingReport,
                 ], 422);
             }
 
@@ -149,7 +149,7 @@ class ChatReportController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to report message',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -175,7 +175,7 @@ class ChatReportController extends Controller
             ->with([
                 'reporter:id,name,email',
                 'message.user:id,name,email',
-                'reviewer:id,name,email'
+                'reviewer:id,name,email',
             ])
             ->orderBy('created_at', 'desc');
 
@@ -213,11 +213,11 @@ class ChatReportController extends Controller
         $roomId = $request->get('room_id');
 
         $query = ChatMessageReport::with([
-                'reporter:id,name,email',
-                'message.user:id,name,email',
-                'room:id,name',
-                'reviewer:id,name,email'
-            ])
+            'reporter:id,name,email',
+            'message.user:id,name,email',
+            'room:id,name',
+            'reviewer:id,name,email',
+        ])
             ->orderBy('created_at', 'desc');
 
         if ($status) {
@@ -301,7 +301,7 @@ class ChatReportController extends Controller
                     $roomUser->update([
                         'is_muted' => true,
                         'muted_until' => now()->addMinutes($muteDuration),
-                        'muted_by' => $reviewer->id
+                        'muted_by' => $reviewer->id,
                     ]);
                     $actionsPerformed[] = 'user_muted';
                 }
@@ -318,9 +318,10 @@ class ChatReportController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'message' => 'Failed to review report',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -365,11 +366,11 @@ class ChatReportController extends Controller
             'severity_breakdown' => [
                 'high' => 0,
                 'medium' => 0,
-                'low' => 0
+                'low' => 0,
             ],
             'top_reporters' => [],
             'top_reported_users' => [],
-            'period_days' => $days
+            'period_days' => $days,
         ];
 
         // Report type breakdown
@@ -390,7 +391,7 @@ class ChatReportController extends Controller
                 return [
                     'user_id' => $userReports->first()->reported_by,
                     'user_name' => $userReports->first()->reporter->name ?? 'Unknown',
-                    'report_count' => $userReports->count()
+                    'report_count' => $userReports->count(),
                 ];
             })
             ->sortByDesc('report_count')
@@ -403,10 +404,11 @@ class ChatReportController extends Controller
         $topReportedUsers = $reports->groupBy('message.user_id')
             ->map(function ($userReports) {
                 $firstReport = $userReports->first();
+
                 return [
                     'user_id' => $firstReport->message->user_id ?? null,
                     'user_name' => $firstReport->message->user->name ?? 'Unknown',
-                    'report_count' => $userReports->count()
+                    'report_count' => $userReports->count(),
                 ];
             })
             ->filter(function ($item) {
@@ -477,7 +479,7 @@ class ChatReportController extends Controller
     /**
      * Normalize JsonApiPaginate output into a stable data/meta pair.
      *
-     * @param mixed $paged
+     * @param  mixed  $paged
      * @return array{0: mixed, 1: array}
      */
     private function normalizePagination($paged): array
@@ -494,6 +496,7 @@ class ChatReportController extends Controller
                 'per_page' => $paged->perPage() ?? null,
                 'total' => $paged->total() ?? null,
             ];
+
             return [$data, $meta];
         }
 

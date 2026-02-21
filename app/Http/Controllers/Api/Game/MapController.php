@@ -33,6 +33,7 @@ class MapController extends Controller
 
             return $arr;
         });
+
         return $this->success([
             'maps' => $mapsWithMonsters,
             'current_map_id' => $character->current_map_id,

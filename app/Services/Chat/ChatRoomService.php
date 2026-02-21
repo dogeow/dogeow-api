@@ -47,10 +47,10 @@ class ChatRoomService
 
             // Use character length calculation (Chinese/emoji=2, number/letter=1)
             if (CharLengthHelper::belowMinLength($name, self::MIN_ROOM_NAME_LENGTH)) {
-                $errors[] = '房间名称至少需要'.self::MIN_ROOM_NAME_LENGTH.'个字符';
+                $errors[] = '房间名称至少需要' . self::MIN_ROOM_NAME_LENGTH . '个字符';
             }
             if (CharLengthHelper::exceedsMaxLength($name, self::MAX_ROOM_NAME_LENGTH)) {
-                $errors[] = '房间名称不能超过'.self::MAX_ROOM_NAME_LENGTH.'个字符（中文/emoji算2个字符，数字/字母算1个字符）';
+                $errors[] = '房间名称不能超过' . self::MAX_ROOM_NAME_LENGTH . '个字符（中文/emoji算2个字符，数字/字母算1个字符）';
             }
 
             // Check for duplicate room names
@@ -63,7 +63,7 @@ class ChatRoomService
         if (! empty($data['description'])) {
             $description = trim($data['description']);
             if (mb_strlen($description, 'UTF-8') > self::MAX_ROOM_DESCRIPTION_LENGTH) {
-                $errors[] = '房间描述不能超过'.self::MAX_ROOM_DESCRIPTION_LENGTH.'个字符';
+                $errors[] = '房间描述不能超过' . self::MAX_ROOM_DESCRIPTION_LENGTH . '个字符';
             }
         }
 
@@ -122,7 +122,7 @@ class ChatRoomService
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'errors' => ['Failed to create room: '.$e->getMessage()],
+                'errors' => ['Failed to create room: ' . $e->getMessage()],
             ];
         }
     }
@@ -209,7 +209,7 @@ class ChatRoomService
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'errors' => ['Failed to delete room: '.$e->getMessage()],
+                'errors' => ['Failed to delete room: ' . $e->getMessage()],
             ];
         }
     }
@@ -259,7 +259,7 @@ class ChatRoomService
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'errors' => ['Failed to update room: '.$e->getMessage()],
+                'errors' => ['Failed to update room: ' . $e->getMessage()],
             ];
         }
     }

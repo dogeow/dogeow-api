@@ -2,10 +2,10 @@
 
 namespace Tests\Unit\Models\Nav;
 
-use Tests\TestCase;
-use App\Models\Nav\Item;
 use App\Models\Nav\Category;
+use App\Models\Nav\Item;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class ItemTest extends TestCase
 {
@@ -159,4 +159,4 @@ class ItemTest extends TestCase
 
         $this->assertEquals(6, $item->fresh()->clicks);
     }
-} 
+}

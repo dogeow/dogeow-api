@@ -30,9 +30,9 @@ class NoteTagRequest extends FormRequest
                 'max:50',
                 Rule::unique('note_tags', 'name')
                     ->where('user_id', Auth::id())
-                    ->ignore($this->route('note_tag'))
+                    ->ignore($this->route('note_tag')),
             ],
-            'color' => 'sometimes|string|regex:/^#([A-Fa-f0-9]{6})$/'
+            'color' => 'sometimes|string|regex:/^#([A-Fa-f0-9]{6})$/',
         ];
     }
 

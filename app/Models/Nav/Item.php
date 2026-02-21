@@ -61,4 +61,4 @@ class Item extends Model
     {
         return $this->increment('clicks');
     }
-} 
+}

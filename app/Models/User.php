@@ -3,11 +3,11 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Thing\Item;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use App\Models\Thing\Item;
 
 class User extends Authenticatable
 {
@@ -153,11 +153,11 @@ class User extends Authenticatable
     {
         $name = $this->name ?: $this->email;
         $words = explode(' ', $name);
-        
+
         if (count($words) >= 2) {
             return strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1));
         }
-        
+
         return strtoupper(substr($name, 0, 2));
     }
 

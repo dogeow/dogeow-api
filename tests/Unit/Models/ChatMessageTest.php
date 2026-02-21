@@ -13,12 +13,13 @@ class ChatMessageTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected ChatRoom $room;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->room = ChatRoom::factory()->create([
             'created_by' => $this->user->id,

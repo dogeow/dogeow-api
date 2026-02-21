@@ -2,13 +2,11 @@
 
 namespace App\Models\Thing;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
-use App\Models\Thing\Area;
-use App\Models\Thing\Room;
-use Laravel\Scout\Searchable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Laravel\Scout\Searchable;
 
 class Item extends Model
 {
@@ -35,7 +33,7 @@ class Item extends Model
     protected $casts = [
         'expiry_date' => 'date',
         'purchase_date' => 'date',
-        'purchase_price' => 'decimal:2'
+        'purchase_price' => 'decimal:2',
     ];
 
     protected $appends = [
@@ -51,13 +49,13 @@ class Item extends Model
         if ($this->primaryImage && $this->primaryImage->thumbnail_url) {
             return $this->primaryImage->thumbnail_url;
         }
-        
+
         // 如果没有主图片，使用第一张图片
         $firstImage = $this->images()->first();
         if ($firstImage && $firstImage->thumbnail_url) {
             return $firstImage->thumbnail_url;
         }
-        
+
         return null;
     }
 
@@ -81,16 +79,16 @@ class Item extends Model
 
     /**
      * 自定义搜索查询
-     * 
+     *
      * @param  string  $query
      * @param  \Illuminate\Database\Eloquent\Builder  $builder
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeSearch($builder, $query)
     {
-        return $builder->where(function($q) use ($query) {
+        return $builder->where(function ($q) use ($query) {
             $q->where('name', 'like', "%{$query}%")
-              ->orWhere('description', 'like', "%{$query}%");
+                ->orWhere('description', 'like', "%{$query}%");
         });
     }
 
@@ -128,7 +126,7 @@ class Item extends Model
     {
         return $this->belongsTo(Spot::class);
     }
-    
+
     /**
      * 获取物品的标签
      */
@@ -149,8 +147,8 @@ class Item extends Model
             'item_id',
             'related_item_id'
         )
-        ->withPivot('relation_type', 'description')
-        ->withTimestamps();
+            ->withPivot('relation_type', 'description')
+            ->withTimestamps();
     }
 
     /**
@@ -164,8 +162,8 @@ class Item extends Model
             'related_item_id',
             'item_id'
         )
-        ->withPivot('relation_type', 'description')
-        ->withTimestamps();
+            ->withPivot('relation_type', 'description')
+            ->withTimestamps();
     }
 
     /**
@@ -176,14 +174,14 @@ class Item extends Model
         // 合并正向和反向关联
         $related = $this->relatedItems()->get();
         $relating = $this->relatingItems()->get();
-        
+
         return $related->merge($relating)->unique('id');
     }
 
     /**
      * 按关联类型获取关联物品
-     * 
-     * @param string $type 关联类型：accessory, replacement, related, bundle, parent, child
+     *
+     * @param  string  $type  关联类型：accessory, replacement, related, bundle, parent, child
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public function getRelationsByType(string $type)
@@ -195,10 +193,10 @@ class Item extends Model
 
     /**
      * 添加物品关联
-     * 
-     * @param int $relatedItemId 关联物品ID
-     * @param string $type 关联类型
-     * @param string|null $description 关联描述
+     *
+     * @param  int  $relatedItemId  关联物品ID
+     * @param  string  $type  关联类型
+     * @param  string|null  $description  关联描述
      * @return void
      */
     public function addRelation(int $relatedItemId, string $type = 'related', ?string $description = null)
@@ -211,12 +209,12 @@ class Item extends Model
 
     /**
      * 移除物品关联
-     * 
-     * @param int $relatedItemId 关联物品ID
+     *
+     * @param  int  $relatedItemId  关联物品ID
      * @return void
      */
     public function removeRelation(int $relatedItemId)
     {
         $this->relatedItems()->detach($relatedItemId);
     }
-} 
+}

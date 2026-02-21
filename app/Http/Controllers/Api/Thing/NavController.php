@@ -20,7 +20,6 @@ class NavController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
@@ -42,7 +41,6 @@ class NavController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
      * @return \Illuminate\Http\JsonResponse
      */
@@ -71,4 +69,4 @@ class NavController extends Controller
     {
         return response()->json(['message' => '导航分类功能正在开发中']);
     }
-} 
+}

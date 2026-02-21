@@ -2,10 +2,9 @@
 
 namespace Tests\Feature\Controllers;
 
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Tests\TestCase;
 
 class DebugControllerTest extends TestCase
 {
@@ -34,7 +33,7 @@ class DebugControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '错误日志已记录',
-                'status' => 'success'
+                'status' => 'success',
             ]);
 
         // 验证响应成功，日志记录由控制器处理
@@ -241,17 +240,17 @@ class DebugControllerTest extends TestCase
             'stack_trace' => [
                 'file' => 'app.js',
                 'line' => 123,
-                'function' => 'handleError'
+                'function' => 'handleError',
             ],
             'context' => [
                 'user_id' => 456,
                 'session_id' => 'abc123',
-                'browser' => 'Chrome'
+                'browser' => 'Chrome',
             ],
             'performance' => [
                 'load_time' => 2.5,
-                'memory_usage' => '128MB'
-            ]
+                'memory_usage' => '128MB',
+            ],
         ];
 
         $data = [
@@ -265,7 +264,7 @@ class DebugControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '错误日志已记录',
-                'status' => 'success'
+                'status' => 'success',
             ]);
     }
 
@@ -282,7 +281,7 @@ class DebugControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '错误日志已记录',
-                'status' => 'success'
+                'status' => 'success',
             ]);
     }
 
@@ -299,7 +298,7 @@ class DebugControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '错误日志已记录',
-                'status' => 'success'
+                'status' => 'success',
             ]);
     }
 
@@ -348,7 +347,7 @@ class DebugControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '错误日志已记录',
-                'status' => 'success'
+                'status' => 'success',
             ]);
     }
 
@@ -369,7 +368,7 @@ class DebugControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '错误日志已记录',
-                'status' => 'success'
+                'status' => 'success',
             ]);
     }
 
@@ -394,7 +393,7 @@ class DebugControllerTest extends TestCase
             $response->assertStatus(200)
                 ->assertJson([
                     'message' => '错误日志已记录',
-                    'status' => 'success'
+                    'status' => 'success',
                 ]);
         }
     }
@@ -420,7 +419,7 @@ class DebugControllerTest extends TestCase
             $response->assertStatus(200)
                 ->assertJson([
                     'message' => '错误日志已记录',
-                    'status' => 'success'
+                    'status' => 'success',
                 ]);
         }
     }
@@ -446,7 +445,7 @@ class DebugControllerTest extends TestCase
             $response->assertStatus(200)
                 ->assertJson([
                     'message' => '错误日志已记录',
-                    'status' => 'success'
+                    'status' => 'success',
                 ]);
         }
     }
@@ -530,16 +529,16 @@ class DebugControllerTest extends TestCase
                 'level2' => [
                     'level3' => [
                         'level4' => [
-                            'level5' => 'deep nested value'
-                        ]
-                    ]
-                ]
+                            'level5' => 'deep nested value',
+                        ],
+                    ],
+                ],
             ],
             'array' => [
                 'nested' => [
-                    'items' => [1, 2, 3, 4, 5]
-                ]
-            ]
+                    'items' => [1, 2, 3, 4, 5],
+                ],
+            ],
         ];
 
         $data = [
@@ -553,7 +552,7 @@ class DebugControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '错误日志已记录',
-                'status' => 'success'
+                'status' => 'success',
             ]);
     }
 
@@ -574,7 +573,7 @@ class DebugControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '错误日志已记录',
-                'status' => 'success'
+                'status' => 'success',
             ]);
     }
 
@@ -596,7 +595,7 @@ class DebugControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '错误日志已记录',
-                'status' => 'success'
+                'status' => 'success',
             ]);
     }
 
@@ -615,7 +614,7 @@ class DebugControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '错误日志已记录',
-                'status' => 'success'
+                'status' => 'success',
             ]);
     }
 
@@ -635,7 +634,7 @@ class DebugControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '错误日志已记录',
-                'status' => 'success'
+                'status' => 'success',
             ]);
     }
-} 
+}

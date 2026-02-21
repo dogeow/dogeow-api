@@ -4,7 +4,6 @@ namespace App\Services\Web;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Log;
 
 class WebPageService
 {
@@ -12,24 +11,25 @@ class WebPageService
     {
         // 确保 URL 包含协议前缀
         $url = $this->normalizeUrl($url);
-        
+
         $response = Http::timeout(5)->get($url);
-        
-        if (!$response->ok()) {
+
+        if (! $response->ok()) {
             throw new \RuntimeException('获取网页失败: ' . $response->status());
         }
 
         $html = $response->body();
-        
+
         return [
             'title' => $this->extractTitle($html),
-            'favicon' => $this->extractFavicon($html, $url)
+            'favicon' => $this->extractFavicon($html, $url),
         ];
     }
 
     private function extractTitle(string $html): string
     {
         preg_match('/<title>(.*?)<\/title>/is', $html, $matches);
+
         return $matches[1] ?? '';
     }
 
@@ -45,7 +45,6 @@ class WebPageService
         // 如果没有找到，返回默认的 favicon.ico 路径
         $parsed = parse_url($url);
 
-        
         return $parsed['scheme'] . '://' . $parsed['host'] . '/favicon.ico';
     }
 
@@ -55,7 +54,7 @@ class WebPageService
         if (preg_match('/^https?:\/\//i', $url)) {
             return $url;
         }
-        
+
         // 如果没有协议前缀，默认添加 https://
         return 'https://' . $url;
     }
@@ -82,4 +81,4 @@ class WebPageService
         // 处理相对路径
         return rtrim($origin . dirname($parsed['path']), '/') . '/' . $favicon;
     }
-} 
+}

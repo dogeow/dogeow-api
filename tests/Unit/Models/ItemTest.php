@@ -2,10 +2,10 @@
 
 namespace Tests\Unit\Models;
 
-use App\Models\Thing\Item;
-use App\Models\Thing\ItemImage;
-use App\Models\Thing\ItemCategory;
 use App\Models\Thing\Area;
+use App\Models\Thing\Item;
+use App\Models\Thing\ItemCategory;
+use App\Models\Thing\ItemImage;
 use App\Models\Thing\Room;
 use App\Models\Thing\Spot;
 use App\Models\Thing\Tag;
@@ -18,15 +18,16 @@ class ItemTest extends TestCase
     use RefreshDatabase;
 
     protected Item $item;
+
     protected User $user;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->item = Item::factory()->create([
-            'user_id' => $this->user->id
+            'user_id' => $this->user->id,
         ]);
     }
 
@@ -57,7 +58,7 @@ class ItemTest extends TestCase
             'id' => 'int',
             'expiry_date' => 'date',
             'purchase_date' => 'date',
-            'purchase_price' => 'decimal:2'
+            'purchase_price' => 'decimal:2',
         ];
 
         $this->assertEquals($casts, $this->item->getCasts());
@@ -130,7 +131,7 @@ class ItemTest extends TestCase
             'status',
             'category_id',
             'is_public',
-            'user_id'
+            'user_id',
         ];
 
         foreach ($expectedKeys as $key) {
@@ -208,7 +209,7 @@ class ItemTest extends TestCase
     {
         // Create images for the item
         ItemImage::factory()->count(3)->create([
-            'item_id' => $this->item->id
+            'item_id' => $this->item->id,
         ]);
 
         $images = $this->item->images;
@@ -224,7 +225,7 @@ class ItemTest extends TestCase
         // Create primary image
         $primaryImage = ItemImage::factory()->create([
             'item_id' => $this->item->id,
-            'is_primary' => true
+            'is_primary' => true,
         ]);
 
         $this->assertInstanceOf(ItemImage::class, $this->item->primaryImage);
@@ -289,7 +290,7 @@ class ItemTest extends TestCase
 
         $this->assertInstanceOf(Item::class, $item);
         $this->assertDatabaseHas('thing_items', [
-            'id' => $item->id
+            'id' => $item->id,
         ]);
     }
 
@@ -307,7 +308,7 @@ class ItemTest extends TestCase
         $this->item->delete();
 
         $this->assertDatabaseMissing('thing_items', [
-            'id' => $itemId
+            'id' => $itemId,
         ]);
     }
 
@@ -321,4 +322,4 @@ class ItemTest extends TestCase
         $traits = class_uses($this->item);
         $this->assertContains(\Laravel\Scout\Searchable::class, $traits);
     }
-} 
+}

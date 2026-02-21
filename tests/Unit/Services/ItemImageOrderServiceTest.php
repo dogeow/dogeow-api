@@ -2,11 +2,11 @@
 
 namespace Tests\Unit\Services;
 
-use Tests\TestCase;
-use App\Services\File\ItemImageOrderService;
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemImage;
+use App\Services\File\ItemImageOrderService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class ItemImageOrderServiceTest extends TestCase
 {
@@ -17,7 +17,7 @@ class ItemImageOrderServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new ItemImageOrderService();
+        $this->service = new ItemImageOrderService;
     }
 
     public function test_update_image_order()
@@ -53,7 +53,7 @@ class ItemImageOrderServiceTest extends TestCase
     {
         $item1 = Item::factory()->create();
         $item2 = Item::factory()->create();
-        
+
         $image1 = ItemImage::factory()->create(['item_id' => $item1->id, 'sort_order' => 1]);
         $image2 = ItemImage::factory()->create(['item_id' => $item2->id, 'sort_order' => 1]);
 
@@ -102,7 +102,7 @@ class ItemImageOrderServiceTest extends TestCase
     {
         $item1 = Item::factory()->create();
         $item2 = Item::factory()->create();
-        
+
         $image1 = ItemImage::factory()->create(['item_id' => $item1->id, 'is_primary' => true]);
         $image2 = ItemImage::factory()->create(['item_id' => $item2->id, 'is_primary' => false]);
 
@@ -138,4 +138,4 @@ class ItemImageOrderServiceTest extends TestCase
         $this->assertFalse($image2->fresh()->is_primary);
         $this->assertTrue($image3->fresh()->is_primary);
     }
-} 
+}

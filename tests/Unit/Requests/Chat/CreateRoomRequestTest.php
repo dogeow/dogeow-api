@@ -2,18 +2,17 @@
 
 namespace Tests\Unit\Requests\Chat;
 
-use Tests\TestCase;
 use App\Http\Requests\Chat\CreateRoomRequest;
+use Tests\TestCase;
 
 class CreateRoomRequestTest extends TestCase
 {
-
     private CreateRoomRequest $request;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->request = new CreateRoomRequest();
+        $this->request = new CreateRoomRequest;
     }
 
     public function test_authorize_returns_true()
@@ -95,4 +94,4 @@ class CreateRoomRequestTest extends TestCase
 
         $this->assertEquals('Room description cannot exceed 1000 characters.', $messages['description.max']);
     }
-} 
+}

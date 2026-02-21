@@ -6,9 +6,7 @@ use App\Console\Commands\Chat\ManageChatModerations;
 use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Artisan;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -17,12 +15,19 @@ class ManageChatModerationsTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private User $user1;
+
     private User $user2;
+
     private User $moderator;
+
     private ChatRoom $room1;
+
     private ChatRoom $room2;
+
     private ChatRoomUser $roomUser1;
+
     private ChatRoomUser $roomUser2;
 
     protected function setUp(): void
@@ -551,7 +556,7 @@ class ManageChatModerationsTest extends TestCase
     /** @test */
     public function it_can_find_user_by_id()
     {
-        $command = new ManageChatModerations();
+        $command = new ManageChatModerations;
         $command->setLaravel(app());
         $reflection = new \ReflectionClass($command);
         $method = $reflection->getMethod('findUser');
@@ -564,7 +569,7 @@ class ManageChatModerationsTest extends TestCase
     /** @test */
     public function it_can_find_user_by_email()
     {
-        $command = new ManageChatModerations();
+        $command = new ManageChatModerations;
         $command->setLaravel(app());
         $reflection = new \ReflectionClass($command);
         $method = $reflection->getMethod('findUser');
@@ -577,11 +582,11 @@ class ManageChatModerationsTest extends TestCase
     /** @test */
     public function it_returns_null_for_nonexistent_user()
     {
-        $command = new ManageChatModerations();
+        $command = new ManageChatModerations;
         $command->setLaravel(app());
         $command->setOutput(new \Illuminate\Console\OutputStyle(
             new \Symfony\Component\Console\Input\ArrayInput([]),
-            new \Symfony\Component\Console\Output\NullOutput()
+            new \Symfony\Component\Console\Output\NullOutput
         ));
         $reflection = new \ReflectionClass($command);
         $method = $reflection->getMethod('findUser');
@@ -594,7 +599,7 @@ class ManageChatModerationsTest extends TestCase
     /** @test */
     public function it_can_find_room_by_id()
     {
-        $command = new ManageChatModerations();
+        $command = new ManageChatModerations;
         $command->setLaravel(app());
         $reflection = new \ReflectionClass($command);
         $method = $reflection->getMethod('findRoom');
@@ -607,7 +612,7 @@ class ManageChatModerationsTest extends TestCase
     /** @test */
     public function it_can_find_room_by_name()
     {
-        $command = new ManageChatModerations();
+        $command = new ManageChatModerations;
         $command->setLaravel(app());
         $reflection = new \ReflectionClass($command);
         $method = $reflection->getMethod('findRoom');
@@ -620,11 +625,11 @@ class ManageChatModerationsTest extends TestCase
     /** @test */
     public function it_returns_null_for_nonexistent_room()
     {
-        $command = new ManageChatModerations();
+        $command = new ManageChatModerations;
         $command->setLaravel(app());
         $command->setOutput(new \Illuminate\Console\OutputStyle(
             new \Symfony\Component\Console\Input\ArrayInput([]),
-            new \Symfony\Component\Console\Output\NullOutput()
+            new \Symfony\Component\Console\Output\NullOutput
         ));
         $reflection = new \ReflectionClass($command);
         $method = $reflection->getMethod('findRoom');
@@ -701,4 +706,4 @@ class ManageChatModerationsTest extends TestCase
             ->expectsOutput('🚫 BANNED USERS:')
             ->assertExitCode(0);
     }
-} 
+}

@@ -14,8 +14,6 @@ class WebSocketDisconnectListener implements ShouldQueue
 
     /**
      * WebSocketDisconnectService 实例
-     *
-     * @var WebSocketDisconnectService
      */
     protected WebSocketDisconnectService $disconnectService;
 
@@ -36,6 +34,7 @@ class WebSocketDisconnectListener implements ShouldQueue
             Log::warning('WebSocket disconnect: No user ID found in event', [
                 'event' => $event,
             ]);
+
             return;
         }
 

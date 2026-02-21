@@ -14,14 +14,17 @@ class ChatRoomUserTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private User $moderator;
+
     private ChatRoom $room;
+
     private ChatRoomUser $roomUser;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->moderator = User::factory()->create();
         $this->room = ChatRoom::factory()->create();
@@ -35,9 +38,9 @@ class ChatRoomUserTest extends TestCase
     {
         $fillable = [
             'room_id', 'user_id', 'joined_at', 'last_seen_at', 'is_online',
-            'is_muted', 'muted_until', 'is_banned', 'banned_until', 'muted_by', 'banned_by'
+            'is_muted', 'muted_until', 'is_banned', 'banned_until', 'muted_by', 'banned_by',
         ];
-        
+
         $this->assertEquals($fillable, $this->roomUser->getFillable());
     }
 
@@ -54,7 +57,7 @@ class ChatRoomUserTest extends TestCase
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
-        
+
         foreach ($casts as $attribute => $cast) {
             $this->assertEquals($cast, $this->roomUser->getCasts()[$attribute]);
         }
@@ -75,7 +78,7 @@ class ChatRoomUserTest extends TestCase
     public function test_chat_room_user_belongs_to_muted_by_user()
     {
         $this->roomUser->update(['muted_by' => $this->moderator->id]);
-        
+
         $this->assertInstanceOf(User::class, $this->roomUser->mutedByUser);
         $this->assertEquals($this->moderator->id, $this->roomUser->mutedByUser->id);
     }
@@ -83,7 +86,7 @@ class ChatRoomUserTest extends TestCase
     public function test_chat_room_user_belongs_to_banned_by_user()
     {
         $this->roomUser->update(['banned_by' => $this->moderator->id]);
-        
+
         $this->assertInstanceOf(User::class, $this->roomUser->bannedByUser);
         $this->assertEquals($this->moderator->id, $this->roomUser->bannedByUser->id);
     }
@@ -95,7 +98,7 @@ class ChatRoomUserTest extends TestCase
             'user_id' => User::factory()->create()->id,
             'is_online' => true,
         ]);
-        
+
         $offlineUser = ChatRoomUser::factory()->create([
             'room_id' => $this->room->id,
             'user_id' => User::factory()->create()->id,
@@ -115,7 +118,7 @@ class ChatRoomUserTest extends TestCase
             'user_id' => User::factory()->create()->id,
             'is_online' => true,
         ]);
-        
+
         $offlineUser = ChatRoomUser::factory()->create([
             'room_id' => $this->room->id,
             'user_id' => User::factory()->create()->id,
@@ -131,12 +134,12 @@ class ChatRoomUserTest extends TestCase
     public function test_in_room_scope_returns_users_in_specific_room()
     {
         $room2 = ChatRoom::factory()->create();
-        
+
         $userInRoom1 = ChatRoomUser::factory()->create([
             'room_id' => $this->room->id,
             'user_id' => User::factory()->create()->id,
         ]);
-        
+
         $userInRoom2 = ChatRoomUser::factory()->create([
             'room_id' => $room2->id,
             'user_id' => User::factory()->create()->id,
@@ -155,7 +158,7 @@ class ChatRoomUserTest extends TestCase
             'user_id' => User::factory()->create()->id,
             'last_seen_at' => Carbon::now()->subMinutes(2),
         ]);
-        
+
         $inactiveUser = ChatRoomUser::factory()->create([
             'room_id' => $this->room->id,
             'user_id' => User::factory()->create()->id,
@@ -171,9 +174,9 @@ class ChatRoomUserTest extends TestCase
     public function test_mark_as_online_updates_status()
     {
         $this->roomUser->update(['is_online' => false]);
-        
+
         $this->roomUser->markAsOnline();
-        
+
         $this->assertTrue($this->roomUser->fresh()->is_online);
         $this->assertNotNull($this->roomUser->fresh()->last_seen_at);
     }
@@ -181,9 +184,9 @@ class ChatRoomUserTest extends TestCase
     public function test_mark_as_offline_updates_status()
     {
         $this->roomUser->update(['is_online' => true]);
-        
+
         $this->roomUser->markAsOffline();
-        
+
         $this->assertFalse($this->roomUser->fresh()->is_online);
         $this->assertNotNull($this->roomUser->fresh()->last_seen_at);
     }
@@ -191,44 +194,44 @@ class ChatRoomUserTest extends TestCase
     public function test_update_last_seen_updates_timestamp()
     {
         $oldTimestamp = $this->roomUser->last_seen_at;
-        
+
         // Wait a moment to ensure timestamp difference
         sleep(1);
-        
+
         $this->roomUser->updateLastSeen();
-        
+
         $this->assertNotEquals($oldTimestamp, $this->roomUser->fresh()->last_seen_at);
     }
 
     public function test_is_inactive_returns_true_for_inactive_users()
     {
         $this->roomUser->update([
-            'last_seen_at' => Carbon::now()->subMinutes(10)
+            'last_seen_at' => Carbon::now()->subMinutes(10),
         ]);
-        
+
         $this->assertTrue($this->roomUser->isInactive(5));
     }
 
     public function test_is_inactive_returns_false_for_active_users()
     {
         $this->roomUser->update([
-            'last_seen_at' => Carbon::now()->subMinutes(2)
+            'last_seen_at' => Carbon::now()->subMinutes(2),
         ]);
-        
+
         $this->assertFalse($this->roomUser->isInactive(5));
     }
 
     public function test_is_inactive_returns_true_for_null_last_seen()
     {
         $this->roomUser->update(['last_seen_at' => null]);
-        
+
         $this->assertTrue($this->roomUser->isInactive());
     }
 
     public function test_is_muted_returns_false_when_not_muted()
     {
         $this->roomUser->update(['is_muted' => false]);
-        
+
         $this->assertFalse($this->roomUser->isMuted());
     }
 
@@ -238,7 +241,7 @@ class ChatRoomUserTest extends TestCase
             'is_muted' => true,
             'muted_until' => null,
         ]);
-        
+
         $this->assertTrue($this->roomUser->isMuted());
     }
 
@@ -248,7 +251,7 @@ class ChatRoomUserTest extends TestCase
             'is_muted' => true,
             'muted_until' => Carbon::now()->addHours(1),
         ]);
-        
+
         $this->assertTrue($this->roomUser->isMuted());
     }
 
@@ -258,7 +261,7 @@ class ChatRoomUserTest extends TestCase
             'is_muted' => true,
             'muted_until' => Carbon::now()->subHours(1),
         ]);
-        
+
         $this->assertFalse($this->roomUser->isMuted());
         $this->assertFalse($this->roomUser->fresh()->is_muted);
     }
@@ -266,7 +269,7 @@ class ChatRoomUserTest extends TestCase
     public function test_is_banned_returns_false_when_not_banned()
     {
         $this->roomUser->update(['is_banned' => false]);
-        
+
         $this->assertFalse($this->roomUser->isBanned());
     }
 
@@ -276,7 +279,7 @@ class ChatRoomUserTest extends TestCase
             'is_banned' => true,
             'banned_until' => null,
         ]);
-        
+
         $this->assertTrue($this->roomUser->isBanned());
     }
 
@@ -286,7 +289,7 @@ class ChatRoomUserTest extends TestCase
             'is_banned' => true,
             'banned_until' => Carbon::now()->addHours(1),
         ]);
-        
+
         $this->assertTrue($this->roomUser->isBanned());
     }
 
@@ -296,7 +299,7 @@ class ChatRoomUserTest extends TestCase
             'is_banned' => true,
             'banned_until' => Carbon::now()->subHours(1),
         ]);
-        
+
         $this->assertFalse($this->roomUser->isBanned());
         $this->assertFalse($this->roomUser->fresh()->is_banned);
     }
@@ -304,7 +307,7 @@ class ChatRoomUserTest extends TestCase
     public function test_mute_sets_mute_status()
     {
         $this->roomUser->mute($this->moderator->id, 60);
-        
+
         $this->assertTrue($this->roomUser->fresh()->is_muted);
         $this->assertEquals($this->moderator->id, $this->roomUser->fresh()->muted_by);
         $this->assertNotNull($this->roomUser->fresh()->muted_until);
@@ -313,7 +316,7 @@ class ChatRoomUserTest extends TestCase
     public function test_mute_without_duration_sets_permanent_mute()
     {
         $this->roomUser->mute($this->moderator->id);
-        
+
         $this->assertTrue($this->roomUser->fresh()->is_muted);
         $this->assertNull($this->roomUser->fresh()->muted_until);
     }
@@ -325,9 +328,9 @@ class ChatRoomUserTest extends TestCase
             'muted_by' => $this->moderator->id,
             'muted_until' => Carbon::now()->addHours(1),
         ]);
-        
+
         $this->roomUser->unmute();
-        
+
         $this->assertFalse($this->roomUser->fresh()->is_muted);
         $this->assertNull($this->roomUser->fresh()->muted_by);
         $this->assertNull($this->roomUser->fresh()->muted_until);
@@ -336,7 +339,7 @@ class ChatRoomUserTest extends TestCase
     public function test_ban_sets_ban_status()
     {
         $this->roomUser->ban($this->moderator->id, 60);
-        
+
         $this->assertTrue($this->roomUser->fresh()->is_banned);
         $this->assertEquals($this->moderator->id, $this->roomUser->fresh()->banned_by);
         $this->assertNotNull($this->roomUser->fresh()->banned_until);
@@ -346,7 +349,7 @@ class ChatRoomUserTest extends TestCase
     public function test_ban_without_duration_sets_permanent_ban()
     {
         $this->roomUser->ban($this->moderator->id);
-        
+
         $this->assertTrue($this->roomUser->fresh()->is_banned);
         $this->assertNull($this->roomUser->fresh()->banned_until);
     }
@@ -358,9 +361,9 @@ class ChatRoomUserTest extends TestCase
             'banned_by' => $this->moderator->id,
             'banned_until' => Carbon::now()->addHours(1),
         ]);
-        
+
         $this->roomUser->unban();
-        
+
         $this->assertFalse($this->roomUser->fresh()->is_banned);
         $this->assertNull($this->roomUser->fresh()->banned_by);
         $this->assertNull($this->roomUser->fresh()->banned_until);
@@ -372,7 +375,7 @@ class ChatRoomUserTest extends TestCase
             'is_muted' => false,
             'is_banned' => false,
         ]);
-        
+
         $this->assertTrue($this->roomUser->canSendMessages());
     }
 
@@ -382,7 +385,7 @@ class ChatRoomUserTest extends TestCase
             'is_muted' => true,
             'is_banned' => false,
         ]);
-        
+
         $this->assertFalse($this->roomUser->canSendMessages());
     }
 
@@ -392,7 +395,7 @@ class ChatRoomUserTest extends TestCase
             'is_muted' => false,
             'is_banned' => true,
         ]);
-        
+
         $this->assertFalse($this->roomUser->canSendMessages());
     }
 }
