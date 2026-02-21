@@ -37,7 +37,8 @@ class AutoCombatRoundJob implements ShouldQueue
         }
 
         $data = json_decode($payload, true);
-        $skillIds = $data['skill_ids'] ?? $this->skillIds;
+        // 始终从 Redis 读取技能配置，而不是使用 Job 构造函数的参数
+        $skillIds = $data['skill_ids'] ?? [];
         if (! is_array($skillIds)) {
             $skillIds = [];
         }

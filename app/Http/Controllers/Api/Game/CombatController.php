@@ -229,8 +229,9 @@ class CombatController extends Controller
                     $data['cancelled_skill_ids'] = array_values(array_diff($data['cancelled_skill_ids'] ?? [], [$skillId]));
                 }
             } else {
-                // 批量更新技能列表
+                // 批量更新技能列表，同时清除取消标记
                 $data['skill_ids'] = $skillIds;
+                $data['cancelled_skill_ids'] = [];
             }
 
             Redis::set($key, json_encode($data));
