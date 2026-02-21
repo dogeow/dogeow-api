@@ -206,7 +206,33 @@ class CombatController extends Controller
             }
 
             $data = json_decode($payload, true);
-            $data['skill_ids'] = $skillIds;
+
+            // 检查是启用还是取消技能（如果有 skill_id 参数则是单个技能操作）
+            $singleSkillId = $request->input('skill_id');
+            $currentSkillIds = $data['skill_ids'] ?? [];
+
+            if ($singleSkillId !== null) {
+                // 单个技能操作
+                $skillId = (int) $singleSkillId;
+                $isDisabling = in_array($skillId, $currentSkillIds);
+
+                if ($isDisabling) {
+                    // 取消技能：从列表中移除，并添加到取消队列
+                    $data['skill_ids'] = array_values(array_diff($currentSkillIds, [$skillId]));
+                    $data['cancelled_skill_ids'] = $data['cancelled_skill_ids'] ?? [];
+                    if (! in_array($skillId, $data['cancelled_skill_ids'])) {
+                        $data['cancelled_skill_ids'][] = $skillId;
+                    }
+                } else {
+                    // 启用技能：添加到列表，并从取消队列中移除
+                    $data['skill_ids'] = array_unique(array_merge($currentSkillIds, [$skillId]));
+                    $data['cancelled_skill_ids'] = array_values(array_diff($data['cancelled_skill_ids'] ?? [], [$skillId]));
+                }
+            } else {
+                // 批量更新技能列表
+                $data['skill_ids'] = $skillIds;
+            }
+
             Redis::set($key, json_encode($data));
 
             return $this->success(['skill_ids' => $skillIds], '技能配置已更新');

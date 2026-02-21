@@ -48,7 +48,7 @@ class CleanupDisconnectedChatUsers extends Command
 
             $cleanedCount = 0;
             foreach ($inactiveUsers as $roomUser) {
-                $this->line("将用户 {$roomUser->user->name} 标记为在房间 '{$roomUser->room->name}' 离线");
+                $this->line('将用户 ' . $roomUser->user?->name . " 标记为在房间 '" . $roomUser->room?->name . "' 离线");
                 $roomUser->markAsOffline();
                 $cleanedCount++;
             }

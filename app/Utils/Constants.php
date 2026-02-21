@@ -83,31 +83,34 @@ class Constants
     // 快捷方法
     public static function chatMessageMaxLength(): int
     {
-        return self::chat('message', 'max_length');
+        return (int) self::chat('message', 'max_length');
     }
 
     public static function chatRoomNameMaxLength(): int
     {
-        return self::chat('room', 'name_max_length');
+        return (int) self::chat('room', 'name_max_length');
     }
 
     public static function maxFileSize(): int
     {
-        return self::upload('max_file_size');
+        return (int) self::upload('max_file_size');
     }
 
+    /**
+     * @return array<string>
+     */
     public static function allowedExtensions(): array
     {
-        return self::upload('allowed_extensions');
+        return (array) self::upload('allowed_extensions');
     }
 
     public static function thumbnailSize(): int
     {
-        return self::image('thumbnail_size');
+        return (int) self::image('thumbnail_size');
     }
 
     public static function compressedMaxSize(): int
     {
-        return self::image('compressed_max_size');
+        return (int) self::image('compressed_max_size');
     }
 }

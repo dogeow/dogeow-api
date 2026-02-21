@@ -21,15 +21,15 @@ class FileHelper
 
         $bytes /= pow(1024, $pow);
 
-        return round($bytes, 2) . ' ' . $units[$pow];
+        return round($bytes, 2) . ' ' . $units[(int) $pow];
     }
 
     /**
      * 获取文件大小（字节）
      */
-    public static function getFileSize(string $filePath): int
+    public static function getFileSize(string $filePath): int|false
     {
-        return file_exists($filePath) ? filesize($filePath) : 0;
+        return file_exists($filePath) ? filesize($filePath) : false;
     }
 
     /**
@@ -37,7 +37,8 @@ class FileHelper
      */
     public static function getFormattedFileSize(string $filePath): string
     {
-        return self::formatBytes(self::getFileSize($filePath));
+        $size = self::getFileSize($filePath);
+        return $size !== false ? self::formatBytes($size) : '0 B';
     }
 
     /**
