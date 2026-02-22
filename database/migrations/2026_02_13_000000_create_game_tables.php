@@ -143,7 +143,7 @@ return new class extends Migration
             $table->enum('type', ['active', 'passive'])->default('active')->comment('技能类型：active主动/passive被动');
             $table->enum('class_restriction', ['warrior', 'mage', 'ranger', 'all'])->default('all')->comment('职业限制');
             $table->unsignedSmallInteger('mana_cost')->default(0)->comment('法力消耗');
-            $table->decimal('cooldown', 5, 2)->default(0)->comment('冷却时间（秒）');
+            $table->unsignedTinyInteger('cooldown')->default(0)->comment('冷却时间（秒）');
             $table->unsignedTinyInteger('skill_points_cost')->default(1)->comment('学习消耗技能点数');
             $table->unsignedTinyInteger('max_level')->default(10)->comment('最大等级');
             $table->unsignedSmallInteger('base_damage')->default(10)->comment('基础伤害');
