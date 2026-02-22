@@ -38,7 +38,6 @@ return new class extends Migration
         DB::table('game_skill_definitions')->where('name', '魔力涌动')->update(['branch' => 'passive', 'tier' => 1]);
         DB::table('game_skill_definitions')->where('name', '魔法护盾')->update(['branch' => 'arcane', 'tier' => 2]);
         DB::table('game_skill_definitions')->where('name', '奥术智慧')->update(['branch' => 'passive', 'tier' => 2]);
-        DB::table('game_skill_definitions')->where('name', '法力燃烧')->update(['branch' => 'arcane', 'tier' => 2]);
 
         // ====== 游侠技能 ======
         DB::table('game_skill_definitions')->where('name', '射击')->update(['branch' => 'ranger', 'tier' => 1]);
