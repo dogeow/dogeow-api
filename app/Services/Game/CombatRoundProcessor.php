@@ -14,7 +14,7 @@ class CombatRoundProcessor
     /**
      * 处理一回合战斗（支持多怪物）
      *
-     * @return array{round_damage_dealt: int, round_damage_taken: int, new_monster_hp: int, new_char_hp: int, new_char_mana: int, defeat: bool, has_alive_monster: bool, skills_used_this_round: array, new_cooldowns: array, new_skills_aggregated: array, monsters_updated: array, experience_gained: int, copper_gained: int, round_details: array}
+     * @return array{round_damage_dealt: int, round_damage_taken: int, new_monster_hp: int, new_char_hp: int, new_char_mana: int, defeat: bool, has_alive_monster: bool, skills_used_this_round: array, new_cooldowns: array, new_skills_aggregated: array, monsters_updated: array, slots_where_monster_died_this_round: array<int>, experience_gained: int, copper_gained: int, round_details: array}
      */
     public function processOneRound(
         GameCharacter $character,
@@ -110,10 +110,12 @@ class CombatRoundProcessor
             $useAoe
         );
 
-        // 统计本回合杀死的怪物数量
+        // 统计本回合杀死的怪物数量，并记录死亡槽位（本回合不在此槽位生成新怪，避免与死亡动画重叠）
+        $slotsWhereMonsterDiedThisRound = [];
         foreach ($monstersUpdated as $idx => $m) {
             if (is_array($m) && ($hpAtRoundStart[$idx] ?? 0) > 0 && ($m['hp'] ?? 0) <= 0) {
                 $monstersKilledThisRound++;
+                $slotsWhereMonsterDiedThisRound[] = $idx;
             }
         }
 
@@ -194,6 +196,7 @@ class CombatRoundProcessor
             'new_cooldowns' => $newCooldowns,
             'new_skills_aggregated' => $newSkillsAggregated,
             'monsters_updated' => $monstersUpdated,
+            'slots_where_monster_died_this_round' => $slotsWhereMonsterDiedThisRound,
             'experience_gained' => $totalExperience,
             'copper_gained' => $totalCopper,
             'round_details' => $roundDetails,

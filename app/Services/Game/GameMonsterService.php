@@ -220,7 +220,10 @@ class GameMonsterService
                 $emptySlots[] = $i;
             }
         }
-        $canAdd = count($emptySlots);
+        // 本回合刚死亡的槽位不生成新怪，避免新怪与死亡动画重叠，下一回合该槽位可再参与
+        $justDiedSlots = $roundResult['slots_where_monster_died_this_round'] ?? [];
+        $fillableSlots = array_values(array_diff($emptySlots, $justDiedSlots));
+        $canAdd = count($fillableSlots);
         if ($canAdd <= 0) {
             $this->syncRoundResultMonsterHp($roundResult, $currentMonsters);
 
@@ -263,8 +266,8 @@ class GameMonsterService
             return $roundResult;
         }
 
-        shuffle($emptySlots);
-        $slotsToFill = array_slice($emptySlots, 0, $addCount);
+        shuffle($fillableSlots);
+        $slotsToFill = array_slice($fillableSlots, 0, $addCount);
 
         $baseMonster = $monsters[array_rand($monsters)];
         $baseLevel = max(1, $baseMonster->level + rand(-3, 3));
