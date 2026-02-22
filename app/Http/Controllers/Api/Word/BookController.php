@@ -42,7 +42,7 @@ class BookController extends Controller
     public function words(Request $request, int $id): AnonymousResourceCollection
     {
         $book = Book::findOrFail($id);
-        $userId = auth()->id();
+        $userId = $this->getCurrentUserId();
         $filter = $request->input('filter', 'all');
         $perPage = $request->input('per_page', 20);
         $keyword = $request->input('keyword');

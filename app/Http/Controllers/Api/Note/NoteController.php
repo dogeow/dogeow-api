@@ -11,7 +11,6 @@ use App\Models\Note\NoteLink;
 use App\Services\Note\NoteContentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class NoteController extends Controller
@@ -180,7 +179,7 @@ class NoteController extends Controller
             );
         }
 
-        $userId = auth()->id(); // 直接使用 auth()->id()，可能返回 null
+        $userId = $this->getCurrentUserId();
 
         // 检查权限：
         // 1. 如果是用户自己的笔记（user_id 匹配）

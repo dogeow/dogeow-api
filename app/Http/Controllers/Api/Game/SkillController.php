@@ -87,14 +87,14 @@ class SkillController extends Controller
                 ->first();
             if ($prereqSkill) {
                 $hasPrereq = $character->skills()->where('skill_id', $prereqSkill->id)->exists();
-                if (!$hasPrereq) {
+                if (! $hasPrereq) {
                     $prereqError = '需要先学习前置技能: ' . $prereqSkill->name;
                 }
             }
         } elseif ($skill->prerequisite_skill_id) {
             // 回退到旧的 skill_id 判断
             $hasPrereq = $character->skills()->where('skill_id', $skill->prerequisite_skill_id)->exists();
-            if (!$hasPrereq) {
+            if (! $hasPrereq) {
                 $prereqSkill = GameSkillDefinition::find($skill->prerequisite_skill_id);
                 $prereqError = '需要先学习前置技能: ' . ($prereqSkill?->name ?? '未知');
             }
