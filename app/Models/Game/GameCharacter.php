@@ -183,7 +183,7 @@ class GameCharacter extends Model
     }
 
     /**
-     * 计算最大生命值
+     * 计算最大生命值（基础 + 体力 + 装备加成）
      */
     public function getMaxHp(): int
     {
@@ -191,8 +191,9 @@ class GameCharacter extends Model
         $base = $hpConfig['base'] ?? [];
         $baseHp = $base[$this->class] ?? ($base['default'] ?? 15);
         $multiplier = $hpConfig['vitality_multiplier'] ?? 5;
+        $equipmentBonus = (int) $this->getEquipmentBonus('max_hp');
 
-        return (int) ($baseHp + $this->vitality * $multiplier);
+        return (int) ($baseHp + $this->vitality * $multiplier) + $equipmentBonus;
     }
 
     /**
@@ -207,7 +208,7 @@ class GameCharacter extends Model
     }
 
     /**
-     * 计算最大法力值
+     * 计算最大法力值（基础 + 精力 + 装备加成）
      */
     public function getMaxMana(): int
     {
@@ -215,8 +216,9 @@ class GameCharacter extends Model
         $base = $manaConfig['base'] ?? [];
         $baseMana = $base[$this->class] ?? ($base['default'] ?? 50);
         $multiplier = $manaConfig['energy_multiplier'] ?? 3;
+        $equipmentBonus = (int) $this->getEquipmentBonus('max_mana');
 
-        return (int) ($baseMana + $this->energy * $multiplier);
+        return (int) ($baseMana + $this->energy * $multiplier) + $equipmentBonus;
     }
 
     /**
