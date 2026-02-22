@@ -58,14 +58,14 @@ class CombatController extends Controller
         try {
             $character = $this->getCharacter($request);
 
-            // 检测角色是否死亡，复活并传送到地图1
+            // 检测角色是否死亡，复活并传送到地图一
             if ($character->current_hp <= 0) {
                 // 清除战斗状态
                 $character->clearCombatState();
 
                 $character->current_hp = $character->getMaxHp();
                 $character->current_mana = $character->getMaxMana();
-                $character->current_map_id = 1; // 传送到新手村
+                $character->current_map_id = 1;
                 $character->is_fighting = true;
                 $character->save();
 
@@ -80,10 +80,7 @@ class CombatController extends Controller
             }
 
             $skillIds = $request->input('skill_ids') ?? [];
-            if (! is_array($skillIds) && $request->has('skill_id')) {
-                $skillIds = [(int) $request->input('skill_id')];
-            }
-            $skillIds = array_map('intval', array_values($skillIds));
+            $skillIds = is_array($skillIds) ? array_map('intval', array_values($skillIds)) : [];
 
             Redis::set($key, json_encode(['skill_ids' => $skillIds]));
 
@@ -113,34 +110,6 @@ class CombatController extends Controller
             return $this->success(['message' => '自动战斗已停止']);
         } catch (Throwable $e) {
             return $this->error($e->getMessage() ?: '停止战斗失败', ['error' => $e->getMessage()]);
-        }
-    }
-
-    /**
-     * 执行一回合战斗（单次请求，保留用于手动或兼容）
-     */
-    public function execute(Request $request): JsonResponse
-    {
-        try {
-            $character = $this->getCharacter($request);
-
-            $skillIds = $request->input('skill_ids') ?? [];
-            if (! is_array($skillIds) && $request->has('skill_id')) {
-                $skillIds = [(int) $request->input('skill_id')];
-            }
-
-            $result = $this->combatService->executeRound($character, $skillIds);
-
-            return $this->success($result);
-        } catch (\RuntimeException $e) {
-            // 处理特殊异常 - 自动停止战斗
-            if ($e->getPrevious() && str_contains($e->getMessage(), 'auto_stopped')) {
-                return $this->error($e->getMessage(), json_decode($e->getPrevious()->getMessage(), true) ?: []);
-            }
-
-            return $this->error($e->getMessage() ?: '战斗执行失败', ['error' => $e->getMessage()]);
-        } catch (Throwable $e) {
-            return $this->error($e->getMessage() ?: '战斗执行失败', ['error' => $e->getMessage()]);
         }
     }
 
@@ -198,10 +167,7 @@ class CombatController extends Controller
             $character = $this->getCharacter($request);
 
             $skillIds = $request->input('skill_ids') ?? [];
-            if (! is_array($skillIds) && $request->has('skill_id')) {
-                $skillIds = [(int) $request->input('skill_id')];
-            }
-            $skillIds = array_map('intval', array_values($skillIds));
+            $skillIds = is_array($skillIds) ? array_map('intval', array_values($skillIds)) : [];
 
             $key = AutoCombatRoundJob::redisKey($character->id);
             $payload = Redis::get($key);
@@ -211,35 +177,8 @@ class CombatController extends Controller
             }
 
             $data = json_decode($payload, true);
-
-            // 检查是启用还是取消技能（如果有 skill_id 参数则是单个技能操作）
-            $singleSkillId = $request->input('skill_id');
-            $currentSkillIds = $data['skill_ids'] ?? [];
-
-            if ($singleSkillId !== null) {
-                // 单个技能操作（前端已更新本地 enabledSkillIds，同时把完整列表通过 skill_ids 传来）
-                $skillId = (int) $singleSkillId;
-                $isDisabling = in_array($skillId, $currentSkillIds);
-
-                if ($isDisabling) {
-                    $data['skill_ids'] = array_values(array_diff($currentSkillIds, [$skillId]));
-                    $data['cancelled_skill_ids'] = $data['cancelled_skill_ids'] ?? [];
-                    if (! in_array($skillId, $data['cancelled_skill_ids'])) {
-                        $data['cancelled_skill_ids'][] = $skillId;
-                    }
-                } else {
-                    $data['skill_ids'] = array_unique(array_merge($currentSkillIds, [$skillId]));
-                    $data['cancelled_skill_ids'] = array_values(array_diff($data['cancelled_skill_ids'] ?? [], [$skillId]));
-                }
-                // 以请求中的 skill_ids 为准，避免 Redis 与前端不同步
-                if ($request->has('skill_ids') && is_array($request->input('skill_ids'))) {
-                    $data['skill_ids'] = array_map('intval', array_values($request->input('skill_ids')));
-                    $data['cancelled_skill_ids'] = []; // 完整列表已下发，清空取消列表
-                }
-            } else {
-                $data['skill_ids'] = $skillIds;
-                $data['cancelled_skill_ids'] = [];
-            }
+            $data['skill_ids'] = $skillIds;
+            $data['cancelled_skill_ids'] = [];
 
             Redis::set($key, json_encode($data));
 
