@@ -25,21 +25,6 @@ return [
         'description' => '发射冰箭造成100%魔法伤害',
     ],
     [
-        'name' => '燃烧',
-        'effect_key' => 'burn',
-        'prerequisite_effect_key' => 'fireball',
-        'type' => 'active',
-        'class_restriction' => 'mage',
-        'mana_cost' => 15,
-        'cooldown' => 5,
-        'skill_points_cost' => 1,
-        'effects' => [
-            'dot' => 80,
-            'dot_duration' => 5,
-        ],
-        'description' => '使敌人燃烧，每秒造成额外伤害',
-    ],
-    [
         'name' => '烈焰风暴',
         'effect_key' => 'meteor-storm',
         'prerequisite_effect_key' => 'burn',
@@ -168,18 +153,5 @@ return [
         'effects' => [],
         'target_type' => 'all',
         'description' => '召唤陨石从天而降',
-    ],
-    [
-        'name' => '法力燃烧',
-        'effect_key' => 'mana-burn',
-        'type' => 'active',
-        'class_restriction' => 'mage',
-        'mana_cost' => 15,
-        'cooldown' => 6,
-        'skill_points_cost' => 2,
-        'effects' => [
-            'mana_burn' => 50,
-        ],
-        'description' => '燃烧敌人法力并造成伤害',
     ],
 ];

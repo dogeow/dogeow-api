@@ -26,6 +26,7 @@ return [
     'allowed_origins_patterns' => [
         '#^https://(.+\.)?dogeow\.com$#',
         '#^http://(localhost|127\.0\.0\.1):\d+$#',
+        '#^http://100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.\d+\.\d+:3000$#',
     ],
 
     'allowed_headers' => ['*'],
