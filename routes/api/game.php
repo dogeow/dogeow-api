@@ -8,12 +8,7 @@ use App\Http\Controllers\Api\Game\InventoryController;
 use App\Http\Controllers\Api\Game\MapController;
 use App\Http\Controllers\Api\Game\ShopController;
 use App\Http\Controllers\Api\Game\SkillController;
-use App\Http\Controllers\Api\Thing\GameController;
 use Illuminate\Support\Facades\Route;
-
-// 原有游戏路由
-Route::apiResource('games', GameController::class);
-Route::get('games/{game}/play', [GameController::class, 'play']);
 
 // RPG游戏路由
 Route::prefix('rpg')->group(function () {
@@ -67,7 +62,6 @@ Route::prefix('rpg')->group(function () {
     Route::post('/combat/start', [CombatController::class, 'start']);
     Route::post('/combat/stop', [CombatController::class, 'stop']);
     Route::post('/combat/skills', [CombatController::class, 'updateSkills']);
-    Route::post('/combat/execute', [CombatController::class, 'execute'])->middleware('combat.rate');
     Route::get('/combat/logs', [CombatController::class, 'logs']);
     Route::get('/combat/logs/{log}', [CombatController::class, 'logDetail']);
     Route::get('/combat/stats', [CombatController::class, 'stats']);
