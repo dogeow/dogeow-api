@@ -60,6 +60,7 @@ Route::prefix('rpg')->group(function () {
     // 战斗相关
     Route::get('/combat/status', [CombatController::class, 'status']);
     Route::post('/combat/start', [CombatController::class, 'start']);
+    Route::post('/combat/heartbeat', [CombatController::class, 'heartbeat']);
     Route::post('/combat/stop', [CombatController::class, 'stop']);
     Route::post('/combat/skills', [CombatController::class, 'updateSkills']);
     Route::get('/combat/logs', [CombatController::class, 'logs']);
