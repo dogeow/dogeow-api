@@ -202,51 +202,64 @@ class GameMonsterService
     }
 
     /**
-     * 尝试添加新怪物（每轮30%概率，最多5个）
-     * 如果所有怪物都死亡（has_alive_monster = false），强制刷新100%
+     * 每回合按概率尝试补充新怪物：30% 不生成，70% 按权重生成 1～5 只（1 只概率最大，依次递减）
+     * 空槽位 = 未占用或怪物已死亡，每回合都可能补怪，不要求全部死亡才刷新
      */
     public function tryAddNewMonsters(GameCharacter $character, GameMapDefinition $map, array $roundResult, int $currentRound): array
     {
-        $currentMonsters = $character->combat_monsters ?? [];
-        if (count($currentMonsters) !== 5) {
-            $currentMonsters = array_fill(0, 5, null);
-        }
-        $monsterCount = count(array_filter($currentMonsters, 'is_array'));
+        $raw = $character->combat_monsters ?? [];
+        $currentMonsters = is_array($raw) ? $raw : [];
+        $indexed = $currentMonsters === [] ? [] : array_values($currentMonsters);
+        $currentMonsters = array_pad($indexed, 5, null);
 
-        if ($monsterCount >= 5) {
-            $roundResult['new_monster_hp'] = array_sum(array_column(array_filter($currentMonsters, 'is_array'), 'hp'));
-            $roundResult['new_monster_max_hp'] = array_sum(array_column(array_filter($currentMonsters, 'is_array'), 'max_hp'));
+        // 空槽位：未设置、null、或怪物已死亡（hp<=0）
+        $emptySlots = [];
+        for ($i = 0; $i < 5; $i++) {
+            $m = $currentMonsters[$i] ?? null;
+            if ($m === null || ! is_array($m) || ($m['hp'] ?? 0) <= 0) {
+                $emptySlots[] = $i;
+            }
+        }
+        $canAdd = count($emptySlots);
+        if ($canAdd <= 0) {
+            $this->syncRoundResultMonsterHp($roundResult, $currentMonsters);
 
             return $roundResult;
         }
 
-        // 检查本轮所有怪物是否死亡 - 如果是，强制刷新100%
-        $allMonstersDead = isset($roundResult['has_alive_monster']) && $roundResult['has_alive_monster'] === false;
-        $shouldAddMonster = $allMonstersDead || rand(1, 100) <= 30;
+        // 30% 不生成
+        if (rand(1, 100) <= 30) {
+            $this->syncRoundResultMonsterHp($roundResult, $currentMonsters);
 
-        if (! $shouldAddMonster) {
-            $roundResult['new_monster_hp'] = array_sum(array_column(array_filter($currentMonsters, 'is_array'), 'hp'));
-            $roundResult['new_monster_max_hp'] = array_sum(array_column(array_filter($currentMonsters, 'is_array'), 'max_hp'));
+            return $roundResult;
+        }
+
+        // 70% 生成：权重 1(40%) > 2(25%) > 3(20%) > 4(10%) > 5(5%)
+        $roll = rand(1, 100);
+        $wantCount = 1;
+        if ($roll <= 40) {
+            $wantCount = 1;
+        } elseif ($roll <= 65) {
+            $wantCount = 2;
+        } elseif ($roll <= 85) {
+            $wantCount = 3;
+        } elseif ($roll <= 95) {
+            $wantCount = 4;
+        } else {
+            $wantCount = 5;
+        }
+        $addCount = min($canAdd, $wantCount);
+        if ($addCount <= 0) {
+            $this->syncRoundResultMonsterHp($roundResult, $currentMonsters);
 
             return $roundResult;
         }
 
         $difficulty = $character->getDifficultyMultipliers();
         $monsters = $map->getMonsters();
-
         if (empty($monsters)) {
-            return $roundResult;
-        }
+            $this->syncRoundResultMonsterHp($roundResult, $currentMonsters);
 
-        $emptySlots = [];
-        for ($i = 0; $i < 5; $i++) {
-            if (! isset($currentMonsters[$i]) || $currentMonsters[$i] === null || ! is_array($currentMonsters[$i])) {
-                $emptySlots[] = $i;
-            }
-        }
-        $canAdd = count($emptySlots);
-        $addCount = min($canAdd, rand(1, 2));
-        if ($addCount <= 0) {
             return $roundResult;
         }
 
@@ -278,10 +291,19 @@ class GameMonsterService
         }
 
         $character->combat_monsters = $currentMonsters;
-        $roundResult['new_monster_hp'] = array_sum(array_column(array_filter($currentMonsters, 'is_array'), 'hp'));
-        $roundResult['new_monster_max_hp'] = array_sum(array_column(array_filter($currentMonsters, 'is_array'), 'max_hp'));
+        $this->syncRoundResultMonsterHp($roundResult, $currentMonsters);
 
         return $roundResult;
+    }
+
+    /**
+     * 将当前怪物列表的 hp/max_hp 合计写入 roundResult
+     */
+    private function syncRoundResultMonsterHp(array &$roundResult, array $currentMonsters): void
+    {
+        $alive = array_filter($currentMonsters, fn ($m) => is_array($m));
+        $roundResult['new_monster_hp'] = array_sum(array_column($alive, 'hp'));
+        $roundResult['new_monster_max_hp'] = array_sum(array_column($alive, 'max_hp'));
     }
 
     /**

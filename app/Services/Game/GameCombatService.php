@@ -241,14 +241,8 @@ class GameCombatService
             $roundResult['victory'] = true;
         }
 
-        // 当部分怪物死亡时总是尝试添加新怪物
-        // 这实现了连续战斗流程：怪物随着死亡立即重生，而不是等待所有怪物死亡
-        // 注意：怪物刷新现在只在自动战斗 Job 中处理，这里只处理怪物死亡后补充
-        // 只有当怪物全部死亡时才补充新怪物
-        $isAllDead = ! ($roundResult['has_alive_monster'] ?? true);
-        if ($isAllDead) {
-            $roundResult = $this->monsterService->tryAddNewMonsters($character, $map, $roundResult, $currentRound);
-        }
+        // 每回合按概率尝试补充新怪物（30% 不生成，70% 按权重生成 1～5 只），不要求全部死亡
+        $roundResult = $this->monsterService->tryAddNewMonsters($character, $map, $roundResult, $currentRound);
 
         // 为本回合死亡的怪物发放经验和铜币
         $expGained = $roundResult['experience_gained'] ?? 0;
