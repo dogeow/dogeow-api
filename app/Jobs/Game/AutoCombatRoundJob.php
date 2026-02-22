@@ -38,12 +38,6 @@ class AutoCombatRoundJob implements ShouldQueue
         $key = self::REDIS_KEY_PREFIX . $this->characterId;
         $payload = Redis::get($key);
 
-        Log::info('[AutoCombatRoundJob] Job triggered', [
-            'character_id' => $this->characterId,
-            'payload_exists' => $payload !== null,
-            'time' => now()->toDateTimeString(),
-        ]);
-
         if ($payload === null) {
             return;
         }
@@ -53,11 +47,6 @@ class AutoCombatRoundJob implements ShouldQueue
         $lock = Cache::lock($lockKey, self::LOCK_TIMEOUT);
 
         if (! $lock->get()) {
-            Log::info('[AutoCombatRoundJob] Lock not acquired, skipping', [
-                'character_id' => $this->characterId,
-                'time' => now()->toDateTimeString(),
-            ]);
-
             return;
         }
 
@@ -110,13 +99,6 @@ class AutoCombatRoundJob implements ShouldQueue
                 }
             }
 
-            Log::info('[AutoCombatRoundJob] Executing round', [
-                'character_id' => $this->characterId,
-                'current_round' => $character->combat_rounds,
-                'skill_ids' => $skillIds,
-                'time' => now()->toDateTimeString(),
-            ]);
-
             $result = $combatService->executeRound($character, $skillIds);
 
             // 释放锁
@@ -130,11 +112,6 @@ class AutoCombatRoundJob implements ShouldQueue
 
             // 检查 Redis key 是否仍然存在
             if (Redis::get($key) !== null) {
-                Log::info('[AutoCombatRoundJob] Scheduling next round', [
-                    'character_id' => $this->characterId,
-                    'time' => now()->toDateTimeString(),
-                ]);
-
                 // 等待 3 秒后再调度下一个 job
                 // 这是一个简单但可靠的方法
                 sleep(3);

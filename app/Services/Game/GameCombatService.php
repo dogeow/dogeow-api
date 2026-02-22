@@ -314,11 +314,6 @@ class GameCombatService
 
         // 广播背包更新
         $inventoryPayload = app(GameInventoryService::class)->getInventoryForBroadcast($character);
-        Log::info('游戏背包广播数据', [
-            'character_id' => $character->id,
-            'inventory_count' => count($inventoryPayload['inventory'] ?? []),
-            'first_items_quantity' => array_map(fn ($i) => ['id' => $i['id'] ?? null, 'quantity' => $i['quantity'] ?? null], array_slice($inventoryPayload['inventory'] ?? [], 0, 3)),
-        ]);
         broadcast(new GameInventoryUpdate($character->id, $inventoryPayload));
 
         return $result;
@@ -428,10 +423,6 @@ class GameCombatService
 
         // 广播背包更新
         $inventoryPayload = app(GameInventoryService::class)->getInventoryForBroadcast($character);
-        Log::info('游戏背包广播数据 (handleDefeat)', [
-            'character_id' => $character->id,
-            'first_items_quantity' => array_map(fn ($i) => ['id' => $i['id'] ?? null, 'quantity' => $i['quantity'] ?? null], array_slice($inventoryPayload['inventory'] ?? [], 0, 3)),
-        ]);
         broadcast(new GameInventoryUpdate($character->id, $inventoryPayload));
 
         return $result;
