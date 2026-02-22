@@ -11,8 +11,8 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -23,6 +23,7 @@ class AutoCombatRoundJob implements ShouldQueue
     public int $timeout = 30;
 
     private const REDIS_KEY_PREFIX = 'rpg:combat:auto:';
+
     private const LOCK_TIMEOUT = 35;
 
     public function __construct(
@@ -97,9 +98,22 @@ class AutoCombatRoundJob implements ShouldQueue
                 }
             }
 
+            // 执行回合前再次从 Redis 读取技能列表，确保用户中途取消/启用技能能立即生效
+            $freshPayload = Redis::get($key);
+            if ($freshPayload !== null) {
+                $freshData = json_decode($freshPayload, true);
+                if (is_array($freshData)) {
+                    $freshSkillIds = $freshData['skill_ids'] ?? [];
+                    if (is_array($freshSkillIds)) {
+                        $skillIds = array_values(array_map('intval', $freshSkillIds));
+                    }
+                }
+            }
+
             Log::info('[AutoCombatRoundJob] Executing round', [
                 'character_id' => $this->characterId,
                 'current_round' => $character->combat_rounds,
+                'skill_ids' => $skillIds,
                 'time' => now()->toDateTimeString(),
             ]);
 

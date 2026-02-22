@@ -234,6 +234,7 @@ class CombatController extends Controller
                 // 以请求中的 skill_ids 为准，避免 Redis 与前端不同步
                 if ($request->has('skill_ids') && is_array($request->input('skill_ids'))) {
                     $data['skill_ids'] = array_map('intval', array_values($request->input('skill_ids')));
+                    $data['cancelled_skill_ids'] = []; // 完整列表已下发，清空取消列表
                 }
             } else {
                 $data['skill_ids'] = $skillIds;
