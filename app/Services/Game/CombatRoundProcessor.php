@@ -223,6 +223,12 @@ class CombatRoundProcessor
             ->with('skill')
             ->get();
 
+        // 若前端指定了自动施法技能列表，只从该列表中选技能（否则会从全部主动技能里智能选择）
+        if ($requestedSkillIds !== []) {
+            $allowedIds = array_flip($requestedSkillIds);
+            $activeSkills = $activeSkills->filter(fn ($cs) => $cs->skill && isset($allowedIds[$cs->skill->id]));
+        }
+
         // 获取当前怪物信息用于智能选择
         $monsters = $character->combat_monsters ?? [];
         $aliveMonsters = array_filter($monsters, fn ($m) => is_array($m) && ($m['hp'] ?? 0) > 0);
