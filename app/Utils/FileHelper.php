@@ -38,6 +38,7 @@ class FileHelper
     public static function getFormattedFileSize(string $filePath): string
     {
         $size = self::getFileSize($filePath);
+
         return $size !== false ? self::formatBytes($size) : '0 B';
     }
 
