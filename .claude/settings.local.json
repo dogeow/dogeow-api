@@ -24,7 +24,9 @@
       "Bash(XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-text)",
       "Bash(XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-clover=/tmp/coverage.xml)",
       "Read(//Users/sam/PhpstormProjects/likunyan/dogeow-api/{\n  if \\(match\\($0, /Lines:[ ]*\\([0-9.]+\\)%/**)",
-      "Read(//Users/sam/PhpstormProjects/likunyan/dogeow-api/{for\\(i=1;i<=NF;i++\\) if\\($i~/^App/\\) app=$i; if\\($i~/Lines:/**)"
+      "Read(//Users/sam/PhpstormProjects/likunyan/dogeow-api/{for\\(i=1;i<=NF;i++\\) if\\($i~/^App/\\) app=$i; if\\($i~/Lines:/**)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

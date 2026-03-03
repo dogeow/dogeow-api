@@ -197,7 +197,7 @@ class GameCombatServiceTest extends TestCase
         $service = $this->makeService(monsterService: $monsterService);
 
         $characterWithoutMap = $this->createCharacter([
-            'current_map_id' => 999999,
+            'current_map_id' => 65535,
             'current_hp' => 10,
         ]);
 
