@@ -58,6 +58,7 @@ class LocationTreeService extends BaseService
             ->select('area_id', DB::raw('SUM(quantity) as items_count'))
             ->groupBy('area_id')
             ->pluck('items_count', 'area_id')
+            ->map(fn ($count) => (int) $count)
             ->toArray();
 
         $roomItemCounts = DB::table('thing_items')
@@ -66,6 +67,7 @@ class LocationTreeService extends BaseService
             ->select('room_id', DB::raw('SUM(quantity) as items_count'))
             ->groupBy('room_id')
             ->pluck('items_count', 'room_id')
+            ->map(fn ($count) => (int) $count)
             ->toArray();
 
         return [

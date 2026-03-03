@@ -74,7 +74,7 @@ class MessageSentEventTest extends TestCase
         $this->assertArrayHasKey('message', $data);
         $this->assertEquals(1, $data['message']['id']);
         $this->assertEquals(1, $data['message']['room_id']);
-        $this->assertEquals(1, $data['message']['user_id']);
+        $this->assertEquals($user->id, $data['message']['user_id']);
         $this->assertEquals('Hello World', $data['message']['message']);
         $this->assertEquals('text', $data['message']['message_type']);
         $this->assertArrayHasKey('user', $data['message']);

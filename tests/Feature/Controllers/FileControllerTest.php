@@ -1201,6 +1201,7 @@ class FileControllerTest extends TestCase
 
     public function test_create_folder_without_authentication()
     {
+        Auth::logout();
         Auth::forgetGuards();
 
         $response = $this->postJson('/api/cloud/folders', [
