@@ -151,7 +151,7 @@ class ChatPaginationService
 
         // Use full-text search if available, otherwise LIKE
         if ($this->supportsFullTextSearch()) {
-            $query->whereRaw('MATCH(message) AGAINST(? IN NATURAL LANGUAGE MODE)', [$searchQuery]);
+            $query->whereRaw('MATCH(message) AGAINST(? IN BOOLEAN MODE)', [$searchQuery]);
         } else {
             $query->where('message', 'LIKE', '%' . $searchQuery . '%');
         }
@@ -245,7 +245,7 @@ class ChatPaginationService
     {
         $cursorData = [
             'id' => $messageId,
-            'timestamp' => $timestamp->toISOString(),
+            'timestamp' => $timestamp->toDateTimeString(),
         ];
 
         return base64_encode(json_encode($cursorData));

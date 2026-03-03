@@ -19,6 +19,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property mixed $total_size
  * @property mixed $file_count
  * @property mixed $folder_count
+ * @property mixed $file_type
+ * @property mixed $count
  */
 class File extends Model
 {

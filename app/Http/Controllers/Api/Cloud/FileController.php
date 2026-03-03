@@ -354,11 +354,15 @@ class FileController extends Controller
             ->get();
 
         return response()->json([
-            'total_size' => $baseStats->total_size,
-            'human_readable_size' => $this->formatSize($baseStats->total_size),
-            'file_count' => $baseStats->file_count,
-            'folder_count' => $baseStats->folder_count,
-            'files_by_type' => $filesByType,
+            'total_size' => (int) $baseStats->total_size,
+            'human_readable_size' => $this->formatSize((int) $baseStats->total_size),
+            'file_count' => (int) $baseStats->file_count,
+            'folder_count' => (int) $baseStats->folder_count,
+            'files_by_type' => $filesByType->map(fn (File $item) => [
+                'file_type' => $item->file_type,
+                'count' => (int) $item->count,
+                'total_size' => (int) $item->total_size,
+            ]),
         ]);
     }
 

@@ -127,6 +127,7 @@ class GameCombatLogService
         $logs = $character->combatLogs()
             ->with(['monster', 'map'])
             ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->limit(50)
             ->get();
 
