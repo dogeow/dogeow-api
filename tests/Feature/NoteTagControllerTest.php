@@ -438,8 +438,7 @@ class NoteTagControllerTest extends TestCase
 
     public function test_unauthenticated_user_cannot_access_endpoints(): void
     {
-        // Override authentication for this test
-        Sanctum::actingAs(null);
+        $this->actingAsGuest('sanctum');
 
         // Create a user and tag without authentication
         $user = User::factory()->create();

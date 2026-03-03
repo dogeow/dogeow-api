@@ -26,6 +26,9 @@ class NoteRequest extends FormRequest
             'content' => 'nullable|string',
             'content_markdown' => 'nullable|string',
             'is_draft' => 'nullable|boolean',
+            'slug' => 'nullable|string|max:255',
+            'summary' => 'nullable|string',
+            'is_wiki' => 'nullable|boolean',
         ];
     }
 

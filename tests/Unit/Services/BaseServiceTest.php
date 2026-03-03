@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services;
 
 use App\Services\BaseService;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class TestBaseService extends BaseService
@@ -30,6 +31,16 @@ class TestBaseService extends BaseService
     public function testHandleException(\Throwable $e, string $operation = 'operation'): array
     {
         return $this->handleException($e, $operation);
+    }
+
+    public function testLogError(string $message, array $context = []): void
+    {
+        $this->logError($message, $context);
+    }
+
+    public function testLogInfo(string $message, array $context = []): void
+    {
+        $this->logInfo($message, $context);
     }
 }
 
@@ -149,5 +160,33 @@ class BaseServiceTest extends TestCase
 
         $this->assertFalse($result['valid']);
         $this->assertNotEmpty($result['errors']);
+    }
+
+    public function test_log_error_records_error_log(): void
+    {
+        Log::shouldReceive('error')
+            ->once()
+            ->with(
+                'Test error message',
+                \Mockery::on(function ($context) {
+                    return isset($context['service']) && isset($context['timestamp']);
+                })
+            );
+
+        $this->service->testLogError('Test error message', ['key' => 'value']);
+    }
+
+    public function test_log_info_records_info_log(): void
+    {
+        Log::shouldReceive('info')
+            ->once()
+            ->with(
+                'Test info message',
+                \Mockery::on(function ($context) {
+                    return isset($context['service']) && isset($context['timestamp']);
+                })
+            );
+
+        $this->service->testLogInfo('Test info message', ['key' => 'value']);
     }
 }

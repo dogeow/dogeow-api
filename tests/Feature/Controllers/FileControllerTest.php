@@ -848,6 +848,7 @@ class FileControllerTest extends TestCase
             'is_folder' => false,
             'extension' => 'xyz',
             'path' => 'cloud/1/2024/01/test.xyz',
+            'mime_type' => 'application/octet-stream',
         ]);
 
         Storage::disk('public')->put($file->path, 'unknown content');

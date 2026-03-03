@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\File\FileStorageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -207,5 +208,57 @@ class UploadControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonCount(10);
+    }
+
+    public function test_upload_batch_images_returns_500_when_all_files_fail()
+    {
+        // Mock FileStorageService to simulate all files failing
+        $mockFileStorageService = \Mockery::mock(FileStorageService::class);
+        $mockFileStorageService->shouldReceive('createUserDirectory')->once()->andReturn([
+            'success' => true,
+            'directory_path' => '/tmp/uploads/1',
+        ]);
+        // Simulate file storage failure for all files
+        $mockFileStorageService->shouldReceive('storeFile')->times(2)->andReturn([
+            'success' => false,
+            'message' => 'Storage failed',
+        ]);
+
+        $this->app->instance(FileStorageService::class, $mockFileStorageService);
+
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/upload/images', [
+            'images' => [
+                UploadedFile::fake()->image('image1.jpg'),
+                UploadedFile::fake()->image('image2.jpg'),
+            ],
+        ]);
+
+        $response->assertStatus(500);
+        $response->assertJson(['message' => '所有图片上传失败']);
+    }
+
+    public function test_upload_batch_images_returns_500_when_create_directory_fails()
+    {
+        // Mock FileStorageService to simulate directory creation failure
+        $mockFileStorageService = \Mockery::mock(FileStorageService::class);
+        $mockFileStorageService->shouldReceive('createUserDirectory')->once()->andReturn([
+            'success' => false,
+            'message' => 'Directory creation failed',
+        ]);
+
+        $this->app->instance(FileStorageService::class, $mockFileStorageService);
+
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/upload/images', [
+            'images' => [UploadedFile::fake()->image('image.jpg')],
+        ]);
+
+        $response->assertStatus(500);
+        $response->assertJson(['message' => 'Directory creation failed']);
     }
 }

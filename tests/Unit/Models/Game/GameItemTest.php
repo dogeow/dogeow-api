@@ -195,19 +195,34 @@ class GameItemTest extends TestCase
         );
     }
 
+    public function test_can_equip_returns_false_when_definition_missing(): void
+    {
+        $character = new GameCharacter(['level' => 99]);
+        $item = new GameItem;
+        $item->definition = null;
+
+        $result = $item->canEquip($character);
+
+        $this->assertFalse($result['can_equip']);
+        $this->assertStringContainsString('没有定义', $result['reason']);
+    }
+
     public function test_character_relationship(): void
     {
         $this->assertTrue(method_exists($this->item, 'character'));
+        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\BelongsTo::class, $this->item->character());
     }
 
     public function test_definition_relationship(): void
     {
         $this->assertTrue(method_exists($this->item, 'definition'));
+        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\BelongsTo::class, $this->item->definition());
     }
 
     public function test_gems_relationship(): void
     {
         $this->assertTrue(method_exists($this->item, 'gems'));
+        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $this->item->gems());
     }
 
     public function test_get_total_stats_returns_base_stats(): void
@@ -226,5 +241,120 @@ class GameItemTest extends TestCase
         ]);
         $totalStats = $item->getTotalStats();
         $this->assertEquals(15, $totalStats['attack']);
+    }
+
+    public function test_get_total_stats_includes_gem_stats(): void
+    {
+        $item = new GameItem(['stats' => ['attack' => 10]]);
+
+        $gem = new class
+        {
+            public function getGemStats(): array
+            {
+                return ['attack' => 2.5, 'defense' => 1];
+            }
+        };
+
+        $item->setRelation('gems', collect([$gem]));
+
+        $totalStats = $item->getTotalStats();
+        $this->assertEquals('12.5000', $totalStats['attack']);
+        $this->assertEquals('1.0000', $totalStats['defense']);
+    }
+
+    public function test_calculate_sell_price_for_potion(): void
+    {
+        $definition = new GameItemDefinition([
+            'type' => 'potion',
+            'base_stats' => ['max_hp' => 100, 'max_mana' => 50],
+        ]);
+        $item = new GameItem;
+        $item->definition = $definition;
+
+        $price = $item->calculateSellPrice();
+
+        // HP: 100 * 0.3 = 30, MP: 50 * 0.2 = 10, Total: 40
+        $this->assertEquals(40, $price);
+    }
+
+    public function test_calculate_sell_price_for_gem(): void
+    {
+        $definition = new GameItemDefinition([
+            'type' => 'gem',
+            'gem_stats' => ['attack' => 10],
+        ]);
+        $item = new GameItem;
+        $item->definition = $definition;
+
+        $price = $item->calculateSellPrice();
+
+        // Attack: 10 * 3 = 30
+        $this->assertEquals(30, $price);
+    }
+
+    public function test_calculate_sell_price_for_equipment(): void
+    {
+        $definition = new GameItemDefinition([
+            'type' => 'weapon',
+            'required_level' => 1,
+        ]);
+        $item = new GameItem([
+            'stats' => ['attack' => 10, 'defense' => 5],
+            'quality' => 'common',
+        ]);
+        $item->definition = $definition;
+
+        $price = $item->calculateSellPrice();
+
+        // Should return a positive integer
+        $this->assertGreaterThan(0, $price);
+        $this->assertIsInt($price);
+    }
+
+    public function test_calculate_sell_price_returns_minimum_one(): void
+    {
+        $definition = new GameItemDefinition(['type' => 'weapon']);
+        $item = new GameItem([
+            'stats' => [],
+            'quality' => 'common',
+        ]);
+        $item->definition = $definition;
+
+        $price = $item->calculateSellPrice();
+
+        $this->assertEquals(1, $price);
+    }
+
+    public function test_to_array_includes_basic_attributes(): void
+    {
+        $item = new GameItem([
+            'quality' => 'common',
+            'stats' => ['attack' => 10],
+            'is_equipped' => true,
+        ]);
+
+        $array = $item->toArray();
+
+        $this->assertArrayHasKey('quality', $array);
+        $this->assertArrayHasKey('stats', $array);
+        $this->assertArrayHasKey('is_equipped', $array);
+    }
+
+    public function test_to_array_normalizes_affixes_precision(): void
+    {
+        $item = new GameItem([
+            'quality' => 'rare',
+            'stats' => ['crit_rate' => 0.020000000000000004],
+            'affixes' => [
+                ['attack' => 10.123456],
+                ['defense' => 5.999999],
+            ],
+        ]);
+
+        $array = $item->toArray();
+
+        $this->assertEquals(0.02, $array['stats']['crit_rate']);
+        $this->assertEquals(10.1235, $array['affixes'][0]['attack']);
+        $this->assertEquals(6.0, $array['affixes'][1]['defense']);
     }
 }

@@ -115,28 +115,6 @@ class CategoryControllerTest extends TestCase
     }
 
     /**
-     * Test the store method with valid data
-     */
-    public function test_store_method_with_valid_data()
-    {
-        Auth::login($this->user);
-
-        // Skip this test as FormRequest validation is better tested in feature tests
-        $this->markTestSkipped('FormRequest validation is better tested in feature tests');
-    }
-
-    /**
-     * Test the store method with minimal data
-     */
-    public function test_store_method_with_minimal_data()
-    {
-        Auth::login($this->user);
-
-        // Skip this test as FormRequest validation is better tested in feature tests
-        $this->markTestSkipped('FormRequest validation is better tested in feature tests');
-    }
-
-    /**
      * Test the show method
      */
     public function test_show_method()
@@ -150,28 +128,6 @@ class CategoryControllerTest extends TestCase
         $data = $response->getData();
         $this->assertEquals($category->id, $data->id);
         $this->assertCount(3, $data->items);
-    }
-
-    /**
-     * Test the update method with valid data
-     */
-    public function test_update_method_with_valid_data()
-    {
-        Auth::login($this->user);
-
-        // Skip this test as FormRequest validation is better tested in feature tests
-        $this->markTestSkipped('FormRequest validation is better tested in feature tests');
-    }
-
-    /**
-     * Test the update method with partial data
-     */
-    public function test_update_method_with_partial_data()
-    {
-        Auth::login($this->user);
-
-        // Skip this test as FormRequest validation is better tested in feature tests
-        $this->markTestSkipped('FormRequest validation is better tested in feature tests');
     }
 
     /**

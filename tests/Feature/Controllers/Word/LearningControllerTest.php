@@ -5,6 +5,7 @@ namespace Tests\Feature\Controllers\Word;
 use App\Models\User;
 use App\Models\Word\Book;
 use App\Models\Word\Category;
+use App\Models\Word\EducationLevel;
 use App\Models\Word\UserSetting;
 use App\Models\Word\UserWord;
 use App\Models\Word\Word;
@@ -50,6 +51,15 @@ class LearningControllerTest extends TestCase
         ], $attributes));
     }
 
+    private function createEducationLevel(array $attributes = []): EducationLevel
+    {
+        return EducationLevel::create(array_merge([
+            'code' => 'primary',
+            'name' => 'Primary',
+            'sort_order' => 1,
+        ], $attributes));
+    }
+
     private function createUserSetting(User $user, array $attributes = []): UserSetting
     {
         return UserSetting::create(array_merge([
@@ -83,6 +93,18 @@ class LearningControllerTest extends TestCase
             ->getJson('/api/word/daily');
 
         $response->assertStatus(200);
+    }
+
+    public function test_get_daily_words_returns_empty_when_current_book_does_not_exist(): void
+    {
+        $user = User::factory()->create();
+        $this->createUserSetting($user, ['current_book_id' => 999999]);
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/word/daily');
+
+        $response->assertStatus(200)
+            ->assertExactJson(['data' => []]);
     }
 
     public function test_can_get_review_words(): void
@@ -126,6 +148,34 @@ class LearningControllerTest extends TestCase
             ]);
 
         $response->assertStatus(200);
+    }
+
+    public function test_mark_word_initializes_existing_pending_user_word(): void
+    {
+        $user = User::factory()->create();
+        $book = $this->createBook();
+        $word = $this->createWord();
+        $this->createUserSetting($user, ['current_book_id' => $book->id]);
+
+        $userWord = UserWord::create([
+            'user_id' => $user->id,
+            'word_id' => $word->id,
+            'word_book_id' => $book->id,
+            'status' => 0,
+            'stage' => 5,
+            'ease_factor' => 1.3,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/word/mark/' . $word->id, [
+                'remembered' => true,
+            ]);
+
+        $response->assertStatus(200);
+        $userWord->refresh();
+        $this->assertGreaterThanOrEqual(1, $userWord->stage);
+        $this->assertGreaterThan(1.3, $userWord->ease_factor);
+        $this->assertSame(1, $userWord->review_count);
     }
 
     public function test_mark_word_validates_remembered_boolean(): void
@@ -193,6 +243,32 @@ class LearningControllerTest extends TestCase
         $response->assertStatus(200);
     }
 
+    public function test_get_progress_returns_not_found_when_current_book_is_missing(): void
+    {
+        $user = User::factory()->create();
+        $this->createUserSetting($user, ['current_book_id' => 999999]);
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/word/progress');
+
+        $response->assertStatus(404)
+            ->assertJsonPath('message', '单词书不存在');
+    }
+
+    public function test_get_progress_returns_zero_percentage_when_book_has_no_words(): void
+    {
+        $user = User::factory()->create();
+        $book = $this->createBook(['total_words' => 0]);
+        $this->createUserSetting($user, ['current_book_id' => $book->id]);
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/word/progress');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('total_words', 0)
+            ->assertJsonPath('progress_percentage', 0);
+    }
+
     public function test_can_search_word(): void
     {
         $user = User::factory()->create();
@@ -215,6 +291,17 @@ class LearningControllerTest extends TestCase
             ->assertJson(['found' => false]);
     }
 
+    public function test_search_word_requires_non_empty_keyword(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/word/search/%20%20');
+
+        $response->assertStatus(422)
+            ->assertJsonPath('message', '请输入搜索关键词');
+    }
+
     public function test_can_update_word(): void
     {
         $user = User::factory()->create();
@@ -226,6 +313,44 @@ class LearningControllerTest extends TestCase
             ]);
 
         $response->assertStatus(200);
+    }
+
+    public function test_can_create_word_and_attach_books_by_education_level(): void
+    {
+        $user = User::factory()->create();
+        $level = $this->createEducationLevel([
+            'code' => 'ielts',
+            'name' => 'IELTS',
+        ]);
+        $book = $this->createBook(['total_words' => 0]);
+        $book->educationLevels()->attach($level->id);
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/word/create', [
+                'content' => 'aberration',
+                'phonetic_us' => '/ˌæbəˈreɪʃən/',
+                'explanation' => 'something that differs',
+                'example_sentences' => [
+                    ['en' => 'It was an aberration.', 'zh' => '那是个例外。'],
+                ],
+                'education_level_codes' => ['ielts'],
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('message', '单词创建成功')
+            ->assertJsonPath('word.content', 'aberration');
+
+        $word = Word::where('content', 'aberration')->firstOrFail();
+        $this->assertDatabaseHas('word_education_level', [
+            'word_id' => $word->id,
+            'education_level_id' => $level->id,
+        ]);
+        $this->assertDatabaseHas('word_book_word', [
+            'word_book_id' => $book->id,
+            'word_id' => $word->id,
+            'sort_order' => 1,
+        ]);
+        $this->assertSame(1, $book->fresh()->total_words);
     }
 
     public function test_can_get_fill_blank_words(): void

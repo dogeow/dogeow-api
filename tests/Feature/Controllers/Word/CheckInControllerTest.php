@@ -102,6 +102,27 @@ class CheckInControllerTest extends TestCase
         $response->assertStatus(200);
     }
 
+    public function test_returns_existing_check_in_when_same_local_date_is_already_checked_in(): void
+    {
+        $user = User::factory()->create();
+        $existing = $this->createCheckIn($user, '2025-01-01', [
+            'new_words_count' => 5,
+            'review_words_count' => 3,
+            'study_duration' => 30,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/word/check-in', [
+                'local_date' => '2025-01-01',
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('message', '今天已经打卡过了')
+            ->assertJsonPath('check_in.id', $existing->id)
+            ->assertJsonPath('check_in.new_words_count', 5)
+            ->assertJsonPath('check_in.review_words_count', 3);
+    }
+
     public function test_can_get_calendar(): void
     {
         $user = User::factory()->create();

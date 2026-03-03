@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services;
 
 use App\Services\UpyunService;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class UpyunServiceTest extends TestCase
@@ -117,19 +118,115 @@ class UpyunServiceTest extends TestCase
         config(['upyun.operator' => 'test-operator']);
         config(['upyun.password' => 'test-password']);
         config(['upyun.api_host' => 'api.test.com']);
+        config(['upyun.domain' => 'https://cdn.example.com']);
 
-        // Create a temp file
-        $tempFile = tempnam(sys_get_temp_dir(), 'test_');
+        $tempFile = tempnam(sys_get_temp_dir(), 'upyun_');
         file_put_contents($tempFile, 'test content');
 
-        $service = new UpyunService;
+        try {
+            Http::fake([
+                'https://api.test.com/*' => Http::response('', 200),
+            ]);
 
-        // Mock the HTTP facade to prevent actual network calls
-        \Illuminate\Support\Facades\Http::shouldReceive('withHeaders')
-            ->andThrow(new \Illuminate\Http\Client\ConnectionException('Mock connection'));
+            $service = new UpyunService;
+            $result = $service->upload($tempFile, '/test/image.png');
 
-        // Should not throw unhandled exception
-        $this->expectNotToPerformAssertions();
+            $this->assertTrue($result['success']);
+            $this->assertSame('/test/image.png', $result['path']);
+            $this->assertSame('https://cdn.example.com/test/image.png', $result['url']);
+
+            Http::assertSentCount(1);
+        } finally {
+            if (is_file($tempFile)) {
+                unlink($tempFile);
+            }
+        }
+    }
+
+    public function test_upload_returns_success_with_null_public_url_when_domain_not_configured(): void
+    {
+        config(['upyun.bucket' => 'test-bucket']);
+        config(['upyun.operator' => 'test-operator']);
+        config(['upyun.password' => 'test-password']);
+        config(['upyun.api_host' => 'api.test.com']);
+        config(['upyun.domain' => null]);
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'upyun_');
+        file_put_contents($tempFile, 'test content');
+
+        try {
+            Http::fake([
+                'https://api.test.com/*' => Http::response('', 200),
+            ]);
+
+            $service = new UpyunService;
+            $result = $service->upload($tempFile, '/assets/sample.jpg');
+
+            $this->assertTrue($result['success']);
+            $this->assertSame('/assets/sample.jpg', $result['path']);
+            $this->assertNull($result['url']);
+        } finally {
+            if (is_file($tempFile)) {
+                unlink($tempFile);
+            }
+        }
+    }
+
+    public function test_upload_returns_error_when_remote_api_fails(): void
+    {
+        config(['upyun.bucket' => 'test-bucket']);
+        config(['upyun.operator' => 'test-operator']);
+        config(['upyun.password' => 'test-password']);
+        config(['upyun.api_host' => 'api.test.com']);
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'upyun_');
+        file_put_contents($tempFile, 'test content');
+
+        try {
+            Http::fake([
+                'https://api.test.com/*' => Http::response('forbidden', 403),
+            ]);
+
+            $service = new UpyunService;
+            $result = $service->upload($tempFile, '/assets/fail.jpg');
+
+            $this->assertFalse($result['success']);
+            $this->assertStringContainsString('又拍云上传失败: 403', $result['message']);
+        } finally {
+            if (is_file($tempFile)) {
+                unlink($tempFile);
+            }
+        }
+    }
+
+    public function test_upload_uses_explicit_content_type_when_provided(): void
+    {
+        config(['upyun.bucket' => 'test-bucket']);
+        config(['upyun.operator' => 'test-operator']);
+        config(['upyun.password' => 'test-password']);
+        config(['upyun.api_host' => 'api.test.com']);
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'upyun_');
+        file_put_contents($tempFile, 'content');
+
+        try {
+            Http::fake([
+                'https://api.test.com/*' => Http::response('', 200),
+            ]);
+
+            $service = new UpyunService;
+            $result = $service->upload($tempFile, '/custom/file.bin', 'application/custom-bin');
+
+            $this->assertTrue($result['success']);
+
+            Http::assertSent(function ($request): bool {
+                return (string) $request->header('Content-Type')[0] === 'application/custom-bin';
+            });
+        } finally {
+            if (is_file($tempFile)) {
+                unlink($tempFile);
+            }
+        }
     }
 
     public function test_guess_mime_type_returns_png_for_png_extension(): void

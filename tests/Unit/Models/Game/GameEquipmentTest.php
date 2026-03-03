@@ -3,6 +3,7 @@
 namespace Tests\Unit\Models\Game;
 
 use App\Models\Game\GameEquipment;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Tests\TestCase;
 
 class GameEquipmentTest extends TestCase
@@ -32,11 +33,11 @@ class GameEquipmentTest extends TestCase
 
     public function test_character_relationship_exists(): void
     {
-        $this->assertTrue(method_exists($this->equipment, 'character'));
+        $this->assertInstanceOf(BelongsTo::class, $this->equipment->character());
     }
 
     public function test_item_relationship_exists(): void
     {
-        $this->assertTrue(method_exists($this->equipment, 'item'));
+        $this->assertInstanceOf(BelongsTo::class, $this->equipment->item());
     }
 }

@@ -255,4 +255,87 @@ class ItemTest extends TestCase
         $this->assertNotEmpty($item->name);
         $this->assertEquals($this->user->id, $item->user_id);
     }
+
+    public function test_related_items_relationship()
+    {
+        $item1 = Item::factory()->create(['user_id' => $this->user->id]);
+        $item2 = Item::factory()->create(['user_id' => $this->user->id]);
+
+        $item1->relatedItems()->attach($item2->id, [
+            'relation_type' => 'related',
+            'description' => 'similar item',
+        ]);
+
+        $this->assertCount(1, $item1->relatedItems);
+        $this->assertEquals($item2->id, $item1->relatedItems->first()->id);
+    }
+
+    public function test_relating_items_relationship()
+    {
+        $item1 = Item::factory()->create(['user_id' => $this->user->id]);
+        $item2 = Item::factory()->create(['user_id' => $this->user->id]);
+
+        // Item1 relates to Item2 (stored in thing_item_relations as item_id=1, related_item_id=2)
+        $item1->relatedItems()->attach($item2->id, ['relation_type' => 'related']);
+
+        // Item2 should have relatingItems pointing back to Item1
+        $this->assertCount(1, $item2->relatingItems);
+    }
+
+    public function test_all_relations_merges_both_directions()
+    {
+        $item1 = Item::factory()->create(['user_id' => $this->user->id]);
+        $item2 = Item::factory()->create(['user_id' => $this->user->id]);
+        $item3 = Item::factory()->create(['user_id' => $this->user->id]);
+
+        // item1 -> item2 (related)
+        $item1->relatedItems()->attach($item2->id, ['relation_type' => 'related']);
+        // item3 -> item1 (relating)
+        $item3->relatedItems()->attach($item1->id, ['relation_type' => 'related']);
+
+        $allRelations = $item1->allRelations();
+
+        $this->assertCount(2, $allRelations);
+    }
+
+    public function test_get_relations_by_type()
+    {
+        $item1 = Item::factory()->create(['user_id' => $this->user->id]);
+        $item2 = Item::factory()->create(['user_id' => $this->user->id]);
+        $item3 = Item::factory()->create(['user_id' => $this->user->id]);
+
+        $item1->relatedItems()->attach($item2->id, ['relation_type' => 'accessory']);
+        $item1->relatedItems()->attach($item3->id, ['relation_type' => 'replacement']);
+
+        $accessoryRelations = $item1->getRelationsByType('accessory');
+
+        $this->assertCount(1, $accessoryRelations);
+        $this->assertEquals($item2->id, $accessoryRelations->first()->id);
+    }
+
+    public function test_add_relation()
+    {
+        $item1 = Item::factory()->create(['user_id' => $this->user->id]);
+        $item2 = Item::factory()->create(['user_id' => $this->user->id]);
+
+        $item1->addRelation($item2->id, 'related', 'test description');
+
+        $this->assertCount(1, $item1->relatedItems);
+        $this->assertEquals('related', $item1->relatedItems->first()->pivot->relation_type);
+        $this->assertEquals('test description', $item1->relatedItems->first()->pivot->description);
+    }
+
+    public function test_remove_relation()
+    {
+        $item1 = Item::factory()->create(['user_id' => $this->user->id]);
+        $item2 = Item::factory()->create(['user_id' => $this->user->id]);
+
+        $item1->relatedItems()->attach($item2->id, ['relation_type' => 'related']);
+
+        $this->assertCount(1, $item1->relatedItems);
+
+        $item1->removeRelation($item2->id);
+
+        $this->assertCount(0, $item1->fresh()->relatedItems);
+    }
 }

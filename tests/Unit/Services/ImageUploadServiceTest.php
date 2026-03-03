@@ -250,4 +250,133 @@ class ImageUploadServiceTest extends TestCase
             'item_id' => $this->item->id,
         ]);
     }
+
+    public function test_set_primary_image_with_nonexistent_image()
+    {
+        $this->imageUploadService->setPrimaryImage(99999, $this->item);
+
+        // Should not throw exception, gracefully handle
+        $this->assertDatabaseHas('thing_items', ['id' => $this->item->id]);
+    }
+
+    public function test_delete_all_item_images_with_no_images()
+    {
+        // Item has no images
+        $this->imageUploadService->deleteAllItemImages($this->item);
+
+        $this->assertDatabaseMissing('thing_item_images', [
+            'item_id' => $this->item->id,
+        ]);
+    }
+
+    public function test_update_image_order_with_empty_array()
+    {
+        // Create an image first
+        ItemImage::create([
+            'item_id' => $this->item->id,
+            'path' => 'items/' . $this->item->id . '/image1.jpg',
+        ]);
+
+        // Update with empty order list
+        $this->imageUploadService->updateImageOrder([], $this->item);
+
+        // Item should still exist
+        $this->assertDatabaseHas('thing_items', ['id' => $this->item->id]);
+    }
+
+    public function test_process_image_paths_with_empty_array()
+    {
+        Storage::fake('public');
+
+        $this->imageUploadService->processImagePaths([], $this->item);
+
+        // No images should be created
+        $this->assertDatabaseMissing('thing_item_images', [
+            'item_id' => $this->item->id,
+        ]);
+    }
+
+    public function test_process_uploaded_images_creates_directory_if_not_exists()
+    {
+        // Create a fresh item with unique ID to ensure directory doesn't exist
+        $newItem = Item::factory()->create();
+        $dirPath = storage_path('app/public/items/' . $newItem->id);
+
+        // Ensure directory doesn't exist - recursively delete if it exists
+        if (file_exists($dirPath)) {
+            $this->recursiveDelete($dirPath);
+        }
+
+        $uploadedImages = [
+            UploadedFile::fake()->image('test.jpg'),
+        ];
+
+        $result = $this->imageUploadService->processUploadedImages($uploadedImages, $newItem);
+
+        // Verify directory was created
+        $this->assertTrue(file_exists($dirPath));
+        $this->assertTrue(is_dir($dirPath));
+        $this->assertEquals(1, $result);
+
+        // Clean up
+        $this->recursiveDelete($dirPath);
+    }
+
+    public function test_process_image_paths_creates_directory_if_not_exists()
+    {
+        // Create a fresh item with unique ID
+        $newItem = Item::factory()->create();
+        $dirPath = storage_path('app/public/items/' . $newItem->id);
+
+        // Ensure directory doesn't exist - recursively delete if it exists
+        if (file_exists($dirPath)) {
+            $this->recursiveDelete($dirPath);
+        }
+
+        // Create temporary source file
+        $tempDir = storage_path('app/public/uploads');
+        if (! file_exists($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+        $tempFile = $tempDir . '/test-upload.jpg';
+        file_put_contents($tempFile, 'fake image content');
+
+        $imagePaths = ['uploads/test-upload.jpg'];
+
+        $this->imageUploadService->processImagePaths($imagePaths, $newItem);
+
+        // Verify directory was created
+        $this->assertTrue(file_exists($dirPath));
+        $this->assertTrue(is_dir($dirPath));
+
+        // Clean up
+        $this->recursiveDelete($dirPath);
+    }
+
+    private function recursiveDelete(string $dir): void
+    {
+        if (! file_exists($dir)) {
+            return;
+        }
+
+        if (! is_dir($dir)) {
+            @chmod($dir, 0777);
+            unlink($dir);
+
+            return;
+        }
+
+        @chmod($dir, 0777);
+        $files = array_diff(scandir($dir), ['.', '..']);
+        foreach ($files as $file) {
+            $path = $dir . '/' . $file;
+            if (is_dir($path)) {
+                $this->recursiveDelete($path);
+            } else {
+                @chmod($path, 0777);
+                unlink($path);
+            }
+        }
+        rmdir($dir);
+    }
 }

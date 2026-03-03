@@ -63,6 +63,22 @@ class ConstantsTest extends TestCase
         $this->assertIsArray($result);
     }
 
+    public function test_validation_with_section(): void
+    {
+        // 测试只传入 section 参数
+        $result = Constants::validation('user');
+
+        $this->assertIsArray($result);
+    }
+
+    public function test_validation_with_section_and_key(): void
+    {
+        // 测试传入 section 和 key 参数
+        $result = Constants::validation('user', 'password_min_length');
+
+        $this->assertIsInt($result);
+    }
+
     public function test_api_returns_config(): void
     {
         $result = Constants::api();
@@ -78,12 +94,28 @@ class ConstantsTest extends TestCase
         $this->assertGreaterThan(0, $result);
     }
 
+    public function test_chat_room_name_max_length(): void
+    {
+        $result = Constants::chatRoomNameMaxLength();
+
+        $this->assertIsInt($result);
+        $this->assertGreaterThan(0, $result);
+    }
+
     public function test_max_file_size(): void
     {
         $result = Constants::maxFileSize();
 
         $this->assertIsInt($result);
         $this->assertGreaterThan(0, $result);
+    }
+
+    public function test_allowed_extensions(): void
+    {
+        $result = Constants::allowedExtensions();
+
+        $this->assertIsArray($result);
+        $this->assertNotEmpty($result);
     }
 
     public function test_thumbnail_size(): void

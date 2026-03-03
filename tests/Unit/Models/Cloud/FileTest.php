@@ -192,6 +192,65 @@ class FileTest extends TestCase
         $this->assertEquals('image', $file->type);
     }
 
+    public function test_get_extensions_by_type_returns_expected_extension_lists()
+    {
+        $this->assertSame(['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'], File::getExtensionsByType('image'));
+        $this->assertSame(['pdf'], File::getExtensionsByType('pdf'));
+        $this->assertSame(['doc', 'docx', 'txt', 'rtf', 'md'], File::getExtensionsByType('document'));
+        $this->assertSame(['xls', 'xlsx', 'csv'], File::getExtensionsByType('spreadsheet'));
+        $this->assertSame(['zip', 'rar', '7z', 'tar', 'gz'], File::getExtensionsByType('archive'));
+        $this->assertSame(['mp3', 'wav', 'ogg', 'flac'], File::getExtensionsByType('audio'));
+        $this->assertSame(['mp4', 'avi', 'mov', 'wmv', 'mkv'], File::getExtensionsByType('video'));
+        $this->assertSame([], File::getExtensionsByType('unknown'));
+    }
+
+    public function test_scope_where_has_file_type_filters_folders_known_extensions_and_unknown_types()
+    {
+        $folder = File::factory()->create(['is_folder' => true]);
+        $image = File::factory()->create([
+            'is_folder' => false,
+            'extension' => 'jpg',
+        ]);
+        $document = File::factory()->create([
+            'is_folder' => false,
+            'extension' => 'txt',
+        ]);
+
+        $folderIds = File::query()->whereHasFileType('folder')->pluck('id')->all();
+        $imageIds = File::query()->whereHasFileType('image')->pluck('id')->all();
+        $unknownTypeIds = File::query()->whereHasFileType('unknown')->pluck('id')->all();
+
+        $this->assertSame([$folder->id], $folderIds);
+        $this->assertSame([$image->id], $imageIds);
+        $this->assertContains($image->id, $unknownTypeIds);
+        $this->assertContains($document->id, $unknownTypeIds);
+        $this->assertNotContains($folder->id, $unknownTypeIds);
+    }
+
+    public function test_get_all_descendants_returns_nested_folder_ids_only()
+    {
+        $rootFolder = File::factory()->create(['is_folder' => true]);
+        $childFolder = File::factory()->create([
+            'is_folder' => true,
+            'parent_id' => $rootFolder->id,
+        ]);
+        $grandchildFolder = File::factory()->create([
+            'is_folder' => true,
+            'parent_id' => $childFolder->id,
+        ]);
+        File::factory()->create([
+            'is_folder' => false,
+            'parent_id' => $rootFolder->id,
+        ]);
+
+        $actual = $rootFolder->getAllDescendants();
+        sort($actual);
+        $expected = [$childFolder->id, $grandchildFolder->id];
+        sort($expected);
+
+        $this->assertSame($expected, $actual);
+    }
+
     public function test_file_casts_size_to_integer()
     {
         $file = File::factory()->create(['size' => '1024']);

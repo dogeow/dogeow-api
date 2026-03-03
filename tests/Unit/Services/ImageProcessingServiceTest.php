@@ -220,4 +220,182 @@ class ImageProcessingServiceTest extends TestCase
         $this->assertFalse($result['success']);
         $this->assertSame('Image file not found', $result['message']);
     }
+
+    public function test_process_image_with_wide_image()
+    {
+        // Create a wide image (800x200)
+        $wideImagePath = storage_path('app/public/test/wide-origin.jpg');
+        $image = imagecreate(800, 200);
+        $white = imagecolorallocate($image, 255, 255, 255);
+        imagejpeg($image, $wideImagePath);
+        imagedestroy($image);
+
+        $result = $this->imageProcessingService->processImage($wideImagePath, $this->testCompressedPath);
+
+        $this->assertTrue($result['success']);
+        $this->assertFileExists($this->testCompressedPath);
+
+        // Clean up
+        unlink($wideImagePath);
+        unlink(str_replace('-origin.', '-thumb.', $wideImagePath));
+    }
+
+    public function test_process_image_with_tall_image()
+    {
+        // Create a tall image (200x800)
+        $tallImagePath = storage_path('app/public/test/tall-origin.jpg');
+        $image = imagecreate(200, 800);
+        $white = imagecolorallocate($image, 255, 255, 255);
+        imagejpeg($image, $tallImagePath);
+        imagedestroy($image);
+
+        $result = $this->imageProcessingService->processImage($tallImagePath, $this->testCompressedPath);
+
+        $this->assertTrue($result['success']);
+        $this->assertFileExists($this->testCompressedPath);
+
+        // Clean up
+        unlink($tallImagePath);
+        unlink(str_replace('-origin.', '-thumb.', $tallImagePath));
+    }
+
+    public function test_get_image_info_with_different_formats()
+    {
+        // Create a PNG image
+        $pngImagePath = storage_path('app/public/test/test-info.png');
+        $image = imagecreate(50, 50);
+        $white = imagecolorallocate($image, 255, 255, 255);
+        imagepng($image, $pngImagePath);
+        imagedestroy($image);
+
+        $result = $this->imageProcessingService->getImageInfo($pngImagePath);
+
+        $this->assertTrue($result['success']);
+        $this->assertSame('image/png', $result['mime_type']);
+        $this->assertSame(50, $result['width']);
+        $this->assertSame(50, $result['height']);
+
+        // Clean up
+        unlink($pngImagePath);
+    }
+
+    public function test_process_image_maintains_aspect_ratio()
+    {
+        // Create an image with specific aspect ratio
+        $aspectImagePath = storage_path('app/public/test/aspect-origin.jpg');
+        $image = imagecreate(400, 200);
+        $white = imagecolorallocate($image, 255, 255, 255);
+        imagejpeg($image, $aspectImagePath);
+        imagedestroy($image);
+
+        $result = $this->imageProcessingService->processImage($aspectImagePath, $this->testCompressedPath);
+
+        $this->assertTrue($result['success']);
+        $this->assertSame(400, $result['width']);
+        $this->assertSame(200, $result['height']);
+
+        // Clean up
+        unlink($aspectImagePath);
+        unlink(str_replace('-origin.', '-thumb.', $aspectImagePath));
+    }
+
+    public function test_process_image_skip_resize_for_tiny_image()
+    {
+        // Create a very small image (10x10)
+        $tinyImagePath = storage_path('app/public/test/tiny-origin.jpg');
+        $image = imagecreate(10, 10);
+        $white = imagecolorallocate($image, 255, 255, 255);
+        imagejpeg($image, $tinyImagePath);
+        imagedestroy($image);
+
+        $result = $this->imageProcessingService->processImage($tinyImagePath, $this->testCompressedPath);
+
+        $this->assertTrue($result['success']);
+        $thumbnailPath = str_replace('-origin.', '-thumb.', $tinyImagePath);
+        $this->assertFileExists($thumbnailPath);
+
+        // Clean up
+        unlink($tinyImagePath);
+        unlink($thumbnailPath);
+    }
+
+    public function test_process_image_returns_thumbnail_error_when_thumbnail_creation_fails()
+    {
+        $readOnlyDir = storage_path('app/public/test/readonly-thumbnail');
+        if (! file_exists($readOnlyDir)) {
+            mkdir($readOnlyDir, 0755, true);
+        }
+
+        $originPath = $readOnlyDir . '/thumb-fail-origin.jpg';
+        $image = imagecreate(100, 100);
+        imagejpeg($image, $originPath);
+        imagedestroy($image);
+
+        chmod($readOnlyDir, 0555);
+
+        try {
+            $result = $this->imageProcessingService->processImage($originPath, $this->testCompressedPath);
+            $this->assertFalse($result['success']);
+            $this->assertSame('Failed to create thumbnail', $result['message']);
+        } finally {
+            chmod($readOnlyDir, 0755);
+            if (file_exists($originPath)) {
+                unlink($originPath);
+            }
+            $thumbnailPath = str_replace('-origin.', '-thumb.', $originPath);
+            if (file_exists($thumbnailPath)) {
+                unlink($thumbnailPath);
+            }
+            if (file_exists($readOnlyDir)) {
+                rmdir($readOnlyDir);
+            }
+        }
+    }
+
+    public function test_process_image_returns_compressed_error_when_compress_creation_fails()
+    {
+        $originPath = storage_path('app/public/test/compress-fail-origin.jpg');
+        $originImage = imagecreate(100, 100);
+        imagejpeg($originImage, $originPath);
+        imagedestroy($originImage);
+
+        $readOnlyDir = storage_path('app/public/test/readonly-compressed');
+        if (! file_exists($readOnlyDir)) {
+            mkdir($readOnlyDir, 0755, true);
+        }
+        $compressedPath = $readOnlyDir . '/compress-fail.jpg';
+
+        chmod($readOnlyDir, 0555);
+
+        try {
+            $result = $this->imageProcessingService->processImage($originPath, $compressedPath);
+            $this->assertFalse($result['success']);
+            $this->assertSame('Failed to create compressed image', $result['message']);
+        } finally {
+            chmod($readOnlyDir, 0755);
+            if (file_exists($originPath)) {
+                unlink($originPath);
+            }
+            $thumbnailPath = str_replace('-origin.', '-thumb.', $originPath);
+            if (file_exists($thumbnailPath)) {
+                unlink($thumbnailPath);
+            }
+            if (file_exists($compressedPath)) {
+                unlink($compressedPath);
+            }
+            if (file_exists($readOnlyDir)) {
+                rmdir($readOnlyDir);
+            }
+        }
+    }
+
+    public function test_get_image_info_returns_error_when_reader_throws_exception()
+    {
+        $directoryPath = storage_path('app/public/test');
+
+        $result = $this->imageProcessingService->getImageInfo($directoryPath);
+
+        $this->assertFalse($result['success']);
+        $this->assertSame('Failed to get image info', $result['message']);
+    }
 }

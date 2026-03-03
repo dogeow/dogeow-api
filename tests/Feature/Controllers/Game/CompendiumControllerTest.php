@@ -79,37 +79,63 @@ class CompendiumControllerTest extends TestCase
     public function test_can_get_item_compendium(): void
     {
         $user = User::factory()->create();
-        $character = $this->createCharacter($user);
-        $this->createItemDefinition();
+        $item = $this->createItemDefinition();
+        $character = $this->createCharacter($user, ['discovered_items' => [$item->id]]);
 
         $response = $this->actingAs($user)
             ->getJson('/api/rpg/compendium/items?character_id=' . $character->id);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('discovered_count', 1)
+            ->assertJsonPath('items.0.id', $item->id)
+            ->assertJsonPath('items.0.discovered', true);
     }
 
     public function test_can_get_monster_compendium(): void
     {
         $user = User::factory()->create();
-        $character = $this->createCharacter($user);
-        $this->createMonsterDefinition();
+        $monster = $this->createMonsterDefinition();
+        $character = $this->createCharacter($user, ['discovered_monsters' => [$monster->id]]);
 
         $response = $this->actingAs($user)
             ->getJson('/api/rpg/compendium/monsters?character_id=' . $character->id);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('discovered_count', 1)
+            ->assertJsonPath('monsters.0.id', $monster->id)
+            ->assertJsonPath('monsters.0.discovered', true);
     }
 
     public function test_can_get_monster_drops(): void
     {
         $user = User::factory()->create();
         $character = $this->createCharacter($user);
-        $monster = $this->createMonsterDefinition();
+        $monster = $this->createMonsterDefinition([
+            'level' => 5,
+            'type' => 'normal',
+            'drop_table' => [
+                'item_chance' => 0.2,
+                'copper_chance' => 0.8,
+                'potion_chance' => 0.3,
+                'item_types' => ['weapon'],
+            ],
+        ]);
+        $item = $this->createItemDefinition([
+            'required_level' => 4,
+            'type' => 'weapon',
+        ]);
 
         $response = $this->actingAs($user)
             ->getJson('/api/rpg/compendium/monsters/' . $monster->id . '/drops?character_id=' . $character->id);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJsonPath('monster.id', $monster->id)
+            ->assertJsonPath('drop_rates.item', 20)
+            ->assertJsonPath('drop_rates.gold', 80)
+            ->assertJsonPath('drop_rates.potion', 30)
+            ->assertJsonPath('possible_items.0.id', $item->id);
     }
 
     public function test_requires_authentication(): void

@@ -347,6 +347,36 @@ class ChatModerationControllerTest extends TestCase
         $response->assertStatus(422);
     }
 
+    public function test_ban_user_unauthorized()
+    {
+        Sanctum::actingAs($this->regularUser);
+
+        $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->targetUser->id}/ban", [
+            'duration' => 60,
+            'reason' => 'unauthorized',
+        ]);
+
+        $response->assertStatus(403)
+            ->assertJson([
+                'message' => 'You are not authorized to moderate this room',
+            ]);
+    }
+
+    public function test_ban_user_not_in_room()
+    {
+        $otherUser = User::factory()->create();
+
+        $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$otherUser->id}/ban", [
+            'duration' => 60,
+            'reason' => 'not in room',
+        ]);
+
+        $response->assertStatus(404)
+            ->assertJson([
+                'message' => 'User is not in this room',
+            ]);
+    }
+
     // ==================== UNBAN USER TESTS ====================
 
     public function test_unban_user_success()
@@ -379,6 +409,26 @@ class ChatModerationControllerTest extends TestCase
         ]);
 
         Event::assertDispatched(UserUnbanned::class);
+    }
+
+    public function test_unban_user_unauthorized()
+    {
+        // First ban target user in current room
+        $roomUser = ChatRoomUser::where('room_id', $this->room->id)
+            ->where('user_id', $this->targetUser->id)
+            ->first();
+        $roomUser->ban($this->moderator->id, 60, 'prep ban');
+
+        Sanctum::actingAs($this->regularUser);
+
+        $response = $this->postJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->targetUser->id}/unban", [
+            'reason' => 'unauthorized',
+        ]);
+
+        $response->assertStatus(403)
+            ->assertJson([
+                'message' => 'You are not authorized to moderate this room',
+            ]);
     }
 
     public function test_unban_user_not_banned()
@@ -420,7 +470,7 @@ class ChatModerationControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'moderation_actions' => [
+                'data' => [
                     '*' => [
                         'id',
                         'room_id',
@@ -432,13 +482,6 @@ class ChatModerationControllerTest extends TestCase
                         'moderator' => ['id', 'name', 'email'],
                         'target_user' => ['id', 'name', 'email'],
                     ],
-                ],
-                'pagination' => [
-                    'current_page',
-                    'last_page',
-                    'per_page',
-                    'total',
-                    'has_more_pages',
                 ],
             ]);
     }
@@ -622,5 +665,332 @@ class ChatModerationControllerTest extends TestCase
         $response = $this->getJson("/api/chat/moderation/rooms/{$inactiveRoom->id}/actions");
 
         $response->assertStatus(404);
+    }
+
+    public function test_get_moderation_actions_with_default_per_page()
+    {
+        // Create a room with moderator
+        $room = ChatRoom::factory()->create([
+            'created_by' => $this->moderator->id,
+        ]);
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $this->moderator->id,
+            'role' => 'moderator',
+        ]);
+
+        // Create some moderation actions
+        ChatModerationAction::factory()->count(5)->create([
+            'room_id' => $room->id,
+            'moderator_id' => $this->moderator->id,
+        ]);
+
+        // Test without per_page parameter (should use default 20)
+        $response = $this->getJson("/api/chat/moderation/rooms/{$room->id}/actions");
+
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'data' => [
+                '*' => ['id', 'action_type', 'target_user_id'],
+            ],
+        ]);
+    }
+
+    public function test_mute_user_with_zero_duration()
+    {
+        $room = ChatRoom::factory()->create(['created_by' => $this->moderator->id]);
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $this->moderator->id,
+            'role' => 'moderator',
+        ]);
+        $targetUser = User::factory()->create();
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $targetUser->id,
+            'role' => 'member',
+        ]);
+
+        // Mute with 0 duration (permanent)
+        $response = $this->postJson("/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/mute", [
+            'duration_minutes' => 0,
+            'reason' => 'Test mute',
+        ]);
+
+        $response->assertStatus(200);
+    }
+
+    public function test_ban_user_with_zero_duration()
+    {
+        $room = ChatRoom::factory()->create(['created_by' => $this->moderator->id]);
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $this->moderator->id,
+            'role' => 'moderator',
+        ]);
+        $targetUser = User::factory()->create();
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $targetUser->id,
+            'role' => 'member',
+        ]);
+
+        // Ban with 0 duration (permanent)
+        $response = $this->postJson("/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/ban", [
+            'duration_minutes' => 0,
+            'reason' => 'Test ban',
+        ]);
+
+        $response->assertStatus(200);
+    }
+
+    public function test_unmute_user_with_invalid_room()
+    {
+        $response = $this->postJson('/api/chat/moderation/rooms/99999/users/1/unmute');
+
+        $response->assertStatus(404);
+    }
+
+    public function test_unban_user_with_invalid_room()
+    {
+        $response = $this->postJson('/api/chat/moderation/rooms/99999/users/1/unban');
+
+        $response->assertStatus(404);
+    }
+
+    public function test_get_user_moderation_status_with_no_history()
+    {
+        $room = ChatRoom::factory()->create(['created_by' => $this->moderator->id]);
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $this->moderator->id,
+            'role' => 'moderator',
+        ]);
+        $targetUser = User::factory()->create();
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $targetUser->id,
+            'role' => 'member',
+        ]);
+
+        $response = $this->getJson("/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/status");
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('moderation_status.is_muted', false);
+        $response->assertJsonPath('moderation_status.is_banned', false);
+    }
+
+    public function test_unmute_user_not_in_room()
+    {
+        $room = ChatRoom::factory()->create(['created_by' => $this->moderator->id]);
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $this->moderator->id,
+            'role' => 'moderator',
+        ]);
+        $targetUser = User::factory()->create();
+        // Note: targetUser is NOT added to the room
+
+        $response = $this->postJson("/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/unmute");
+
+        $response->assertStatus(404);
+        $response->assertJson(['message' => 'User is not in this room']);
+    }
+
+    public function test_unmute_user_not_muted_in_room()
+    {
+        $room = ChatRoom::factory()->create(['created_by' => $this->moderator->id]);
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $this->moderator->id,
+            'role' => 'moderator',
+        ]);
+        $targetUser = User::factory()->create();
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $targetUser->id,
+            'role' => 'member',
+            // No muted_until set - user is not muted
+        ]);
+
+        $response = $this->postJson("/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/unmute");
+
+        $response->assertStatus(422);
+        $response->assertJson(['message' => 'User is not muted']);
+    }
+
+    public function test_unban_user_not_in_room()
+    {
+        $room = ChatRoom::factory()->create(['created_by' => $this->moderator->id]);
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $this->moderator->id,
+            'role' => 'moderator',
+        ]);
+        $targetUser = User::factory()->create();
+        // Note: targetUser is NOT added to the room
+
+        $response = $this->postJson("/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/unban");
+
+        $response->assertStatus(404);
+        $response->assertJson(['message' => 'User is not in this room']);
+    }
+
+    public function test_unban_user_not_banned_in_room()
+    {
+        $room = ChatRoom::factory()->create(['created_by' => $this->moderator->id]);
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $this->moderator->id,
+            'role' => 'moderator',
+        ]);
+        $targetUser = User::factory()->create();
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $targetUser->id,
+            'role' => 'member',
+            // No banned_until set - user is not banned
+        ]);
+
+        $response = $this->postJson("/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/unban");
+
+        $response->assertStatus(422);
+        $response->assertJson(['message' => 'User is not banned']);
+    }
+
+    public function test_delete_message_returns_500_when_transaction_throws_exception()
+    {
+        Sanctum::actingAs($this->moderator);
+
+        // Mock DB to throw exception during transaction
+        \Illuminate\Support\Facades\DB::shouldReceive('beginTransaction')->once();
+        \Illuminate\Support\Facades\DB::shouldReceive('rollBack')->once();
+
+        $response = $this->deleteJson(
+            "/api/chat/moderation/rooms/{$this->room->id}/messages/{$this->message->id}",
+            ['reason' => 'Test deletion']
+        );
+
+        $response->assertStatus(500);
+    }
+
+    public function test_mute_user_returns_500_when_transaction_throws_exception()
+    {
+        $room = ChatRoom::factory()->create(['created_by' => $this->moderator->id]);
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $this->moderator->id,
+            'role' => 'moderator',
+        ]);
+        $targetUser = User::factory()->create();
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $targetUser->id,
+            'role' => 'member',
+        ]);
+
+        Sanctum::actingAs($this->moderator);
+
+        // Mock DB to throw exception during transaction
+        \Illuminate\Support\Facades\DB::shouldReceive('beginTransaction')->once();
+        \Illuminate\Support\Facades\DB::shouldReceive('rollBack')->once();
+
+        $response = $this->postJson(
+            "/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/mute",
+            ['duration' => 60, 'reason' => 'Test mute']
+        );
+
+        $response->assertStatus(500);
+    }
+
+    public function test_unmute_user_returns_500_when_transaction_throws_exception()
+    {
+        $room = ChatRoom::factory()->create(['created_by' => $this->moderator->id]);
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $this->moderator->id,
+            'role' => 'moderator',
+        ]);
+        $targetUser = User::factory()->create();
+        $targetRoomUser = ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $targetUser->id,
+            'role' => 'member',
+        ]);
+        $targetRoomUser->mute($this->moderator->id, 60, 'before unmute');
+
+        Sanctum::actingAs($this->moderator);
+
+        \Illuminate\Support\Facades\DB::shouldReceive('beginTransaction')
+            ->once()
+            ->andThrow(new \Exception('forced beginTransaction error'));
+        \Illuminate\Support\Facades\DB::shouldReceive('rollBack')->once();
+
+        $response = $this->postJson(
+            "/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/unmute",
+            ['reason' => 'force exception']
+        );
+
+        $response->assertStatus(500);
+    }
+
+    public function test_ban_user_returns_500_when_transaction_throws_exception()
+    {
+        $room = ChatRoom::factory()->create(['created_by' => $this->moderator->id]);
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $this->moderator->id,
+            'role' => 'moderator',
+        ]);
+        $targetUser = User::factory()->create();
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $targetUser->id,
+            'role' => 'member',
+        ]);
+
+        Sanctum::actingAs($this->moderator);
+
+        // Mock DB to throw exception during transaction
+        \Illuminate\Support\Facades\DB::shouldReceive('beginTransaction')->once();
+        \Illuminate\Support\Facades\DB::shouldReceive('rollBack')->once();
+
+        $response = $this->postJson(
+            "/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/ban",
+            ['duration' => 60, 'reason' => 'Test ban']
+        );
+
+        $response->assertStatus(500);
+    }
+
+    public function test_unban_user_returns_500_when_transaction_throws_exception()
+    {
+        $room = ChatRoom::factory()->create(['created_by' => $this->moderator->id]);
+        ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $this->moderator->id,
+            'role' => 'moderator',
+        ]);
+        $targetUser = User::factory()->create();
+        $targetRoomUser = ChatRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $targetUser->id,
+            'role' => 'member',
+        ]);
+        $targetRoomUser->ban($this->moderator->id, 60, 'before unban');
+
+        Sanctum::actingAs($this->moderator);
+
+        \Illuminate\Support\Facades\DB::shouldReceive('beginTransaction')
+            ->once()
+            ->andThrow(new \Exception('forced beginTransaction error'));
+        \Illuminate\Support\Facades\DB::shouldReceive('rollBack')->once();
+
+        $response = $this->postJson(
+            "/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/unban",
+            ['reason' => 'force exception']
+        );
+
+        $response->assertStatus(500);
     }
 }

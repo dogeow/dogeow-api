@@ -199,4 +199,32 @@ class UploadControllerTest extends TestCase
         // 应该返回空数组，因为处理失败
         $response->assertJson([]);
     }
+
+    #[Test]
+    public function it_handles_all_images_failed()
+    {
+        $user = User::factory()->create();
+
+        // Mock FileStorageService to throw exception for all files
+        $this->mock(FileStorageService::class, function ($mock) use ($user) {
+            $mock->shouldReceive('createUserDirectory')->andReturn([
+                'success' => true,
+                'directory_path' => 'uploads/' . $user->id,
+            ]);
+            $mock->shouldReceive('storeFile')->andThrow(new \Exception('Storage failed'));
+        });
+
+        $image1 = UploadedFile::fake()->image('test1.jpg', 100, 100);
+        $image2 = UploadedFile::fake()->image('test2.jpg', 100, 100);
+
+        $response = $this->actingAs($user)
+            ->post('/api/upload/images', [
+                'images' => [$image1, $image2],
+            ]);
+
+        $response->assertStatus(500);
+        $response->assertJson([
+            'message' => '所有图片上传失败',
+        ]);
+    }
 }

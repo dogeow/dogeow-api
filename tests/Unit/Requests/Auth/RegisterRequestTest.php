@@ -83,4 +83,21 @@ class RegisterRequestTest extends TestCase
         $this->assertFalse($validator->passes());
         $this->assertArrayHasKey('password', $validator->errors()->toArray());
     }
+
+    public function test_messages_returns_expected_translations(): void
+    {
+        $messages = $this->request->messages();
+
+        $this->assertSame('姓名是必填项。', $messages['name.required']);
+        $this->assertSame('密码至少需要 8 个字符。', $messages['password.min']);
+    }
+
+    public function test_attributes_returns_friendly_labels(): void
+    {
+        $this->assertSame([
+            'name' => '姓名',
+            'email' => '邮箱',
+            'password' => '密码',
+        ], $this->request->attributes());
+    }
 }

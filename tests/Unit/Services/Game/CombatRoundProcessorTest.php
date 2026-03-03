@@ -3,8 +3,11 @@
 namespace Tests\Unit\Services\Game;
 
 use App\Models\Game\GameCharacter;
+use App\Models\Game\GameMonsterDefinition;
 use App\Services\Game\CombatRoundProcessor;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class CombatRoundProcessorTest extends TestCase
@@ -741,6 +744,1024 @@ class CombatRoundProcessorTest extends TestCase
         // After processing, is_new should be cleared
         $updatedMonsters = $result['monsters_updated'];
         $this->assertFalse($updatedMonsters[0]['is_new'] ?? false);
+    }
+
+    public function test_select_optimal_skill_prefers_aoe_when_many_low_hp_monsters(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
+        $method->setAccessible(true);
+
+        $singleTargetSkill = [
+            'damage' => 180,
+            'mana_cost' => 30,
+            'cooldown' => 2,
+            'is_aoe' => false,
+            'skill' => (object) ['id' => 1],
+            'char_skill' => null,
+        ];
+        $aoeSkill = [
+            'damage' => 90,
+            'mana_cost' => 10,
+            'cooldown' => 1,
+            'is_aoe' => true,
+            'skill' => (object) ['id' => 2],
+            'char_skill' => null,
+        ];
+
+        $selected = $method->invoke(
+            $this->processor,
+            [$singleTargetSkill, $aoeSkill],
+            3,
+            2,
+            400,
+            120
+        );
+
+        $this->assertNotNull($selected);
+        $this->assertTrue($selected['is_aoe']);
+        $this->assertSame(2, $selected['skill']->id);
+    }
+
+    public function test_select_optimal_skill_prefers_economical_skill_when_total_hp_is_low(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
+        $method->setAccessible(true);
+
+        $highCostSkill = [
+            'damage' => 160,
+            'mana_cost' => 40,
+            'cooldown' => 2,
+            'is_aoe' => false,
+            'skill' => (object) ['id' => 11],
+            'char_skill' => null,
+        ];
+        $zeroCostSkill = [
+            'damage' => 25,
+            'mana_cost' => 0,
+            'cooldown' => 1,
+            'is_aoe' => false,
+            'skill' => (object) ['id' => 12],
+            'char_skill' => null,
+        ];
+
+        $selected = $method->invoke(
+            $this->processor,
+            [$highCostSkill, $zeroCostSkill],
+            2,
+            0,
+            60,
+            50
+        );
+
+        $this->assertNotNull($selected);
+        $this->assertSame(12, $selected['skill']->id);
+        $this->assertSame(0, $selected['mana_cost']);
+    }
+
+    public function test_calculate_round_death_rewards_uses_drop_table_and_difficulty_multiplier(): void
+    {
+        $monsterDefinition = GameMonsterDefinition::create([
+            'name' => 'Copper Slime',
+            'type' => 'normal',
+            'level' => 1,
+            'hp_base' => 10,
+            'attack_base' => 1,
+            'defense_base' => 0,
+            'experience_base' => 10,
+            'drop_table' => [
+                'copper_chance' => 1.0,
+                'copper_base' => 7,
+                'copper_range' => 0,
+            ],
+            'is_active' => true,
+        ]);
+
+        $method = new ReflectionMethod($this->processor, 'calculateRoundDeathRewards');
+        $method->setAccessible(true);
+
+        [$experience, $copper] = $method->invoke(
+            $this->processor,
+            [[
+                'id' => $monsterDefinition->id,
+                'level' => 1,
+                'hp' => 0,
+                'experience' => 10,
+            ]],
+            [0 => 20],
+            ['reward' => 2]
+        );
+
+        $this->assertSame(20, $experience);
+        $this->assertSame(14, $copper);
+    }
+
+    public function test_calculate_round_death_rewards_with_no_dead_monsters(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'calculateRoundDeathRewards');
+        $method->setAccessible(true);
+
+        // No dead monsters - should return 0 experience and copper
+        [$experience, $copper] = $method->invoke(
+            $this->processor,
+            [], // empty - no monsters
+            [], // hp snapshot
+            ['reward' => 1]
+        );
+
+        $this->assertSame(0, $experience);
+        $this->assertSame(0, $copper);
+    }
+
+    public function test_calculate_round_death_rewards_with_boss_monster(): void
+    {
+        $bossDefinition = GameMonsterDefinition::create([
+            'name' => 'Boss Monster',
+            'type' => 'boss',
+            'level' => 10,
+            'hp_base' => 100,
+            'attack_base' => 20,
+            'defense_base' => 10,
+            'experience_base' => 100,
+            'drop_table' => [],
+            'is_active' => true,
+        ]);
+
+        $method = new ReflectionMethod($this->processor, 'calculateRoundDeathRewards');
+        $method->setAccessible(true);
+
+        [$experience, $copper] = $method->invoke(
+            $this->processor,
+            [[
+                'id' => $bossDefinition->id,
+                'level' => 10,
+                'hp' => 0,
+                'experience' => 100,
+            ]],
+            [0 => 100],
+            ['reward' => 1.5]
+        );
+
+        $this->assertGreaterThan(0, $experience);
+    }
+
+    public function test_calculate_monster_copper_loot_returns_zero_when_chance_fails(): void
+    {
+        config(['game.copper_drop.chance' => 0.0]);
+
+        $monsterDefinition = GameMonsterDefinition::create([
+            'name' => 'No Drop Slime',
+            'type' => 'normal',
+            'level' => 1,
+            'hp_base' => 10,
+            'attack_base' => 1,
+            'defense_base' => 0,
+            'experience_base' => 10,
+            'drop_table' => [],
+            'is_active' => true,
+        ]);
+
+        $method = new ReflectionMethod($this->processor, 'calculateMonsterCopperLoot');
+        $method->setAccessible(true);
+
+        $copper = $method->invoke($this->processor, [
+            'id' => $monsterDefinition->id,
+            'level' => 1,
+        ]);
+
+        $this->assertSame(0, $copper);
+    }
+
+    public function test_calculate_monster_copper_loot_with_successful_drop(): void
+    {
+        config(['game.copper_drop.chance' => 1.0]);
+
+        $monsterDefinition = GameMonsterDefinition::create([
+            'name' => 'Drop Slime',
+            'type' => 'normal',
+            'level' => 1,
+            'hp_base' => 10,
+            'attack_base' => 1,
+            'defense_base' => 0,
+            'experience_base' => 10,
+            'drop_table' => [],
+            'is_active' => true,
+        ]);
+
+        $method = new ReflectionMethod($this->processor, 'calculateMonsterCopperLoot');
+        $method->setAccessible(true);
+
+        $copper = $method->invoke($this->processor, [
+            'id' => $monsterDefinition->id,
+            'level' => 1,
+        ]);
+
+        $this->assertGreaterThan(0, $copper);
+    }
+
+    public function test_roll_chance_for_processor_always_returns_true_when_chance_is_one(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'rollChanceForProcessor');
+        $method->setAccessible(true);
+
+        // With chance = 1.0, should always return true
+        $result = $method->invoke($this->processor, 1.0);
+        $this->assertTrue($result);
+    }
+
+    public function test_roll_chance_for_processor_always_returns_false_when_chance_is_zero(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'rollChanceForProcessor');
+        $method->setAccessible(true);
+
+        // With chance = 0.0, should always return false
+        $result = $method->invoke($this->processor, 0.0);
+        $this->assertFalse($result);
+    }
+
+    public function test_compute_base_attack_damage_with_empty_targets(): void
+    {
+        // Use reflection to call the private method with empty targets
+        $method = new ReflectionMethod($this->processor, 'computeBaseAttackDamage');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($this->processor, [], 10, 15, 1.5, false, 0.0);
+
+        // Should return [0, 0] for empty targets
+        $this->assertSame([0, 0], $result);
+    }
+
+    public function test_compute_base_attack_damage_with_skill_damage(): void
+    {
+        // Use reflection to call the private method with skill damage
+        $method = new ReflectionMethod($this->processor, 'computeBaseAttackDamage');
+        $method->setAccessible(true);
+
+        $monsters = [[
+            'id' => 1,
+            'defense' => 5,
+        ]];
+
+        $result = $method->invoke($this->processor, $monsters, 50, 15, 1.5, false, 0.0);
+
+        // Should return [skillDamage, 0] when skillDamage > 0
+        $this->assertSame([50, 0], $result);
+    }
+
+    public function test_compute_base_attack_damage_without_skill_calculates_from_attack(): void
+    {
+        // Use reflection to call the private method without skill damage (skillDamage = 0)
+        $method = new ReflectionMethod($this->processor, 'computeBaseAttackDamage');
+        $method->setAccessible(true);
+
+        $monsters = [[
+            'id' => 1,
+            'defense' => 5,
+        ]];
+
+        $result = $method->invoke($this->processor, $monsters, 0, 20, 1.5, false, 0.0);
+
+        // When skillDamage = 0, it calculates from attack and defense
+        $this->assertIsArray($result);
+        $this->assertCount(2, $result);
+    }
+
+    public function test_get_alive_monsters_filters_dead_ones(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'getAliveMonsters');
+        $method->setAccessible(true);
+
+        $monsters = [
+            ['id' => 1, 'hp' => 10],
+            ['id' => 2, 'hp' => 0], // dead
+            ['id' => 3, 'hp' => 5],
+        ];
+
+        $result = $method->invoke($this->processor, $monsters);
+
+        $this->assertCount(2, $result);
+        // array_filter re-indexes, so check by values instead of keys
+        $ids = array_column($result, 'id');
+        $this->assertContains(1, $ids);
+        $this->assertContains(3, $ids);
+        $this->assertNotContains(2, $ids);
+    }
+
+    public function test_get_monster_hp_snapshot_returns_all(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'getMonsterHpSnapshot');
+        $method->setAccessible(true);
+
+        $monsters = [
+            ['hp' => 10],
+            ['hp' => 5],
+        ];
+
+        $result = $method->invoke($this->processor, $monsters);
+
+        $this->assertCount(2, $result);
+        $this->assertSame(10, $result[0]);
+        $this->assertSame(5, $result[1]);
+    }
+
+    public function test_calculate_monster_counter_damage_with_living_monsters(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'calculateMonsterCounterDamage');
+        $method->setAccessible(true);
+
+        $monstersUpdated = [
+            ['hp' => 10, 'attack' => 15],
+            ['hp' => 0, 'attack' => 10], // dead, should be skipped
+            ['hp' => 5, 'attack' => 8],
+        ];
+
+        $result = $method->invoke($this->processor, $monstersUpdated, 5);
+
+        // Monster 1: 15 - 5*0.3 = 13.5 -> 13
+        // Monster 2: dead, skipped
+        // Monster 3: 8 - 5*0.3 = 6.5 -> 6
+        // Total: 19
+        $this->assertGreaterThan(0, $result);
+    }
+
+    public function test_calculate_monster_counter_damage_with_zero_defense(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'calculateMonsterCounterDamage');
+        $method->setAccessible(true);
+
+        $monstersUpdated = [
+            ['hp' => 10, 'attack' => 20],
+        ];
+
+        $result = $method->invoke($this->processor, $monstersUpdated, 0);
+
+        // 20 - 0 = 20
+        $this->assertEquals(20, $result);
+    }
+
+    public function test_get_first_alive_monster_returns_first(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'getFirstAliveMonster');
+        $method->setAccessible(true);
+
+        $monstersUpdated = [
+            ['hp' => 0, 'id' => 1],
+            ['hp' => 10, 'id' => 2],
+            ['hp' => 5, 'id' => 3],
+        ];
+
+        $result = $method->invoke($this->processor, $monstersUpdated);
+
+        $this->assertNotNull($result);
+        $this->assertEquals(2, $result['id']);
+    }
+
+    public function test_get_first_alive_monster_returns_null_when_all_dead(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'getFirstAliveMonster');
+        $method->setAccessible(true);
+
+        $monstersUpdated = [
+            ['hp' => 0, 'id' => 1],
+            ['hp' => 0, 'id' => 2],
+        ];
+
+        $result = $method->invoke($this->processor, $monstersUpdated);
+
+        $this->assertNull($result);
+    }
+
+    public function test_has_alive_monster_returns_true(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'hasAliveMonster');
+        $method->setAccessible(true);
+
+        $monstersUpdated = [
+            ['hp' => 0],
+            ['hp' => 10],
+        ];
+
+        $result = $method->invoke($this->processor, $monstersUpdated);
+
+        $this->assertTrue($result);
+    }
+
+    public function test_has_alive_monster_returns_false_when_all_dead(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'hasAliveMonster');
+        $method->setAccessible(true);
+
+        $monstersUpdated = [
+            ['hp' => 0],
+            ['hp' => 0],
+        ];
+
+        $result = $method->invoke($this->processor, $monstersUpdated);
+
+        $this->assertFalse($result);
+    }
+
+    public function test_select_round_targets_returns_empty_when_no_living_monsters(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'selectRoundTargets');
+        $method->setAccessible(true);
+
+        $monsters = [
+            ['hp' => 0],
+            ['hp' => 0],
+        ];
+
+        $result = $method->invoke($this->processor, $monsters, false);
+
+        $this->assertCount(0, $result);
+    }
+
+    public function test_select_round_targets_returns_single_for_non_aoe(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'selectRoundTargets');
+        $method->setAccessible(true);
+
+        $monsters = [
+            ['hp' => 10, 'id' => 1],
+            ['hp' => 20, 'id' => 2],
+            ['hp' => 0, 'id' => 3],
+        ];
+
+        $result = $method->invoke($this->processor, $monsters, false);
+
+        $this->assertCount(1, $result);
+    }
+
+    public function test_select_round_targets_returns_all_for_aoe(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'selectRoundTargets');
+        $method->setAccessible(true);
+
+        $monsters = [
+            ['hp' => 10, 'id' => 1],
+            ['hp' => 20, 'id' => 2],
+            ['hp' => 5, 'id' => 3],
+        ];
+
+        $result = $method->invoke($this->processor, $monsters, true);
+
+        $this->assertCount(3, $result);
+    }
+
+    public function test_get_skill_target_positions_with_valid_positions(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'getSkillTargetPositions');
+        $method->setAccessible(true);
+
+        $targetMonsters = [
+            ['position' => 0],
+            ['position' => 2],
+            ['position' => 5],
+        ];
+
+        $result = $method->invoke($this->processor, $targetMonsters);
+
+        $this->assertCount(3, $result);
+        $this->assertContains(0, $result);
+        $this->assertContains(2, $result);
+        $this->assertContains(5, $result);
+    }
+
+    public function test_get_skill_target_positions_filters_null(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'getSkillTargetPositions');
+        $method->setAccessible(true);
+
+        $targetMonsters = [
+            ['position' => 0],
+            ['no_position' => 1], // no position key
+            ['position' => 2],
+        ];
+
+        $result = $method->invoke($this->processor, $targetMonsters);
+
+        $this->assertCount(2, $result);
+        $this->assertContains(0, $result);
+        $this->assertContains(2, $result);
+    }
+
+    public function test_aggregate_skills_used_merges_same_skill(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'aggregateSkillsUsed');
+        $method->setAccessible(true);
+
+        $skillsUsedThisRound = [
+            ['skill_id' => 1, 'name' => 'Fireball'],
+        ];
+        $skillsUsedAggregated = [
+            1 => ['skill_id' => 1, 'name' => 'Fireball', 'use_count' => 3],
+        ];
+
+        $result = $method->invoke($this->processor, $skillsUsedThisRound, $skillsUsedAggregated);
+
+        // array_values re-indexes, so key becomes 0
+        $this->assertCount(1, $result);
+        $this->assertEquals(4, $result[0]['use_count']); // 3 + 1
+    }
+
+    public function test_aggregate_skills_used_adds_new_skill(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'aggregateSkillsUsed');
+        $method->setAccessible(true);
+
+        $skillsUsedThisRound = [
+            ['skill_id' => 2, 'name' => 'Ice', 'use_count' => 1],
+        ];
+        $skillsUsedAggregated = [
+            1 => ['skill_id' => 1, 'name' => 'Fireball', 'use_count' => 3],
+        ];
+
+        $result = $method->invoke($this->processor, $skillsUsedThisRound, $skillsUsedAggregated);
+
+        $this->assertCount(2, $result);
+    }
+
+    public function test_is_monster_in_targets_returns_true_when_found(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'isMonsterInTargets');
+        $method->setAccessible(true);
+
+        $monster = ['position' => 2, 'id' => 1];
+        $targets = [
+            ['position' => 0],
+            ['position' => 2],
+            ['position' => 5],
+        ];
+
+        $result = $method->invoke($this->processor, $monster, $targets);
+
+        $this->assertTrue($result);
+    }
+
+    public function test_is_monster_in_targets_returns_false_when_not_found(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'isMonsterInTargets');
+        $method->setAccessible(true);
+
+        $monster = ['position' => 3, 'id' => 1];
+        $targets = [
+            ['position' => 0],
+            ['position' => 2],
+        ];
+
+        $result = $method->invoke($this->processor, $monster, $targets);
+
+        $this->assertFalse($result);
+    }
+
+    public function test_is_monster_in_targets_returns_false_when_no_position(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'isMonsterInTargets');
+        $method->setAccessible(true);
+
+        $monster = ['id' => 1]; // no position
+        $targets = [
+            ['position' => 0],
+            ['position' => 2],
+        ];
+
+        $result = $method->invoke($this->processor, $monster, $targets);
+
+        $this->assertFalse($result);
+    }
+
+    public function test_process_one_round_with_specified_skill_ids_filters_correctly(): void
+    {
+        $character = $this->createTestCharacter(['level' => 10]);
+        $character->combat_monsters = [
+            ['id' => 1, 'hp' => 50, 'max_hp' => 50, 'attack' => 5, 'defense' => 0, 'level' => 1, 'position' => 0],
+        ];
+        $character->save();
+
+        // Call with skill IDs that don't exist in character's skills
+        $result = $this->processor->processOneRound(
+            $character,
+            1,
+            [999, 888], // Non-existent skill IDs
+            [],
+            []
+        );
+
+        // Should return default values (no skills found)
+        $this->assertArrayHasKey('round_damage_dealt', $result);
+    }
+
+    public function test_select_optimal_skill_with_no_available_skills(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
+        $method->setAccessible(true);
+
+        // Empty available skills
+        $result = $method->invoke(
+            $this->processor,
+            [],
+            3,
+            50,
+            0,
+            100
+        );
+
+        $this->assertNull($result);
+    }
+
+    public function test_apply_character_damage_to_monsters_splits_when_crit(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'applyCharacterDamageToMonsters');
+        $method->setAccessible(true);
+
+        $monsters = [
+            ['id' => 1, 'hp' => 100, 'defense' => 0, 'name' => 'Monster1'],
+        ];
+        $targetMonsters = [
+            ['id' => 1, 'position' => 0],
+        ];
+
+        [$monstersUpdated, $totalDamage] = $method->invoke(
+            $this->processor,
+            $monsters,
+            $targetMonsters,
+            50,  // charAttack
+            0,    // skillDamage
+            true,  // isCrit
+            2.0,   // charCritDamage
+            false  // useAoe
+        );
+
+        // Should return array with monsters updated and total damage
+        $this->assertIsArray($monstersUpdated);
+        $this->assertIsInt($totalDamage);
+    }
+
+    public function test_resolve_round_skill_filters_requested_ids_and_updates_cooldown(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'resolveRoundSkill');
+        $method->setAccessible(true);
+
+        $skillA = (object) [
+            'id' => 101,
+            'name' => 'AOE Skill',
+            'icon' => 'aoe',
+            'effect_key' => 'aoe_blast',
+            'target_type' => 'all',
+            'mana_cost' => 20,
+            'damage' => 80,
+            'cooldown' => 2,
+        ];
+        $skillB = (object) [
+            'id' => 102,
+            'name' => 'Single Skill',
+            'icon' => 'single',
+            'effect_key' => null,
+            'target_type' => 'single',
+            'mana_cost' => 10,
+            'damage' => 20,
+            'cooldown' => 1,
+        ];
+
+        $charSkillA = (object) ['skill' => $skillA];
+        $charSkillB = (object) ['skill' => $skillB];
+
+        $skillsRelation = \Mockery::mock(HasMany::class);
+        $skillsRelation->shouldReceive('whereHas')->once()->andReturnSelf();
+        $skillsRelation->shouldReceive('with')->once()->andReturnSelf();
+        $skillsRelation->shouldReceive('get')->once()->andReturn(collect([$charSkillA, $charSkillB]));
+
+        $character = \Mockery::mock(GameCharacter::class)->makePartial();
+        $character->combat_monsters = [
+            ['hp' => 100, 'max_hp' => 100],
+            ['hp' => 80, 'max_hp' => 100],
+            ['hp' => 20, 'max_hp' => 100],
+        ];
+        $character->shouldReceive('skills')->once()->andReturn($skillsRelation);
+        $character->shouldReceive('getCombatStats')->once()->andReturn(['attack' => 100]);
+
+        $result = $method->invoke(
+            $this->processor,
+            $character,
+            [101],
+            3,
+            100,
+            []
+        );
+
+        $this->assertSame(80, $result['mana']);
+        $this->assertTrue($result['is_aoe']);
+        $this->assertSame(80, $result['skill_damage']);
+        $this->assertSame(5, $result['new_cooldowns'][101]);
+        $this->assertCount(1, $result['skills_used_this_round']);
+        $this->assertSame(101, $result['skills_used_this_round'][0]['skill_id']);
+    }
+
+    public function test_select_optimal_skill_returns_single_skill_when_only_one_available(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
+        $method->setAccessible(true);
+
+        $singleSkill = [
+            'damage' => 30,
+            'mana_cost' => 5,
+            'cooldown' => 1,
+            'is_aoe' => false,
+            'skill' => (object) ['id' => 201],
+            'char_skill' => null,
+        ];
+
+        $result = $method->invoke($this->processor, [$singleSkill], 1, 0, 100, 50);
+
+        $this->assertSame(201, $result['skill']->id);
+    }
+
+    public function test_select_optimal_skill_falls_back_to_lowest_mana_when_efficiency_is_low(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
+        $method->setAccessible(true);
+
+        $skillA = [
+            'damage' => 10,
+            'mana_cost' => 50,
+            'cooldown' => 1,
+            'is_aoe' => false,
+            'skill' => (object) ['id' => 301],
+            'char_skill' => null,
+        ];
+        $skillB = [
+            'damage' => 8,
+            'mana_cost' => 40,
+            'cooldown' => 1,
+            'is_aoe' => false,
+            'skill' => (object) ['id' => 302],
+            'char_skill' => null,
+        ];
+
+        $result = $method->invoke($this->processor, [$skillA, $skillB], 2, 0, 1000, 200);
+
+        $this->assertSame(302, $result['skill']->id);
+        $this->assertSame(40, $result['mana_cost']);
+    }
+
+    public function test_compute_base_attack_damage_with_crit_returns_crit_values(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'computeBaseAttackDamage');
+        $method->setAccessible(true);
+
+        $targets = [[
+            'id' => 1,
+            'defense' => 10,
+        ]];
+
+        $result = $method->invoke($this->processor, $targets, 0, 100, 2.0, true, 0.5);
+
+        $this->assertSame([190, 95], $result);
+    }
+
+    public function test_calculate_monster_copper_loot_without_id_uses_fallback_random_range(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'calculateMonsterCopperLoot');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($this->processor, [
+            'name' => 'Unknown Monster',
+            'level' => 1,
+        ]);
+
+        $this->assertGreaterThanOrEqual(1, $result);
+        $this->assertLessThanOrEqual(10, $result);
+    }
+
+    public function test_apply_character_damage_to_monsters_uses_skill_damage_branch(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'applyCharacterDamageToMonsters');
+        $method->setAccessible(true);
+
+        $monsters = [
+            ['id' => 1, 'position' => 0, 'hp' => 100, 'defense' => 10, 'name' => 'SkillTarget'],
+        ];
+        $targets = [
+            ['position' => 0],
+        ];
+
+        [$updated, $total] = $method->invoke(
+            $this->processor,
+            $monsters,
+            $targets,
+            40,
+            30,
+            false,
+            1.5,
+            false
+        );
+
+        $this->assertSame(35, $updated[0]['hp']);
+        $this->assertSame(65, $updated[0]['damage_taken']);
+        $this->assertSame(65, $total);
+    }
+
+    public function test_select_optimal_skill_prefers_aoe_with_many_targets(): void
+    {
+        config(['game.combat.aoe_damage_multiplier' => 0.7]);
+
+        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
+        $method->setAccessible(true);
+
+        $availableSkills = [
+            [
+                'id' => 1,
+                'name' => 'Single Target',
+                'mana_cost' => 10,
+                'damage' => 50,
+                'is_aoe' => false,
+            ],
+            [
+                'id' => 2,
+                'name' => 'AOE Skill',
+                'mana_cost' => 20,
+                'damage' => 40,
+                'is_aoe' => true,
+            ],
+        ];
+
+        // 3个存活怪物，总血量150 (低血量场景)
+        $result = $method->invoke(
+            $this->processor,
+            $availableSkills,
+            150,
+            3,
+            150,
+            50
+        );
+
+        $this->assertIsArray($result);
+        $this->assertTrue($result['is_aoe']);
+        $this->assertEquals(2, $result['id']);
+    }
+
+    public function test_select_optimal_skill_prefers_economical_when_total_hp_low(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
+        $method->setAccessible(true);
+
+        $availableSkills = [
+            [
+                'id' => 1,
+                'name' => 'Expensive Skill',
+                'mana_cost' => 30,
+                'damage' => 100,
+                'is_aoe' => false,
+            ],
+            [
+                'id' => 2,
+                'name' => 'Cheap Skill',
+                'mana_cost' => 5,
+                'damage' => 30,
+                'is_aoe' => false,
+            ],
+        ];
+
+        // totalMonsterHp = 90, charAttack = 50, 90 < 50 * 2 = 100
+        $result = $method->invoke(
+            $this->processor,
+            $availableSkills,
+            90,
+            2,
+            90,
+            50
+        );
+
+        $this->assertIsArray($result);
+        // 应选择消耗较低的技能
+        $this->assertEquals(2, $result['id']);
+    }
+
+    public function test_select_optimal_skill_with_zero_mana_cost_skill(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
+        $method->setAccessible(true);
+
+        $availableSkills = [
+            [
+                'id' => 1,
+                'name' => 'Free Skill',
+                'mana_cost' => 0,
+                'damage' => 25,
+                'is_aoe' => false,
+            ],
+            [
+                'id' => 2,
+                'name' => 'Costly Skill',
+                'mana_cost' => 20,
+                'damage' => 50,
+                'is_aoe' => false,
+            ],
+        ];
+
+        // 低总血量场景
+        $result = $method->invoke(
+            $this->processor,
+            $availableSkills,
+            50,
+            1,
+            80,
+            40
+        );
+
+        $this->assertIsArray($result);
+        // 优先选择0消耗技能
+        $this->assertEquals(1, $result['id']);
+    }
+
+    public function test_select_optimal_skill_falls_back_to_most_economical_by_mana(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
+        $method->setAccessible(true);
+
+        $availableSkills = [
+            [
+                'id' => 1,
+                'name' => 'Skill A',
+                'mana_cost' => 15,
+                'damage' => 20,
+                'is_aoe' => false,
+            ],
+            [
+                'id' => 2,
+                'name' => 'Skill B',
+                'mana_cost' => 8,
+                'damage' => 18,
+                'is_aoe' => false,
+            ],
+        ];
+
+        // 不满足特殊条件时，应选择最经济的（按魔法消耗排序）
+        $result = $method->invoke(
+            $this->processor,
+            $availableSkills,
+            500,
+            2,
+            500,
+            100
+        );
+
+        $this->assertIsArray($result);
+        $this->assertEquals(2, $result['id']);
+    }
+
+    public function test_resolve_round_skill_with_no_available_skills_returns_default(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'resolveRoundSkill');
+        $method->setAccessible(true);
+
+        $character = $this->createTestCharacter(['mp' => 50]);
+        // 角色没有技能，所以没有可用技能
+
+        $result = $method->invoke(
+            $this->processor,
+            $character,
+            [],
+            1,
+            50,
+            []
+        );
+
+        $this->assertEquals(50, $result['mana']);
+        $this->assertFalse($result['is_aoe']);
+        $this->assertEquals(0, $result['skill_damage']);
+        $this->assertEmpty($result['skills_used_this_round']);
+    }
+
+    public function test_aggregate_skills_used_with_empty_current_round(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'aggregateSkillsUsed');
+        $method->setAccessible(true);
+
+        $aggregated = [
+            ['skill_id' => 1, 'name' => 'Skill1', 'use_count' => 1],
+        ];
+
+        $result = $method->invoke($this->processor, [], $aggregated);
+
+        $this->assertCount(1, $result);
+    }
+
+    public function test_aggregate_skills_used_increments_existing(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'aggregateSkillsUsed');
+        $method->setAccessible(true);
+
+        $aggregated = [
+            1 => ['skill_id' => 1, 'name' => 'Skill1', 'use_count' => 1],
+        ];
+
+        $current = [
+            ['skill_id' => 1, 'name' => 'Skill1'],
+        ];
+
+        $result = $method->invoke($this->processor, $current, $aggregated);
+
+        $this->assertSame(2, $result[0]['use_count']);
     }
 
     /**

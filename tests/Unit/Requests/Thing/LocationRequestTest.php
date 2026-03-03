@@ -131,4 +131,21 @@ class LocationRequestTest extends TestCase
         $this->assertArrayNotHasKey('area_id', $rules);
         $this->assertArrayNotHasKey('room_id', $rules);
     }
+
+    public function test_rules_for_spot_update_use_sometimes_on_room_id()
+    {
+        $request = LocationRequest::create('/api/spots/1', 'PATCH', ['name' => 'Updated Spot']);
+        $rules = $request->rules();
+
+        $this->assertSame('sometimes|required|string|max:255', $rules['name']);
+        $this->assertSame('sometimes|required|exists:thing_rooms,id', $rules['room_id']);
+    }
+
+    public function test_messages_returns_expected_translations()
+    {
+        $messages = $this->request->messages();
+
+        $this->assertSame('名称不能为空', $messages['name.required']);
+        $this->assertSame('所选房间不存在', $messages['room_id.exists']);
+    }
 }

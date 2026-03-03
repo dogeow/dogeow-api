@@ -3,7 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Notifications\WebPushSummaryNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -79,6 +83,70 @@ class NotificationControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonPath('count', 1)
             ->assertJsonPath('items.0.id', $unread->id);
+    }
+
+    public function test_unread_sends_summary_push_when_user_has_subscription(): void
+    {
+        Notification::fake();
+        Cache::flush();
+        $this->actingAsUser();
+
+        DB::table('push_subscriptions')->insert([
+            'subscribable_type' => User::class,
+            'subscribable_id' => $this->user->id,
+            'endpoint' => 'https://example.com/push/' . Str::uuid(),
+            'public_key' => 'public',
+            'auth_token' => 'auth',
+            'content_encoding' => 'aesgcm',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->user->notifications()->create([
+            'id' => Str::uuid()->toString(),
+            'type' => 'Test\\Unread',
+            'data' => ['title' => 'Unread'],
+        ]);
+
+        $response = $this->getJson('/api/notifications/unread');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('count', 1);
+
+        Notification::assertSentTo($this->user, WebPushSummaryNotification::class);
+        $this->assertNotNull(Cache::get("user:{$this->user->id}:unread_summary_push_at"));
+    }
+
+    public function test_unread_respects_summary_push_cooldown(): void
+    {
+        Notification::fake();
+        $this->actingAsUser();
+
+        DB::table('push_subscriptions')->insert([
+            'subscribable_type' => User::class,
+            'subscribable_id' => $this->user->id,
+            'endpoint' => 'https://example.com/push/' . Str::uuid(),
+            'public_key' => 'public',
+            'auth_token' => 'auth',
+            'content_encoding' => 'aesgcm',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Cache::put("user:{$this->user->id}:unread_summary_push_at", now(), now()->addMinutes(5));
+
+        $this->user->notifications()->create([
+            'id' => Str::uuid()->toString(),
+            'type' => 'Test\\Unread',
+            'data' => ['title' => 'Unread'],
+        ]);
+
+        $response = $this->getJson('/api/notifications/unread');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('count', 1);
+
+        Notification::assertNothingSent();
     }
 
     public function test_mark_as_read_marks_single_notification(): void

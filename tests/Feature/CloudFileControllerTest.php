@@ -9,6 +9,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class CloudFileControllerTest extends TestCase
@@ -140,6 +141,36 @@ class CloudFileControllerTest extends TestCase
             ->assertJson([
                 'error' => '文件不存在',
             ]);
+    }
+
+    public function test_download_returns_binary_response_for_existing_file(): void
+    {
+        $relativePath = 'cloud/downloads/' . Str::uuid() . '.txt';
+        $absolutePath = storage_path('app/public/' . $relativePath);
+        $directory = dirname($absolutePath);
+
+        if (! is_dir($directory)) {
+            mkdir($directory, 0777, true);
+        }
+
+        file_put_contents($absolutePath, 'download me');
+        Storage::disk('public')->put($relativePath, 'download me');
+
+        try {
+            $file = File::factory()->create([
+                'user_id' => $this->user->id,
+                'path' => $relativePath,
+                'original_name' => 'report.txt',
+                'is_folder' => false,
+            ]);
+
+            $response = $this->get("/api/cloud/files/{$file->id}/download");
+
+            $response->assertStatus(200);
+            $this->assertStringContainsString('attachment; filename=report.txt', $response->headers->get('content-disposition', ''));
+        } finally {
+            @unlink($absolutePath);
+        }
     }
 
     public function test_destroy_removes_nested_folders_and_files(): void
@@ -310,6 +341,27 @@ class CloudFileControllerTest extends TestCase
         ]);
 
         $response->assertStatus(404);
+    }
+
+    public function test_move_rejects_target_when_destination_is_a_descendant_folder(): void
+    {
+        $rootFolder = File::factory()->folder()->create([
+            'user_id' => $this->user->id,
+        ]);
+        $childFolder = File::factory()->folder()->create([
+            'user_id' => $this->user->id,
+            'parent_id' => $rootFolder->id,
+        ]);
+
+        $response = $this->postJson('/api/cloud/files/move', [
+            'file_ids' => [$rootFolder->id],
+            'target_folder_id' => $childFolder->id,
+        ]);
+
+        $response->assertStatus(400)
+            ->assertJson([
+                'error' => '不能将文件夹移动到自身或其子文件夹中',
+            ]);
     }
 
     public function test_statistics_returns_totals_and_grouped_type_breakdown(): void

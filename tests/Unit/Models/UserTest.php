@@ -2,7 +2,11 @@
 
 namespace Tests\Unit\Models;
 
+use App\Models\Chat\ChatMessage;
 use App\Models\Chat\ChatRoom;
+use App\Models\Chat\ChatRoomUser;
+use App\Models\Note\Note;
+use App\Models\Thing\Item;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -156,5 +160,156 @@ class UserTest extends TestCase
 
         $this->assertNotEquals('plain-password', $user->password);
         $this->assertTrue(password_verify('plain-password', $user->password));
+    }
+
+    public function test_items_relationship()
+    {
+        $user = User::factory()->create();
+        $item = Item::factory()->create(['user_id' => $user->id]);
+
+        $this->assertCount(1, $user->items);
+        $this->assertEquals($item->id, $user->items->first()->id);
+    }
+
+    public function test_notes_relationship()
+    {
+        $user = User::factory()->create();
+        $note = Note::factory()->create(['user_id' => $user->id]);
+
+        $this->assertCount(1, $user->notes);
+        $this->assertEquals($note->id, $user->notes->first()->id);
+    }
+
+    public function test_created_rooms_relationship()
+    {
+        $user = User::factory()->create();
+        $room = ChatRoom::factory()->create(['created_by' => $user->id]);
+
+        $this->assertCount(1, $user->createdRooms);
+        $this->assertEquals($room->id, $user->createdRooms->first()->id);
+    }
+
+    public function test_joined_rooms_relationship()
+    {
+        $user = User::factory()->create();
+        $room = ChatRoom::factory()->create();
+
+        ChatRoomUser::factory()->create([
+            'user_id' => $user->id,
+            'room_id' => $room->id,
+        ]);
+
+        $this->assertCount(1, $user->joinedRooms);
+        $this->assertEquals($room->id, $user->joinedRooms->first()->id);
+        $this->assertNotNull($user->joinedRooms->first()->pivot->joined_at);
+    }
+
+    public function test_chat_messages_relationship()
+    {
+        $user = User::factory()->create();
+        $room = ChatRoom::factory()->create();
+        $message = ChatMessage::factory()->create([
+            'user_id' => $user->id,
+            'room_id' => $room->id,
+        ]);
+
+        $this->assertCount(1, $user->chatMessages);
+        $this->assertEquals($message->id, $user->chatMessages->first()->id);
+    }
+
+    public function test_active_scope()
+    {
+        $activeUser = User::factory()->create([
+            'email_verified_at' => now(),
+        ]);
+        $inactiveUser = User::factory()->create([
+            'email_verified_at' => null,
+        ]);
+
+        $activeUsers = User::active()->get();
+
+        $this->assertTrue($activeUsers->contains($activeUser));
+        $this->assertFalse($activeUsers->contains($inactiveUser));
+    }
+
+    public function test_display_name_attribute_returns_name_when_available()
+    {
+        $user = User::factory()->create([
+            'name' => 'John Doe',
+            'email' => 'john@example.com',
+        ]);
+
+        $this->assertEquals('John Doe', $user->display_name);
+    }
+
+    public function test_display_name_attribute_returns_email_when_name_is_empty()
+    {
+        $user = User::factory()->create([
+            'name' => '',
+            'email' => 'john@example.com',
+        ]);
+
+        $this->assertEquals('john@example.com', $user->display_name);
+    }
+
+    public function test_initials_attribute_from_full_name()
+    {
+        $user = User::factory()->create([
+            'name' => 'John Doe',
+        ]);
+
+        $this->assertEquals('JD', $user->initials);
+    }
+
+    public function test_initials_attribute_from_single_name()
+    {
+        $user = User::factory()->create([
+            'name' => 'John',
+        ]);
+
+        $this->assertEquals('JO', $user->initials);
+    }
+
+    public function test_initials_attribute_from_email()
+    {
+        $user = User::factory()->create([
+            'name' => '',
+            'email' => 'test@example.com',
+        ]);
+
+        $this->assertEquals('TE', $user->initials);
+    }
+
+    public function test_is_online_in_any_room_returns_true_when_online()
+    {
+        $user = User::factory()->create();
+        $room = ChatRoom::factory()->create();
+
+        ChatRoomUser::factory()->online()->create([
+            'user_id' => $user->id,
+            'room_id' => $room->id,
+        ]);
+
+        $this->assertTrue($user->isOnlineInAnyRoom());
+    }
+
+    public function test_is_online_in_any_room_returns_false_when_offline()
+    {
+        $user = User::factory()->create();
+        $room = ChatRoom::factory()->create();
+
+        ChatRoomUser::factory()->offline()->create([
+            'user_id' => $user->id,
+            'room_id' => $room->id,
+        ]);
+
+        $this->assertFalse($user->isOnlineInAnyRoom());
+    }
+
+    public function test_is_online_in_any_room_returns_false_when_not_in_any_room()
+    {
+        $user = User::factory()->create();
+
+        $this->assertFalse($user->isOnlineInAnyRoom());
     }
 }

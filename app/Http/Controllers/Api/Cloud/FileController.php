@@ -267,9 +267,20 @@ class FileController extends Controller
                 ->firstOrFail();
 
             // 确保不会将文件夹移动到自身或自身的子文件夹中
-            $descendantIds = $this->getAllDescendantIds($targetFolderId);
-            if (in_array($targetFolderId, $request->file_ids) || array_intersect($request->file_ids, $descendantIds)) {
-                return response()->json(['error' => '不能将文件夹移动到自身或其子文件夹中'], 400);
+            $movingFolderIds = File::where('user_id', $userId)
+                ->whereIn('id', $request->file_ids)
+                ->where('is_folder', true)
+                ->pluck('id');
+
+            foreach ($movingFolderIds as $movingFolderId) {
+                if ((int) $movingFolderId === (int) $targetFolderId) {
+                    return response()->json(['error' => '不能将文件夹移动到自身或其子文件夹中'], 400);
+                }
+
+                $descendantIds = $this->getAllDescendantIds((int) $movingFolderId);
+                if (in_array((int) $targetFolderId, $descendantIds, true)) {
+                    return response()->json(['error' => '不能将文件夹移动到自身或其子文件夹中'], 400);
+                }
             }
         }
 

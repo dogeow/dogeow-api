@@ -78,6 +78,28 @@ class ChatControllerTest extends TestCase
         $response->assertJsonValidationErrors(['name']);
     }
 
+    public function test_create_room_with_name_too_short()
+    {
+        $response = $this->postJson('/api/chat/rooms', [
+            'name' => 'a', // 1个字符，少于最小长度2
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['name']);
+        $this->assertStringContainsString('至少需要', $response->json('errors.name.0'));
+    }
+
+    public function test_create_room_with_name_too_long()
+    {
+        $response = $this->postJson('/api/chat/rooms', [
+            'name' => '中文字符测试用例超长名称', // 11个中文字符 = 22个字符长度，超过最大长度20
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['name']);
+        $this->assertStringContainsString('不能超过', $response->json('errors.name.0'));
+    }
+
     public function test_join_room_successfully()
     {
         $response = $this->postJson("/api/chat/rooms/{$this->room->id}/join");
@@ -977,5 +999,61 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(500)
             ->assertJsonPath('message', 'Failed to get user presence status');
+    }
+
+    public function test_leave_room_handles_exception_from_service()
+    {
+        ChatRoomUser::factory()->create([
+            'room_id' => $this->room->id,
+            'user_id' => $this->user->id,
+        ]);
+
+        $this->mock(ChatService::class, function ($mock) {
+            $mock->shouldReceive('leaveRoom')
+                ->once()
+                ->andThrow(new \RuntimeException('Database error'));
+        });
+
+        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/leave");
+
+        $response->assertStatus(500)
+            ->assertJsonPath('message', 'Failed to leave room');
+    }
+
+    public function test_delete_room_handles_exception_from_service()
+    {
+        $this->mock(ChatService::class, function ($mock) {
+            $mock->shouldReceive('deleteRoom')
+                ->once()
+                ->andThrow(new \RuntimeException('Database error'));
+        });
+
+        $response = $this->deleteJson("/api/chat/rooms/{$this->room->id}");
+
+        $response->assertStatus(500)
+            ->assertJsonPath('message', 'Failed to delete room');
+    }
+
+    public function test_send_message_handles_exception_from_service()
+    {
+        ChatRoomUser::factory()->create([
+            'room_id' => $this->room->id,
+            'user_id' => $this->user->id,
+            'is_online' => true,
+        ]);
+
+        $this->mock(ChatService::class, function ($mock) {
+            $mock->shouldReceive('processMessage')
+                ->once()
+                ->andThrow(new \RuntimeException('Database error'));
+        });
+
+        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/messages", [
+            'message' => 'Test message',
+            'message_type' => 'text',
+        ]);
+
+        $response->assertStatus(500)
+            ->assertJsonPath('message', 'Failed to send message');
     }
 }

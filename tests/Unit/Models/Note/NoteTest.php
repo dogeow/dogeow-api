@@ -131,4 +131,135 @@ class NoteTest extends TestCase
 
         $this->assertEquals($content, $note->content);
     }
+
+    public function test_normalize_slug_converts_to_lowercase()
+    {
+        $slug = Note::normalizeSlug('Hello World');
+
+        $this->assertEquals('hello-world', $slug);
+    }
+
+    public function test_normalize_slug_replaces_spaces_with_hyphens()
+    {
+        $slug = Note::normalizeSlug('Hello   World   Test');
+
+        $this->assertEquals('hello-world-test', $slug);
+    }
+
+    public function test_normalize_slug_handles_chinese_characters()
+    {
+        $slug = Note::normalizeSlug('你好 世界');
+
+        $this->assertEquals('你好-世界', $slug);
+    }
+
+    public function test_normalize_slug_removes_special_characters()
+    {
+        $slug = Note::normalizeSlug('Hello@#$% World!');
+
+        $this->assertEquals('hello-world', $slug);
+    }
+
+    public function test_normalize_slug_returns_original_if_empty()
+    {
+        $slug = Note::normalizeSlug('!!!');
+
+        $this->assertEquals('!!!', $slug);
+    }
+
+    public function test_ensure_unique_slug_returns_slug_when_unique()
+    {
+        $slug = Note::ensureUniqueSlug('unique-slug');
+
+        $this->assertEquals('unique-slug', $slug);
+    }
+
+    public function test_ensure_unique_slug_appends_counter_for_duplicates()
+    {
+        Note::factory()->create(['slug' => 'test-slug']);
+
+        $slug = Note::ensureUniqueSlug('test-slug');
+
+        $this->assertEquals('test-slug-1', $slug);
+    }
+
+    public function test_ensure_unique_slug_increments_counter()
+    {
+        Note::factory()->create(['slug' => 'test-slug']);
+        Note::factory()->create(['slug' => 'test-slug-1']);
+
+        $slug = Note::ensureUniqueSlug('test-slug');
+
+        $this->assertEquals('test-slug-2', $slug);
+    }
+
+    public function test_ensure_unique_slug_excludes_specific_id()
+    {
+        $note = Note::factory()->create(['slug' => 'test-slug']);
+
+        $slug = Note::ensureUniqueSlug('test-slug', $note->id);
+
+        $this->assertEquals('test-slug', $slug);
+    }
+
+    public function test_links_from_returns_notes_linked_from_this_note()
+    {
+        $note = Note::factory()->create();
+        $targetNote = Note::factory()->create();
+
+        \App\Models\Note\NoteLink::create([
+            'source_id' => $note->id,
+            'target_id' => $targetNote->id,
+        ]);
+
+        $links = $note->linksFrom;
+
+        $this->assertCount(1, $links);
+        $this->assertEquals($targetNote->id, $links->first()->target_id);
+    }
+
+    public function test_links_to_returns_notes_linked_to_this_note()
+    {
+        $note = Note::factory()->create();
+        $sourceNote = Note::factory()->create();
+
+        \App\Models\Note\NoteLink::create([
+            'source_id' => $sourceNote->id,
+            'target_id' => $note->id,
+        ]);
+
+        $links = $note->linksTo;
+
+        $this->assertCount(1, $links);
+        $this->assertEquals($sourceNote->id, $links->first()->source_id);
+    }
+
+    public function test_links_returns_all_related_links()
+    {
+        $note = Note::factory()->create();
+        $sourceNote = Note::factory()->create();
+        $targetNote = Note::factory()->create();
+
+        \App\Models\Note\NoteLink::create([
+            'source_id' => $sourceNote->id,
+            'target_id' => $note->id,
+        ]);
+        \App\Models\Note\NoteLink::create([
+            'source_id' => $note->id,
+            'target_id' => $targetNote->id,
+        ]);
+
+        $links = $note->links();
+
+        $this->assertCount(2, $links);
+    }
+
+    public function test_links_returns_empty_when_no_links()
+    {
+        $note = Note::factory()->create();
+
+        $links = $note->links();
+
+        $this->assertCount(0, $links);
+    }
 }

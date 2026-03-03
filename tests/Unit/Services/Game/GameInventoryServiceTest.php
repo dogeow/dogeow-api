@@ -515,6 +515,31 @@ class GameInventoryServiceTest extends TestCase
         $this->assertNull($this->service->findEmptySlot($character->fresh(), false));
     }
 
+    public function test_equip_item_creates_equipment_slot_if_not_exists(): void
+    {
+        $character = $this->createCharacter();
+
+        // Ensure no equipment slots exist
+        $character->equipment()->delete();
+
+        $weaponDefinition = $this->createItemDefinition([
+            'name' => 'First Weapon',
+            'type' => 'weapon',
+            'sub_type' => 'sword',
+        ]);
+
+        $weapon = $this->createItem($character, $weaponDefinition);
+
+        $result = $this->service->equipItem($character, $weapon->id);
+
+        $this->assertSame('weapon', $result['equipped_slot']);
+        $this->assertDatabaseHas('game_equipment', [
+            'character_id' => $character->id,
+            'slot' => 'weapon',
+            'item_id' => $weapon->id,
+        ]);
+    }
+
     private function createCharacter(array $attributes = []): GameCharacter
     {
         $user = User::factory()->create();

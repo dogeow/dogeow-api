@@ -42,4 +42,16 @@ class GameCharacterMapTest extends TestCase
     {
         $this->assertTrue(method_exists($this->characterMap, 'map'));
     }
+
+    public function test_character_relationship_returns_belongs_to(): void
+    {
+        $relation = $this->characterMap->character();
+        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\BelongsTo::class, $relation);
+    }
+
+    public function test_map_relationship_returns_belongs_to(): void
+    {
+        $relation = $this->characterMap->map();
+        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\BelongsTo::class, $relation);
+    }
 }

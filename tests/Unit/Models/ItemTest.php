@@ -199,6 +199,17 @@ class ItemTest extends TestCase
         $this->assertEquals(0, $results->count());
     }
 
+    public function test_local_scope_search_filters_name_or_description(): void
+    {
+        Item::factory()->create(['name' => 'local-scope alpha', 'description' => 'desc a']);
+        Item::factory()->create(['name' => 'Plain Name', 'description' => 'Contains local-scope token']);
+        Item::factory()->create(['name' => 'No Match', 'description' => 'none']);
+
+        $results = Item::query()->search('local-scope')->get();
+
+        $this->assertCount(2, $results);
+    }
+
     public function test_user_relationship(): void
     {
         $this->assertInstanceOf(User::class, $this->item->user);

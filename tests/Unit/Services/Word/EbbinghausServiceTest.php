@@ -4,6 +4,7 @@ namespace Tests\Unit\Services\Word;
 
 use App\Models\Word\UserWord;
 use App\Services\Word\EbbinghausService;
+use Carbon\Carbon;
 use Tests\TestCase;
 
 class EbbinghausServiceTest extends TestCase
@@ -13,7 +14,15 @@ class EbbinghausServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Carbon::setTestNow('2026-03-01 12:00:00');
         $this->service = new EbbinghausService;
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
     }
 
     public function test_calculate_next_review_when_remembered(): void
@@ -78,5 +87,37 @@ class EbbinghausServiceTest extends TestCase
         $this->assertEquals(1, $userWord->review_count);
         $this->assertEquals(1, $userWord->correct_count);
         $this->assertNotNull($userWord->next_review_at);
+    }
+
+    public function test_process_review_marks_word_as_difficult_after_multiple_failures(): void
+    {
+        $userWord = new UserWord;
+        $userWord->stage = 3;
+        $userWord->review_count = 2;
+        $userWord->wrong_count = 2;
+
+        $this->service->processReview($userWord, false);
+
+        $this->assertEquals(3, $userWord->review_count);
+        $this->assertEquals(3, $userWord->wrong_count);
+        $this->assertEquals(2, $userWord->stage);
+        $this->assertEquals(3, $userWord->status);
+        $this->assertEquals('2026-03-05 12:00:00', $userWord->next_review_at->format('Y-m-d H:i:s'));
+    }
+
+    public function test_process_review_marks_word_as_mastered_at_high_stage(): void
+    {
+        $userWord = new UserWord;
+        $userWord->stage = 6;
+        $userWord->review_count = 4;
+        $userWord->correct_count = 4;
+
+        $this->service->processReview($userWord, true);
+
+        $this->assertEquals(5, $userWord->review_count);
+        $this->assertEquals(5, $userWord->correct_count);
+        $this->assertEquals(7, $userWord->stage);
+        $this->assertEquals(2, $userWord->status);
+        $this->assertEquals('2026-08-28 12:00:00', $userWord->next_review_at->format('Y-m-d H:i:s'));
     }
 }

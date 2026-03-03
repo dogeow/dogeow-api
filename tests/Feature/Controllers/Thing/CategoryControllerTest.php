@@ -7,6 +7,7 @@ use App\Models\Thing\ItemCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class CategoryControllerTest extends TestCase
@@ -22,7 +23,16 @@ class CategoryControllerTest extends TestCase
         parent::setUp();
         $this->user = User::factory()->create();
         $this->otherUser = User::factory()->create();
-        Auth::login($this->user);
+
+        $unauthenticatedTests = [
+            'test_unauthenticated_user_cannot_access_categories',
+            'test_unauthenticated_user_cannot_create_category',
+            'test_unauthenticated_user_cannot_update_category',
+            'test_unauthenticated_user_cannot_delete_category',
+        ];
+        if (! in_array($this->name(), $unauthenticatedTests, true)) {
+            Sanctum::actingAs($this->user);
+        }
     }
 
     // ==================== Index Tests ====================
@@ -581,5 +591,24 @@ class CategoryControllerTest extends TestCase
         $response = $this->deleteJson("/api/things/categories/{$category->id}");
 
         $response->assertStatus(401);
+    }
+
+    public function test_index_parent_category_items_count_includes_children(): void
+    {
+        $parent = ItemCategory::factory()->create(['user_id' => $this->user->id, 'parent_id' => null]);
+        $child = ItemCategory::factory()->create(['user_id' => $this->user->id, 'parent_id' => $parent->id]);
+        Item::factory()->create(['user_id' => $this->user->id, 'category_id' => $parent->id]);
+        Item::factory()->count(2)->create(['user_id' => $this->user->id, 'category_id' => $child->id]);
+
+        $response = $this->getJson('/api/things/categories');
+
+        $response->assertStatus(200);
+        $categories = $response->json();
+        $parentInResponse = collect($categories)->firstWhere('id', $parent->id);
+        $childInResponse = collect($categories)->firstWhere('id', $child->id);
+        $this->assertNotNull($parentInResponse);
+        $this->assertNotNull($childInResponse);
+        $this->assertGreaterThanOrEqual(1, $parentInResponse['items_count']);
+        $this->assertEquals(2, $childInResponse['items_count']);
     }
 }

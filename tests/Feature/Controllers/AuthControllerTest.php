@@ -101,7 +101,7 @@ class AuthControllerTest extends TestCase
 
     public function test_user_cannot_login_with_invalid_credentials()
     {
-        $user = User::factory()->create([
+        User::factory()->create([
             'email' => 'test@example.com',
             'password' => Hash::make('password123'),
         ]);
@@ -113,7 +113,10 @@ class AuthControllerTest extends TestCase
 
         $response = $this->postJson('/api/login', $loginData);
 
-        $response->assertStatus(422);
+        $response->assertStatus(401)
+            ->assertJson([
+                'message' => '提供的凭证不正确。',
+            ]);
     }
 
     public function test_user_can_logout()
@@ -141,12 +144,10 @@ class AuthControllerTest extends TestCase
 
         $response = $this->getJson('/api/user');
 
-        $response->assertStatus(200);
-        $response->assertJson([
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-        ]);
+        $response->assertStatus(200)
+            ->assertJsonPath('user.id', $user->id)
+            ->assertJsonPath('user.name', $user->name)
+            ->assertJsonPath('user.email', $user->email);
     }
 
     public function test_unauthenticated_user_cannot_get_profile()
@@ -168,11 +169,9 @@ class AuthControllerTest extends TestCase
 
         $response = $this->putJson('/api/user', $updateData);
 
-        $response->assertStatus(200);
-        $response->assertJson([
-            'name' => 'Updated Name',
-            'email' => 'updated@example.com',
-        ]);
+        $response->assertStatus(200)
+            ->assertJsonPath('user.name', 'Updated Name')
+            ->assertJsonPath('user.email', 'updated@example.com');
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,

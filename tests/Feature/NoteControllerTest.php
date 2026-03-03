@@ -805,4 +805,60 @@ class NoteControllerTest extends TestCase
             'id' => $link->id,
         ]);
     }
+
+    public function test_update_note_with_tags(): void
+    {
+        $note = Note::factory()->create([
+            'user_id' => $this->user->id,
+            'title' => 'Original Title',
+            'content' => 'Original content',
+            'content_markdown' => '# Original',
+        ]);
+
+        $response = $this->putJson("/api/notes/{$note->id}", [
+            'title' => 'Updated Title',
+            'tags' => ['programming', 'laravel', 'testing'],
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('title', 'Updated Title');
+
+        $note->refresh();
+        $this->assertEquals(3, $note->tags->count());
+    }
+
+    public function test_store_creates_wiki_note_with_explicit_slug(): void
+    {
+        $response = $this->postJson('/api/notes', [
+            'title' => 'My Wiki Page',
+            'content' => 'Wiki content here',
+            'content_markdown' => '# My Wiki Page',
+            'is_wiki' => true,
+            'slug' => 'custom-wiki-slug',
+            'summary' => 'A brief summary',
+        ]);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('notes', [
+            'title' => 'My Wiki Page',
+            'is_wiki' => true,
+            'slug' => 'custom-wiki-slug',
+            'summary' => 'A brief summary',
+        ]);
+    }
+
+    public function test_store_generates_slug_when_is_wiki_but_no_slug_provided(): void
+    {
+        $response = $this->postJson('/api/notes', [
+            'title' => 'Auto Generated Slug Wiki',
+            'content' => 'Content',
+            'content_markdown' => '# Content',
+            'is_wiki' => true,
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('is_wiki', true)
+            ->assertJsonPath('slug', 'auto-generated-slug-wiki');
+    }
 }

@@ -9,6 +9,7 @@ use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -203,6 +204,52 @@ class ChatReportTest extends TestCase
             'reviewed_by' => $this->admin->id,
             'review_notes' => 'Report reviewed and resolved',
         ]);
+    }
+
+    public function test_non_moderator_cannot_review_report(): void
+    {
+        $report = ChatMessageReport::create([
+            'message_id' => $this->message->id,
+            'reported_by' => $this->admin->id,
+            'room_id' => $this->room->id,
+            'report_type' => ChatMessageReport::TYPE_SPAM,
+            'status' => ChatMessageReport::STATUS_PENDING,
+        ]);
+
+        Sanctum::actingAs($this->user);
+
+        $response = $this->postJson("/api/chat/reports/{$report->id}/review", [
+            'action' => 'resolve',
+        ]);
+
+        $response->assertStatus(403)
+            ->assertJsonPath('message', 'You are not authorized to review this report');
+    }
+
+    public function test_review_report_returns_500_when_transaction_fails(): void
+    {
+        $report = ChatMessageReport::create([
+            'message_id' => $this->message->id,
+            'reported_by' => $this->user->id,
+            'room_id' => $this->room->id,
+            'report_type' => ChatMessageReport::TYPE_SPAM,
+            'status' => ChatMessageReport::STATUS_PENDING,
+        ]);
+
+        Sanctum::actingAs($this->admin);
+
+        DB::shouldReceive('beginTransaction')
+            ->once()
+            ->andThrow(new \Exception('review begin tx failed'));
+        DB::shouldReceive('rollBack')->once();
+
+        $response = $this->postJson("/api/chat/reports/{$report->id}/review", [
+            'action' => 'resolve',
+        ]);
+
+        $response->assertStatus(500)
+            ->assertJsonPath('message', 'Failed to review report')
+            ->assertJsonPath('error', 'review begin tx failed');
     }
 
     public function test_report_stats_for_admin()
@@ -413,6 +460,57 @@ class ChatReportTest extends TestCase
         $response->assertJsonPath('report_types.spam', 1);
     }
 
+    public function test_non_moderator_cannot_view_room_specific_report_stats()
+    {
+        Sanctum::actingAs($this->user);
+
+        $response = $this->getJson("/api/chat/reports/stats?room_id={$this->room->id}&days=7");
+
+        $response->assertStatus(403)
+            ->assertJsonPath('message', 'You are not authorized to view stats for this room');
+    }
+
+    public function test_admin_can_filter_all_reports_by_status_type_and_room(): void
+    {
+        $otherRoom = ChatRoom::factory()->create(['created_by' => $this->admin->id]);
+        $otherMessage = ChatMessage::factory()->create([
+            'room_id' => $otherRoom->id,
+            'user_id' => $this->user->id,
+        ]);
+
+        ChatMessageReport::create([
+            'message_id' => $this->message->id,
+            'reported_by' => $this->user->id,
+            'room_id' => $this->room->id,
+            'report_type' => ChatMessageReport::TYPE_SPAM,
+            'reason' => 'keep this one',
+            'status' => ChatMessageReport::STATUS_PENDING,
+        ]);
+
+        ChatMessageReport::create([
+            'message_id' => $otherMessage->id,
+            'reported_by' => $this->user->id,
+            'room_id' => $otherRoom->id,
+            'report_type' => ChatMessageReport::TYPE_HARASSMENT,
+            'reason' => 'filter out',
+            'status' => ChatMessageReport::STATUS_RESOLVED,
+        ]);
+
+        Sanctum::actingAs($this->admin);
+
+        $response = $this->getJson('/api/chat/reports?' . http_build_query([
+            'status' => ChatMessageReport::STATUS_PENDING,
+            'report_type' => ChatMessageReport::TYPE_SPAM,
+            'room_id' => $this->room->id,
+        ]));
+
+        $response->assertStatus(200);
+        $response->assertJsonCount(1, 'reports');
+        $response->assertJsonPath('reports.0.room_id', $this->room->id);
+        $response->assertJsonPath('reports.0.status', ChatMessageReport::STATUS_PENDING);
+        $response->assertJsonPath('reports.0.report_type', ChatMessageReport::TYPE_SPAM);
+    }
+
     public function test_invalid_report_type_is_rejected()
     {
         Sanctum::actingAs($this->user);
@@ -472,5 +570,74 @@ class ChatReportTest extends TestCase
             'action_type' => ChatModerationAction::ACTION_DELETE_MESSAGE,
             'reason' => 'Automatic deletion due to multiple reports',
         ]);
+    }
+
+    public function test_report_message_returns_500_when_transaction_throws_exception()
+    {
+        Sanctum::actingAs($this->user);
+
+        DB::shouldReceive('transaction')
+            ->once()
+            ->andThrow(new \Exception('transaction failed'));
+
+        $response = $this->postJson("/api/chat/reports/rooms/{$this->room->id}/messages/{$this->message->id}", [
+            'report_type' => ChatMessageReport::TYPE_SPAM,
+            'reason' => 'Force exception path',
+        ]);
+
+        $response->assertStatus(500)
+            ->assertJsonPath('message', 'Failed to report message')
+            ->assertJsonPath('error', 'transaction failed');
+    }
+
+    public function test_review_report_returns_404_when_report_room_is_missing(): void
+    {
+        Sanctum::actingAs($this->admin);
+
+        $report = ChatMessageReport::create([
+            'message_id' => $this->message->id,
+            'reported_by' => $this->user->id,
+            'room_id' => 999999,
+            'report_type' => ChatMessageReport::TYPE_SPAM,
+            'status' => ChatMessageReport::STATUS_PENDING,
+        ]);
+
+        $response = $this->postJson("/api/chat/reports/{$report->id}/review", [
+            'action' => 'resolve',
+        ]);
+
+        $response->assertStatus(404)
+            ->assertJsonPath('message', 'Report or room not found');
+    }
+
+    public function test_review_report_skips_user_muted_action_when_target_not_in_room(): void
+    {
+        Sanctum::actingAs($this->admin);
+
+        $outsider = User::factory()->create();
+        $outsiderMessage = ChatMessage::create([
+            'room_id' => $this->room->id,
+            'user_id' => $outsider->id,
+            'message' => 'outsider message',
+            'message_type' => 'text',
+        ]);
+
+        $report = ChatMessageReport::create([
+            'message_id' => $outsiderMessage->id,
+            'reported_by' => $this->user->id,
+            'room_id' => $this->room->id,
+            'report_type' => ChatMessageReport::TYPE_HARASSMENT,
+            'status' => ChatMessageReport::STATUS_PENDING,
+        ]);
+
+        $response = $this->postJson("/api/chat/reports/{$report->id}/review", [
+            'action' => 'resolve',
+            'mute_user' => true,
+            'mute_duration' => 30,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('action', 'resolve')
+            ->assertJsonPath('actions_performed', []);
     }
 }

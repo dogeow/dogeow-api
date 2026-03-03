@@ -88,4 +88,50 @@ class CreateRoomRequestTest extends TestCase
         // localized message
         $this->assertEquals('描述不能超过1000个字符', $messages['description.max']);
     }
+
+    // 字符长度验证已由 Feature 测试覆盖
+    // 参见 tests/Feature/ChatControllerTest.php:
+    // - test_create_room_with_name_too_short()
+    // - test_create_room_with_name_too_long()
+
+    public function test_validates_empty_name_skips_char_length_check()
+    {
+        // 空名称应该跳过字符长度检查（会被 required 规则捕获）
+        $validator = \Validator::make(
+            ['name' => ''],
+            $this->request->rules()
+        );
+
+        $this->request->setValidator($validator);
+        $this->request->withValidator($validator);
+
+        // withValidator 的 after 回调应该提前return，不添加额外错误
+        // 只有 required 规则的错误
+        $this->assertTrue($validator->fails());
+        $this->assertTrue($validator->errors()->has('name'));
+
+        // 验证没有字符长度相关的错误
+        $errors = $validator->errors()->get('name');
+        $allErrors = implode(' ', $errors);
+        $this->assertStringNotContainsString('至少需要', $allErrors);
+        $this->assertStringNotContainsString('不能超过', $allErrors);
+    }
+
+    public function test_validates_valid_name_passes()
+    {
+        // 有效的名称应该通过字符长度检查
+        // 使用一个唯一的名称避免 unique 规则失败
+        $uniqueName = '测试房间' . uniqid();
+
+        $validator = \Validator::make(
+            ['name' => $uniqueName],
+            ['name' => 'required|string|max:255'] // 移除 unique 规则以便测试字符长度验证
+        );
+
+        $this->request->setValidator($validator);
+        $this->request->withValidator($validator);
+
+        // 字符长度验证应该通过
+        $this->assertFalse($validator->fails());
+    }
 }

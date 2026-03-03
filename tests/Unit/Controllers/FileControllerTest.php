@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Cloud\FileController;
 use App\Models\Cloud\File;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use ReflectionClass;
@@ -77,6 +78,41 @@ class FileControllerTest extends TestCase
     }
 
     /**
+     * Test the private getAllDescendantIds method using reflection
+     */
+    public function test_get_all_descendant_ids_method()
+    {
+        $reflection = new ReflectionClass($this->controller);
+        $method = $reflection->getMethod('getAllDescendantIds');
+        $method->setAccessible(true);
+
+        $rootFolder = File::factory()->create([
+            'user_id' => $this->user->id,
+            'is_folder' => true,
+        ]);
+        $childFolder = File::factory()->create([
+            'user_id' => $this->user->id,
+            'is_folder' => true,
+            'parent_id' => $rootFolder->id,
+        ]);
+        $grandchildFolder = File::factory()->create([
+            'user_id' => $this->user->id,
+            'is_folder' => true,
+            'parent_id' => $childFolder->id,
+        ]);
+        File::factory()->create([
+            'user_id' => $this->user->id,
+            'is_folder' => false,
+            'parent_id' => $rootFolder->id,
+        ]);
+
+        $descendantIds = $method->invoke($this->controller, $rootFolder->id);
+        sort($descendantIds);
+
+        $this->assertSame([$childFolder->id, $grandchildFolder->id], $descendantIds);
+    }
+
+    /**
      * Test the private deleteFolderIteratively method using reflection
      */
     public function test_delete_folder_method()
@@ -105,6 +141,21 @@ class FileControllerTest extends TestCase
         $this->assertDatabaseMissing('cloud_files', ['id' => $folder->id]);
         $this->assertDatabaseMissing('cloud_files', ['id' => $childFile->id]);
         $this->assertFalse(Storage::disk('public')->exists($childFile->path));
+    }
+
+    /**
+     * Test preview handles OPTIONS preflight requests
+     */
+    public function test_preview_options_request_returns_cors_headers()
+    {
+        $request = Request::create('/api/cloud/files/1/preview', 'OPTIONS');
+
+        $response = $this->controller->preview(1, $request);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('*', $response->headers->get('Access-Control-Allow-Origin'));
+        $this->assertSame('GET, OPTIONS', $response->headers->get('Access-Control-Allow-Methods'));
+        $this->assertSame('Content-Type, Authorization', $response->headers->get('Access-Control-Allow-Headers'));
     }
 
     /**

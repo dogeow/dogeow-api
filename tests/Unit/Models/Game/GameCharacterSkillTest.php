@@ -3,6 +3,7 @@
 namespace Tests\Unit\Models\Game;
 
 use App\Models\Game\GameCharacterSkill;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Tests\TestCase;
 
 class GameCharacterSkillTest extends TestCase
@@ -24,11 +25,11 @@ class GameCharacterSkillTest extends TestCase
 
     public function test_character_relationship_exists(): void
     {
-        $this->assertTrue(method_exists($this->characterSkill, 'character'));
+        $this->assertInstanceOf(BelongsTo::class, $this->characterSkill->character());
     }
 
     public function test_skill_relationship_exists(): void
     {
-        $this->assertTrue(method_exists($this->characterSkill, 'skill'));
+        $this->assertInstanceOf(BelongsTo::class, $this->characterSkill->skill());
     }
 }

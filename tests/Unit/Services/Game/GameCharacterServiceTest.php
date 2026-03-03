@@ -159,6 +159,34 @@ class GameCharacterServiceTest extends TestCase
         $this->service->createCharacter($user->id, 'TakenName', 'warrior');
     }
 
+    public function test_create_character_rejects_names_longer_than_twelve_characters(): void
+    {
+        $user = User::factory()->create();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('角色名最多12个字符');
+        $this->service->createCharacter($user->id, 'NameTooLong123', 'warrior');
+    }
+
+    public function test_private_helpers_return_default_class_stats_and_starting_copper(): void
+    {
+        $reflection = new \ReflectionClass($this->service);
+        $getClassBaseStats = $reflection->getMethod('getClassBaseStats');
+        $getClassBaseStats->setAccessible(true);
+        $getStartingCopper = $reflection->getMethod('getStartingCopper');
+        $getStartingCopper->setAccessible(true);
+
+        $stats = $getClassBaseStats->invoke($this->service, 'unknown');
+
+        $this->assertSame([
+            'strength' => 2,
+            'dexterity' => 3,
+            'vitality' => 2,
+            'energy' => 2,
+        ], $stats);
+        $this->assertSame(0, $getStartingCopper->invoke($this->service, 'unknown'));
+    }
+
     public function test_delete_character_removes_character_and_clears_cached_list(): void
     {
         $user = User::factory()->create();
@@ -340,6 +368,8 @@ class GameCharacterServiceTest extends TestCase
 
     public function test_check_offline_rewards_returns_unavailable_when_recently_online(): void
     {
+        Carbon::setTestNow(now());
+
         $user = User::factory()->create();
         $character = $this->createCharacter($user, [
             'last_online' => now()->subSeconds(30),
@@ -351,6 +381,8 @@ class GameCharacterServiceTest extends TestCase
         $this->assertSame(30, $result['offline_seconds']);
         $this->assertSame(0, $result['experience']);
         $this->assertSame(0, $result['copper']);
+
+        Carbon::setTestNow();
     }
 
     public function test_check_offline_rewards_caps_time_and_flags_level_up(): void
@@ -369,6 +401,29 @@ class GameCharacterServiceTest extends TestCase
         $this->assertTrue($result['level_up']);
         $this->assertGreaterThan(0, $result['experience']);
         $this->assertGreaterThan(0, $result['copper']);
+    }
+
+    public function test_check_offline_rewards_prefers_last_claimed_time_when_it_is_more_recent(): void
+    {
+        Carbon::setTestNow('2026-03-02 12:00:00');
+
+        try {
+            $user = User::factory()->create();
+            $character = $this->createCharacter($user, [
+                'level' => 2,
+                'last_online' => now()->subHours(3),
+                'claimed_offline_at' => now()->subMinutes(2),
+            ]);
+
+            $result = $this->service->checkOfflineRewards($character);
+
+            $this->assertTrue($result['available']);
+            $this->assertSame(120, $result['offline_seconds']);
+            $this->assertSame(240, $result['experience']);
+            $this->assertSame(120, $result['copper']);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_claim_offline_rewards_returns_zeroes_when_rewards_are_unavailable(): void

@@ -300,11 +300,12 @@ class ItemController extends Controller
                 'relations' => $item->relatedItems()->with(self::ITEM_RELATIONS)->get(),
             ], 201);
         } catch (\Exception $e) {
-            if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
+            $msg = $e->getMessage();
+            if (strpos($msg, 'Duplicate entry') !== false || strpos($msg, 'UNIQUE constraint failed') !== false) {
                 return response()->json(['message' => '该关联已存在'], 400);
             }
 
-            return response()->json(['message' => '添加关联失败: ' . $e->getMessage()], 500);
+            return response()->json(['message' => '添加关联失败: ' . $msg], 500);
         }
     }
 

@@ -6,6 +6,8 @@ use App\Models\Chat\ChatMessage;
 use App\Models\Chat\ChatRoom;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\RateLimiter;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ChatControllerTest extends TestCase
@@ -17,7 +19,7 @@ class ChatControllerTest extends TestCase
         parent::setUp();
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_rooms()
     {
         $user = User::factory()->create();
@@ -31,7 +33,7 @@ class ChatControllerTest extends TestCase
         $this->assertCount(3, $data['rooms']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_create_room()
     {
         $user = User::factory()->create();
@@ -49,25 +51,23 @@ class ChatControllerTest extends TestCase
         $this->assertEquals('A test room', $data['room']['description']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_room_creation_data()
     {
         $user = User::factory()->create();
         $invalidData = [
-            'name' => 'ab', // Too short
+            'name' => 'a',
             'description' => 'A test room',
         ];
 
         $response = $this->actingAs($user)
-            ->post('/api/chat/rooms', $invalidData);
+            ->postJson('/api/chat/rooms', $invalidData);
 
         $response->assertStatus(422);
-        // The validation error is returned in the errors array, not as JSON validation errors
-        $data = $response->json();
-        $this->assertContains('Room name must be at least 3 characters', $data['errors']);
+        $response->assertJsonValidationErrors(['name']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_join_room()
     {
         $user = User::factory()->create();
@@ -83,7 +83,7 @@ class ChatControllerTest extends TestCase
         $this->assertArrayHasKey('room_user', $data);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_leave_room()
     {
         $user = User::factory()->create();
@@ -102,7 +102,7 @@ class ChatControllerTest extends TestCase
         $this->assertEquals('Successfully left the room', $data['message']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_delete_room()
     {
         $user = User::factory()->create();
@@ -116,7 +116,7 @@ class ChatControllerTest extends TestCase
         $this->assertEquals('Room deleted successfully', $data['message']);
     }
 
-    /** @test */
+    #[Test]
     public function it_denies_room_deletion_to_non_owner()
     {
         $owner = User::factory()->create();
@@ -131,7 +131,7 @@ class ChatControllerTest extends TestCase
         $this->assertEquals('Failed to delete room', $data['message']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_messages()
     {
         $user = User::factory()->create();
@@ -152,11 +152,11 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        $this->assertArrayHasKey('messages', $data);
-        $this->assertGreaterThan(0, count($data['messages']));
+        $this->assertArrayHasKey('data', $data);
+        $this->assertGreaterThan(0, count($data['data']));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_send_message()
     {
         $user = User::factory()->create();
@@ -181,13 +181,26 @@ class ChatControllerTest extends TestCase
         $this->assertNotEmpty($data['data']['message']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_message_data()
     {
-        $this->markTestSkipped('Message validation test needs proper setup');
+        $user = User::factory()->create();
+        $room = ChatRoom::factory()->create();
+
+        $this->actingAs($user)
+            ->post("/api/chat/rooms/{$room->id}/join");
+
+        $response = $this->actingAs($user)
+            ->postJson("/api/chat/rooms/{$room->id}/messages", [
+                'message' => '',
+                'message_type' => 'text',
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['message']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_delete_message()
     {
         $user = User::factory()->create();
@@ -205,7 +218,7 @@ class ChatControllerTest extends TestCase
         $this->assertEquals('Message deleted successfully', $data['message']);
     }
 
-    /** @test */
+    #[Test]
     public function it_denies_message_deletion_to_non_owner()
     {
         $owner = User::factory()->create();
@@ -224,7 +237,7 @@ class ChatControllerTest extends TestCase
         $this->assertEquals('You are not authorized to delete this message', $data['message']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_online_users()
     {
         $user = User::factory()->create();
@@ -243,7 +256,7 @@ class ChatControllerTest extends TestCase
         $this->assertIsArray($data['online_users']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_update_user_status()
     {
         $user = User::factory()->create();
@@ -265,7 +278,7 @@ class ChatControllerTest extends TestCase
         $this->assertEquals('Status updated successfully', $data['message']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_cleanup_disconnected_users()
     {
         $user = User::factory()->create();
@@ -278,7 +291,7 @@ class ChatControllerTest extends TestCase
         $this->assertEquals('Cleaned up 0 inactive users', $data['message']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_user_presence_status()
     {
         $user = User::factory()->create();
@@ -297,33 +310,85 @@ class ChatControllerTest extends TestCase
         $this->assertArrayHasKey('last_seen_at', $data);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_rate_limiting_for_messages()
     {
-        $this->markTestSkipped('Rate limiting test needs to be configured properly');
+        $user = User::factory()->create();
+        $room = ChatRoom::factory()->create();
+
+        $this->actingAs($user)
+            ->post("/api/chat/rooms/{$room->id}/join");
+
+        $rateLimitKey = "chat:rate_limit:send_message:{$user->id}:{$room->id}";
+
+        for ($i = 0; $i < 10; $i++) {
+            RateLimiter::hit($rateLimitKey, 60);
+        }
+
+        $response = $this->actingAs($user)
+            ->postJson("/api/chat/rooms/{$room->id}/messages", [
+                'message' => 'rate-limit-message-overflow',
+                'message_type' => 'text',
+            ]);
+
+        $response->assertStatus(429)
+            ->assertJsonPath('rate_limit.attempts', 10)
+            ->assertJsonPath('rate_limit.remaining', 0);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_room_not_found()
     {
-        $this->markTestSkipped('Room not found test needs proper exception handling');
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/chat/rooms/999999/messages');
+
+        $response->assertStatus(500)
+            ->assertJson([
+                'message' => 'Failed to retrieve messages',
+            ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_message_not_found()
     {
-        $this->markTestSkipped('Message not found test needs proper exception handling');
+        $user = User::factory()->create();
+        $room = ChatRoom::factory()->create();
+
+        $this->actingAs($user)
+            ->post("/api/chat/rooms/{$room->id}/join");
+
+        $response = $this->actingAs($user)
+            ->deleteJson("/api/chat/rooms/{$room->id}/messages/999999");
+
+        $response->assertStatus(500)
+            ->assertJson([
+                'message' => 'Failed to delete message',
+            ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_requires_authentication()
     {
-        $this->markTestSkipped('Authentication test requires separate test setup');
+        $this->getJson('/api/chat/rooms')
+            ->assertStatus(401)
+            ->assertJson([
+                'message' => 'Unauthenticated.',
+            ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_invalid_room_id()
     {
-        $this->markTestSkipped('Invalid room ID test needs proper type handling');
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/chat/rooms/invalid/join');
+
+        $response->assertStatus(422)
+            ->assertJson([
+                'message' => 'Failed to join room',
+            ]);
     }
 }

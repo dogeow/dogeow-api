@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\Controllers\Game;
 
+use App\Jobs\Game\AutoCombatRoundJob;
 use App\Models\Game\GameCharacter;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Redis;
 use Tests\TestCase;
 
@@ -49,6 +51,10 @@ class CombatControllerTest extends TestCase
 
     public function test_can_start_combat(): void
     {
+        Bus::fake();
+        Redis::shouldReceive('get')->once()->andReturn(null);
+        Redis::shouldReceive('set')->once()->andReturn(true);
+
         $user = User::factory()->create();
         $character = $this->createCharacter($user, ['current_map_id' => 1, 'is_fighting' => false]);
 
@@ -56,6 +62,7 @@ class CombatControllerTest extends TestCase
             ->postJson('/api/rpg/combat/start?character_id=' . $character->id);
 
         $response->assertStatus(200);
+        Bus::assertDispatched(AutoCombatRoundJob::class);
     }
 
     public function test_can_stop_combat(): void
@@ -63,8 +70,10 @@ class CombatControllerTest extends TestCase
         $user = User::factory()->create();
         $character = $this->createCharacter($user, ['is_fighting' => true]);
 
-        $key = 'auto_combat:' . $character->id;
-        Redis::del($key);
+        Redis::shouldReceive('del')
+            ->once()
+            ->with(AutoCombatRoundJob::redisKey($character->id))
+            ->andReturn(1);
 
         $response = $this->actingAs($user)
             ->postJson('/api/rpg/combat/stop?character_id=' . $character->id);

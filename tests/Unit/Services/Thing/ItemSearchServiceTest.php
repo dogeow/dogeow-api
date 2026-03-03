@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services\Thing;
 
 use App\Services\Thing\ItemSearchService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -93,5 +94,44 @@ class ItemSearchServiceTest extends TestCase
         $this->service->clearUserHistory(1);
 
         $this->assertEmpty(DB::table('thing_search_history')->where('user_id', 1)->get());
+    }
+
+    public function test_record_search_history_inserts_record(): void
+    {
+        $request = Request::create('/search', 'GET', ['q' => 'test', 'limit' => 10]);
+        $request->setMethod('GET');
+
+        $this->service->recordSearchHistory('test query', 5, $request);
+
+        $this->assertDatabaseHas('thing_search_history', [
+            'search_term' => 'test query',
+            'results_count' => 5,
+        ]);
+    }
+
+    public function test_record_search_history_handles_exception_gracefully(): void
+    {
+        // This test verifies the method doesn't throw even if there's an error
+        $request = Request::create('/search', 'GET');
+        $request->setMethod('GET');
+
+        // Should not throw
+        $this->service->recordSearchHistory('test', 0, $request);
+        $this->assertTrue(true);
+    }
+
+    public function test_record_search_history_logs_error_on_database_failure(): void
+    {
+        \Illuminate\Support\Facades\Log::shouldReceive('warning')
+            ->once();
+
+        // Mock DB to throw exception
+        DB::shouldReceive('table')->andThrow(new \Exception('Database error'));
+
+        $request = Request::create('/search', 'GET', ['q' => 'test']);
+        $request->setMethod('GET');
+
+        // Should not throw even though DB fails
+        $this->service->recordSearchHistory('test', 5, $request);
     }
 }

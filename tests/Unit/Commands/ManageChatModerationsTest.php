@@ -7,6 +7,7 @@ use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -326,7 +327,7 @@ class ManageChatModerationsTest extends TestCase
             ->assertExitCode(0);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_unban_user_by_id()
     {
         // Create additional user and room to avoid conflicts
@@ -356,7 +357,7 @@ class ManageChatModerationsTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_unban_user_by_email()
     {
         // Create additional user and room to avoid conflicts
@@ -386,7 +387,7 @@ class ManageChatModerationsTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_unban_all_users()
     {
         // Create additional users and rooms to avoid conflicts
@@ -422,7 +423,7 @@ class ManageChatModerationsTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_error_when_unbanning_without_user_and_room()
     {
         $this->artisan('chat:moderation', ['action' => 'unban'])
@@ -430,7 +431,7 @@ class ManageChatModerationsTest extends TestCase
             ->assertExitCode(1);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_error_when_user_not_found_for_unban()
     {
         $this->artisan('chat:moderation', [
@@ -442,7 +443,7 @@ class ManageChatModerationsTest extends TestCase
             ->assertExitCode(1);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_error_when_room_not_found_for_unban()
     {
         $this->artisan('chat:moderation', [
@@ -454,7 +455,7 @@ class ManageChatModerationsTest extends TestCase
             ->assertExitCode(1);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_error_when_user_not_in_room_for_unban()
     {
         $this->artisan('chat:moderation', [
@@ -466,7 +467,7 @@ class ManageChatModerationsTest extends TestCase
             ->assertExitCode(1);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_success_when_user_not_banned()
     {
         $this->artisan('chat:moderation', [
@@ -478,9 +479,11 @@ class ManageChatModerationsTest extends TestCase
             ->assertExitCode(0);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_cleanup_expired_moderations()
     {
+        Carbon::setTestNow(now());
+
         // Create additional users and rooms to avoid conflicts
         $user3 = User::factory()->create(['name' => 'Test User 3', 'email' => 'user3@example.com']);
         $user4 = User::factory()->create(['name' => 'Test User 4', 'email' => 'user4@example.com']);
@@ -542,9 +545,11 @@ class ManageChatModerationsTest extends TestCase
             'is_muted' => true,
             'muted_until' => now()->addHours(1),
         ]);
+
+        Carbon::setTestNow();
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_error_for_unknown_action()
     {
         $this->artisan('chat:moderation', ['action' => 'unknown'])
@@ -553,7 +558,7 @@ class ManageChatModerationsTest extends TestCase
             ->assertExitCode(1);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_find_user_by_id()
     {
         $command = new ManageChatModerations;
@@ -566,7 +571,7 @@ class ManageChatModerationsTest extends TestCase
         $this->assertEquals($this->user1->id, $result->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_find_user_by_email()
     {
         $command = new ManageChatModerations;
@@ -579,7 +584,7 @@ class ManageChatModerationsTest extends TestCase
         $this->assertEquals($this->user1->id, $result->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_null_for_nonexistent_user()
     {
         $command = new ManageChatModerations;
@@ -596,7 +601,7 @@ class ManageChatModerationsTest extends TestCase
         $this->assertNull($result);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_find_room_by_id()
     {
         $command = new ManageChatModerations;
@@ -609,7 +614,7 @@ class ManageChatModerationsTest extends TestCase
         $this->assertEquals($this->room1->id, $result->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_find_room_by_name()
     {
         $command = new ManageChatModerations;
@@ -622,7 +627,7 @@ class ManageChatModerationsTest extends TestCase
         $this->assertEquals($this->room1->id, $result->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_null_for_nonexistent_room()
     {
         $command = new ManageChatModerations;
@@ -639,7 +644,7 @@ class ManageChatModerationsTest extends TestCase
         $this->assertNull($result);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_permanent_moderations_in_list()
     {
         // Create additional users and rooms to avoid conflicts
@@ -673,7 +678,7 @@ class ManageChatModerationsTest extends TestCase
             ->assertExitCode(0);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_expired_moderations_in_list()
     {
         // Create additional users and rooms to avoid conflicts

@@ -192,4 +192,62 @@ class GameMonsterDefinitionTest extends TestCase
         $monster = new GameMonsterDefinition;
         $this->assertTrue(method_exists($monster, 'combatLogs'));
     }
+
+    public function test_combat_logs_returns_has_many_relationship(): void
+    {
+        $monster = new GameMonsterDefinition;
+        $relation = $monster->combatLogs();
+        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $relation);
+    }
+
+    public function test_is_test_mode_returns_true_when_config_enabled(): void
+    {
+        config(['game.test_mode.enabled' => true]);
+
+        $monster = new GameMonsterDefinition(['level' => 10]);
+        $reflection = new \ReflectionClass($monster);
+        $method = $reflection->getMethod('isTestMode');
+        $method->setAccessible(true);
+
+        $this->assertTrue($method->invoke($monster));
+    }
+
+    public function test_weighted_random_with_zero_sum(): void
+    {
+        $monster = new GameMonsterDefinition(['level' => 10]);
+        $reflection = new \ReflectionClass($monster);
+        $method = $reflection->getMethod('weightedRandom');
+        $method->setAccessible(true);
+
+        // 所有权重都是 0，sum 为 0
+        $result = $method->invoke($monster, ['hp' => 0, 'mp' => 0]);
+        $this->assertContains($result, ['hp', 'mp']);
+    }
+
+    public function test_weighted_random_fallback_to_last_key(): void
+    {
+        $monster = new GameMonsterDefinition(['level' => 10]);
+        $reflection = new \ReflectionClass($monster);
+        $method = $reflection->getMethod('weightedRandom');
+        $method->setAccessible(true);
+
+        // 运行大量次数以触发 fallback 分支（由于浮点数精度问题）
+        // 使用不规则的权重值增加浮点数精度误差的可能性
+        $results = [];
+        for ($i = 0; $i < 5000; $i++) {
+            // 使用多种不同的权重组合
+            $weights = match ($i % 5) {
+                0 => ['hp' => 0.1, 'mp' => 0.2, 'sp' => 0.3, 'ep' => 0.15],
+                1 => ['a' => 0.333, 'b' => 0.333, 'c' => 0.334],
+                2 => ['x' => 1 / 3, 'y' => 1 / 3, 'z' => 1 / 3],
+                3 => ['p' => 0.25, 'q' => 0.25, 'r' => 0.25, 's' => 0.25],
+                4 => ['m' => 0.7, 'n' => 0.29, 'o' => 0.01],
+            };
+            $result = $method->invoke($monster, $weights);
+            $results[] = $result;
+        }
+
+        // 应该能返回各种键
+        $this->assertGreaterThan(0, count(array_unique($results)));
+    }
 }

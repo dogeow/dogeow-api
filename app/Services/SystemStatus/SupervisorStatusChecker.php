@@ -44,30 +44,25 @@ class SupervisorStatusChecker
         }
 
         try {
-            $process = new Process(['supervisorctl', 'status', $programName]);
-            $process->setTimeout(5);
-            $process->run();
+            $commandResult = $this->executeSupervisorCommand($programName);
 
-            $output = trim($process->getOutput());
-            $errorOutput = trim($process->getErrorOutput());
-
-            if ($process->getExitCode() !== 0) {
+            if ($commandResult['exitCode'] !== 0) {
                 Log::debug('Supervisor status non-zero exit', [
                     'program' => $programName,
-                    'exit_code' => $process->getExitCode(),
-                    'output' => $output,
-                    'error' => $errorOutput,
+                    'exit_code' => $commandResult['exitCode'],
+                    'output' => $commandResult['output'],
+                    'error' => $commandResult['error'],
                 ]);
 
                 return [
                     'status' => 'error',
                     'raw_state' => 'UNKNOWN',
-                    'details' => $this->sanitize($errorOutput ?: $output ?: 'supervisorctl 执行失败', 120),
+                    'details' => $this->sanitize($commandResult['error'] ?: $commandResult['output'] ?: 'supervisorctl 执行失败', 120),
                 ];
             }
 
             // 格式: "program_name    STATE    pid 123, uptime ..."
-            $parts = preg_split('/\s{2,}/', $output, 3);
+            $parts = preg_split('/\s{2,}/', trim($commandResult['output']), 3);
             $rawState = isset($parts[1]) ? strtoupper(trim($parts[1])) : 'UNKNOWN';
             $info = isset($parts[2]) ? trim($parts[2]) : '';
 
@@ -94,6 +89,25 @@ class SupervisorStatusChecker
                 'details' => $this->sanitize($e->getMessage(), 100),
             ];
         }
+    }
+
+    /**
+     * 执行 supervisorctl 命令。
+     * 可被重写以用于测试。
+     *
+     * @return array{output: string, error: string, exitCode: int}
+     */
+    protected function executeSupervisorCommand(string $programName): array
+    {
+        $process = new Process(['supervisorctl', 'status', $programName]);
+        $process->setTimeout(5);
+        $process->run();
+
+        return [
+            'output' => trim($process->getOutput()),
+            'error' => trim($process->getErrorOutput()),
+            'exitCode' => $process->getExitCode(),
+        ];
     }
 
     private function sanitize(string $s, int $maxLen): string

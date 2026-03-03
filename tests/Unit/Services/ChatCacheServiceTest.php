@@ -9,6 +9,10 @@ use App\Models\User;
 use App\Services\Chat\ChatCacheService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Redis;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ChatCacheServiceTest extends TestCase
@@ -24,7 +28,7 @@ class ChatCacheServiceTest extends TestCase
         Cache::flush();
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_room_list_from_cache()
     {
         // Create rooms
@@ -37,7 +41,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertTrue($result->every(fn ($room) => $room->is_active));
     }
 
-    /** @test */
+    #[Test]
     public function it_caches_room_list()
     {
         $rooms = ChatRoom::factory()->count(2)->create(['is_active' => true]);
@@ -51,7 +55,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertEquals($firstResult->count(), $secondResult->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_invalidates_room_list_cache()
     {
         $rooms = ChatRoom::factory()->count(2)->create(['is_active' => true]);
@@ -66,7 +70,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertNull(Cache::get('chat:rooms:list'));
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_room_stats()
     {
         $user = User::factory()->create();
@@ -97,7 +101,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertEquals(3, $stats['online_users']);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_empty_stats_for_nonexistent_room()
     {
         $stats = $this->cacheService->getRoomStats(999);
@@ -105,7 +109,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertEmpty($stats);
     }
 
-    /** @test */
+    #[Test]
     public function it_invalidates_room_stats()
     {
         $room = ChatRoom::factory()->create();
@@ -120,7 +124,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertNull(Cache::get('chat:room:stats:' . $room->id));
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_online_users()
     {
         $room = ChatRoom::factory()->create();
@@ -141,7 +145,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertCount(3, $onlineUsers);
     }
 
-    /** @test */
+    #[Test]
     public function it_invalidates_online_users_cache()
     {
         $room = ChatRoom::factory()->create();
@@ -156,7 +160,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertNull(Cache::get('chat:room:online:' . $room->id));
     }
 
-    /** @test */
+    #[Test]
     public function it_caches_message_history()
     {
         $room = ChatRoom::factory()->create();
@@ -172,7 +176,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertCount(5, $cachedMessages);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_null_for_nonexistent_message_history()
     {
         $room = ChatRoom::factory()->create();
@@ -182,7 +186,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertNull($result);
     }
 
-    /** @test */
+    #[Test]
     public function it_invalidates_message_history()
     {
         $room = ChatRoom::factory()->create();
@@ -201,7 +205,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertNull($result);
     }
 
-    /** @test */
+    #[Test]
     public function it_caches_user_presence()
     {
         $user = User::factory()->create();
@@ -221,7 +225,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertEquals($presenceData, $cachedPresence);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_null_for_nonexistent_user_presence()
     {
         $user = User::factory()->create();
@@ -232,7 +236,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertNull($result);
     }
 
-    /** @test */
+    #[Test]
     public function it_invalidates_user_presence()
     {
         $user = User::factory()->create();
@@ -251,7 +255,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertNull($result);
     }
 
-    /** @test */
+    #[Test]
     public function it_checks_rate_limit()
     {
         $key = 'test_rate_limit_key';
@@ -267,7 +271,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertEquals($maxAttempts - 1, $result['remaining']);
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_when_rate_limit_exceeded()
     {
         $key = 'test_rate_limit_exceeded';
@@ -288,7 +292,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertEquals(0, $result3['remaining']);
     }
 
-    /** @test */
+    #[Test]
     public function it_tracks_room_activity()
     {
         $room = ChatRoom::factory()->create();
@@ -303,7 +307,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertGreaterThan(0, $activity['total_activities']);
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_room_activity()
     {
         $room = ChatRoom::factory()->create();
@@ -321,7 +325,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertGreaterThanOrEqual(2, $activity['total_activities']);
     }
 
-    /** @test */
+    #[Test]
     public function it_warms_up_cache()
     {
         $rooms = ChatRoom::factory()->count(3)->create(['is_active' => true]);
@@ -333,7 +337,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertCount(3, $cachedRooms);
     }
 
-    /** @test */
+    #[Test]
     public function it_clears_all_cache()
     {
         $room = ChatRoom::factory()->create();
@@ -353,7 +357,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertNull(Cache::get('chat:user:presence:' . $user->id . ':' . $room->id));
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_cache_stats()
     {
         $room = ChatRoom::factory()->create();
@@ -372,7 +376,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertGreaterThan(0, $stats['total_keys']);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_cache_miss_gracefully()
     {
         $room = ChatRoom::factory()->create();
@@ -384,7 +388,7 @@ class ChatCacheServiceTest extends TestCase
         $this->assertArrayHasKey('room', $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_caches_with_correct_ttl()
     {
         $room = ChatRoom::factory()->create();
@@ -395,5 +399,112 @@ class ChatCacheServiceTest extends TestCase
         // Check that cache exists with correct TTL
         $cacheKey = 'chat:room:stats:' . $room->id;
         $this->assertNotNull(Cache::get($cacheKey));
+    }
+
+    #[Test]
+    public function it_skips_room_users_with_missing_user_relation_in_online_users(): void
+    {
+        $room = ChatRoom::factory()->create();
+
+        ChatRoomUser::factory()->create([
+            'room_id' => $room->id,
+            'user_id' => 999999,
+            'is_online' => true,
+        ]);
+
+        $onlineUsers = $this->cacheService->getOnlineUsers($room->id);
+
+        $this->assertInstanceOf(\Illuminate\Support\Collection::class, $onlineUsers);
+        $this->assertCount(0, $onlineUsers);
+    }
+
+    #[Test]
+    public function it_allows_request_when_rate_limiter_backend_throws_exception(): void
+    {
+        RateLimiter::shouldReceive('tooManyAttempts')
+            ->once()
+            ->andThrow(new \RuntimeException('rate limiter unavailable'));
+
+        $result = $this->cacheService->checkRateLimit('fallback_case', 5, 60);
+
+        $this->assertTrue($result['allowed']);
+        $this->assertSame(1, $result['attempts']);
+        $this->assertSame(4, $result['remaining']);
+        $this->assertArrayHasKey('error', $result);
+    }
+
+    #[Test]
+    public function it_silently_handles_room_activity_tracking_exception(): void
+    {
+        config(['cache.default' => 'redis']);
+        Log::spy();
+
+        Redis::shouldReceive('connection')
+            ->once()
+            ->andThrow(new \RuntimeException('redis unavailable'));
+
+        $this->cacheService->trackRoomActivity(1, 'message_sent', 1);
+
+        Log::shouldHaveReceived('warning')->once();
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function it_returns_empty_room_activity_when_backend_throws_exception(): void
+    {
+        config(['cache.default' => 'redis']);
+
+        Redis::shouldReceive('connection')
+            ->once()
+            ->andThrow(new \RuntimeException('redis unavailable'));
+
+        $result = $this->cacheService->getRoomActivity(1, 1);
+
+        $this->assertSame([], $result['activities']);
+        $this->assertSame(0, $result['total_activities']);
+        $this->assertSame([], $result['activity_types']);
+    }
+
+    #[Test]
+    public function it_handles_delete_by_pattern_exception_without_throwing(): void
+    {
+        config(['cache.default' => 'redis']);
+        Log::spy();
+
+        Redis::shouldReceive('connection')
+            ->once()
+            ->andThrow(new \RuntimeException('redis unavailable'));
+
+        $this->cacheService->invalidateMessageHistory(123);
+
+        Log::shouldHaveReceived('warning')->once();
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function it_returns_error_when_get_cache_stats_backend_throws_exception(): void
+    {
+        config(['cache.default' => 'redis']);
+
+        Redis::shouldReceive('connection')
+            ->once()
+            ->andThrow(new \RuntimeException('redis unavailable'));
+
+        $result = $this->cacheService->getCacheStats();
+
+        $this->assertArrayHasKey('error', $result);
+        $this->assertStringContainsString('Failed to get cache stats', $result['error']);
+    }
+
+    #[Test]
+    public function it_returns_zero_hit_rate_when_total_is_zero(): void
+    {
+        $reflection = new \ReflectionClass($this->cacheService);
+        $method = $reflection->getMethod('calculateHitRate');
+        $method->setAccessible(true);
+
+        $hitRate = $method->invoke($this->cacheService, 0, 0);
+
+        $this->assertSame(0.0, $hitRate);
     }
 }

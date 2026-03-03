@@ -3,6 +3,7 @@
 namespace Tests\Unit\Models\Game;
 
 use App\Models\Game\GameCombatLog;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Tests\TestCase;
 
 class GameCombatLogTest extends TestCase
@@ -41,16 +42,16 @@ class GameCombatLogTest extends TestCase
 
     public function test_character_relationship_exists(): void
     {
-        $this->assertTrue(method_exists($this->combatLog, 'character'));
+        $this->assertInstanceOf(BelongsTo::class, $this->combatLog->character());
     }
 
     public function test_map_relationship_exists(): void
     {
-        $this->assertTrue(method_exists($this->combatLog, 'map'));
+        $this->assertInstanceOf(BelongsTo::class, $this->combatLog->map());
     }
 
     public function test_monster_relationship_exists(): void
     {
-        $this->assertTrue(method_exists($this->combatLog, 'monster'));
+        $this->assertInstanceOf(BelongsTo::class, $this->combatLog->monster());
     }
 }

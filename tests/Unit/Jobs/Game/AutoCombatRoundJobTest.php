@@ -10,6 +10,7 @@ use App\Models\Game\GameMapDefinition;
 use App\Models\User;
 use App\Services\Game\GameCombatService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Redis;
 use InvalidArgumentException;
@@ -525,5 +526,82 @@ class AutoCombatRoundJobTest extends TestCase
 
         $job = new AutoCombatRoundJob($character->id);
         $job->handle($combatService);
+    }
+
+    public function test_handle_dispatches_next_round_when_redis_key_still_exists(): void
+    {
+        Bus::fake();
+
+        $map = $this->createMap();
+        $character = $this->createCharacter(['current_map_id' => $map->id]);
+
+        $key = 'rpg:combat:auto:' . $character->id;
+        $payload = json_encode(['skill_ids' => [101]]);
+
+        Redis::shouldReceive('get')->with($key)->andReturn(
+            $payload,
+            $payload,
+            $payload,
+            $payload
+        );
+
+        $lock = \Mockery::mock();
+        $lock->shouldReceive('get')->andReturn(true);
+        $lock->shouldReceive('release')->once();
+
+        Cache::shouldReceive('lock')->andReturn($lock);
+
+        $combatService = $this->mock(GameCombatService::class);
+        $combatService->shouldReceive('shouldRefreshMonsters')->andReturn(false);
+        $combatService->shouldReceive('executeRound')
+            ->once()
+            ->andReturn(['defeat' => false, 'auto_stopped' => false]);
+
+        $job = new AutoCombatRoundJob($character->id);
+        $job->handle($combatService);
+
+        Bus::assertDispatched(AutoCombatRoundJob::class, function (AutoCombatRoundJob $dispatched) use ($character) {
+            return $dispatched->characterId === $character->id;
+        });
+    }
+
+    public function test_handle_uses_previous_exception_payload_for_current_hp(): void
+    {
+        \Illuminate\Support\Facades\Event::fake([GameCombatUpdate::class]);
+
+        $map = $this->createMap();
+        $character = $this->createCharacter([
+            'current_map_id' => $map->id,
+            'is_fighting' => true,
+            'current_hp' => 40,
+        ]);
+
+        $key = 'rpg:combat:auto:' . $character->id;
+        $payload = json_encode(['skill_ids' => [101]]);
+
+        Redis::shouldReceive('get')->with($key)->andReturn($payload);
+        Redis::shouldReceive('del')->with($key)->once();
+
+        $lock = \Mockery::mock();
+        $lock->shouldReceive('get')->andReturn(true);
+        $lock->shouldReceive('release')->once();
+
+        Cache::shouldReceive('lock')->andReturn($lock);
+
+        $combatService = $this->mock(GameCombatService::class);
+        $combatService->shouldReceive('shouldRefreshMonsters')->andReturn(false);
+        $combatService->shouldReceive('executeRound')
+            ->andThrow(new RuntimeException(
+                'Combat failed',
+                0,
+                new RuntimeException('{"current_hp":12}')
+            ));
+
+        $job = new AutoCombatRoundJob($character->id);
+        $job->handle($combatService);
+
+        \Illuminate\Support\Facades\Event::assertDispatched(GameCombatUpdate::class, function (GameCombatUpdate $event) {
+            return $event->combatResult['current_hp'] === 12;
+        });
     }
 }

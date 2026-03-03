@@ -14,11 +14,12 @@ class MusicControllerTest extends TestCase
     {
         parent::setUp();
 
-        // 创建测试音乐目录
         $musicDir = public_path('musics');
-        if (! File::exists($musicDir)) {
-            File::makeDirectory($musicDir, 0755, true);
+        if (File::exists($musicDir)) {
+            File::deleteDirectory($musicDir);
         }
+
+        File::makeDirectory($musicDir, 0755, true);
     }
 
     protected function tearDown(): void

@@ -10,13 +10,14 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ProfileControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
+    #[Test]
     public function it_can_show_profile_edit_page()
     {
         $user = User::factory()->create();
@@ -31,7 +32,7 @@ class ProfileControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_update_user_profile()
     {
         $user = User::factory()->create([
@@ -60,7 +61,7 @@ class ProfileControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_profile_update_data()
     {
         $user = User::factory()->create();
@@ -78,7 +79,7 @@ class ProfileControllerTest extends TestCase
         $response->assertJsonValidationErrors(['name', 'email']);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_email_change_without_verification()
     {
         $user = User::factory()->create([
@@ -102,7 +103,7 @@ class ProfileControllerTest extends TestCase
         $this->assertEquals('new@example.com', $user->email);
     }
 
-    /** @test */
+    #[Test]
     public function it_keeps_email_verification_when_email_not_changed()
     {
         $user = User::factory()->create([
@@ -126,7 +127,7 @@ class ProfileControllerTest extends TestCase
         $this->assertEquals('New Name', $user->name);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_delete_user_account()
     {
         $user = User::factory()->create([
@@ -157,7 +158,7 @@ class ProfileControllerTest extends TestCase
         $this->assertDatabaseMissing('thing_items', ['user_id' => $user->id]);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_password_for_account_deletion()
     {
         $user = User::factory()->create([
@@ -177,7 +178,7 @@ class ProfileControllerTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $user->id]);
     }
 
-    /** @test */
+    #[Test]
     public function it_requires_password_for_account_deletion()
     {
         $user = User::factory()->create();
@@ -193,7 +194,7 @@ class ProfileControllerTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $user->id]);
     }
 
-    /** @test */
+    #[Test]
     public function it_cleans_up_user_related_data_on_deletion()
     {
         $user = User::factory()->create([
@@ -231,7 +232,7 @@ class ProfileControllerTest extends TestCase
         $this->assertDatabaseMissing('thing_item_images', ['item_id' => $item2->id]);
     }
 
-    /** @test */
+    #[Test]
     public function it_logs_out_user_after_account_deletion()
     {
         $user = User::factory()->create([
@@ -248,7 +249,7 @@ class ProfileControllerTest extends TestCase
         $this->assertDatabaseMissing('users', ['id' => $user->id]);
     }
 
-    /** @test */
+    #[Test]
     public function it_invalidates_session_after_account_deletion()
     {
         $user = User::factory()->create([
@@ -265,7 +266,7 @@ class ProfileControllerTest extends TestCase
         $this->assertDatabaseMissing('users', ['id' => $user->id]);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_profile_update_with_partial_data()
     {
         $user = User::factory()->create([
@@ -290,7 +291,7 @@ class ProfileControllerTest extends TestCase
         $this->assertEquals('old@example.com', $user->email);
     }
 
-    /** @test */
+    #[Test]
     public function it_prevents_duplicate_email_on_profile_update()
     {
         $user1 = User::factory()->create(['email' => 'user1@example.com']);

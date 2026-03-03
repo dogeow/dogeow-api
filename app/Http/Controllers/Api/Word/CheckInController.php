@@ -31,7 +31,7 @@ class CheckInController extends Controller
 
         // 检查该日期是否已打卡
         $checkIn = CheckIn::where('user_id', $user->id)
-            ->where('check_in_date', $today)
+            ->whereDate('check_in_date', $today)
             ->first();
 
         if ($checkIn) {
@@ -216,7 +216,7 @@ class CheckInController extends Controller
 
         // 今日是否已打卡
         $todayCheckedIn = CheckIn::where('user_id', $user->id)
-            ->where('check_in_date', now()->toDateString())
+            ->whereDate('check_in_date', now()->toDateString())
             ->exists();
 
         return response()->json([

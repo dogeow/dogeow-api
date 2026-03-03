@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 
 // 物品
 Route::prefix('things')->name('things.')->group(function () {
+    Route::get('items/categories', [ItemController::class, 'categories'])->name('items.categories');
     Route::apiResource('items', ItemController::class);
 
     // 搜索相关路由

@@ -252,4 +252,13 @@ class NoteContentServiceTest extends TestCase
             'user_id' => $user->id,
         ]);
     }
+
+    public function test_derive_markdown_from_content_returns_original_for_null_json(): void
+    {
+        // Test when content is valid JSON but decodes to null
+        $result = $this->service->deriveMarkdownFromContent('null');
+
+        // Should return original when JSON decodes to null
+        $this->assertEquals('null', $result);
+    }
 }

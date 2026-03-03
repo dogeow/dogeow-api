@@ -3,10 +3,15 @@
 namespace Tests\Unit\Models\Game;
 
 use App\Models\Game\GameMapDefinition;
+use App\Models\Game\GameMonsterDefinition;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class GameMapDefinitionTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected GameMapDefinition $map;
 
     protected function setUp(): void
@@ -63,7 +68,7 @@ class GameMapDefinitionTest extends TestCase
     public function test_character_maps_relationship(): void
     {
         $map = new GameMapDefinition;
-        $this->assertTrue(method_exists($map, 'characterMaps'));
+        $this->assertInstanceOf(HasMany::class, $map->characterMaps());
     }
 
     public function test_get_monsters_returns_empty_array_when_no_monster_ids(): void
@@ -88,5 +93,38 @@ class GameMapDefinitionTest extends TestCase
         $monsters = $map->getMonsters();
         $this->assertIsArray($monsters);
         $this->assertEmpty($monsters);
+    }
+
+    public function test_get_monsters_returns_active_monsters_only(): void
+    {
+        $activeMonster = GameMonsterDefinition::create([
+            'name' => 'Wolf',
+            'type' => 'normal',
+            'level' => 3,
+            'hp_base' => 30,
+            'attack_base' => 8,
+            'defense_base' => 2,
+            'experience_base' => 5,
+            'is_active' => true,
+        ]);
+        $inactiveMonster = GameMonsterDefinition::create([
+            'name' => 'Ghost',
+            'type' => 'normal',
+            'level' => 5,
+            'hp_base' => 50,
+            'attack_base' => 10,
+            'defense_base' => 4,
+            'experience_base' => 9,
+            'is_active' => false,
+        ]);
+
+        $map = new GameMapDefinition([
+            'monster_ids' => [$activeMonster->id, $inactiveMonster->id, $activeMonster->id],
+        ]);
+
+        $monsters = $map->getMonsters();
+
+        $this->assertCount(1, $monsters);
+        $this->assertSame($activeMonster->id, $monsters[0]->id);
     }
 }

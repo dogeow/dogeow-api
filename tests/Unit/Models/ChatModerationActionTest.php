@@ -257,8 +257,7 @@ class ChatModerationActionTest extends TestCase
 
     public function test_get_severity_level_returns_low_for_unknown_action_type()
     {
-        // Since we can't create with unknown action_type due to enum constraint,
-        // we'll test the method directly by creating a mock
+        // 已知类型分支
         $action = ChatModerationAction::factory()->create([
             'action_type' => ChatModerationAction::ACTION_DELETE_MESSAGE,
         ]);
@@ -266,12 +265,16 @@ class ChatModerationActionTest extends TestCase
         // Test the method with a known action type that returns 'low'
         $this->assertEquals('low', $action->getSeverityLevel());
 
-        // Test that the method handles unknown types gracefully
-        // We'll test this by ensuring the default case returns 'low'
+        // 已知高危分支
         $banAction = ChatModerationAction::factory()->create([
             'action_type' => ChatModerationAction::ACTION_BAN_USER,
         ]);
 
         $this->assertEquals('high', $banAction->getSeverityLevel());
+
+        // 默认分支（未知类型）
+        $unknownAction = new ChatModerationAction;
+        $unknownAction->action_type = 'unknown_action';
+        $this->assertEquals('low', $unknownAction->getSeverityLevel());
     }
 }

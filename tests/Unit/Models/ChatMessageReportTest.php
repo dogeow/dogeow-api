@@ -338,6 +338,26 @@ class ChatMessageReportTest extends TestCase
             'report_type' => ChatMessageReport::TYPE_HARASSMENT,
         ]);
         $this->assertEquals('Harassment', $harassmentReport->getReportTypeLabel());
+
+        $hateSpeechReport = ChatMessageReport::factory()->create([
+            'report_type' => ChatMessageReport::TYPE_HATE_SPEECH,
+        ]);
+        $this->assertEquals('Hate Speech', $hateSpeechReport->getReportTypeLabel());
+
+        $violenceReport = ChatMessageReport::factory()->create([
+            'report_type' => ChatMessageReport::TYPE_VIOLENCE,
+        ]);
+        $this->assertEquals('Violence/Threats', $violenceReport->getReportTypeLabel());
+
+        $sexualContentReport = ChatMessageReport::factory()->create([
+            'report_type' => ChatMessageReport::TYPE_SEXUAL_CONTENT,
+        ]);
+        $this->assertEquals('Sexual Content', $sexualContentReport->getReportTypeLabel());
+
+        $misinformationReport = ChatMessageReport::factory()->create([
+            'report_type' => ChatMessageReport::TYPE_MISINFORMATION,
+        ]);
+        $this->assertEquals('Misinformation', $misinformationReport->getReportTypeLabel());
     }
 
     public function test_chat_message_report_can_be_created_with_valid_data()

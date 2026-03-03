@@ -300,6 +300,90 @@ class GameCombatLootServiceTest extends TestCase
         $this->assertTrue($character->fresh()->hasDiscoveredItem($gem->definition_id));
     }
 
+    public function test_create_item_creates_magic_equipment_with_affixes_and_sockets(): void
+    {
+        $character = $this->createCharacter(['level' => 100]);
+        $definition = $this->createItemDefinition([
+            'name' => 'Magic Sword',
+            'type' => 'weapon',
+            'sub_type' => 'sword',
+            'base_stats' => ['attack' => 15, 'defense' => 5],
+            'required_level' => 99,  // 高等级确保只有这个定义符合条件
+        ]);
+
+        $item = $this->service->createItem($character, [
+            'type' => 'weapon',
+            'quality' => 'magic',
+            'level' => 100,  // 匹配高等级定义
+        ]);
+
+        $this->assertInstanceOf(GameItem::class, $item);
+        $this->assertSame($definition->id, $item->definition_id);
+        $this->assertSame('magic', $item->quality);
+        $this->assertNotEmpty($item->stats);
+        $this->assertGreaterThanOrEqual(1, count($item->affixes ?? []));
+        $this->assertLessThanOrEqual(2, count($item->affixes ?? []));
+        $this->assertGreaterThanOrEqual(0, $item->sockets ?? 0);
+        $this->assertLessThanOrEqual(1, $item->sockets ?? 0);
+        $this->assertTrue($character->fresh()->hasDiscoveredItem($definition->id));
+    }
+
+    public function test_create_item_creates_legendary_equipment_with_affixes_and_sockets(): void
+    {
+        $character = $this->createCharacter(['level' => 100]);
+        $definition = $this->createItemDefinition([
+            'name' => 'Legendary Sword',
+            'type' => 'weapon',
+            'sub_type' => 'sword',
+            'base_stats' => ['attack' => 50, 'defense' => 20],
+            'required_level' => 98,  // 高等级确保只有这个定义符合条件
+        ]);
+
+        $item = $this->service->createItem($character, [
+            'type' => 'weapon',
+            'quality' => 'legendary',
+            'level' => 100,  // 匹配高等级定义
+        ]);
+
+        $this->assertInstanceOf(GameItem::class, $item);
+        $this->assertSame($definition->id, $item->definition_id);
+        $this->assertSame('legendary', $item->quality);
+        $this->assertNotEmpty($item->stats);
+        $this->assertGreaterThanOrEqual(3, count($item->affixes ?? []));
+        $this->assertLessThanOrEqual(4, count($item->affixes ?? []));
+        $this->assertGreaterThanOrEqual(2, $item->sockets ?? 0);
+        $this->assertLessThanOrEqual(3, $item->sockets ?? 0);
+        $this->assertTrue($character->fresh()->hasDiscoveredItem($definition->id));
+    }
+
+    public function test_create_item_creates_mythic_equipment_with_affixes_and_sockets(): void
+    {
+        $character = $this->createCharacter(['level' => 100]);
+        $definition = $this->createItemDefinition([
+            'name' => 'Mythic Sword',
+            'type' => 'weapon',
+            'sub_type' => 'sword',
+            'base_stats' => ['attack' => 100, 'defense' => 40],
+            'required_level' => 97,  // 高等级确保只有这个定义符合条件
+        ]);
+
+        $item = $this->service->createItem($character, [
+            'type' => 'weapon',
+            'quality' => 'mythic',
+            'level' => 100,  // 匹配高等级定义
+        ]);
+
+        $this->assertInstanceOf(GameItem::class, $item);
+        $this->assertSame($definition->id, $item->definition_id);
+        $this->assertSame('mythic', $item->quality);
+        $this->assertNotEmpty($item->stats);
+        $this->assertGreaterThanOrEqual(4, count($item->affixes ?? []));
+        $this->assertLessThanOrEqual(5, count($item->affixes ?? []));
+        $this->assertGreaterThanOrEqual(3, $item->sockets ?? 0);
+        $this->assertLessThanOrEqual(4, $item->sockets ?? 0);
+        $this->assertTrue($character->fresh()->hasDiscoveredItem($definition->id));
+    }
+
     private function createCharacter(array $attributes = []): GameCharacter
     {
         $user = User::factory()->create();

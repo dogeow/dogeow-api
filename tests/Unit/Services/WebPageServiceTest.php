@@ -122,4 +122,43 @@ class WebPageServiceTest extends TestCase
 
         $this->assertEquals('https://example.com/favicon.ico', $result['favicon']);
     }
+
+    public function test_fetch_content_adds_https_to_url_without_protocol()
+    {
+        $html = '<html><head><title>Test Page</title></head><body>Content</body></html>';
+
+        Http::fake([
+            'https://example.com*' => Http::response($html, 200),
+        ]);
+
+        $result = $this->webPageService->fetchContent('example.com');
+
+        $this->assertEquals('Test Page', $result['title']);
+    }
+
+    public function test_fetch_content_handles_http_protocol()
+    {
+        $html = '<html><head><title>HTTP Page</title></head><body>Content</body></html>';
+
+        Http::fake([
+            'http://example.com*' => Http::response($html, 200),
+        ]);
+
+        $result = $this->webPageService->fetchContent('http://example.com');
+
+        $this->assertEquals('HTTP Page', $result['title']);
+    }
+
+    public function test_fetch_content_handles_protocol_relative_favicon()
+    {
+        $html = '<html><head><title>Test Page</title><link rel="icon" href="//cdn.example.com/favicon.ico"></head><body>Content</body></html>';
+
+        Http::fake([
+            'https://example.com' => Http::response($html, 200),
+        ]);
+
+        $result = $this->webPageService->fetchContent('https://example.com');
+
+        $this->assertEquals('https://cdn.example.com/favicon.ico', $result['favicon']);
+    }
 }

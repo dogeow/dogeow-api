@@ -203,4 +203,78 @@ class ChatMessageServiceTest extends TestCase
         $this->assertStringContainsString('needle', $search['messages']->first()->message);
         $this->assertCount(2, $recent);
     }
+
+    public function test_get_message_history_delegates_to_pagination_service(): void
+    {
+        $roomId = 42;
+        $user = User::factory()->create();
+
+        ChatMessage::factory()->create([
+            'room_id' => $roomId,
+            'user_id' => $user->id,
+            'message' => 'Test message',
+        ]);
+
+        $result = $this->service->getMessageHistory($roomId, null, 10, 'before');
+
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('messages', $result);
+    }
+
+    public function test_get_message_history_paginated_returns_paginator(): void
+    {
+        $roomId = 43;
+        $user = User::factory()->create();
+
+        ChatMessage::factory()->count(3)->create([
+            'room_id' => $roomId,
+            'user_id' => $user->id,
+            'message' => 'Test message',
+        ]);
+
+        $result = $this->service->getMessageHistoryPaginated($roomId);
+
+        $this->assertInstanceOf(\Illuminate\Pagination\LengthAwarePaginator::class, $result);
+        $this->assertCount(3, $result->items());
+    }
+
+    public function test_process_message_returns_error_for_invalid_message(): void
+    {
+        $user = User::factory()->create();
+
+        // Test empty message
+        $result = $this->service->processMessage(1, $user->id, '   ');
+
+        $this->assertFalse($result['success']);
+        $this->assertArrayHasKey('errors', $result);
+        $this->assertContains('Message cannot be empty', $result['errors']);
+    }
+
+    public function test_process_message_handles_database_exception(): void
+    {
+        $user = User::factory()->create();
+
+        // Use event listener to throw exception during model creation
+        ChatMessage::creating(function () {
+            throw new \Exception('Database error');
+        });
+
+        $result = $this->service->processMessage(1, $user->id, 'Valid message');
+
+        $this->assertFalse($result['success']);
+        $this->assertArrayHasKey('errors', $result);
+        $this->assertStringContainsString('Failed to save message', $result['errors'][0]);
+    }
+
+    public function test_create_system_message_returns_null_on_exception(): void
+    {
+        // Mock ChatMessage to throw exception
+        ChatMessage::creating(function () {
+            throw new \Exception('Database error');
+        });
+
+        $result = $this->service->createSystemMessage(1, 'System message');
+
+        $this->assertNull($result);
+    }
 }

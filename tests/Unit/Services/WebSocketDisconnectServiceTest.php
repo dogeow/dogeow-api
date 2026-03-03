@@ -142,4 +142,89 @@ class WebSocketDisconnectServiceTest extends TestCase
 
         $this->assertFalse($this->service->isUserOnlineInRoom($user->id, $room->id));
     }
+
+    public function test_handle_disconnect_with_nonexistent_user(): void
+    {
+        $this->service->handleDisconnect(999999, 'socket-fake');
+
+        Event::assertNotDispatched(UserLeft::class);
+        Event::assertNotDispatched(UserLeftRoom::class);
+    }
+
+    public function test_cleanup_inactive_connections_returns_zero_when_no_inactive_users(): void
+    {
+        $room = ChatRoom::factory()->create();
+        $user = User::factory()->create();
+
+        ChatRoomUser::factory()->online()->create([
+            'room_id' => $room->id,
+            'user_id' => $user->id,
+            'last_seen_at' => now(),
+        ]);
+
+        $cleanedCount = $this->service->cleanupInactiveConnections(5);
+
+        $this->assertSame(0, $cleanedCount);
+    }
+
+    public function test_get_room_online_count_returns_zero_for_empty_room(): void
+    {
+        $room = ChatRoom::factory()->create();
+
+        $this->assertSame(0, $this->service->getRoomOnlineCount($room->id));
+    }
+
+    public function test_is_user_online_in_room_returns_false_when_user_not_member(): void
+    {
+        $room = ChatRoom::factory()->create();
+        $user = User::factory()->create();
+
+        $this->assertFalse($this->service->isUserOnlineInRoom($user->id, $room->id));
+    }
+
+    public function test_handle_disconnect_handles_exception_and_rolls_back_transaction(): void
+    {
+        $user = User::factory()->create();
+        $room = ChatRoom::factory()->create();
+
+        ChatRoomUser::factory()->online()->create([
+            'room_id' => $room->id,
+            'user_id' => $user->id,
+        ]);
+
+        // Mock DB to simulate transaction failure
+        \Illuminate\Support\Facades\DB::shouldReceive('beginTransaction')->once()->andThrow(new \Exception('DB transaction failed'));
+        \Illuminate\Support\Facades\DB::shouldReceive('rollBack')->once();
+
+        // Call handleDisconnect - it should catch the exception internally
+        $this->service->handleDisconnect($user->id);
+
+        // Test passes if no exception is thrown and rollBack was called
+        $this->assertTrue(true);
+    }
+
+    public function test_cleanup_inactive_connections_handles_exception_and_returns_zero(): void
+    {
+        // Create stale user but mock ChatRoomUser to throw exception
+        $room = ChatRoom::factory()->create();
+        $user = User::factory()->create();
+
+        ChatRoomUser::factory()->online()->create([
+            'room_id' => $room->id,
+            'user_id' => $user->id,
+            'last_seen_at' => now()->subMinutes(10),
+        ]);
+
+        // Create a partial mock that throws exception during cleanup
+        $mockService = Mockery::mock(WebSocketDisconnectService::class, [Mockery::mock(ChatService::class)])
+            ->makePartial();
+
+        // Mock handleDisconnect to throw exception
+        $mockService->shouldReceive('handleDisconnect')
+            ->andThrow(new \Exception('Test exception during cleanup'));
+
+        $result = $mockService->cleanupInactiveConnections(5);
+
+        $this->assertSame(0, $result);
+    }
 }

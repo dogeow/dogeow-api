@@ -215,6 +215,30 @@ class VisionUploadControllerTest extends TestCase
         ]);
     }
 
+    public function test_upload_vision_image_uses_default_message_when_upload_fails_without_message(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $image = UploadedFile::fake()->image('test.jpg', 800, 600);
+
+        $this->mock(UpyunService::class, function ($mock) {
+            $mock->shouldReceive('upload')->andReturn([
+                'success' => false,
+            ]);
+        });
+
+        $response = $this->postJson('/api/vision/upload', [
+            'image' => $image,
+        ]);
+
+        $response->assertStatus(500);
+        $response->assertJson([
+            'success' => false,
+            'message' => '上传失败',
+        ]);
+    }
+
     public function test_upload_vision_image_handles_invalid_file(): void
     {
         $user = User::factory()->create();
@@ -239,5 +263,53 @@ class VisionUploadControllerTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['image']);
+    }
+
+    public function test_upload_vision_image_handles_upload_error_ini_size(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $tmpPath = tempnam(sys_get_temp_dir(), 'upload');
+        file_put_contents($tmpPath, 'valid-image');
+
+        $image = new UploadedFile(
+            $tmpPath,
+            'test.jpg',
+            'image/jpeg',
+            UPLOAD_ERR_INI_SIZE,
+            true
+        );
+
+        // Validation fails first
+        $response = $this->postJson('/api/vision/upload', [
+            'image' => $image,
+        ]);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_upload_vision_image_handles_upload_error_no_file(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $tmpPath = tempnam(sys_get_temp_dir(), 'upload');
+        file_put_contents($tmpPath, 'valid-image');
+
+        $image = new UploadedFile(
+            $tmpPath,
+            'test.jpg',
+            'image/jpeg',
+            UPLOAD_ERR_NO_FILE,
+            true
+        );
+
+        // Validation fails first
+        $response = $this->postJson('/api/vision/upload', [
+            'image' => $image,
+        ]);
+
+        $response->assertStatus(422);
     }
 }

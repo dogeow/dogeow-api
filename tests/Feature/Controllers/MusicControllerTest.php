@@ -4,6 +4,7 @@ namespace Tests\Feature\Controllers;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class MusicControllerTest extends TestCase
@@ -13,9 +14,16 @@ class MusicControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $musicDir = public_path('musics');
+        if (File::exists($musicDir)) {
+            File::deleteDirectory($musicDir);
+        }
+
+        File::makeDirectory($musicDir, 0755, true);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_music_list()
     {
         // 创建测试音乐目录和文件
@@ -60,7 +68,7 @@ class MusicControllerTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_error_when_music_directory_not_exists()
     {
         // 确保音乐目录不存在
@@ -77,7 +85,7 @@ class MusicControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_empty_music_directory()
     {
         // 创建空的音乐目录
@@ -101,7 +109,7 @@ class MusicControllerTest extends TestCase
         $this->assertEmpty($data);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_only_audio_files()
     {
         $musicDir = public_path('musics');
@@ -145,7 +153,7 @@ class MusicControllerTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_correct_file_information()
     {
         $musicDir = public_path('musics');

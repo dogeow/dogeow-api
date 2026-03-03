@@ -316,9 +316,6 @@ class LearningController extends Controller
                 $word->educationLevels()->sync($levelIds);
                 $books = Book::whereHas('educationLevels', fn ($q) => $q->whereIn('word_education_levels.id', $levelIds))->get();
                 foreach ($books as $book) {
-                    if ($book->words()->where('word_id', $word->id)->exists()) {
-                        continue;
-                    }
                     $maxOrder = (int) DB::table('word_book_word')
                         ->where('word_book_id', $book->id)
                         ->max('sort_order');

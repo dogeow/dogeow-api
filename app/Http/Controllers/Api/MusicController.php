@@ -83,18 +83,12 @@ class MusicController extends Controller
                 return response()->stream(
                     function () use ($filePath, $start, $length) {
                         $handle = fopen($filePath, 'rb');
-                        if ($handle === false) {
-                            return;
-                        }
                         fseek($handle, $start);
                         $bufferSize = 8192;
                         $remaining = $length;
                         while ($remaining > 0 && ! feof($handle)) {
                             $read = min($bufferSize, $remaining);
                             $buffer = fread($handle, $read);
-                            if ($buffer === false) {
-                                break;
-                            }
                             echo $buffer;
                             $remaining -= $read;
                             flush();

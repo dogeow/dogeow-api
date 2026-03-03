@@ -263,4 +263,52 @@ class NoteControllerTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['title']);
     }
+
+    public function test_update_converts_null_content_to_empty_string()
+    {
+        $note = Note::factory()->create([
+            'user_id' => $this->user->id,
+            'content' => 'original content',
+            'content_markdown' => 'original markdown',
+        ]);
+
+        $response = $this->putJson("/api/notes/{$note->id}", [
+            'content' => null,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'content' => '',
+            ]);
+
+        $this->assertDatabaseHas('notes', [
+            'id' => $note->id,
+            'content' => '',
+        ]);
+    }
+
+    public function test_update_wiki_note_regenerates_slug_when_title_changes_without_slug()
+    {
+        $note = Note::factory()->create([
+            'user_id' => $this->user->id,
+            'is_wiki' => true,
+            'title' => 'Old Wiki Title',
+            'slug' => 'old-wiki-title',
+        ]);
+
+        $response = $this->putJson("/api/notes/{$note->id}", [
+            'title' => 'New Wiki Title',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'title' => 'New Wiki Title',
+                'is_wiki' => true,
+            ]);
+
+        $updated = $note->fresh();
+        $this->assertNotNull($updated);
+        $this->assertNotSame('old-wiki-title', $updated->slug);
+        $this->assertStringContainsString('new-wiki-title', (string) $updated->slug);
+    }
 }

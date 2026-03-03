@@ -4,6 +4,9 @@ namespace Tests\Unit\Resources\Word;
 
 use App\Http\Resources\Word\BookResource;
 use App\Models\Word\Book;
+use App\Models\Word\Category;
+use App\Models\Word\EducationLevel;
+use Illuminate\Http\Request;
 use Tests\TestCase;
 
 class BookResourceTest extends TestCase
@@ -28,14 +31,29 @@ class BookResourceTest extends TestCase
         $book = new Book;
         $book->id = 1;
         $book->name = 'Test Book';
+        $book->description = 'Test Description';
+        $book->difficulty = 2;
+        $book->total_words = 20;
+        $book->sort_order = 5;
         $book->user_id = 1;
 
-        $resource = new BookResource($book);
-        $resource->load('words');
+        $category = new Category;
+        $category->id = 9;
+        $category->name = 'CET';
+        $book->setRelation('category', $category);
 
-        $array = $resource->toArray(request());
+        $level = new EducationLevel;
+        $level->id = 7;
+        $level->code = 'college';
+        $level->name = 'College';
+        $book->setRelation('educationLevels', collect([$level]));
+
+        $resource = new BookResource($book);
+        $array = $resource->resolve(new Request);
 
         $this->assertArrayHasKey('id', $array);
         $this->assertArrayHasKey('name', $array);
+        $this->assertSame('CET', $array['category']['name']);
+        $this->assertSame('college', $array['education_levels'][0]['code']);
     }
 }

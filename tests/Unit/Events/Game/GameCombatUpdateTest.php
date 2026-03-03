@@ -3,6 +3,7 @@
 namespace Tests\Unit\Events\Game;
 
 use App\Events\Game\GameCombatUpdate;
+use App\Models\Game\GameCharacter;
 use Tests\TestCase;
 
 class GameCombatUpdateTest extends TestCase
@@ -68,5 +69,22 @@ class GameCombatUpdateTest extends TestCase
         $this->assertArrayHasKey('current_mana', $data);
         $this->assertSame(25, $data['current_hp']);
         $this->assertSame(10, $data['current_mana']);
+    }
+
+    public function test_broadcast_with_extracts_hp_mana_from_character_model(): void
+    {
+        $character = new GameCharacter;
+        $character->current_hp = 30;
+        $character->current_mana = 12;
+
+        $event = new GameCombatUpdate(1, [
+            'victory' => true,
+            'character' => $character,
+        ]);
+
+        $data = $event->broadcastWith();
+
+        $this->assertSame(30, $data['current_hp']);
+        $this->assertSame(12, $data['current_mana']);
     }
 }
