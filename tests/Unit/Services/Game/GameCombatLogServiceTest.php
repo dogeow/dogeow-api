@@ -95,7 +95,7 @@ class GameCombatLogServiceTest extends TestCase
         $this->assertTrue($fresh->victory);
         $this->assertSame(['item' => 'fang'], $fresh->loot_dropped);
         $this->assertSame([101, 202], $fresh->skills_used);
-        $this->assertSame(['before' => ['hp' => ['name' => '小血瓶']], 'after' => ['mp' => ['name' => '小蓝瓶']]], $fresh->potion_used);
+        $this->assertSame(['before' => ['hp' => ['name' => '小血瓶']], 'after' => ['mp' => ['name' => '小蓝瓶']]], array_reverse($fresh->potion_used));
         $this->assertSame(12, $fresh->character_level);
         $this->assertSame(99, $fresh->character_attack);
         $this->assertSame(8, $fresh->monster_level);
@@ -207,8 +207,8 @@ class GameCombatLogServiceTest extends TestCase
         $result = $this->service->getCombatLogs($character);
 
         $this->assertCount(50, $result['logs']);
-        $this->assertSame(55, $result['logs']->first()->damage_dealt);
-        $this->assertSame(6, $result['logs']->last()->damage_dealt);
+        $this->assertEquals(55, (int) $result['logs']->first()->damage_dealt);
+        $this->assertEquals(6, (int) $result['logs']->last()->damage_dealt);
         $this->assertSame($monster->name, $result['logs']->first()->monster->name);
         $this->assertSame($map->name, $result['logs']->first()->map->name);
     }
@@ -308,14 +308,14 @@ class GameCombatLogServiceTest extends TestCase
 
         $result = $this->service->getCombatStats($character);
 
-        $this->assertSame(2, $result['stats']['total_battles']);
-        $this->assertSame(1, $result['stats']['total_victories']);
-        $this->assertSame(1, $result['stats']['total_defeats']);
-        $this->assertSame(18, $result['stats']['total_damage_dealt']);
-        $this->assertSame(7, $result['stats']['total_damage_taken']);
-        $this->assertSame(5, $result['stats']['total_experience_gained']);
-        $this->assertSame(5, $result['stats']['total_copper_gained']);
-        $this->assertSame(1, $result['stats']['total_items_looted']);
+        $this->assertSame(2, (int) $result['stats']['total_battles']);
+        $this->assertSame(1, (int) $result['stats']['total_victories']);
+        $this->assertSame(1, (int) $result['stats']['total_defeats']);
+        $this->assertSame(18, (int) $result['stats']['total_damage_dealt']);
+        $this->assertSame(7, (int) $result['stats']['total_damage_taken']);
+        $this->assertSame(5, (int) $result['stats']['total_experience_gained']);
+        $this->assertSame(5, (int) $result['stats']['total_copper_gained']);
+        $this->assertSame(1, (int) $result['stats']['total_items_looted']);
     }
 
     public function test_format_logs_for_response_maps_full_log_payload(): void

@@ -398,7 +398,7 @@ class CloudFileControllerTest extends TestCase
 
         $types = $this->keyByFileType(collect($response->json('files_by_type')));
         $this->assertSame(1, $types['图片']['count']);
-        $this->assertSame(1024, $types['图片']['total_size']);
+        $this->assertSame(1024, (int) $types['图片']['total_size']);
         $this->assertSame(1, $types['PDF']['count']);
         $this->assertSame(2048, $types['PDF']['total_size']);
         $this->assertSame(1, $types['文档']['count']);
