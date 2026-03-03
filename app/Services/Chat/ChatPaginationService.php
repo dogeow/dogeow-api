@@ -147,14 +147,9 @@ class ChatPaginationService
 
         $query = ChatMessage::with(['user:id,name,email'])
             ->where('room_id', $roomId)
-            ->where('message_type', 'text'); // Only search text messages
+            ->where('message_type', ChatMessage::TYPE_TEXT); // Only search text messages
 
-        // Use full-text search if available, otherwise LIKE
-        if ($this->supportsFullTextSearch()) {
-            $query->whereRaw('MATCH(message) AGAINST(? IN BOOLEAN MODE)', [$searchQuery]);
-        } else {
-            $query->where('message', 'LIKE', '%' . $searchQuery . '%');
-        }
+        $this->applySearchConstraint($query, $searchQuery);
 
         // Apply cursor if provided
         $cursorData = $this->parseCursor($cursor);
@@ -296,5 +291,45 @@ class ChatPaginationService
         } catch (\Exception $e) {
             return false;
         }
+    }
+
+    /**
+     * Apply a search constraint that stays compatible with MySQL full-text quirks.
+     */
+    private function applySearchConstraint(Builder $query, string $searchQuery): void
+    {
+        $likePattern = '%' . $searchQuery . '%';
+        $fullTextQuery = $this->buildFullTextSearchQuery($searchQuery);
+
+        if ($this->supportsFullTextSearch() && $fullTextQuery !== null) {
+            $query->where(function (Builder $searchBuilder) use ($fullTextQuery, $likePattern) {
+                $searchBuilder
+                    ->whereRaw('MATCH(message) AGAINST(? IN BOOLEAN MODE)', [$fullTextQuery])
+                    ->orWhere('message', 'LIKE', $likePattern);
+            });
+
+            return;
+        }
+
+        $query->where('message', 'LIKE', $likePattern);
+    }
+
+    /**
+     * Build a safe boolean-mode full-text query for simple single-word searches.
+     */
+    private function buildFullTextSearchQuery(string $searchQuery): ?string
+    {
+        $trimmedQuery = trim($searchQuery);
+
+        if ($trimmedQuery === '') {
+            return null;
+        }
+
+        // Multi-word, unicode, and symbol-heavy queries are more reliable with LIKE fallback.
+        if (! preg_match('/^[A-Za-z0-9_-]+$/', $trimmedQuery)) {
+            return null;
+        }
+
+        return '+' . $trimmedQuery . '*';
     }
 }

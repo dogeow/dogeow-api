@@ -95,7 +95,8 @@ class GameCombatLogServiceTest extends TestCase
         $this->assertTrue($fresh->victory);
         $this->assertSame(['item' => 'fang'], $fresh->loot_dropped);
         $this->assertSame([101, 202], $fresh->skills_used);
-        $this->assertSame(['before' => ['hp' => ['name' => '小血瓶']], 'after' => ['mp' => ['name' => '小蓝瓶']]], $fresh->potion_used);
+        $this->assertSame(['hp' => ['name' => '小血瓶']], $fresh->potion_used['before']);
+        $this->assertSame(['mp' => ['name' => '小蓝瓶']], $fresh->potion_used['after']);
         $this->assertSame(12, $fresh->character_level);
         $this->assertSame(99, $fresh->character_attack);
         $this->assertSame(8, $fresh->monster_level);
