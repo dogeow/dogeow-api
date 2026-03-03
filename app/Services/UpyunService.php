@@ -3,16 +3,19 @@
 namespace App\Services;
 
 use GuzzleHttp\Psr7\LazyOpenStream;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 /**
- * 又拍云 REST API 上传服务（用于本地文件上传到 UpYun，如 Ollama 生成的图片）
+ * 又拍云 REST API 上传服务
  *
  * @see https://docs.upyun.com/api/rest_api/
  * @see https://docs.upyun.com/api/authorization/
  */
 class UpyunService
 {
+    private const FINAL_LIST_ITER = 'g2gCZAAEbmV4dGQAA2VvZg';
+
     private string $bucket;
 
     private string $operator;
@@ -103,6 +106,73 @@ class UpyunService
     }
 
     /**
+     * 获取又拍云目录文件列表
+     *
+     * @return array{
+     *     success: bool,
+     *     files?: array<int, array{name: string, type: string, length: int, last_modified?: int}>,
+     *     message?: string
+     * }
+     */
+    public function listDirectory(string $remoteDirectory, int $limit = 1000): array
+    {
+        if (! $this->isConfigured()) {
+            return ['success' => false, 'message' => '又拍云未配置，请设置 UPYUN_BUCKET、UPYUN_OPERATOR、UPYUN_PASSWORD'];
+        }
+
+        $remoteDirectory = trim($remoteDirectory);
+        $remoteDirectory = $remoteDirectory === '' ? '/' : '/' . trim($remoteDirectory, '/');
+
+        $files = [];
+        $iter = null;
+
+        do {
+            $response = $this->sendListDirectoryRequest($remoteDirectory, $limit, $iter);
+
+            if (! $response->successful()) {
+                return [
+                    'success' => false,
+                    'message' => '又拍云目录读取失败: ' . $response->status() . ' ' . $response->body(),
+                ];
+            }
+
+            $payload = $response->json();
+            $items = is_array($payload['files'] ?? null) ? $payload['files'] : [];
+            foreach ($items as $item) {
+                if (! is_array($item) || ! isset($item['name'])) {
+                    continue;
+                }
+
+                $files[] = [
+                    'name' => (string) $item['name'],
+                    'type' => (string) ($item['type'] ?? ''),
+                    'length' => (int) ($item['length'] ?? 0),
+                    'last_modified' => isset($item['last_modified']) ? (int) $item['last_modified'] : null,
+                ];
+            }
+
+            $iter = $payload['iter'] ?? $response->header('x-upyun-list-iter');
+            $iter = is_string($iter) && $iter !== '' ? $iter : null;
+        } while ($iter !== null && $iter !== self::FINAL_LIST_ITER);
+
+        return [
+            'success' => true,
+            'files' => $files,
+        ];
+    }
+
+    public function buildPublicUrl(string $remotePath): string
+    {
+        $normalizedPath = '/' . ltrim($remotePath, '/');
+
+        if ($this->domain !== null && $this->domain !== '') {
+            return rtrim($this->domain, '/') . $normalizedPath;
+        }
+
+        return $normalizedPath;
+    }
+
+    /**
      * 生成 REST API 签名
      * Signature = Base64(HMAC-SHA1(Password_MD5, Method&URI&Date&Content-MD5))
      */
@@ -116,6 +186,27 @@ class UpyunService
         $sign = base64_encode(hash_hmac('sha1', $stringToSign, $this->passwordMd5, true));
 
         return 'UPYUN ' . $this->operator . ':' . $sign;
+    }
+
+    private function sendListDirectoryRequest(string $remoteDirectory, int $limit, ?string $iter): Response
+    {
+        $uri = '/' . $this->bucket . $remoteDirectory;
+        $date = gmdate('D, d M Y H:i:s \G\M\T');
+        $signature = $this->makeSignature('GET', $uri, $date, '');
+        $url = 'https://' . $this->apiHost . $uri;
+
+        $headers = [
+            'Authorization' => $signature,
+            'Date' => $date,
+            'Accept' => 'application/json',
+            'x-list-limit' => (string) max(1, min($limit, 10000)),
+        ];
+
+        if ($iter !== null && $iter !== '') {
+            $headers['x-list-iter'] = $iter;
+        }
+
+        return Http::withHeaders($headers)->get($url);
     }
 
     private function guessMimeType(string $path): string

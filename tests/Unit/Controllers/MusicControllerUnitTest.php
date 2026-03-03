@@ -3,7 +3,9 @@
 namespace Tests\Unit\Controllers;
 
 use App\Http\Controllers\Api\MusicController;
+use App\Services\UpyunService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
@@ -14,7 +16,8 @@ class MusicControllerUnitTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->controller = new MusicController;
+        Cache::flush();
+        $this->controller = new MusicController($this->mockUpyunService());
     }
 
     public function test_get_mime_type_returns_audio_mpeg_for_mp3(): void
@@ -72,30 +75,36 @@ class MusicControllerUnitTest extends TestCase
         $this->assertEquals('application/octet-stream', $mimeType);
     }
 
-    public function test_index_returns_404_when_music_directory_is_missing(): void
+    public function test_index_returns_503_when_upyun_is_not_configured(): void
     {
-        File::deleteDirectory(public_path('musics'));
+        $controller = new MusicController(new class extends UpyunService
+        {
+            public function __construct() {}
 
-        $response = $this->controller->index();
+            public function isConfigured(): bool
+            {
+                return false;
+            }
+        });
 
-        $this->assertEquals(404, $response->getStatusCode());
-        $this->assertSame(['error' => '音乐目录不存在'], json_decode($response->getContent(), true));
+        $response = $controller->index();
+
+        $this->assertEquals(503, $response->getStatusCode());
+        $this->assertSame(['error' => '又拍云未配置'], json_decode($response->getContent(), true));
     }
 
     public function test_index_lists_supported_audio_files_only(): void
     {
-        $musicDir = public_path('musics');
-        File::ensureDirectoryExists($musicDir);
-        file_put_contents($musicDir . '/first.mp3', '123');
-        file_put_contents($musicDir . '/second.ogg', '4567');
-        file_put_contents($musicDir . '/notes.txt', 'ignore');
-
         $response = $this->controller->index();
         $data = json_decode($response->getContent(), true);
 
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertCount(2, $data);
         $this->assertSame(['first', 'second'], array_column($data, 'name'));
+        $this->assertSame(
+            ['https://cdn.example.com/music/first.mp3', 'https://cdn.example.com/music/second.ogg'],
+            array_column($data, 'path')
+        );
     }
 
     public function test_download_returns_404_for_missing_file(): void
@@ -181,5 +190,36 @@ class MusicControllerUnitTest extends TestCase
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertSame('audio/mpeg', $response->headers->get('content-type'));
         $this->assertSame((string) filesize($filePath), $response->headers->get('content-length'));
+    }
+
+    private function mockUpyunService(): UpyunService
+    {
+        return new class extends UpyunService
+        {
+            public function __construct() {}
+
+            public function isConfigured(): bool
+            {
+                return true;
+            }
+
+            public function listDirectory(string $remoteDirectory, int $limit = 1000): array
+            {
+                return [
+                    'success' => true,
+                    'files' => [
+                        ['name' => 'first.mp3', 'type' => 'audio/mp3', 'length' => 3],
+                        ['name' => 'second.ogg', 'type' => 'audio/ogg', 'length' => 4],
+                        ['name' => 'notes.txt', 'type' => 'text/plain', 'length' => 10],
+                        ['name' => 'subdir', 'type' => 'folder', 'length' => 0],
+                    ],
+                ];
+            }
+
+            public function buildPublicUrl(string $remotePath): string
+            {
+                return 'https://cdn.example.com' . $remotePath;
+            }
+        };
     }
 }

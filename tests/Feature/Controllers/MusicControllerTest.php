@@ -2,8 +2,9 @@
 
 namespace Tests\Feature\Controllers;
 
+use App\Services\UpyunService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Cache;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -14,157 +15,140 @@ class MusicControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        $musicDir = public_path('musics');
-        if (File::exists($musicDir)) {
-            File::deleteDirectory($musicDir);
-        }
-
-        File::makeDirectory($musicDir, 0755, true);
+        Cache::flush();
     }
 
     #[Test]
     public function it_can_get_music_list()
     {
-        // 创建测试音乐目录和文件
-        $musicDir = public_path('musics');
-        if (! File::exists($musicDir)) {
-            File::makeDirectory($musicDir, 0755, true);
-        }
+        config()->set('upyun.bucket', 'bucket');
+        config()->set('upyun.operator', 'operator');
+        config()->set('upyun.password', 'password');
+        config()->set('upyun.domain', 'https://cdn.example.com');
 
-        // 创建测试音乐文件
-        $testFiles = [
-            'test1.mp3' => 'test content 1',
-            'test2.ogg' => 'test content 2',
-            'test3.wav' => 'test content 3',
-            'ignore.txt' => 'should be ignored',
-        ];
-
-        foreach ($testFiles as $filename => $content) {
-            File::put($musicDir . '/' . $filename, $content);
-        }
+        $this->mock(UpyunService::class, function ($mock): void {
+            $mock->shouldReceive('isConfigured')->once()->andReturn(true);
+            $mock->shouldReceive('listDirectory')->once()->with('/music')->andReturn([
+                'success' => true,
+                'files' => [
+                    ['name' => 'test1.mp3', 'type' => 'audio/mp3', 'length' => 14],
+                    ['name' => 'test2.ogg', 'type' => 'audio/ogg', 'length' => 14],
+                    ['name' => 'test3.wav', 'type' => 'audio/wav', 'length' => 14],
+                    ['name' => 'ignore.txt', 'type' => 'text/plain', 'length' => 17],
+                ],
+            ]);
+            $mock->shouldReceive('buildPublicUrl')->times(3)->andReturnUsing(
+                fn (string $path): string => 'https://cdn.example.com' . $path
+            );
+        });
 
         $response = $this->get('/api/musics');
 
         $response->assertStatus(200);
         $data = $response->json();
 
-        $this->assertCount(3, $data); // 只包含音频文件
+        $this->assertCount(3, $data);
         $this->assertArrayHasKey('name', $data[0]);
         $this->assertArrayHasKey('path', $data[0]);
         $this->assertArrayHasKey('size', $data[0]);
         $this->assertArrayHasKey('extension', $data[0]);
-
-        // 验证只包含音频文件
-        $extensions = array_column($data, 'extension');
-        $this->assertContains('mp3', $extensions);
-        $this->assertContains('ogg', $extensions);
-        $this->assertContains('wav', $extensions);
-        $this->assertNotContains('txt', $extensions);
-
-        // 清理测试文件
-        foreach (array_keys($testFiles) as $filename) {
-            File::delete($musicDir . '/' . $filename);
-        }
     }
 
     #[Test]
-    public function it_returns_error_when_music_directory_not_exists()
+    public function it_returns_error_when_upyun_is_not_configured()
     {
-        // 确保音乐目录不存在
-        $musicDir = public_path('musics');
-        if (File::exists($musicDir)) {
-            File::deleteDirectory($musicDir);
-        }
+        $this->mock(UpyunService::class, function ($mock): void {
+            $mock->shouldReceive('isConfigured')->once()->andReturn(false);
+        });
 
         $response = $this->get('/api/musics');
 
-        $response->assertStatus(404);
+        $response->assertStatus(503);
         $response->assertJson([
-            'error' => '音乐目录不存在',
+            'error' => '又拍云未配置',
         ]);
     }
 
     #[Test]
-    public function it_handles_empty_music_directory()
+    public function it_handles_empty_upyun_music_directory()
     {
-        // 创建空的音乐目录
-        $musicDir = public_path('musics');
-        if (! File::exists($musicDir)) {
-            File::makeDirectory($musicDir, 0755, true);
-        }
+        config()->set('upyun.bucket', 'bucket');
+        config()->set('upyun.operator', 'operator');
+        config()->set('upyun.password', 'password');
 
-        // 确保目录为空
-        $files = File::files($musicDir);
-        foreach ($files as $file) {
-            File::delete($file->getPathname());
-        }
+        $this->mock(UpyunService::class, function ($mock): void {
+            $mock->shouldReceive('isConfigured')->once()->andReturn(true);
+            $mock->shouldReceive('listDirectory')->once()->with('/music')->andReturn([
+                'success' => true,
+                'files' => [],
+            ]);
+        });
 
         $response = $this->get('/api/musics');
 
         $response->assertStatus(200);
-        $data = $response->json();
-
-        $this->assertIsArray($data);
-        $this->assertEmpty($data);
+        $this->assertSame([], $response->json());
     }
 
     #[Test]
     public function it_filters_only_audio_files()
     {
-        $musicDir = public_path('musics');
-        if (! File::exists($musicDir)) {
-            File::makeDirectory($musicDir, 0755, true);
-        }
+        config()->set('upyun.bucket', 'bucket');
+        config()->set('upyun.operator', 'operator');
+        config()->set('upyun.password', 'password');
+        config()->set('upyun.domain', 'https://cdn.example.com');
 
-        // 创建混合文件类型
-        $testFiles = [
-            'audio1.mp3' => 'audio content',
-            'audio2.ogg' => 'audio content',
-            'document.pdf' => 'document content',
-            'image.jpg' => 'image content',
-            'script.js' => 'script content',
-            'audio3.flac' => 'audio content',
-        ];
-
-        foreach ($testFiles as $filename => $content) {
-            File::put($musicDir . '/' . $filename, $content);
-        }
+        $this->mock(UpyunService::class, function ($mock): void {
+            $mock->shouldReceive('isConfigured')->once()->andReturn(true);
+            $mock->shouldReceive('listDirectory')->once()->with('/music')->andReturn([
+                'success' => true,
+                'files' => [
+                    ['name' => 'audio1.mp3', 'type' => 'audio/mp3', 'length' => 100],
+                    ['name' => 'audio2.ogg', 'type' => 'audio/ogg', 'length' => 200],
+                    ['name' => 'document.pdf', 'type' => 'application/pdf', 'length' => 300],
+                    ['name' => 'image.jpg', 'type' => 'image/jpeg', 'length' => 400],
+                    ['name' => 'audio3.flac', 'type' => 'audio/flac', 'length' => 500],
+                ],
+            ]);
+            $mock->shouldReceive('buildPublicUrl')->times(3)->andReturnUsing(
+                fn (string $path): string => 'https://cdn.example.com' . $path
+            );
+        });
 
         $response = $this->get('/api/musics');
 
         $response->assertStatus(200);
         $data = $response->json();
 
-        // 只应该包含音频文件
         $this->assertCount(3, $data);
-
         $filenames = array_column($data, 'name');
         $this->assertContains('audio1', $filenames);
         $this->assertContains('audio2', $filenames);
         $this->assertContains('audio3', $filenames);
         $this->assertNotContains('document', $filenames);
         $this->assertNotContains('image', $filenames);
-        $this->assertNotContains('script', $filenames);
-
-        // 清理测试文件
-        foreach (array_keys($testFiles) as $filename) {
-            File::delete($musicDir . '/' . $filename);
-        }
     }
 
     #[Test]
     public function it_returns_correct_file_information()
     {
-        $musicDir = public_path('musics');
-        if (! File::exists($musicDir)) {
-            File::makeDirectory($musicDir, 0755, true);
-        }
+        config()->set('upyun.bucket', 'bucket');
+        config()->set('upyun.operator', 'operator');
+        config()->set('upyun.password', 'password');
+        config()->set('upyun.domain', 'https://cdn.example.com');
 
-        // 创建测试文件
-        $filename = 'test-song.mp3';
-        $content = 'test audio content';
-        File::put($musicDir . '/' . $filename, $content);
+        $this->mock(UpyunService::class, function ($mock): void {
+            $mock->shouldReceive('isConfigured')->once()->andReturn(true);
+            $mock->shouldReceive('listDirectory')->once()->with('/music')->andReturn([
+                'success' => true,
+                'files' => [
+                    ['name' => 'test-song.mp3', 'type' => 'audio/mp3', 'length' => 18],
+                ],
+            ]);
+            $mock->shouldReceive('buildPublicUrl')->once()->with('/music/test-song.mp3')->andReturn(
+                'https://cdn.example.com/music/test-song.mp3'
+            );
+        });
 
         $response = $this->get('/api/musics');
 
@@ -175,11 +159,8 @@ class MusicControllerTest extends TestCase
         $music = $data[0];
 
         $this->assertEquals('test-song', $music['name']);
-        $this->assertEquals('/musics/test-song.mp3', $music['path']);
+        $this->assertEquals('https://cdn.example.com/music/test-song.mp3', $music['path']);
         $this->assertEquals('mp3', $music['extension']);
-        $this->assertEquals(strlen($content), $music['size']);
-
-        // 清理测试文件
-        File::delete($musicDir . '/' . $filename);
+        $this->assertEquals(18, $music['size']);
     }
 }

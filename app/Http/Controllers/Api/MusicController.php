@@ -3,41 +3,54 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\UpyunService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\HttpFoundation\Response;
 
 class MusicController extends Controller
 {
+    private const CACHE_KEY = 'musics:upyun:/music:v2';
+
+    public function __construct(private readonly ?UpyunService $upyunService = null) {}
+
     /**
      * 获取所有可用的音乐列表
      */
-    public function index(): \Illuminate\Http\JsonResponse
+    public function index(): JsonResponse
     {
-        $musicDir = public_path('musics');
+        $upyunService = $this->upyunService ?? app(UpyunService::class);
 
-        if (! File::exists($musicDir)) {
-            return response()->json(['error' => '音乐目录不存在'], 404);
+        if (! $upyunService->isConfigured()) {
+            return response()->json(['error' => '又拍云未配置'], 503);
         }
 
-        $allowedExtensions = ['mp3', 'ogg', 'wav', 'flac'];
-        $files = File::files($musicDir);
+        $musicList = Cache::remember(self::CACHE_KEY, now()->addMinutes(5), function () use ($upyunService) {
+            $result = $upyunService->listDirectory('/music');
 
-        $musicList = collect($files)
-            ->filter(function ($file) use ($allowedExtensions) {
-                return in_array($file->getExtension(), $allowedExtensions, true);
-            })
-            ->map(function ($file) {
-                $extension = $file->getExtension();
+            if (! ($result['success'] ?? false)) {
+                throw new \RuntimeException($result['message'] ?? '又拍云目录读取失败');
+            }
 
-                return [
-                    'name' => pathinfo($file->getFilename(), PATHINFO_FILENAME),
-                    'path' => '/musics/' . $file->getFilename(),
-                    'size' => $file->getSize(),
-                    'extension' => $extension,
-                ];
-            })
-            ->values()
-            ->toArray();
+            return collect($result['files'] ?? [])
+                ->filter(function (array $file) {
+                    return $this->isSupportedAudioExtension($file['name']);
+                })
+                ->map(function (array $file) use ($upyunService) {
+                    $filename = (string) $file['name'];
+                    $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+                    return [
+                        'name' => pathinfo($filename, PATHINFO_FILENAME),
+                        'path' => $upyunService->buildPublicUrl('/music/' . rawurlencode($filename)),
+                        'size' => (int) $file['length'],
+                        'extension' => $extension,
+                    ];
+                })
+                ->values()
+                ->toArray();
+        });
 
         return response()->json($musicList);
     }
@@ -123,5 +136,12 @@ class MusicController extends Controller
         ];
 
         return $mimeTypes[$extension] ?? $defaultType;
+    }
+
+    private function isSupportedAudioExtension(string $filename): bool
+    {
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+        return in_array($extension, ['mp3', 'ogg', 'wav', 'flac', 'm4a', 'aac'], true);
     }
 }

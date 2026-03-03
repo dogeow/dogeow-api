@@ -2,8 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Services\UpyunService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class MusicControllerTest extends TestCase
@@ -13,192 +14,81 @@ class MusicControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        $musicDir = public_path('musics');
-        if (File::exists($musicDir)) {
-            File::deleteDirectory($musicDir);
-        }
-
-        File::makeDirectory($musicDir, 0755, true);
+        Cache::flush();
     }
 
-    protected function tearDown(): void
+    public function test_index_returns_music_list_from_upyun(): void
     {
-        // Clean up test files
-        $musicDir = public_path('musics');
-        if (File::exists($musicDir)) {
-            File::deleteDirectory($musicDir);
-        }
+        config()->set('upyun.bucket', 'bucket');
+        config()->set('upyun.operator', 'operator');
+        config()->set('upyun.password', 'password');
+        config()->set('upyun.domain', 'https://cdn.example.com');
 
-        parent::tearDown();
-    }
-
-    public function test_index_returns_music_list(): void
-    {
-        // Create test music files
-        $musicDir = public_path('musics');
-        $testFiles = [
-            'test-song-1.mp3' => 'test content 1',
-            'test-song-2.ogg' => 'test content 2',
-            'test-song-3.wav' => 'test content 3',
-            'invalid-file.txt' => 'not a music file',
-        ];
-
-        foreach ($testFiles as $filename => $content) {
-            File::put($musicDir . '/' . $filename, $content);
-        }
-
-        $response = $this->getJson('/api/musics');
-
-        $response->assertStatus(200)
-            ->assertJsonStructure([
-                '*' => [
-                    'name',
-                    'path',
-                    'size',
-                    'extension',
+        $this->mock(UpyunService::class, function ($mock): void {
+            $mock->shouldReceive('isConfigured')->once()->andReturn(true);
+            $mock->shouldReceive('listDirectory')->once()->with('/music')->andReturn([
+                'success' => true,
+                'files' => [
+                    ['name' => 'first.mp3', 'type' => 'audio/mp3', 'length' => 1024],
+                    ['name' => 'second.ogg', 'type' => 'audio/ogg', 'length' => 2048],
+                    ['name' => 'ignore.txt', 'type' => 'text/plain', 'length' => 128],
+                    ['name' => 'subdir', 'type' => 'folder', 'length' => 0],
                 ],
             ]);
-
-        $responseData = $response->json();
-
-        // Should return 3 music files (excluding .txt file)
-        $this->assertCount(3, $responseData);
-
-        // Verify music files are included
-        $musicNames = collect($responseData)->pluck('name')->toArray();
-        $this->assertContains('test-song-1', $musicNames);
-        $this->assertContains('test-song-2', $musicNames);
-        $this->assertContains('test-song-3', $musicNames);
-
-        // Verify .txt file is excluded
-        $this->assertNotContains('invalid-file', $musicNames);
-
-        // Verify file paths are correct
-        foreach ($responseData as $music) {
-            $this->assertStringStartsWith('/musics/', $music['path']);
-            $this->assertContains($music['extension'], ['mp3', 'ogg', 'wav']);
-            $this->assertIsInt($music['size']);
-        }
-    }
-
-    public function test_index_returns_404_when_music_directory_does_not_exist(): void
-    {
-        // Remove music directory
-        $musicDir = public_path('musics');
-        if (File::exists($musicDir)) {
-            File::deleteDirectory($musicDir);
-        }
+            $mock->shouldReceive('buildPublicUrl')->times(2)->andReturnUsing(
+                fn (string $path): string => 'https://cdn.example.com' . $path
+            );
+        });
 
         $response = $this->getJson('/api/musics');
 
-        $response->assertStatus(404)
-            ->assertJson([
-                'error' => '音乐目录不存在',
+        $response->assertOk()
+            ->assertJsonCount(2)
+            ->assertJsonPath('0.name', 'first')
+            ->assertJsonPath('0.path', 'https://cdn.example.com/music/first.mp3')
+            ->assertJsonPath('0.size', 1024)
+            ->assertJsonPath('0.extension', 'mp3')
+            ->assertJsonPath('1.name', 'second')
+            ->assertJsonPath('1.extension', 'ogg');
+    }
+
+    public function test_index_returns_service_unavailable_when_upyun_is_not_configured(): void
+    {
+        $this->mock(UpyunService::class, function ($mock): void {
+            $mock->shouldReceive('isConfigured')->once()->andReturn(false);
+        });
+
+        $response = $this->getJson('/api/musics');
+
+        $response->assertStatus(503)
+            ->assertJson(['error' => '又拍云未配置']);
+    }
+
+    public function test_index_uses_cached_upyun_music_list(): void
+    {
+        config()->set('upyun.bucket', 'bucket');
+        config()->set('upyun.operator', 'operator');
+        config()->set('upyun.password', 'password');
+        config()->set('upyun.domain', 'https://cdn.example.com');
+
+        $this->mock(UpyunService::class, function ($mock): void {
+            $mock->shouldReceive('isConfigured')->twice()->andReturn(true);
+            $mock->shouldReceive('listDirectory')->once()->with('/music')->andReturn([
+                'success' => true,
+                'files' => [
+                    ['name' => 'cached.mp3', 'type' => 'audio/mp3', 'length' => 4096],
+                ],
             ]);
-    }
+            $mock->shouldReceive('buildPublicUrl')->once()->with('/music/cached.mp3')->andReturn(
+                'https://cdn.example.com/music/cached.mp3'
+            );
+        });
 
-    public function test_index_returns_empty_array_when_no_music_files(): void
-    {
-        // Ensure music directory exists but is empty
-        $musicDir = public_path('musics');
-        if (! File::exists($musicDir)) {
-            File::makeDirectory($musicDir, 0755, true);
-        }
+        $firstResponse = $this->getJson('/api/musics');
+        $secondResponse = $this->getJson('/api/musics');
 
-        $response = $this->getJson('/api/musics');
-
-        $response->assertStatus(200)
-            ->assertJson([]);
-    }
-
-    public function test_index_only_includes_supported_audio_formats(): void
-    {
-        $musicDir = public_path('musics');
-        $testFiles = [
-            'valid-1.mp3' => 'content',
-            'valid-2.ogg' => 'content',
-            'valid-3.wav' => 'content',
-            'valid-4.flac' => 'content',
-            'valid-5.m4a' => 'content',
-            'valid-6.aac' => 'content',
-            'invalid-1.txt' => 'content',
-            'invalid-2.jpg' => 'content',
-            'invalid-3.pdf' => 'content',
-        ];
-
-        foreach ($testFiles as $filename => $content) {
-            File::put($musicDir . '/' . $filename, $content);
-        }
-
-        $response = $this->getJson('/api/musics');
-
-        $response->assertStatus(200);
-
-        $responseData = $response->json();
-
-        // 当前控制器只支持 4 种音频格式
-        $this->assertCount(4, $responseData);
-
-        // Verify only supported formats are included
-        $extensions = collect($responseData)->pluck('extension')->toArray();
-        $supportedFormats = ['mp3', 'ogg', 'wav', 'flac'];
-
-        foreach ($extensions as $extension) {
-            $this->assertContains($extension, $supportedFormats);
-        }
-
-        // Verify invalid files are excluded
-        $names = collect($responseData)->pluck('name')->toArray();
-        $this->assertNotContains('invalid-1', $names);
-        $this->assertNotContains('invalid-2', $names);
-        $this->assertNotContains('invalid-3', $names);
-    }
-
-    public function test_index_handles_case_insensitive_extensions(): void
-    {
-        $musicDir = public_path('musics');
-        $testFiles = [
-            'song-1.MP3' => 'content',
-            'song-2.Ogg' => 'content',
-            'song-3.WAV' => 'content',
-        ];
-
-        foreach ($testFiles as $filename => $content) {
-            File::put($musicDir . '/' . $filename, $content);
-        }
-
-        $response = $this->getJson('/api/musics');
-
-        $response->assertStatus(200);
-
-        $responseData = $response->json();
-
-        // 当前实现按小写扩展名白名单过滤，因此这些文件会被忽略
-        $this->assertCount(0, $responseData);
-    }
-
-    public function test_index_handles_files_without_extensions(): void
-    {
-        $musicDir = public_path('musics');
-        $testFiles = [
-            'song-without-extension' => 'content',
-            'song-with-dot.' => 'content',
-            'valid-song.mp3' => 'content',
-        ];
-
-        foreach ($testFiles as $filename => $content) {
-            File::put($musicDir . '/' . $filename, $content);
-        }
-
-        $response = $this->getJson('/api/musics');
-
-        $response->assertStatus(200);
-
-        $responseData = $response->json();
-
-        // Should only return the valid .mp3 file
-        $this->assertCount(1, $responseData);
-        $this->assertEquals('valid-song', $responseData[0]['name']);
+        $firstResponse->assertOk()->assertJsonCount(1);
+        $secondResponse->assertOk()->assertJsonCount(1);
+        $this->assertSame($firstResponse->json(), $secondResponse->json());
     }
 }
