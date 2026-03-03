@@ -116,16 +116,21 @@ class ItemControllerTest extends TestCase
 
     public function test_index_orders_by_sort_order(): void
     {
+        $this->item->update([
+            'sort_order' => 0,
+            'is_visible' => true,
+        ]);
+
         // Create items with different sort orders
-        $item1 = Item::factory()->create([
+        Item::factory()->visible()->create([
             'nav_category_id' => $this->category->id,
             'sort_order' => 3,
         ]);
-        $item2 = Item::factory()->create([
+        Item::factory()->visible()->create([
             'nav_category_id' => $this->category->id,
             'sort_order' => 1,
         ]);
-        $item3 = Item::factory()->create([
+        Item::factory()->visible()->create([
             'nav_category_id' => $this->category->id,
             'sort_order' => 2,
         ]);
@@ -136,7 +141,7 @@ class ItemControllerTest extends TestCase
 
         $responseData = $response->json();
         $sortOrders = array_column($responseData, 'sort_order');
-        $this->assertEquals($sortOrders, array_values(array_unique($sortOrders)));
+        $this->assertSame([0, 1, 2, 3], $sortOrders);
     }
 
     public function test_store_creates_new_item(): void
