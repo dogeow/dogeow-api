@@ -16,6 +16,7 @@ jobs:
       DB_DATABASE: laravel_test
       DB_USERNAME: root
       DB_PASSWORD: password
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     services:
       mysql:
