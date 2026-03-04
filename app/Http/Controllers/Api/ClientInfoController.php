@@ -29,7 +29,10 @@ class ClientInfoController extends Controller
     public function getLocationInfo(Request $request): JsonResponse
     {
         $ip = $request->ip();
-        $data = $this->clientInfoService->getLocationInfo($ip);
+        $data = $this->clientInfoService->getLocationInfo(
+            $ip,
+            skipReservedIpLookup: ! app()->runningUnitTests()
+        );
 
         $statusCode = isset($data['error']) ? 500 : 200;
 
@@ -41,7 +44,10 @@ class ClientInfoController extends Controller
      */
     public function getClientInfo(Request $request): JsonResponse
     {
-        $data = $this->clientInfoService->getClientInfo($request);
+        $data = $this->clientInfoService->getClientInfo(
+            $request,
+            skipReservedIpLookup: ! app()->runningUnitTests()
+        );
 
         return response()->json($data);
     }

@@ -5,6 +5,7 @@ namespace Tests\Unit\Controllers;
 use App\Http\Controllers\Api\ClientInfoController;
 use App\Services\Web\ClientInfoService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class ClientInfoControllerTest extends TestCase
@@ -26,6 +27,12 @@ class ClientInfoControllerTest extends TestCase
 
     public function test_get_client_info_returns_json(): void
     {
+        Http::fake([
+            'http://ip-api.com/json/*' => Http::response([
+                'country' => 'China',
+            ], 200),
+        ]);
+
         $service = new ClientInfoService;
         $controller = new ClientInfoController($service);
 

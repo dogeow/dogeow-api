@@ -24,13 +24,13 @@ class ClientInfoService
     /**
      * 获取地理位置信息
      */
-    public function getLocationInfo(?string $ip): array
+    public function getLocationInfo(?string $ip, bool $skipReservedIpLookup = true): array
     {
         if (! is_string($ip) || $ip === '') {
             return $this->emptyLocationResponse();
         }
 
-        if (! $this->isPublicIp($ip)) {
+        if ($skipReservedIpLookup && ! $this->isPublicIp($ip)) {
             return $this->emptyLocationResponse();
         }
 
@@ -72,10 +72,10 @@ class ClientInfoService
     /**
      * 获取完整客户端信息
      */
-    public function getClientInfo(Request $request): array
+    public function getClientInfo(Request $request, bool $skipReservedIpLookup = true): array
     {
         $basicInfo = $this->getBasicInfo($request);
-        $locationInfo = $this->getLocationInfo($basicInfo['ip'] ?? null);
+        $locationInfo = $this->getLocationInfo($basicInfo['ip'] ?? null, $skipReservedIpLookup);
 
         return [
             'ip' => $basicInfo['ip'],
