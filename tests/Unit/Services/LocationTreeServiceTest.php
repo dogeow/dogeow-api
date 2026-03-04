@@ -156,4 +156,24 @@ class LocationTreeServiceTest extends TestCase
         $room2Node = $areaNode['children'][1];
         $this->assertCount(1, $room2Node['children']); // 1 spot
     }
+
+    public function test_build_location_tree_orders_nodes_by_id_consistently()
+    {
+        $area1 = Area::factory()->create(['user_id' => $this->user->id]);
+        $area2 = Area::factory()->create(['user_id' => $this->user->id]);
+
+        $room2 = Room::factory()->create(['user_id' => $this->user->id, 'area_id' => $area2->id]);
+        $room1 = Room::factory()->create(['user_id' => $this->user->id, 'area_id' => $area1->id]);
+
+        $spot2 = Spot::factory()->create(['user_id' => $this->user->id, 'room_id' => $room2->id]);
+        $spot1 = Spot::factory()->create(['user_id' => $this->user->id, 'room_id' => $room1->id]);
+
+        $result = $this->service->buildLocationTree($this->user->id);
+
+        $this->assertSame([$area1->id, $area2->id], array_column($result['tree'], 'original_id'));
+        $this->assertSame([$room1->id], array_column($result['tree'][0]['children'], 'original_id'));
+        $this->assertSame([$room2->id], array_column($result['tree'][1]['children'], 'original_id'));
+        $this->assertSame([$spot1->id], array_column($result['tree'][0]['children'][0]['children'], 'original_id'));
+        $this->assertSame([$spot2->id], array_column($result['tree'][1]['children'][0]['children'], 'original_id'));
+    }
 }

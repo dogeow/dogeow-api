@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Log;
 
 class ClientInfoService
 {
+    private const LOCATION_ERROR_MESSAGE = '地理位置信息获取失败';
+
     /**
      * 获取客户端基本信息（IP和User-Agent）
      */
@@ -22,12 +24,31 @@ class ClientInfoService
     /**
      * 获取地理位置信息
      */
-    public function getLocationInfo(string $ip): array
+    public function getLocationInfo(?string $ip): array
     {
+        if (! is_string($ip) || $ip === '') {
+            return $this->emptyLocationResponse();
+        }
+
+        if (! $this->isPublicIp($ip)) {
+            return $this->emptyLocationResponse();
+        }
+
         try {
-            $ipInfo = Http::timeout(10)
-                ->get("http://ip-api.com/json/{$ip}?lang=zh-CN")
-                ->json();
+            $response = Http::acceptJson()
+                ->timeout(10)
+                ->get("http://ip-api.com/json/{$ip}", ['lang' => 'zh-CN']);
+
+            $ipInfo = $response->json();
+            if (! $response->successful() || ! is_array($ipInfo) || ($ipInfo['status'] ?? 'success') !== 'success') {
+                Log::warning('Failed to fetch location info from provider', [
+                    'ip' => $ip,
+                    'status_code' => $response->status(),
+                    'provider_status' => is_array($ipInfo) ? ($ipInfo['status'] ?? null) : null,
+                ]);
+
+                return $this->emptyLocationResponse(self::LOCATION_ERROR_MESSAGE);
+            }
 
             return [
                 'location' => [
@@ -38,22 +59,13 @@ class ClientInfoService
                     'timezone' => $ipInfo['timezone'] ?? null,
                 ],
             ];
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Failed to fetch location info', [
                 'ip' => $ip,
                 'error' => $e->getMessage(),
             ]);
 
-            return [
-                'location' => [
-                    'country' => null,
-                    'region' => null,
-                    'city' => null,
-                    'isp' => null,
-                    'timezone' => null,
-                ],
-                'error' => '地理位置信息获取失败',
-            ];
+            return $this->emptyLocationResponse(self::LOCATION_ERROR_MESSAGE);
         }
     }
 
@@ -62,14 +74,37 @@ class ClientInfoService
      */
     public function getClientInfo(Request $request): array
     {
-        $ip = $request->ip();
         $basicInfo = $this->getBasicInfo($request);
-        $locationInfo = $this->getLocationInfo($ip);
+        $locationInfo = $this->getLocationInfo($basicInfo['ip'] ?? null);
 
         return [
             'ip' => $basicInfo['ip'],
             'user_agent' => $basicInfo['user_agent'],
             'location' => $locationInfo['location'] ?? [],
         ];
+    }
+
+    private function isPublicIp(string $ip): bool
+    {
+        return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
+    }
+
+    private function emptyLocationResponse(?string $error = null): array
+    {
+        $response = [
+            'location' => [
+                'country' => null,
+                'region' => null,
+                'city' => null,
+                'isp' => null,
+                'timezone' => null,
+            ],
+        ];
+
+        if ($error !== null) {
+            $response['error'] = $error;
+        }
+
+        return $response;
     }
 }

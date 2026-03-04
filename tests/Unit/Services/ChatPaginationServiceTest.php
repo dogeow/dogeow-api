@@ -728,6 +728,29 @@ class ChatPaginationServiceTest extends TestCase
         $result = $this->paginationService->searchMessages($room->id, '');
 
         $this->assertArrayHasKey('messages', $result);
+        $this->assertCount(0, $result['messages']);
+        $this->assertSame('', $result['search_query']);
+        $this->assertFalse($result['has_more']);
+        $this->assertNull($result['next_cursor']);
+    }
+
+    #[Test]
+    public function it_handles_search_with_only_whitespace()
+    {
+        $room = ChatRoom::factory()->create();
+        $user = User::factory()->create();
+
+        ChatMessage::factory()->count(5)->create([
+            'room_id' => $room->id,
+            'user_id' => $user->id,
+            'message' => 'test message',
+        ]);
+
+        $result = $this->paginationService->searchMessages($room->id, '   ');
+
+        $this->assertCount(0, $result['messages']);
+        $this->assertSame('', $result['search_query']);
+        $this->assertFalse($result['has_more']);
     }
 
     #[Test]

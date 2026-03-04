@@ -40,13 +40,14 @@ class ChatMessageService
 
         // Trim whitespace
         $message = trim($message);
+        $messageLength = mb_strlen($message);
 
         // Check length
-        if (strlen($message) < self::MIN_MESSAGE_LENGTH) {
+        if ($messageLength < self::MIN_MESSAGE_LENGTH) {
             $errors[] = 'Message cannot be empty';
         }
 
-        if (strlen($message) > self::MAX_MESSAGE_LENGTH) {
+        if ($messageLength > self::MAX_MESSAGE_LENGTH) {
             $errors[] = 'Message cannot exceed ' . self::MAX_MESSAGE_LENGTH . ' characters';
         }
 
@@ -79,28 +80,46 @@ class ChatMessageService
      */
     public function processMentions(string $message): array
     {
-        $mentions = [];
-
-        // Match @username mentions
-        $pattern = '/@([a-zA-Z0-9_.-]+)/';
+        // Match ASCII and Unicode usernames while keeping the first-seen order.
+        $pattern = '/@([\p{L}\p{N}_.-]+)/u';
 
         if (preg_match_all($pattern, $message, $matches)) {
-            $usernames = $matches[1];
+            $orderedUsernames = collect($matches[1])
+                ->map(fn (string $username) => $this->normalizeUsername($username))
+                ->filter()
+                ->unique()
+                ->values();
 
-            // Find users by name (case-insensitive)
-            $users = User::whereIn(DB::raw('LOWER(name)'), array_map('strtolower', $usernames))
+            if ($orderedUsernames->isEmpty()) {
+                return [];
+            }
+
+            // Find users by name (case-insensitive where supported) and map back to mention order.
+            $users = User::whereIn(DB::raw('LOWER(name)'), $orderedUsernames->all())
                 ->get(['id', 'name', 'email']);
 
-            foreach ($users as $user) {
+            $usersByNormalizedName = $users->keyBy(
+                fn (User $user) => $this->normalizeUsername($user->name)
+            );
+
+            $mentions = [];
+            foreach ($orderedUsernames as $normalizedUsername) {
+                $user = $usersByNormalizedName->get($normalizedUsername);
+                if (! $user) {
+                    continue;
+                }
+
                 $mentions[] = [
                     'user_id' => $user->id,
                     'username' => $user->name,
                     'email' => $user->email,
                 ];
             }
+
+            return $mentions;
         }
 
-        return $mentions;
+        return [];
     }
 
     /**
@@ -110,7 +129,7 @@ class ChatMessageService
     {
         // Process mentions - wrap with special tags for frontend highlighting
         foreach ($mentions as $mention) {
-            $pattern = '/@' . preg_quote($mention['username'], '/') . '/i';
+            $pattern = '/@' . preg_quote($mention['username'], '/') . '/iu';
             $replacement = '<mention data-user-id="' . $mention['user_id'] . '">@' . $mention['username'] . '</mention>';
             $message = preg_replace($pattern, $replacement, $message);
         }
@@ -270,6 +289,11 @@ class ChatMessageService
         $sanitizedQuery = $this->sanitizeMessage($query);
 
         return $this->paginationService->searchMessages($roomId, $sanitizedQuery, $cursor, $limit);
+    }
+
+    private function normalizeUsername(string $username): string
+    {
+        return mb_strtolower(trim($username));
     }
 
     /**

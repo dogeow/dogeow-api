@@ -6,6 +6,8 @@ use App\Models\Thing\Area;
 use App\Models\Thing\Room;
 use App\Models\Thing\Spot;
 use App\Services\BaseService;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
 
 class LocationTreeService extends BaseService
@@ -18,18 +20,19 @@ class LocationTreeService extends BaseService
         // 获取当前用户的所有区域
         $areas = Area::where('user_id', $userId)
             ->withCount('rooms')
+            ->orderBy('id')
             ->get();
 
         // 获取当前用户的所有房间
         $rooms = Room::where('user_id', $userId)
-            ->with('area')
             ->withCount('spots')
+            ->orderBy('id')
             ->get();
 
         // 获取当前用户的所有具体位置
         $spots = Spot::where('user_id', $userId)
-            ->with('room')
             ->withCount('items')
+            ->orderBy('id')
             ->get();
 
         // 获取物品数量统计（使用 Eloquent 聚合）
@@ -79,13 +82,17 @@ class LocationTreeService extends BaseService
     /**
      * 构建树形结构
      *
-     * @param  \Illuminate\Database\Eloquent\Collection  $areas
-     * @param  \Illuminate\Database\Eloquent\Collection  $rooms
-     * @param  \Illuminate\Database\Eloquent\Collection  $spots
+     * @param  Collection<int, Area>  $areas
+     * @param  Collection<int, Room>  $rooms
+     * @param  Collection<int, Spot>  $spots
      */
-    private function buildTreeStructure($areas, $rooms, $spots, array $itemCounts): array
+    private function buildTreeStructure(Collection $areas, Collection $rooms, Collection $spots, array $itemCounts): array
     {
         $tree = [];
+        /** @var SupportCollection<int|string, Collection<int, Room>> $roomsByArea */
+        $roomsByArea = $rooms->groupBy('area_id');
+        /** @var SupportCollection<int|string, Collection<int, Spot>> $spotsByRoom */
+        $spotsByRoom = $spots->groupBy('room_id');
 
         foreach ($areas as $area) {
             $areaNode = [
@@ -97,9 +104,7 @@ class LocationTreeService extends BaseService
                 'items_count' => $itemCounts['areas'][$area->id] ?? 0,
             ];
 
-            // 添加该区域下的房间
-            $areaRooms = $rooms->where('area_id', $area->id);
-            foreach ($areaRooms as $room) {
+            foreach ($roomsByArea->get($area->id, collect()) as $room) {
                 $roomNode = [
                     'id' => 'room_' . $room->id,
                     'name' => $room->name,
@@ -110,9 +115,7 @@ class LocationTreeService extends BaseService
                     'items_count' => $itemCounts['rooms'][$room->id] ?? 0,
                 ];
 
-                // 添加该房间下的具体位置
-                $roomSpots = $spots->where('room_id', $room->id);
-                foreach ($roomSpots as $spot) {
+                foreach ($spotsByRoom->get($room->id, collect()) as $spot) {
                     $spotNode = [
                         'id' => 'spot_' . $spot->id,
                         'name' => $spot->name,

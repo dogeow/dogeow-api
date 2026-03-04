@@ -34,6 +34,16 @@ class ChatMessageServiceTest extends TestCase
         $this->assertContains('Message cannot exceed 1000 characters', $tooLong['errors']);
     }
 
+    public function test_validate_message_counts_multibyte_characters_by_character_length(): void
+    {
+        $valid = $this->service->validateMessage(str_repeat('你', 1000));
+        $tooLong = $this->service->validateMessage(str_repeat('你', 1001));
+
+        $this->assertTrue($valid['valid']);
+        $this->assertFalse($tooLong['valid']);
+        $this->assertContains('Message cannot exceed 1000 characters', $tooLong['errors']);
+    }
+
     public function test_sanitize_message_removes_scripts_tags_and_extra_whitespace(): void
     {
         $sanitized = $this->service->sanitizeMessage("<script>alert('x')</script>Hello   <b>world</b>\n\n!");
@@ -55,6 +65,19 @@ class ChatMessageServiceTest extends TestCase
         );
     }
 
+    public function test_process_mentions_supports_unicode_and_preserves_first_seen_order(): void
+    {
+        $alice = User::factory()->create(['name' => 'Alice']);
+        $xiaoli = User::factory()->create(['name' => '小李']);
+
+        $mentions = $this->service->processMentions('Hi @Alice then @小李 and again @alice');
+
+        $this->assertSame(
+            [$alice->id, $xiaoli->id],
+            collect($mentions)->pluck('user_id')->all()
+        );
+    }
+
     public function test_format_message_wraps_mentions_and_replaces_emoticons(): void
     {
         $formatted = $this->service->formatMessage('Hi @john :) <3', [
@@ -67,6 +90,18 @@ class ChatMessageServiceTest extends TestCase
         $this->assertStringContainsString('<mention data-user-id="7">@john</mention>', $formatted);
         $this->assertStringContainsString('😊', $formatted);
         $this->assertStringContainsString('❤️', $formatted);
+    }
+
+    public function test_format_message_wraps_unicode_mentions(): void
+    {
+        $formatted = $this->service->formatMessage('你好 @小李', [
+            [
+                'user_id' => 8,
+                'username' => '小李',
+            ],
+        ]);
+
+        $this->assertStringContainsString('<mention data-user-id="8">@小李</mention>', $formatted);
     }
 
     public function test_process_message_persists_filtered_message_and_mentions(): void
@@ -202,6 +237,26 @@ class ChatMessageServiceTest extends TestCase
         $this->assertCount(1, $search['messages']);
         $this->assertStringContainsString('needle', $search['messages']->first()->message);
         $this->assertCount(2, $recent);
+    }
+
+    public function test_search_messages_returns_empty_result_for_blank_query_after_sanitization(): void
+    {
+        $roomId = 92;
+        $user = User::factory()->create();
+
+        ChatMessage::factory()->create([
+            'room_id' => $roomId,
+            'user_id' => $user->id,
+            'message_type' => ChatMessage::TYPE_TEXT,
+            'message' => 'This should not be returned for an empty search',
+        ]);
+
+        $result = $this->service->searchMessages($roomId, '   <b> </b>   ');
+
+        $this->assertCount(0, $result['messages']);
+        $this->assertSame('', $result['search_query']);
+        $this->assertFalse($result['has_more']);
+        $this->assertNull($result['next_cursor']);
     }
 
     public function test_get_message_history_delegates_to_pagination_service(): void

@@ -12,6 +12,8 @@ class ChatPaginationService
 
     private const MAX_PAGE_SIZE = 100;
 
+    private ?bool $supportsFullTextSearch = null;
+
     /**
      * Get messages using cursor-based pagination for better performance
      *
@@ -143,7 +145,17 @@ class ChatPaginationService
         ?string $cursor = null,
         int $limit = 20
     ): array {
+        $searchQuery = trim($searchQuery);
         $limit = min($limit, 50); // Lower limit for search results
+
+        if ($searchQuery === '') {
+            return [
+                'messages' => collect(),
+                'search_query' => '',
+                'has_more' => false,
+                'next_cursor' => null,
+            ];
+        }
 
         $query = ChatMessage::with(['user:id,name,email'])
             ->where('room_id', $roomId)
@@ -277,19 +289,23 @@ class ChatPaginationService
      */
     private function supportsFullTextSearch(): bool
     {
+        if ($this->supportsFullTextSearch !== null) {
+            return $this->supportsFullTextSearch;
+        }
+
         try {
             // Check if we're using MySQL and the full-text index exists
             $driver = \DB::getDriverName();
             if ($driver !== 'mysql') {
-                return false;
+                return $this->supportsFullTextSearch = false;
             }
 
             // Check if full-text index exists
             $indexes = \DB::select("SHOW INDEX FROM chat_messages WHERE Key_name = 'idx_message_fulltext'");
 
-            return ! empty($indexes);
+            return $this->supportsFullTextSearch = ! empty($indexes);
         } catch (\Exception $e) {
-            return false;
+            return $this->supportsFullTextSearch = false;
         }
     }
 
