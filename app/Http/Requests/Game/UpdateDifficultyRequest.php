@@ -14,7 +14,7 @@ class UpdateDifficultyRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'character_id' => 'sometimes|integer|exists:game_characters,id',
+            'character_id' => 'sometimes|integer|min:1|exists:game_characters,id',
             'difficulty_tier' => 'required|integer|min:0|max:9',
         ];
     }
@@ -22,6 +22,7 @@ class UpdateDifficultyRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'character_id.min' => '角色ID必须大于0',
             'difficulty_tier.required' => '难度等级不能为空',
             'difficulty_tier.min' => '难度等级不能小于0',
             'difficulty_tier.max' => '难度等级不能大于9',

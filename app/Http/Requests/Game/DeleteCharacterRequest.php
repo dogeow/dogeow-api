@@ -14,7 +14,7 @@ class DeleteCharacterRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'character_id' => 'required|integer|exists:game_characters,id',
+            'character_id' => 'required|integer|min:1|exists:game_characters,id',
         ];
     }
 
@@ -22,6 +22,7 @@ class DeleteCharacterRequest extends FormRequest
     {
         return [
             'character_id.required' => '角色ID不能为空',
+            'character_id.min' => '角色ID必须大于0',
             'character_id.exists' => '角色不存在',
         ];
     }

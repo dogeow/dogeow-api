@@ -14,7 +14,7 @@ class UnsocketGemRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'item_id' => 'required|integer|exists:game_items,id',
+            'item_id' => 'required|integer|min:1|exists:game_items,id',
             'socket_index' => 'required|integer|min:0',
         ];
     }
@@ -23,6 +23,7 @@ class UnsocketGemRequest extends FormRequest
     {
         return [
             'item_id.required' => '装备ID不能为空',
+            'item_id.min' => '装备ID必须大于0',
             'item_id.exists' => '装备不存在',
             'socket_index.required' => '插槽索引不能为空',
             'socket_index.min' => '插槽索引无效',

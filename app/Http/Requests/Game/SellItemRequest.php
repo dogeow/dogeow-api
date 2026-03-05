@@ -14,7 +14,7 @@ class SellItemRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'item_id' => 'required|integer|exists:game_items,id',
+            'item_id' => 'required|integer|min:1|exists:game_items,id',
             'quantity' => 'sometimes|integer|min:1',
         ];
     }
@@ -23,6 +23,7 @@ class SellItemRequest extends FormRequest
     {
         return [
             'item_id.required' => '物品ID不能为空',
+            'item_id.min' => '物品ID必须大于0',
             'item_id.exists' => '物品不存在',
             'quantity.min' => '数量不能小于1',
         ];

@@ -15,17 +15,19 @@ class UpdatePotionSettingsRequest extends FormRequest
     {
         return [
             'auto_use_hp_potion' => 'nullable|boolean',
-            'hp_potion_threshold' => 'nullable|integer|min:1|max:100',
+            'hp_potion_threshold' => 'nullable|integer|min:1|max:100|required_if_accepted:auto_use_hp_potion',
             'auto_use_mp_potion' => 'nullable|boolean',
-            'mp_potion_threshold' => 'nullable|integer|min:1|max:100',
+            'mp_potion_threshold' => 'nullable|integer|min:1|max:100|required_if_accepted:auto_use_mp_potion',
         ];
     }
 
     public function messages(): array
     {
         return [
+            'hp_potion_threshold.required_if_accepted' => '启用自动HP药水时必须设置HP药水阈值',
             'hp_potion_threshold.min' => 'HP药水阈值最小为1',
             'hp_potion_threshold.max' => 'HP药水阈值最大为100',
+            'mp_potion_threshold.required_if_accepted' => '启用自动MP药水时必须设置MP药水阈值',
             'mp_potion_threshold.min' => 'MP药水阈值最小为1',
             'mp_potion_threshold.max' => 'MP药水阈值最大为100',
         ];

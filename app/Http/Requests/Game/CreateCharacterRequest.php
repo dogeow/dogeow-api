@@ -6,6 +6,15 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class CreateCharacterRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'name' => is_string($this->input('name')) ? trim($this->input('name')) : $this->input('name'),
+            'class' => is_string($this->input('class')) ? strtolower($this->input('class')) : $this->input('class'),
+            'gender' => is_string($this->input('gender')) ? strtolower($this->input('gender')) : $this->input('gender'),
+        ]);
+    }
+
     public function authorize(): bool
     {
         return true;
