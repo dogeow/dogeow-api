@@ -7,13 +7,14 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    public function register(RegisterRequest $request)
+    public function register(RegisterRequest $request): JsonResponse
     {
         $validated = $request->validated();
 
@@ -31,7 +32,7 @@ class AuthController extends Controller
         ], 'User registered successfully', 201);
     }
 
-    public function login(LoginRequest $request)
+    public function login(LoginRequest $request): JsonResponse
     {
         $credentials = $request->validated();
 
@@ -48,19 +49,19 @@ class AuthController extends Controller
         ], 'Login successful');
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
 
         return $this->success([], 'Successfully logged out');
     }
 
-    public function user(Request $request)
+    public function user(Request $request): JsonResponse
     {
         return $this->success(['user' => $request->user()]);
     }
 
-    public function update(ProfileUpdateRequest $request)
+    public function update(ProfileUpdateRequest $request): JsonResponse
     {
         $user = $request->user();
         $user->update($request->validated());

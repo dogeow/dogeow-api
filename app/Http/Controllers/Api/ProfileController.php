@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProfileUpdateRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -12,9 +13,9 @@ class ProfileController extends Controller
     /**
      * Display the user's profile information.
      */
-    public function edit(Request $request)
+    public function edit(Request $request): JsonResponse
     {
-        return response()->json([
+        return $this->success([
             'user' => $request->user()->only(['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at']),
         ]);
     }
@@ -22,7 +23,7 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request)
+    public function update(ProfileUpdateRequest $request): JsonResponse
     {
         $request->user()->fill($request->validated());
 
@@ -32,16 +33,15 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
-        return response()->json([
-            'message' => 'Profile updated successfully',
+        return $this->success([
             'user' => $request->user()->only(['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at']),
-        ]);
+        ], 'Profile updated successfully');
     }
 
     /**
      * Delete the user's account and related data.
      */
-    public function destroy(Request $request)
+    public function destroy(Request $request): JsonResponse
     {
         $request->validate([
             'password' => ['required', 'current_password'],
@@ -59,8 +59,6 @@ class ProfileController extends Controller
             $user->delete();
         });
 
-        return response()->json([
-            'message' => 'Account deleted successfully',
-        ]);
+        return $this->success([], 'Account deleted successfully');
     }
 }

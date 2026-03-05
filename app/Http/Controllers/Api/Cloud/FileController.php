@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Cloud;
 use App\Http\Controllers\Concerns\GetCurrentUserId;
 use App\Http\Controllers\Controller;
 use App\Models\Cloud\File;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -17,7 +18,7 @@ class FileController extends Controller
     /**
      * 获取所有文件列表
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $userId = $this->getCurrentUserId();
 
@@ -52,7 +53,7 @@ class FileController extends Controller
     /**
      * 创建文件夹
      */
-    public function createFolder(Request $request)
+    public function createFolder(Request $request): JsonResponse
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -77,7 +78,7 @@ class FileController extends Controller
     /**
      * 上传文件
      */
-    public function upload(Request $request)
+    public function upload(Request $request): JsonResponse
     {
         $request->validate([
             'file' => 'required|file|max:102400', // 100MB
@@ -135,7 +136,7 @@ class FileController extends Controller
     /**
      * 下载文件
      */
-    public function download($id)
+    public function download($id): \Symfony\Component\HttpFoundation\Response
     {
         $userId = $this->getCurrentUserId();
 
@@ -155,7 +156,7 @@ class FileController extends Controller
     /**
      * 删除文件或文件夹
      */
-    public function destroy($id)
+    public function destroy($id): JsonResponse
     {
         $userId = $this->getCurrentUserId();
 
@@ -215,7 +216,7 @@ class FileController extends Controller
     /**
      * 获取文件详情
      */
-    public function show($id)
+    public function show($id): JsonResponse
     {
         $userId = $this->getCurrentUserId();
 
@@ -227,7 +228,7 @@ class FileController extends Controller
     /**
      * 更新文件信息
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, $id): JsonResponse
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -247,7 +248,7 @@ class FileController extends Controller
     /**
      * 移动文件
      */
-    public function move(Request $request)
+    public function move(Request $request): JsonResponse
     {
         $request->validate([
             'file_ids' => 'required|array',
@@ -319,7 +320,7 @@ class FileController extends Controller
     /**
      * 获取存储使用统计
      */
-    public function statistics()
+    public function statistics(): JsonResponse
     {
         $userId = $this->getCurrentUserId();
 
@@ -385,7 +386,7 @@ class FileController extends Controller
     /**
      * 获取完整的目录树
      */
-    public function tree()
+    public function tree(): JsonResponse
     {
         $userId = $this->getCurrentUserId();
 
@@ -407,7 +408,7 @@ class FileController extends Controller
     /**
      * 递归构建文件夹树（已优化，使用预加载减少查询）
      */
-    private function buildFolderTree($folder)
+    private function buildFolderTree($folder): array
     {
         $userId = $this->getCurrentUserId();
 
@@ -433,17 +434,14 @@ class FileController extends Controller
     /**
      * 预览文件
      */
-    public function preview($id, Request $request)
+    public function preview($id, Request $request): JsonResponse
     {
-        // 使用 Laravel 响应头处理 CORS
-        $response = response()->json(['message' => 'OK']);
-        $response->headers->set('Access-Control-Allow-Origin', '*');
-        $response->headers->set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
         // 处理预检请求
         if ($request->isMethod('OPTIONS')) {
-            return $response->setStatusCode(200);
+            return response()->json(['message' => 'OK'])
+                ->header('Access-Control-Allow-Origin', '*')
+                ->header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+                ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
         }
 
         $userId = $this->getCurrentUserId();
