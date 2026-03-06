@@ -19,10 +19,10 @@ class MusicControllerTest extends TestCase
 
     public function test_index_returns_music_list_from_upyun(): void
     {
-        config()->set('upyun.bucket', 'bucket');
-        config()->set('upyun.operator', 'operator');
-        config()->set('upyun.password', 'password');
-        config()->set('upyun.domain', 'https://cdn.example.com');
+        config()->set('services.upyun.bucket', 'bucket');
+        config()->set('services.upyun.operator', 'operator');
+        config()->set('services.upyun.password', 'password');
+        config()->set('services.upyun.domain', 'https://cdn.example.com');
 
         $this->mock(UpyunService::class, function ($mock): void {
             $mock->shouldReceive('isConfigured')->once()->andReturn(true);
@@ -66,10 +66,10 @@ class MusicControllerTest extends TestCase
 
     public function test_index_uses_cached_upyun_music_list(): void
     {
-        config()->set('upyun.bucket', 'bucket');
-        config()->set('upyun.operator', 'operator');
-        config()->set('upyun.password', 'password');
-        config()->set('upyun.domain', 'https://cdn.example.com');
+        config()->set('services.upyun.bucket', 'bucket');
+        config()->set('services.upyun.operator', 'operator');
+        config()->set('services.upyun.password', 'password');
+        config()->set('services.upyun.domain', 'https://cdn.example.com');
 
         $this->mock(UpyunService::class, function ($mock): void {
             $mock->shouldReceive('isConfigured')->twice()->andReturn(true);

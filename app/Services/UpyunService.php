@@ -28,11 +28,11 @@ class UpyunService
 
     public function __construct()
     {
-        $this->bucket = (string) config('upyun.bucket');
-        $this->operator = (string) config('upyun.operator');
-        $this->passwordMd5 = md5((string) config('upyun.password'));
-        $this->apiHost = (string) config('upyun.api_host');
-        $this->domain = config('upyun.domain') ? (string) config('upyun.domain') : null;
+        $this->bucket = (string) config('services.upyun.bucket');
+        $this->operator = (string) config('services.upyun.operator');
+        $this->passwordMd5 = md5((string) config('services.upyun.password'));
+        $this->apiHost = (string) config('services.upyun.api_host');
+        $this->domain = config('services.upyun.domain') ? (string) config('services.upyun.domain') : null;
     }
 
     /**
@@ -40,7 +40,7 @@ class UpyunService
      */
     public function isConfigured(): bool
     {
-        return $this->bucket !== '' && $this->operator !== '' && config('upyun.password') !== '';
+        return $this->bucket !== '' && $this->operator !== '' && config('services.upyun.password') !== '';
     }
 
     /**

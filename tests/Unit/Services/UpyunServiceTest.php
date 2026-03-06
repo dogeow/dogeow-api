@@ -10,10 +10,10 @@ class UpyunServiceTest extends TestCase
 {
     public function test_is_configured_returns_true_when_all_config_set(): void
     {
-        config(['upyun.bucket' => 'test-bucket']);
-        config(['upyun.operator' => 'test-operator']);
-        config(['upyun.password' => 'test-password']);
-        config(['upyun.api_host' => 'api.test.com']);
+        config(['services.upyun.bucket' => 'test-bucket']);
+        config(['services.upyun.operator' => 'test-operator']);
+        config(['services.upyun.password' => 'test-password']);
+        config(['services.upyun.api_host' => 'api.test.com']);
 
         $service = new UpyunService;
 
@@ -22,9 +22,9 @@ class UpyunServiceTest extends TestCase
 
     public function test_is_configured_returns_false_when_bucket_empty(): void
     {
-        config(['upyun.bucket' => '']);
-        config(['upyun.operator' => 'test-operator']);
-        config(['upyun.password' => 'test-password']);
+        config(['services.upyun.bucket' => '']);
+        config(['services.upyun.operator' => 'test-operator']);
+        config(['services.upyun.password' => 'test-password']);
 
         $service = new UpyunService;
 
@@ -33,9 +33,9 @@ class UpyunServiceTest extends TestCase
 
     public function test_is_configured_returns_false_when_operator_empty(): void
     {
-        config(['upyun.bucket' => 'test-bucket']);
-        config(['upyun.operator' => '']);
-        config(['upyun.password' => 'test-password']);
+        config(['services.upyun.bucket' => 'test-bucket']);
+        config(['services.upyun.operator' => '']);
+        config(['services.upyun.password' => 'test-password']);
 
         $service = new UpyunService;
 
@@ -44,9 +44,9 @@ class UpyunServiceTest extends TestCase
 
     public function test_is_configured_returns_false_when_password_empty(): void
     {
-        config(['upyun.bucket' => 'test-bucket']);
-        config(['upyun.operator' => 'test-operator']);
-        config(['upyun.password' => '']);
+        config(['services.upyun.bucket' => 'test-bucket']);
+        config(['services.upyun.operator' => 'test-operator']);
+        config(['services.upyun.password' => '']);
 
         $service = new UpyunService;
 
@@ -55,9 +55,9 @@ class UpyunServiceTest extends TestCase
 
     public function test_upload_returns_false_when_not_configured(): void
     {
-        config(['upyun.bucket' => '']);
-        config(['upyun.operator' => '']);
-        config(['upyun.password' => '']);
+        config(['services.upyun.bucket' => '']);
+        config(['services.upyun.operator' => '']);
+        config(['services.upyun.password' => '']);
 
         $service = new UpyunService;
 
@@ -69,10 +69,10 @@ class UpyunServiceTest extends TestCase
 
     public function test_upload_returns_false_when_remote_path_empty(): void
     {
-        config(['upyun.bucket' => 'test-bucket']);
-        config(['upyun.operator' => 'test-operator']);
-        config(['upyun.password' => 'test-password']);
-        config(['upyun.api_host' => 'api.test.com']);
+        config(['services.upyun.bucket' => 'test-bucket']);
+        config(['services.upyun.operator' => 'test-operator']);
+        config(['services.upyun.password' => 'test-password']);
+        config(['services.upyun.api_host' => 'api.test.com']);
 
         $service = new UpyunService;
 
@@ -84,10 +84,10 @@ class UpyunServiceTest extends TestCase
 
     public function test_upload_returns_false_when_local_file_not_exists(): void
     {
-        config(['upyun.bucket' => 'test-bucket']);
-        config(['upyun.operator' => 'test-operator']);
-        config(['upyun.password' => 'test-password']);
-        config(['upyun.api_host' => 'api.test.com']);
+        config(['services.upyun.bucket' => 'test-bucket']);
+        config(['services.upyun.operator' => 'test-operator']);
+        config(['services.upyun.password' => 'test-password']);
+        config(['services.upyun.api_host' => 'api.test.com']);
 
         $service = new UpyunService;
 
@@ -99,10 +99,10 @@ class UpyunServiceTest extends TestCase
 
     public function test_upload_returns_false_when_remote_path_only_slash(): void
     {
-        config(['upyun.bucket' => 'test-bucket']);
-        config(['upyun.operator' => 'test-operator']);
-        config(['upyun.password' => 'test-password']);
-        config(['upyun.api_host' => 'api.test.com']);
+        config(['services.upyun.bucket' => 'test-bucket']);
+        config(['services.upyun.operator' => 'test-operator']);
+        config(['services.upyun.password' => 'test-password']);
+        config(['services.upyun.api_host' => 'api.test.com']);
 
         $service = new UpyunService;
 
@@ -114,11 +114,11 @@ class UpyunServiceTest extends TestCase
 
     public function test_upload_strips_leading_slash_from_remote_path(): void
     {
-        config(['upyun.bucket' => 'test-bucket']);
-        config(['upyun.operator' => 'test-operator']);
-        config(['upyun.password' => 'test-password']);
-        config(['upyun.api_host' => 'api.test.com']);
-        config(['upyun.domain' => 'https://cdn.example.com']);
+        config(['services.upyun.bucket' => 'test-bucket']);
+        config(['services.upyun.operator' => 'test-operator']);
+        config(['services.upyun.password' => 'test-password']);
+        config(['services.upyun.api_host' => 'api.test.com']);
+        config(['services.upyun.domain' => 'https://cdn.example.com']);
 
         $tempFile = tempnam(sys_get_temp_dir(), 'upyun_');
         file_put_contents($tempFile, 'test content');
@@ -145,11 +145,11 @@ class UpyunServiceTest extends TestCase
 
     public function test_upload_returns_success_with_null_public_url_when_domain_not_configured(): void
     {
-        config(['upyun.bucket' => 'test-bucket']);
-        config(['upyun.operator' => 'test-operator']);
-        config(['upyun.password' => 'test-password']);
-        config(['upyun.api_host' => 'api.test.com']);
-        config(['upyun.domain' => null]);
+        config(['services.upyun.bucket' => 'test-bucket']);
+        config(['services.upyun.operator' => 'test-operator']);
+        config(['services.upyun.password' => 'test-password']);
+        config(['services.upyun.api_host' => 'api.test.com']);
+        config(['services.upyun.domain' => null]);
 
         $tempFile = tempnam(sys_get_temp_dir(), 'upyun_');
         file_put_contents($tempFile, 'test content');
@@ -174,10 +174,10 @@ class UpyunServiceTest extends TestCase
 
     public function test_upload_returns_error_when_remote_api_fails(): void
     {
-        config(['upyun.bucket' => 'test-bucket']);
-        config(['upyun.operator' => 'test-operator']);
-        config(['upyun.password' => 'test-password']);
-        config(['upyun.api_host' => 'api.test.com']);
+        config(['services.upyun.bucket' => 'test-bucket']);
+        config(['services.upyun.operator' => 'test-operator']);
+        config(['services.upyun.password' => 'test-password']);
+        config(['services.upyun.api_host' => 'api.test.com']);
 
         $tempFile = tempnam(sys_get_temp_dir(), 'upyun_');
         file_put_contents($tempFile, 'test content');
@@ -201,10 +201,10 @@ class UpyunServiceTest extends TestCase
 
     public function test_upload_uses_explicit_content_type_when_provided(): void
     {
-        config(['upyun.bucket' => 'test-bucket']);
-        config(['upyun.operator' => 'test-operator']);
-        config(['upyun.password' => 'test-password']);
-        config(['upyun.api_host' => 'api.test.com']);
+        config(['services.upyun.bucket' => 'test-bucket']);
+        config(['services.upyun.operator' => 'test-operator']);
+        config(['services.upyun.password' => 'test-password']);
+        config(['services.upyun.api_host' => 'api.test.com']);
 
         $tempFile = tempnam(sys_get_temp_dir(), 'upyun_');
         file_put_contents($tempFile, 'content');
@@ -231,9 +231,9 @@ class UpyunServiceTest extends TestCase
 
     public function test_guess_mime_type_returns_png_for_png_extension(): void
     {
-        config(['upyun.bucket' => 'test']);
-        config(['upyun.operator' => 'test']);
-        config(['upyun.password' => 'test']);
+        config(['services.upyun.bucket' => 'test']);
+        config(['services.upyun.operator' => 'test']);
+        config(['services.upyun.password' => 'test']);
 
         $service = new UpyunService;
 
@@ -249,9 +249,9 @@ class UpyunServiceTest extends TestCase
 
     public function test_guess_mime_type_returns_jpeg_for_jpg_extension(): void
     {
-        config(['upyun.bucket' => 'test']);
-        config(['upyun.operator' => 'test']);
-        config(['upyun.password' => 'test']);
+        config(['services.upyun.bucket' => 'test']);
+        config(['services.upyun.operator' => 'test']);
+        config(['services.upyun.password' => 'test']);
 
         $service = new UpyunService;
 
@@ -266,9 +266,9 @@ class UpyunServiceTest extends TestCase
 
     public function test_guess_mime_type_returns_jpeg_for_jpeg_extension(): void
     {
-        config(['upyun.bucket' => 'test']);
-        config(['upyun.operator' => 'test']);
-        config(['upyun.password' => 'test']);
+        config(['services.upyun.bucket' => 'test']);
+        config(['services.upyun.operator' => 'test']);
+        config(['services.upyun.password' => 'test']);
 
         $service = new UpyunService;
 
@@ -283,9 +283,9 @@ class UpyunServiceTest extends TestCase
 
     public function test_guess_mime_type_returns_octet_stream_for_unknown_extension(): void
     {
-        config(['upyun.bucket' => 'test']);
-        config(['upyun.operator' => 'test']);
-        config(['upyun.password' => 'test']);
+        config(['services.upyun.bucket' => 'test']);
+        config(['services.upyun.operator' => 'test']);
+        config(['services.upyun.password' => 'test']);
 
         $service = new UpyunService;
 
@@ -300,9 +300,9 @@ class UpyunServiceTest extends TestCase
 
     public function test_guess_mime_type_is_case_insensitive(): void
     {
-        config(['upyun.bucket' => 'test']);
-        config(['upyun.operator' => 'test']);
-        config(['upyun.password' => 'test']);
+        config(['services.upyun.bucket' => 'test']);
+        config(['services.upyun.operator' => 'test']);
+        config(['services.upyun.password' => 'test']);
 
         $service = new UpyunService;
 

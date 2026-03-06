@@ -21,10 +21,10 @@ class MusicControllerTest extends TestCase
     #[Test]
     public function it_can_get_music_list()
     {
-        config()->set('upyun.bucket', 'bucket');
-        config()->set('upyun.operator', 'operator');
-        config()->set('upyun.password', 'password');
-        config()->set('upyun.domain', 'https://cdn.example.com');
+        config()->set('services.upyun.bucket', 'bucket');
+        config()->set('services.upyun.operator', 'operator');
+        config()->set('services.upyun.password', 'password');
+        config()->set('services.upyun.domain', 'https://cdn.example.com');
 
         $this->mock(UpyunService::class, function ($mock): void {
             $mock->shouldReceive('isConfigured')->once()->andReturn(true);
@@ -72,9 +72,9 @@ class MusicControllerTest extends TestCase
     #[Test]
     public function it_handles_empty_upyun_music_directory()
     {
-        config()->set('upyun.bucket', 'bucket');
-        config()->set('upyun.operator', 'operator');
-        config()->set('upyun.password', 'password');
+        config()->set('services.upyun.bucket', 'bucket');
+        config()->set('services.upyun.operator', 'operator');
+        config()->set('services.upyun.password', 'password');
 
         $this->mock(UpyunService::class, function ($mock): void {
             $mock->shouldReceive('isConfigured')->once()->andReturn(true);
@@ -93,10 +93,10 @@ class MusicControllerTest extends TestCase
     #[Test]
     public function it_filters_only_audio_files()
     {
-        config()->set('upyun.bucket', 'bucket');
-        config()->set('upyun.operator', 'operator');
-        config()->set('upyun.password', 'password');
-        config()->set('upyun.domain', 'https://cdn.example.com');
+        config()->set('services.upyun.bucket', 'bucket');
+        config()->set('services.upyun.operator', 'operator');
+        config()->set('services.upyun.password', 'password');
+        config()->set('services.upyun.domain', 'https://cdn.example.com');
 
         $this->mock(UpyunService::class, function ($mock): void {
             $mock->shouldReceive('isConfigured')->once()->andReturn(true);
@@ -132,10 +132,10 @@ class MusicControllerTest extends TestCase
     #[Test]
     public function it_returns_correct_file_information()
     {
-        config()->set('upyun.bucket', 'bucket');
-        config()->set('upyun.operator', 'operator');
-        config()->set('upyun.password', 'password');
-        config()->set('upyun.domain', 'https://cdn.example.com');
+        config()->set('services.upyun.bucket', 'bucket');
+        config()->set('services.upyun.operator', 'operator');
+        config()->set('services.upyun.password', 'password');
+        config()->set('services.upyun.domain', 'https://cdn.example.com');
 
         $this->mock(UpyunService::class, function ($mock): void {
             $mock->shouldReceive('isConfigured')->once()->andReturn(true);
