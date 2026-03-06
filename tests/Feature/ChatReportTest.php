@@ -68,14 +68,16 @@ class ChatReportTest extends TestCase
         $response->assertStatus(201)
             ->assertJsonStructure([
                 'message',
-                'report' => [
-                    'id',
-                    'message_id',
-                    'reported_by',
-                    'room_id',
-                    'report_type',
-                    'reason',
-                    'status',
+                'data' => [
+                    'report' => [
+                        'id',
+                        'message_id',
+                        'reported_by',
+                        'room_id',
+                        'report_type',
+                        'reason',
+                        'status',
+                    ],
                 ],
             ]);
 
@@ -142,19 +144,21 @@ class ChatReportTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'reports' => [
-                    '*' => [
-                        'id',
-                        'message_id',
-                        'reported_by',
-                        'report_type',
-                        'reason',
-                        'status',
-                        'reporter',
-                        'message',
+                'data' => [
+                    'reports' => [
+                        '*' => [
+                            'id',
+                            'message_id',
+                            'reported_by',
+                            'report_type',
+                            'reason',
+                            'status',
+                            'reporter',
+                            'message',
+                        ],
                     ],
+                    'pagination',
                 ],
-                'pagination',
             ]);
     }
 
@@ -193,9 +197,11 @@ class ChatReportTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'message',
-                'report',
-                'action',
-                'actions_performed',
+                'data' => [
+                    'report',
+                    'action',
+                    'actions_performed',
+                ],
             ]);
 
         $this->assertDatabaseHas('chat_message_reports', [
@@ -249,7 +255,7 @@ class ChatReportTest extends TestCase
 
         $response->assertStatus(500)
             ->assertJsonPath('message', 'Failed to review report')
-            ->assertJsonPath('error', 'review begin tx failed');
+            ->assertJsonPath('success', false);
     }
 
     public function test_report_stats_for_admin()
@@ -270,16 +276,18 @@ class ChatReportTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'total_reports',
-                'pending_reports',
-                'resolved_reports',
-                'dismissed_reports',
-                'report_types',
-                'severity_breakdown',
-                'top_reporters',
-                'top_reported_users',
-                'content_filter',
-                'period_days',
+                'data' => [
+                    'total_reports',
+                    'pending_reports',
+                    'resolved_reports',
+                    'dismissed_reports',
+                    'report_types',
+                    'severity_breakdown',
+                    'top_reporters',
+                    'top_reported_users',
+                    'content_filter',
+                    'period_days',
+                ],
             ]);
     }
 
@@ -300,17 +308,19 @@ class ChatReportTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'reports' => [
-                    '*' => [
-                        'id',
-                        'room_id',
-                        'report_type',
-                        'status',
-                        'reporter',
-                        'room',
+                'data' => [
+                    'reports' => [
+                        '*' => [
+                            'id',
+                            'room_id',
+                            'report_type',
+                            'status',
+                            'reporter',
+                            'room',
+                        ],
                     ],
+                    'pagination',
                 ],
-                'pagination',
             ]);
     }
 
@@ -351,9 +361,9 @@ class ChatReportTest extends TestCase
         $response = $this->getJson("/api/chat/reports/rooms/{$this->room->id}?status=pending&report_type=spam");
 
         $response->assertStatus(200);
-        $response->assertJsonCount(1, 'reports');
-        $response->assertJsonPath('reports.0.report_type', ChatMessageReport::TYPE_SPAM);
-        $response->assertJsonPath('reports.0.status', ChatMessageReport::STATUS_PENDING);
+        $response->assertJsonCount(1, 'data.reports');
+        $response->assertJsonPath('data.reports.0.report_type', ChatMessageReport::TYPE_SPAM);
+        $response->assertJsonPath('data.reports.0.status', ChatMessageReport::STATUS_PENDING);
     }
 
     public function test_admin_can_dismiss_report_and_apply_actions()
@@ -378,9 +388,9 @@ class ChatReportTest extends TestCase
         ]);
 
         $response->assertStatus(200);
-        $response->assertJsonPath('action', 'dismiss');
-        $response->assertJsonPath('actions_performed.0', 'message_deleted');
-        $response->assertJsonPath('actions_performed.1', 'user_muted');
+        $response->assertJsonPath('data.action', 'dismiss');
+        $response->assertJsonPath('data.actions_performed.0', 'message_deleted');
+        $response->assertJsonPath('data.actions_performed.1', 'user_muted');
 
         $this->assertDatabaseHas('chat_message_reports', [
             'id' => $report->id,
@@ -417,7 +427,7 @@ class ChatReportTest extends TestCase
         ]);
 
         $response->assertStatus(200);
-        $response->assertJsonPath('action', 'escalate');
+        $response->assertJsonPath('data.action', 'escalate');
 
         $this->assertDatabaseHas('chat_message_reports', [
             'id' => $report->id,
@@ -455,9 +465,9 @@ class ChatReportTest extends TestCase
         $response = $this->getJson("/api/chat/reports/stats?room_id={$this->room->id}&days=30");
 
         $response->assertStatus(200);
-        $response->assertJsonPath('period_days', '30');
-        $response->assertJsonPath('total_reports', 1);
-        $response->assertJsonPath('report_types.spam', 1);
+        $response->assertJsonPath('data.period_days', 30);
+        $response->assertJsonPath('data.total_reports', 1);
+        $response->assertJsonPath('data.report_types.spam', 1);
     }
 
     public function test_non_moderator_cannot_view_room_specific_report_stats()
@@ -505,10 +515,10 @@ class ChatReportTest extends TestCase
         ]));
 
         $response->assertStatus(200);
-        $response->assertJsonCount(1, 'reports');
-        $response->assertJsonPath('reports.0.room_id', $this->room->id);
-        $response->assertJsonPath('reports.0.status', ChatMessageReport::STATUS_PENDING);
-        $response->assertJsonPath('reports.0.report_type', ChatMessageReport::TYPE_SPAM);
+        $response->assertJsonCount(1, 'data.reports');
+        $response->assertJsonPath('data.reports.0.room_id', $this->room->id);
+        $response->assertJsonPath('data.reports.0.status', ChatMessageReport::STATUS_PENDING);
+        $response->assertJsonPath('data.reports.0.report_type', ChatMessageReport::TYPE_SPAM);
     }
 
     public function test_invalid_report_type_is_rejected()
@@ -587,7 +597,7 @@ class ChatReportTest extends TestCase
 
         $response->assertStatus(500)
             ->assertJsonPath('message', 'Failed to report message')
-            ->assertJsonPath('error', 'transaction failed');
+            ->assertJsonPath('success', false);
     }
 
     public function test_review_report_returns_404_when_report_room_is_missing(): void
@@ -637,7 +647,7 @@ class ChatReportTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJsonPath('action', 'resolve')
-            ->assertJsonPath('actions_performed', []);
+            ->assertJsonPath('data.action', 'resolve')
+            ->assertJsonPath('data.actions_performed', []);
     }
 }

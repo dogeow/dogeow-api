@@ -145,16 +145,18 @@ class ChatReportControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'reports' => [
-                '*' => [
-                    'id',
-                    'message_id',
-                    'reported_by',
-                    'room_id',
-                    'report_type',
-                    'reason',
-                    'status',
-                    'created_at',
+            'data' => [
+                'reports' => [
+                    '*' => [
+                        'id',
+                        'message_id',
+                        'reported_by',
+                        'room_id',
+                        'report_type',
+                        'reason',
+                        'status',
+                        'created_at',
+                    ],
                 ],
             ],
         ]);
@@ -189,20 +191,22 @@ class ChatReportControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'reports' => [
-                '*' => [
-                    'id',
-                    'message_id',
-                    'reported_by',
-                    'room_id',
-                    'report_type',
-                    'reason',
-                    'status',
+            'data' => [
+                'reports' => [
+                    '*' => [
+                        'id',
+                        'message_id',
+                        'reported_by',
+                        'room_id',
+                        'report_type',
+                        'reason',
+                        'status',
+                    ],
                 ],
             ],
         ]);
 
-        $data = $response->json('reports');
+        $data = $response->json('data.reports');
         $this->assertCount(2, $data);
     }
 
@@ -309,12 +313,14 @@ class ChatReportControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'total_reports',
-            'pending_reports',
-            'resolved_reports',
-            'dismissed_reports',
-            'report_types',
-            'severity_breakdown',
+            'data' => [
+                'total_reports',
+                'pending_reports',
+                'resolved_reports',
+                'dismissed_reports',
+                'report_types',
+                'severity_breakdown',
+            ],
         ]);
     }
 
