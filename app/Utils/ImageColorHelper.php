@@ -31,10 +31,12 @@ class ImageColorHelper
             return $asHex ? '#000000' : 'rgb(0, 0, 0)';
         }
 
-        $rColorNum = $gColorNum = $bColorNum = $total = 0;
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $rColorNum = $gColorNum = $bColorNum = 0;
 
-        for ($x = 0; $x < imagesx($image); $x++) {
-            for ($y = 0; $y < imagesy($image); $y++) {
+        for ($x = 0; $x < $width; $x++) {
+            for ($y = 0; $y < $height; $y++) {
                 $rgb = imagecolorat($image, $x, $y);
                 $r = ($rgb >> 16) & 0xFF;
                 $g = ($rgb >> 8) & 0xFF;
@@ -42,17 +44,13 @@ class ImageColorHelper
                 $rColorNum += $r;
                 $gColorNum += $g;
                 $bColorNum += $b;
-                $total++;
             }
         }
 
-        if ($total === 0) {
-            return $asHex ? '#000000' : 'rgb(0, 0, 0)';
-        }
-
-        $r = (int) round($rColorNum / $total);
-        $g = (int) round($gColorNum / $total);
-        $b = (int) round($bColorNum / $total);
+        $totalPixels = $width * $height;
+        $r = (int) round($rColorNum / $totalPixels);
+        $g = (int) round($gColorNum / $totalPixels);
+        $b = (int) round($bColorNum / $totalPixels);
 
         if ($asHex) {
             return self::rgbToHex($r, $g, $b);

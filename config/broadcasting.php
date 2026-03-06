@@ -44,7 +44,7 @@ return [
             'client_options' => [
                 // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
             ],
-            'auth_endpoint' => '/broadcasting/auth',
+            'auth_endpoint' => '/api/broadcasting/auth',
             'auth_headers' => [
                 'Authorization' => 'Bearer {token}',
             ],

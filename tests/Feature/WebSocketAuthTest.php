@@ -10,15 +10,24 @@ class WebSocketAuthTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const AUTH_ENDPOINT = '/api/broadcasting/auth';
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['broadcasting.default' => 'reverb']);
+
+        require base_path('routes/channels.php');
+    }
+
     public function test_private_channel_requires_token(): void
     {
-        $response = $this->postJson('/broadcasting/auth', [
+        $response = $this->postJson(self::AUTH_ENDPOINT, [
             'channel_name' => 'private-chat.room.1',
         ]);
 
-        // 私有频道未认证返回 401
-        $response->assertStatus(401);
-        $response->assertJson(['error' => 'Unauthorized']);
+        $response->assertUnauthorized();
     }
 
     public function test_private_channel_accepts_valid_token(): void
@@ -28,59 +37,59 @@ class WebSocketAuthTest extends TestCase
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/broadcasting/auth', [
+        ])->postJson(self::AUTH_ENDPOINT, [
             'channel_name' => 'private-chat.room.1',
             'socket_id' => '123.456',
         ]);
 
         $response->assertStatus(200);
-        $response->assertJson(['auth' => 'success']);
+        $response->assertJsonStructure(['auth']);
     }
 
     public function test_private_channel_rejects_invalid_token(): void
     {
         $response = $this->withHeaders([
             'Authorization' => 'Bearer invalid-token',
-        ])->postJson('/broadcasting/auth', [
+        ])->postJson(self::AUTH_ENDPOINT, [
             'channel_name' => 'private-chat.room.1',
         ]);
 
-        $response->assertStatus(401);
-        $response->assertJson(['error' => 'Unauthorized']);
+        $response->assertUnauthorized();
     }
 
-    public function test_public_channels_allow_without_auth(): void
+    public function test_public_channel_auth_request_is_rejected(): void
     {
-        // 公共频道（不以 private- 或 presence- 开头）允许无需认证访问
-        $response = $this->postJson('/broadcasting/auth', [
+        $user = User::factory()->create();
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->postJson(self::AUTH_ENDPOINT, [
             'channel_name' => 'log-updates',
             'socket_id' => '123.456',
         ]);
 
-        $response->assertStatus(200);
-        $response->assertJson(['auth' => 'public']);
+        $response->assertForbidden();
     }
 
     public function test_private_channel_with_malformed_token(): void
     {
         $response = $this->withHeaders([
             'Authorization' => 'Bearer',
-        ])->postJson('/broadcasting/auth', [
+        ])->postJson(self::AUTH_ENDPOINT, [
             'channel_name' => 'private-chat.room.1',
         ]);
 
-        $response->assertStatus(401);
-        $response->assertJson(['error' => 'Unauthorized']);
+        $response->assertUnauthorized();
     }
 
     public function test_private_channel_without_authorization_header(): void
     {
-        $response = $this->postJson('/broadcasting/auth', [
+        $response = $this->postJson(self::AUTH_ENDPOINT, [
             'channel_name' => 'private-chat.room.1',
         ]);
 
-        $response->assertStatus(401);
-        $response->assertJson(['error' => 'Unauthorized']);
+        $response->assertUnauthorized();
     }
 
     public function test_private_channel_with_expired_token(): void
@@ -90,22 +99,20 @@ class WebSocketAuthTest extends TestCase
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/broadcasting/auth', [
+        ])->postJson(self::AUTH_ENDPOINT, [
             'channel_name' => 'private-chat.room.1',
         ]);
 
-        $response->assertStatus(401);
-        $response->assertJson(['error' => 'Unauthorized']);
+        $response->assertUnauthorized();
     }
 
     public function test_presence_channel_requires_auth(): void
     {
-        $response = $this->postJson('/broadcasting/auth', [
-            'channel_name' => 'presence-chat.room.1',
+        $response = $this->postJson(self::AUTH_ENDPOINT, [
+            'channel_name' => 'presence-chat.room.1.presence',
         ]);
 
-        $response->assertStatus(401);
-        $response->assertJson(['error' => 'Unauthorized']);
+        $response->assertUnauthorized();
     }
 
     public function test_user_private_channel_requires_matching_user_id(): void
@@ -117,13 +124,12 @@ class WebSocketAuthTest extends TestCase
         // 尝试订阅其他用户的私有频道
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/broadcasting/auth', [
+        ])->postJson(self::AUTH_ENDPOINT, [
             'channel_name' => 'private-user.' . $otherUser->id . '.notifications',
             'socket_id' => '123.456',
         ]);
 
-        $response->assertStatus(403);
-        $response->assertJson(['error' => 'Forbidden']);
+        $response->assertForbidden();
     }
 
     public function test_user_private_channel_allows_own_user_id(): void
@@ -134,12 +140,12 @@ class WebSocketAuthTest extends TestCase
         // 订阅自己的私有频道
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/broadcasting/auth', [
+        ])->postJson(self::AUTH_ENDPOINT, [
             'channel_name' => 'private-user.' . $user->id . '.notifications',
             'socket_id' => '123.456',
         ]);
 
         $response->assertStatus(200);
-        $response->assertJson(['auth' => 'success']);
+        $response->assertJsonStructure(['auth']);
     }
 }
