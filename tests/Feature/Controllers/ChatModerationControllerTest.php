@@ -506,6 +506,16 @@ class ChatModerationControllerTest extends TestCase
         $response->assertStatus(200);
     }
 
+    public function test_get_moderation_actions_validation_fails_for_invalid_action_type(): void
+    {
+        $response = $this->getJson("/api/chat/moderation/rooms/{$this->room->id}/actions?" . http_build_query([
+            'action_type' => 'invalid_action',
+        ]));
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['action_type']);
+    }
+
     public function test_get_moderation_actions_unauthorized()
     {
         Sanctum::actingAs($this->regularUser);
