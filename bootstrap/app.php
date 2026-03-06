@@ -22,6 +22,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'format.api' => \App\Http\Middleware\FormatApiResponse::class,
         ]);
+
+        // 排除 broadcasting/auth 端点的 CSRF 验证（使用 Sanctum Bearer token 认证）
+        $middleware->validateCsrfTokens(except: [
+            'broadcasting/auth',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

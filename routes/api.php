@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Route;
 // 公开路由
 require base_path('routes/api/public.php');
 
+// 广播认证路由 - 支持公共和私有频道（需要在 auth:sanctum 组外以便处理公共频道）
+require base_path('routes/api/broadcast.php');
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
