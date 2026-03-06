@@ -3,6 +3,8 @@
 namespace App\Models\Thing;
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -53,16 +55,21 @@ class Item extends Model
     /**
      * 获取缩略图URL
      */
-    public function getThumbnailUrlAttribute()
+    public function getThumbnailUrlAttribute(): ?string
     {
-        // 优先使用主图片
-        if ($this->primaryImage && $this->primaryImage->thumbnail_url) {
-            return $this->primaryImage->thumbnail_url;
+        $primaryImage = $this->relationLoaded('primaryImage')
+            ? $this->getRelation('primaryImage')
+            : $this->primaryImage;
+
+        if ($primaryImage?->thumbnail_url) {
+            return $primaryImage->thumbnail_url;
         }
 
-        // 如果没有主图片，使用第一张图片
-        $firstImage = $this->images()->first();
-        if ($firstImage && $firstImage->thumbnail_url) {
+        $firstImage = $this->relationLoaded('images')
+            ? $this->images->first()
+            : $this->images()->first();
+
+        if ($firstImage?->thumbnail_url) {
             return $firstImage->thumbnail_url;
         }
 
@@ -72,9 +79,9 @@ class Item extends Model
     /**
      * 获取模型的可搜索数据
      *
-     * @return array
+     * @return array<string, mixed>
      */
-    public function toSearchableArray()
+    public function toSearchableArray(): array
     {
         return [
             'id' => $this->id,
@@ -89,12 +96,8 @@ class Item extends Model
 
     /**
      * 自定义搜索查询
-     *
-     * @param  string  $query
-     * @param  \Illuminate\Database\Eloquent\Builder  $builder
-     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeSearch($builder, $query)
+    public function scopeSearch(Builder $builder, string $query): Builder
     {
         return $builder->where(function ($q) use ($query) {
             $q->where('name', 'like', "%{$query}%")
@@ -149,7 +152,7 @@ class Item extends Model
     /**
      * 获取此物品关联的所有物品
      */
-    public function relatedItems()
+    public function relatedItems(): BelongsToMany
     {
         return $this->belongsToMany(
             Item::class,
@@ -164,7 +167,7 @@ class Item extends Model
     /**
      * 获取关联到此物品的所有物品（反向关系）
      */
-    public function relatingItems()
+    public function relatingItems(): BelongsToMany
     {
         return $this->belongsToMany(
             Item::class,
@@ -179,7 +182,7 @@ class Item extends Model
     /**
      * 获取所有关联（包括正向和反向）
      */
-    public function allRelations()
+    public function allRelations(): Collection
     {
         // 合并正向和反向关联
         $related = $this->relatedItems()->get();
@@ -192,9 +195,9 @@ class Item extends Model
      * 按关联类型获取关联物品
      *
      * @param  string  $type  关联类型：accessory, replacement, related, bundle, parent, child
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @return Collection<int, Item>
      */
-    public function getRelationsByType(string $type)
+    public function getRelationsByType(string $type): Collection
     {
         return $this->relatedItems()
             ->wherePivot('relation_type', $type)
@@ -207,9 +210,8 @@ class Item extends Model
      * @param  int  $relatedItemId  关联物品ID
      * @param  string  $type  关联类型
      * @param  string|null  $description  关联描述
-     * @return void
      */
-    public function addRelation(int $relatedItemId, string $type = 'related', ?string $description = null)
+    public function addRelation(int $relatedItemId, string $type = 'related', ?string $description = null): void
     {
         $this->relatedItems()->attach($relatedItemId, [
             'relation_type' => $type,
@@ -221,9 +223,8 @@ class Item extends Model
      * 移除物品关联
      *
      * @param  int  $relatedItemId  关联物品ID
-     * @return void
      */
-    public function removeRelation(int $relatedItemId)
+    public function removeRelation(int $relatedItemId): void
     {
         $this->relatedItems()->detach($relatedItemId);
     }

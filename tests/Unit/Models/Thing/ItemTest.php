@@ -8,6 +8,7 @@ use App\Models\Thing\ItemImage;
 use App\Models\Thing\Spot;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class ItemTest extends TestCase
@@ -151,6 +152,30 @@ class ItemTest extends TestCase
         ]);
 
         $this->assertNull($item3->thumbnail_url);
+    }
+
+    public function test_thumbnail_url_does_not_trigger_extra_queries_when_relations_are_preloaded(): void
+    {
+        $item = Item::factory()->create([
+            'user_id' => $this->user->id,
+        ]);
+
+        ItemImage::factory()->create([
+            'item_id' => $item->id,
+            'path' => 'items/1/preloaded.jpg',
+            'is_primary' => true,
+        ]);
+
+        $loadedItem = Item::with(['primaryImage', 'images'])->findOrFail($item->id);
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        $thumbnailUrl = $loadedItem->thumbnail_url;
+
+        $this->assertNotNull($thumbnailUrl);
+        $this->assertStringContainsString('preloaded-thumb.jpg', $thumbnailUrl);
+        $this->assertCount(0, DB::getQueryLog());
     }
 
     public function test_search_scope()

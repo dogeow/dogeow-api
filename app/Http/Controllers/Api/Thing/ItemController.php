@@ -3,15 +3,20 @@
 namespace App\Http\Controllers\Api\Thing;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Thing\AddItemRelationRequest;
+use App\Http\Requests\Thing\BatchAddItemRelationsRequest;
 use App\Http\Requests\Thing\ItemRequest;
 use App\Jobs\TriggerKnowledgeIndexBuildJob;
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemCategory;
 use App\Services\Thing\ItemSearchService;
 use App\Services\Thing\ItemService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
@@ -19,7 +24,7 @@ class ItemController extends Controller
 {
     private const DEFAULT_PAGE_SIZE = 10;
 
-    private const ITEM_RELATIONS = ['user', 'images', 'category', 'spot.room.area', 'tags'];
+    private const ITEM_RELATIONS = ['user', 'primaryImage', 'images', 'category', 'spot.room.area', 'tags'];
 
     public function __construct(
         private readonly ItemService $itemService,
@@ -29,7 +34,7 @@ class ItemController extends Controller
     /**
      * 获取物品列表
      */
-    public function index(Request $request)
+    public function index(Request $request): mixed
     {
         $baseQuery = Item::with(self::ITEM_RELATIONS);
 
@@ -95,8 +100,10 @@ class ItemController extends Controller
     /**
      * 存储新创建的物品
      */
-    public function store(ItemRequest $request)
+    public function store(ItemRequest $request): JsonResponse
     {
+        $this->authorize('create', Item::class);
+
         return DB::transaction(function () use ($request) {
             $validated = $request->validated();
             $validated['quantity'] ??= 1;
@@ -121,9 +128,9 @@ class ItemController extends Controller
     /**
      * 显示指定物品
      */
-    public function show(Item $item)
+    public function show(Item $item): JsonResponse
     {
-        if (! $this->canViewItem($item)) {
+        if (! Auth::user()?->can('view', $item)) {
             return response()->json(['message' => '无权查看此物品'], 403);
         }
 
@@ -133,9 +140,9 @@ class ItemController extends Controller
     /**
      * 更新指定物品
      */
-    public function update(ItemRequest $request, Item $item)
+    public function update(ItemRequest $request, Item $item): JsonResponse
     {
-        if (! $this->canModifyItem($item)) {
+        if (! Auth::user()?->can('update', $item)) {
             return response()->json(['message' => '无权更新此物品'], 403);
         }
 
@@ -157,9 +164,9 @@ class ItemController extends Controller
     /**
      * 删除指定物品
      */
-    public function destroy(Item $item)
+    public function destroy(Item $item): JsonResponse|Response
     {
-        if (! $this->canModifyItem($item)) {
+        if (! Auth::user()?->can('delete', $item)) {
             return response()->json(['message' => '无权删除此物品'], 403);
         }
 
@@ -175,7 +182,7 @@ class ItemController extends Controller
     /**
      * 增强搜索物品功能
      */
-    public function search(Request $request)
+    public function search(Request $request): JsonResponse
     {
         $searchTerm = $request->get('q', '');
         $limit = $this->getRequestLimit($request);
@@ -206,7 +213,7 @@ class ItemController extends Controller
     /**
      * 获取搜索建议
      */
-    public function searchSuggestions(Request $request)
+    public function searchSuggestions(Request $request): JsonResponse
     {
         $query = $request->get('q', '');
         $limit = $this->getRequestLimit($request, 5);
@@ -219,7 +226,7 @@ class ItemController extends Controller
     /**
      * 获取搜索历史
      */
-    public function searchHistory(Request $request)
+    public function searchHistory(Request $request): JsonResponse
     {
         if (! Auth::check()) {
             return response()->json([]);
@@ -234,7 +241,7 @@ class ItemController extends Controller
     /**
      * 清除搜索历史
      */
-    public function clearSearchHistory(Request $request)
+    public function clearSearchHistory(Request $request): JsonResponse
     {
         if (! Auth::check()) {
             return response()->json(['message' => '未登录'], 401);
@@ -248,9 +255,9 @@ class ItemController extends Controller
     /**
      * 获取物品的关联列表
      */
-    public function relations(Item $item)
+    public function relations(Item $item): JsonResponse
     {
-        if (! $this->canViewItem($item)) {
+        if (! Auth::user()?->can('view', $item)) {
             return response()->json(['message' => '无权查看此物品'], 403);
         }
 
@@ -265,56 +272,57 @@ class ItemController extends Controller
     /**
      * 添加物品关联
      */
-    public function addRelation(Request $request, Item $item)
+    public function addRelation(AddItemRelationRequest $request, Item $item): JsonResponse
     {
-        if (! $this->canModifyItem($item)) {
+        if (! Auth::user()?->can('update', $item)) {
             return response()->json(['message' => '无权修改此物品'], 403);
         }
 
-        $request->validate([
-            'related_item_id' => 'required|exists:thing_items,id',
-            'relation_type' => 'required|in:accessory,replacement,related,bundle,parent,child',
-            'description' => 'nullable|string|max:500',
-        ]);
-
-        $relatedItemId = $request->input('related_item_id');
+        $validated = $request->validated();
+        $relatedItemId = (int) $validated['related_item_id'];
 
         if ($item->id === $relatedItemId) {
             return response()->json(['message' => '不能关联自己'], 400);
         }
 
-        $relatedItem = Item::find($relatedItemId);
-        if (! $this->canViewItem($relatedItem)) {
+        $relatedItem = Item::query()->findOrFail($relatedItemId);
+        if (! $request->user()->can('view', $relatedItem)) {
             return response()->json(['message' => '无权访问关联的物品'], 403);
         }
 
         try {
             $item->addRelation(
                 $relatedItemId,
-                $request->input('relation_type', 'related'),
-                $request->input('description')
+                $validated['relation_type'],
+                $validated['description'] ?? null
             );
 
             return response()->json([
                 'message' => '关联添加成功',
                 'relations' => $item->relatedItems()->with(self::ITEM_RELATIONS)->get(),
             ], 201);
-        } catch (\Exception $e) {
-            $msg = $e->getMessage();
-            if (strpos($msg, 'Duplicate entry') !== false || strpos($msg, 'UNIQUE constraint failed') !== false) {
+        } catch (\Throwable $e) {
+            if ($this->isDuplicateRelationException($e)) {
                 return response()->json(['message' => '该关联已存在'], 400);
             }
 
-            return response()->json(['message' => '添加关联失败: ' . $msg], 500);
+            Log::error('添加物品关联失败', [
+                'item_id' => $item->id,
+                'related_item_id' => $relatedItemId,
+                'user_id' => Auth::id(),
+                'exception' => $e,
+            ]);
+
+            return response()->json(['message' => '添加关联失败'], 500);
         }
     }
 
     /**
      * 删除物品关联
      */
-    public function removeRelation(Item $item, int $relatedItemId)
+    public function removeRelation(Item $item, int $relatedItemId): JsonResponse
     {
-        if (! $this->canModifyItem($item)) {
+        if (! Auth::user()?->can('update', $item)) {
             return response()->json(['message' => '无权修改此物品'], 403);
         }
 
@@ -329,34 +337,57 @@ class ItemController extends Controller
     /**
      * 批量添加关联
      */
-    public function batchAddRelations(Request $request, Item $item)
+    public function batchAddRelations(BatchAddItemRelationsRequest $request, Item $item): JsonResponse
     {
-        if (! $this->canModifyItem($item)) {
+        if (! Auth::user()?->can('update', $item)) {
             return response()->json(['message' => '无权修改此物品'], 403);
         }
 
-        $request->validate([
-            'relations' => 'required|array',
-            'relations.*.related_item_id' => 'required|exists:thing_items,id',
-            'relations.*.relation_type' => 'required|in:accessory,replacement,related,bundle,parent,child',
-            'relations.*.description' => 'nullable|string|max:500',
-        ]);
+        $validated = $request->validated();
 
         $successCount = 0;
         $errors = [];
 
-        foreach ($request->input('relations') as $relation) {
+        foreach ($validated['relations'] as $relation) {
+            $relatedItemId = (int) $relation['related_item_id'];
+
+            if ($item->id === $relatedItemId) {
+                $errors[] = [
+                    'related_item_id' => $relatedItemId,
+                    'error' => '不能关联自己',
+                ];
+
+                continue;
+            }
+
+            $relatedItem = Item::query()->find($relatedItemId);
+            if (! $relatedItem || ! $request->user()->can('view', $relatedItem)) {
+                $errors[] = [
+                    'related_item_id' => $relatedItemId,
+                    'error' => '无权访问关联的物品',
+                ];
+
+                continue;
+            }
+
             try {
                 $item->addRelation(
-                    $relation['related_item_id'],
+                    $relatedItemId,
                     $relation['relation_type'],
                     $relation['description'] ?? null
                 );
                 $successCount++;
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
+                Log::warning('批量添加物品关联失败', [
+                    'item_id' => $item->id,
+                    'related_item_id' => $relatedItemId,
+                    'user_id' => Auth::id(),
+                    'exception' => $e,
+                ]);
+
                 $errors[] = [
-                    'related_item_id' => $relation['related_item_id'],
-                    'error' => $e->getMessage(),
+                    'related_item_id' => $relatedItemId,
+                    'error' => $this->isDuplicateRelationException($e) ? '该关联已存在' : '添加关联失败',
                 ];
             }
         }
@@ -372,7 +403,7 @@ class ItemController extends Controller
     /**
      * 获取用户的物品分类
      */
-    public function categories()
+    public function categories(): JsonResponse
     {
         return response()->json(ItemCategory::where('user_id', Auth::id())->get());
     }
@@ -380,7 +411,7 @@ class ItemController extends Controller
     /**
      * 应用可见性过滤条件
      */
-    private function applyVisibilityFilter($query): void
+    private function applyVisibilityFilter(mixed $query): void
     {
         if (Auth::check()) {
             $query->where(fn ($q) => $q->where('is_public', true)->orWhere('user_id', Auth::id()));
@@ -392,25 +423,9 @@ class ItemController extends Controller
     }
 
     /**
-     * 检查用户是否有权限查看物品
-     */
-    private function canViewItem(Item $item): bool
-    {
-        return $item->is_public || (Auth::check() && $item->user_id === Auth::id());
-    }
-
-    /**
-     * 检查用户是否有权限修改物品
-     */
-    private function canModifyItem(Item $item): bool
-    {
-        return Auth::check() && $item->user_id === Auth::id();
-    }
-
-    /**
      * 应用分类过滤器
      */
-    private function applyCategoryFilter($query, $value)
+    private function applyCategoryFilter(mixed $query, mixed $value): mixed
     {
         if ($value === 'uncategorized' || $value === null) {
             return $query->whereNull('category_id');
@@ -427,5 +442,13 @@ class ItemController extends Controller
         }
 
         return $query->whereIn('category_id', $categoryIds);
+    }
+
+    private function isDuplicateRelationException(\Throwable $exception): bool
+    {
+        $message = $exception->getMessage();
+
+        return str_contains($message, 'Duplicate entry')
+            || str_contains($message, 'UNIQUE constraint failed');
     }
 }
