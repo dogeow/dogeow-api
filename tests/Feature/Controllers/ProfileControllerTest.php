@@ -28,7 +28,7 @@ class ProfileControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at'],
+            'success', 'message', 'data' => ['user' => ['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at']],
         ]);
     }
 

@@ -46,9 +46,10 @@ class ChatControllerTest extends TestCase
         $response = $this->getJson('/api/chat/rooms');
 
         $response->assertStatus(200);
-        $response->assertJsonCount(2, 'rooms'); // Including the room from setUp
+        $response->assertJsonCount(2, 'data.rooms'); // Including the room from setUp
         $response->assertJsonFragment(['id' => $activeRoom->id]);
-        $response->assertJsonMissing(['id' => $inactiveRoom->id]);
+        $roomIds = array_column($response->json('data.rooms'), 'id');
+        $this->assertNotContains($inactiveRoom->id, $roomIds);
     }
 
     public function test_create_room_with_valid_data()
@@ -61,11 +62,9 @@ class ChatControllerTest extends TestCase
         $response = $this->postJson('/api/chat/rooms', $roomData);
 
         $response->assertStatus(201);
-        $response->assertJsonFragment([
-            'name' => 'Test Room',
-            'description' => 'A test chat room',
-            'created_by' => $this->user->id,
-        ]);
+        $response->assertJsonPath('data.room.name', 'Test Room');
+        $response->assertJsonPath('data.room.description', 'A test chat room');
+        $response->assertJsonPath('data.room.created_by', $this->user->id);
 
         $this->assertDatabaseHas('chat_rooms', $roomData);
     }
@@ -189,6 +188,7 @@ class ChatControllerTest extends TestCase
         $response = $this->getJson("/api/chat/rooms/{$this->room->id}/messages");
 
         $response->assertStatus(200);
+        // getMessages returns raw paginator via response()->json(), not Controller::success()
         $response->assertJsonStructure([
             'data',
             'current_page',
@@ -276,11 +276,14 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(429);
         $response->assertJsonStructure([
+            'success',
             'message',
-            'rate_limit' => [
-                'attempts',
-                'remaining',
-                'reset_time',
+            'errors' => [
+                'rate_limit' => [
+                    'attempts',
+                    'remaining',
+                    'reset_time',
+                ],
             ],
         ]);
         $this->assertStringStartsWith('Too many messages. Please wait', $response->json('message'));
@@ -525,10 +528,14 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'online_users',
-            'count',
+            'success',
+            'message',
+            'data' => [
+                'online_users',
+                'count',
+            ],
         ]);
-        $response->assertJsonFragment(['count' => 2]);
+        $response->assertJsonPath('data.count', 2);
     }
 
     public function test_update_user_status_updates_last_seen()
@@ -544,7 +551,11 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonFragment(['message' => 'Status updated successfully']);
-        $response->assertJsonStructure(['last_seen_at']);
+        $response->assertJsonStructure([
+            'success',
+            'message',
+            'data' => ['last_seen_at'],
+        ]);
     }
 
     public function test_cleanup_disconnected_users()
@@ -553,8 +564,9 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
+            'success',
             'message',
-            'cleaned_users_count',
+            'data' => ['cleaned_users_count'],
         ]);
     }
 
@@ -573,7 +585,7 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(404)
             ->assertJsonPath('message', 'Failed to update status')
-            ->assertJsonPath('0', 'User not found in room');
+            ->assertJsonPath('errors.0', 'User not found in room');
     }
 
     public function test_cleanup_disconnected_users_returns_error_when_service_fails()
@@ -591,7 +603,7 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(500)
             ->assertJsonPath('message', 'Failed to cleanup disconnected users')
-            ->assertJsonPath('0', 'Cleanup crashed');
+            ->assertJsonPath('errors.0', 'Cleanup crashed');
     }
 
     public function test_get_user_presence_status_when_not_in_room()
@@ -599,10 +611,8 @@ class ChatControllerTest extends TestCase
         $response = $this->getJson("/api/chat/rooms/{$this->room->id}/my-status");
 
         $response->assertStatus(200);
-        $response->assertJsonFragment([
-            'is_in_room' => false,
-            'is_online' => false,
-        ]);
+        $response->assertJsonPath('data.is_in_room', false);
+        $response->assertJsonPath('data.is_online', false);
     }
 
     public function test_get_user_presence_status_when_in_room()
@@ -616,14 +626,16 @@ class ChatControllerTest extends TestCase
         $response = $this->getJson("/api/chat/rooms/{$this->room->id}/my-status");
 
         $response->assertStatus(200);
-        $response->assertJsonFragment([
-            'is_in_room' => true,
-            'is_online' => true,
-        ]);
+        $response->assertJsonPath('data.is_in_room', true);
+        $response->assertJsonPath('data.is_online', true);
         $response->assertJsonStructure([
-            'joined_at',
-            'last_seen_at',
-            'is_inactive',
+            'success',
+            'message',
+            'data' => [
+                'joined_at',
+                'last_seen_at',
+                'is_inactive',
+            ],
         ]);
     }
 
@@ -649,10 +661,8 @@ class ChatControllerTest extends TestCase
         $response = $this->postJson('/api/chat/rooms', $roomData);
 
         $response->assertStatus(201);
-        $response->assertJsonFragment([
-            'name' => 'Private Test Room',
-            'is_private' => true,
-        ]);
+        $response->assertJsonPath('data.room.name', 'Private Test Room');
+        $response->assertJsonPath('data.room.is_private', true);
         $this->assertDatabaseHas('chat_rooms', [
             'name' => 'Private Test Room',
             'is_private' => true,
@@ -675,7 +685,7 @@ class ChatControllerTest extends TestCase
         $response = $this->getJson('/api/chat/rooms');
 
         $response->assertStatus(200);
-        $roomIds = array_column($response->json('rooms'), 'id');
+        $roomIds = array_column($response->json('data.rooms'), 'id');
         $this->assertNotContains($privateRoom->id, $roomIds);
     }
 
@@ -750,11 +760,9 @@ class ChatControllerTest extends TestCase
         ]);
 
         $response->assertStatus(200);
-        $response->assertJsonFragment([
-            'name' => 'Updated Room Name',
-            'description' => 'Updated description',
-            'is_private' => true,
-        ]);
+        $response->assertJsonPath('data.room.name', 'Updated Room Name');
+        $response->assertJsonPath('data.room.description', 'Updated description');
+        $response->assertJsonPath('data.room.is_private', true);
         $this->assertDatabaseHas('chat_rooms', [
             'id' => $this->room->id,
             'name' => 'Updated Room Name',
@@ -800,7 +808,7 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonPath('message', 'Failed to create room')
-            ->assertJsonPath('0', 'Room name already exists');
+            ->assertJsonPath('errors.0', 'Room name already exists');
     }
 
     public function test_create_room_returns_server_error_when_service_throws()
@@ -844,7 +852,7 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonPath('message', 'Failed to update room')
-            ->assertJsonPath('0', 'Room update was rejected');
+            ->assertJsonPath('errors.0', 'Room update was rejected');
     }
 
     public function test_update_room_returns_server_error_when_service_throws()
@@ -895,7 +903,7 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonPath('message', 'Failed to leave room')
-            ->assertJsonPath('0', 'User is not a member of this room');
+            ->assertJsonPath('errors.0', 'User is not a member of this room');
     }
 
     public function test_delete_room_returns_422_for_non_permission_service_error()
@@ -914,7 +922,7 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonPath('message', 'Failed to delete room')
-            ->assertJsonPath('0', 'Cannot delete room with active users. Please wait for all users to leave.');
+            ->assertJsonPath('errors.0', 'Cannot delete room with active users. Please wait for all users to leave.');
     }
 
     public function test_get_messages_returns_server_error_when_room_is_missing()
@@ -952,7 +960,7 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonPath('message', 'Failed to send message')
-            ->assertJsonPath('errors', []);
+            ->assertJsonPath('errors.errors', []);
     }
 
     public function test_delete_message_returns_server_error_when_message_is_missing()

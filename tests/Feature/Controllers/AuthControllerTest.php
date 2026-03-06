@@ -25,14 +25,18 @@ class AuthControllerTest extends TestCase
 
         $response->assertStatus(201);
         $response->assertJsonStructure([
-            'user' => [
-                'id',
-                'name',
-                'email',
-                'created_at',
-                'updated_at',
+            'success',
+            'message',
+            'data' => [
+                'user' => [
+                    'id',
+                    'name',
+                    'email',
+                    'created_at',
+                    'updated_at',
+                ],
+                'token',
             ],
-            'token',
         ]);
 
         $this->assertDatabaseHas('users', [
@@ -88,14 +92,18 @@ class AuthControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'user' => [
-                'id',
-                'name',
-                'email',
-                'created_at',
-                'updated_at',
+            'success',
+            'message',
+            'data' => [
+                'user' => [
+                    'id',
+                    'name',
+                    'email',
+                    'created_at',
+                    'updated_at',
+                ],
+                'token',
             ],
-            'token',
         ]);
     }
 
@@ -145,9 +153,9 @@ class AuthControllerTest extends TestCase
         $response = $this->getJson('/api/user');
 
         $response->assertStatus(200)
-            ->assertJsonPath('user.id', $user->id)
-            ->assertJsonPath('user.name', $user->name)
-            ->assertJsonPath('user.email', $user->email);
+            ->assertJsonPath('data.id', $user->id)
+            ->assertJsonPath('data.name', $user->name)
+            ->assertJsonPath('data.email', $user->email);
     }
 
     public function test_unauthenticated_user_cannot_get_profile()
@@ -170,8 +178,8 @@ class AuthControllerTest extends TestCase
         $response = $this->putJson('/api/user', $updateData);
 
         $response->assertStatus(200)
-            ->assertJsonPath('user.name', 'Updated Name')
-            ->assertJsonPath('user.email', 'updated@example.com');
+            ->assertJsonPath('data.name', 'Updated Name')
+            ->assertJsonPath('data.email', 'updated@example.com');
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,

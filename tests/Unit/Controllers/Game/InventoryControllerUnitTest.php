@@ -62,7 +62,7 @@ class InventoryControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame($payload['items'], $data['items']);
+        $this->assertSame($payload['items'], $data['data']['items']);
     }
 
     public function test_equip_returns_success(): void
@@ -82,7 +82,7 @@ class InventoryControllerUnitTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('装备成功', $data['message']);
-        $this->assertSame($payload['slot'], $data['slot']);
+        $this->assertSame($payload['slot'], $data['data']['slot']);
     }
 
     public function test_equip_returns_error_when_service_throws(): void
@@ -152,7 +152,7 @@ class InventoryControllerUnitTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('出售成功', $data['message']);
-        $this->assertSame(15, $data['total_price']);
+        $this->assertSame(15, $data['data']['total_price']);
     }
 
     public function test_sell_returns_error_when_service_throws(): void
@@ -190,7 +190,7 @@ class InventoryControllerUnitTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('移动成功', $data['message']);
-        $this->assertSame(4, $data['slot_index']);
+        $this->assertSame(4, $data['data']['slot_index']);
     }
 
     public function test_move_returns_error_when_service_throws(): void
@@ -227,7 +227,7 @@ class InventoryControllerUnitTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('使用药品成功', $data['message']);
-        $this->assertSame(20, $data['healed']);
+        $this->assertSame(20, $data['data']['healed']);
     }
 
     public function test_use_potion_returns_error_when_service_throws(): void

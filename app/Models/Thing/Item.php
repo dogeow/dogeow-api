@@ -199,6 +199,7 @@ class Item extends Model
      */
     public function getRelationsByType(string $type): Collection
     {
+        /** @var Collection<int, Item> */
         return $this->relatedItems()
             ->wherePivot('relation_type', $type)
             ->get();

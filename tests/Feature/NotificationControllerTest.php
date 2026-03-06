@@ -43,12 +43,12 @@ class NotificationControllerTest extends TestCase
         $response = $this->getJson('/api/notifications/unread');
 
         $response->assertStatus(200)
-            ->assertJsonPath('count', 1)
-            ->assertJsonCount(1, 'items')
-            ->assertJsonPath('items.0.id', $notification->id)
-            ->assertJsonPath('items.0.type', 'Test\Notification')
-            ->assertJsonPath('items.0.data.title', 'Test')
-            ->assertJsonStructure(['items' => [['id', 'type', 'data', 'created_at']]]);
+            ->assertJsonPath('data.count', 1)
+            ->assertJsonCount(1, 'data.items')
+            ->assertJsonPath('data.items.0.id', $notification->id)
+            ->assertJsonPath('data.items.0.type', 'Test\Notification')
+            ->assertJsonPath('data.items.0.data.title', 'Test')
+            ->assertJsonStructure(['success', 'message', 'data' => ['items' => [['id', 'type', 'data', 'created_at']]]]);
     }
 
     public function test_unread_returns_empty_when_no_notifications(): void
@@ -58,8 +58,8 @@ class NotificationControllerTest extends TestCase
         $response = $this->getJson('/api/notifications/unread');
 
         $response->assertStatus(200)
-            ->assertJsonPath('count', 0)
-            ->assertJsonPath('items', []);
+            ->assertJsonPath('data.count', 0)
+            ->assertJsonPath('data.items', []);
     }
 
     public function test_unread_excludes_read_notifications(): void
@@ -81,8 +81,8 @@ class NotificationControllerTest extends TestCase
         $response = $this->getJson('/api/notifications/unread');
 
         $response->assertStatus(200)
-            ->assertJsonPath('count', 1)
-            ->assertJsonPath('items.0.id', $unread->id);
+            ->assertJsonPath('data.count', 1)
+            ->assertJsonPath('data.items.0.id', $unread->id);
     }
 
     public function test_unread_sends_summary_push_when_user_has_subscription(): void
@@ -111,7 +111,7 @@ class NotificationControllerTest extends TestCase
         $response = $this->getJson('/api/notifications/unread');
 
         $response->assertStatus(200)
-            ->assertJsonPath('count', 1);
+            ->assertJsonPath('data.count', 1);
 
         Notification::assertSentTo($this->user, WebPushSummaryNotification::class);
         $this->assertNotNull(Cache::get("user:{$this->user->id}:unread_summary_push_at"));
@@ -144,7 +144,7 @@ class NotificationControllerTest extends TestCase
         $response = $this->getJson('/api/notifications/unread');
 
         $response->assertStatus(200)
-            ->assertJsonPath('count', 1);
+            ->assertJsonPath('data.count', 1);
 
         Notification::assertNothingSent();
     }
@@ -162,7 +162,8 @@ class NotificationControllerTest extends TestCase
         $response = $this->postJson("/api/notifications/{$notification->id}/read");
 
         $response->assertStatus(200)
-            ->assertJsonPath('message', '已标记为已读');
+            ->assertJsonPath('message', '已标记为已读')
+            ->assertJsonPath('success', true);
 
         $notification->refresh();
         $this->assertNotNull($notification->read_at);
@@ -202,7 +203,8 @@ class NotificationControllerTest extends TestCase
         $response = $this->postJson('/api/notifications/read-all');
 
         $response->assertStatus(200)
-            ->assertJsonPath('message', '已全部标记为已读');
+            ->assertJsonPath('message', '已全部标记为已读')
+            ->assertJsonPath('success', true);
 
         $this->assertSame(0, $this->user->unreadNotifications()->count());
     }

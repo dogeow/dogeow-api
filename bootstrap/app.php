@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'websocket.auth' => \App\Http\Middleware\WebSocketAuthMiddleware::class,
             'combat.rate' => \App\Http\Middleware\CombatRateLimit::class,
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+            'format.api' => \App\Http\Middleware\FormatApiResponse::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

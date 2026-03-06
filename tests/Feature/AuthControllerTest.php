@@ -25,8 +25,12 @@ class AuthControllerTest extends TestCase
 
         $response->assertStatus(201);
         $response->assertJsonStructure([
-            'user' => ['id', 'name', 'email', 'created_at', 'updated_at'],
-            'token',
+            'success',
+            'message',
+            'data' => [
+                'user' => ['id', 'name', 'email', 'created_at', 'updated_at'],
+                'token',
+            ],
         ]);
 
         $this->assertDatabaseHas('users', [
@@ -116,8 +120,12 @@ class AuthControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'user' => ['id', 'name', 'email'],
-            'token',
+            'success',
+            'message',
+            'data' => [
+                'user' => ['id', 'name', 'email'],
+                'token',
+            ],
         ]);
 
         $this->assertDatabaseHas('personal_access_tokens', [
@@ -228,9 +236,9 @@ class AuthControllerTest extends TestCase
         $response = $this->getJson('/api/user');
 
         $response->assertStatus(200)
-            ->assertJsonPath('user.id', $user->id)
-            ->assertJsonPath('user.name', $user->name)
-            ->assertJsonPath('user.email', $user->email);
+            ->assertJsonPath('data.id', $user->id)
+            ->assertJsonPath('data.name', $user->name)
+            ->assertJsonPath('data.email', $user->email);
     }
 
     public function test_unauthenticated_user_cannot_get_profile()
@@ -253,8 +261,8 @@ class AuthControllerTest extends TestCase
         $response = $this->putJson('/api/user', $updateData);
 
         $response->assertStatus(200)
-            ->assertJsonPath('user.name', 'Updated Name')
-            ->assertJsonPath('user.email', 'updated@example.com');
+            ->assertJsonPath('data.name', 'Updated Name')
+            ->assertJsonPath('data.email', 'updated@example.com');
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
@@ -309,8 +317,8 @@ class AuthControllerTest extends TestCase
         $response = $this->putJson('/api/user', $updateData);
 
         $response->assertStatus(200)
-            ->assertJsonPath('user.name', 'Updated Name')
-            ->assertJsonPath('user.email', 'test@example.com');
+            ->assertJsonPath('data.name', 'Updated Name')
+            ->assertJsonPath('data.email', 'test@example.com');
     }
 
     public function test_user_cannot_update_profile_without_name()
@@ -420,12 +428,12 @@ class AuthControllerTest extends TestCase
         // First login
         $response1 = $this->postJson('/api/login', $loginData);
         $response1->assertStatus(200);
-        $token1 = $response1->json('token');
+        $token1 = $response1->json('data.token');
 
         // Second login
         $response2 = $this->postJson('/api/login', $loginData);
         $response2->assertStatus(200);
-        $token2 = $response2->json('token');
+        $token2 = $response2->json('data.token');
 
         // Tokens should be different
         $this->assertNotEquals($token1, $token2);

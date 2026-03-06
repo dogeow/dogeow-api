@@ -38,13 +38,15 @@ class ProfileControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at'],
+            'success', 'message', 'data' => ['user' => ['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at']],
         ]);
         $response->assertJson([
-            'user' => [
-                'id' => $this->user->id,
-                'name' => $this->user->name,
-                'email' => $this->user->email,
+            'data' => [
+                'user' => [
+                    'id' => $this->user->id,
+                    'name' => $this->user->name,
+                    'email' => $this->user->email,
+                ],
             ],
         ]);
     }
@@ -63,14 +65,16 @@ class ProfileControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'message',
-            'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at'],
+            'success', 'message',
+            'data' => ['user' => ['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at']],
         ]);
         $response->assertJson([
             'message' => 'Profile updated successfully',
-            'user' => [
-                'name' => 'Updated Name',
-                'email' => 'updated@example.com',
+            'data' => [
+                'user' => [
+                    'name' => 'Updated Name',
+                    'email' => 'updated@example.com',
+                ],
             ],
         ]);
 

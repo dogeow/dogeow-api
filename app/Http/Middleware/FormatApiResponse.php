@@ -27,8 +27,23 @@ class FormatApiResponse
         $data = $response->getData(true);
         $statusCode = $response->getStatusCode();
 
+        // 非数组数据（null、标量等）直接包装
+        if (! is_array($data)) {
+            $success = $statusCode >= 200 && $statusCode < 300;
+            $formatted = [
+                'success' => $success,
+                'message' => $this->getDefaultMessage($statusCode),
+            ];
+
+            if ($data !== null) {
+                $formatted[$success ? 'data' : 'errors'] = $data;
+            }
+
+            return response()->json($formatted, $statusCode);
+        }
+
         // 已含有标准格式字段，跳过格式化
-        if (array_key_exists('success', $data) || array_key_exists('message', $data)) {
+        if ($this->isStandardResponse($data)) {
             return $response;
         }
 
@@ -44,12 +59,67 @@ class FormatApiResponse
     private function formatResponse(array $data, int $statusCode): array
     {
         $success = $statusCode >= 200 && $statusCode < 300;
+        $payload = $this->resolvePayload($data, $success);
 
-        return [
+        $response = [
             'success' => $success,
-            'message' => $this->getDefaultMessage($statusCode),
-            $success ? 'data' : 'errors' => $data,
+            'message' => $this->resolveMessage($data, $statusCode),
         ];
+
+        if ($payload !== null) {
+            $response[$success ? 'data' : 'errors'] = $payload;
+        }
+
+        return $response;
+    }
+
+    private function isStandardResponse(array $data): bool
+    {
+        return array_key_exists('success', $data) && array_key_exists('message', $data);
+    }
+
+    private function resolveMessage(array $data, int $statusCode): string
+    {
+        if (isset($data['message']) && is_string($data['message']) && $data['message'] !== '') {
+            return $data['message'];
+        }
+
+        if (isset($data['error']) && is_string($data['error']) && $data['error'] !== '') {
+            return $data['error'];
+        }
+
+        return $this->getDefaultMessage($statusCode);
+    }
+
+    private function resolvePayload(array $data, bool $success): mixed
+    {
+        if ($success) {
+            if (count($data) === 0) {
+                return null;
+            }
+
+            if (count($data) === 1 && array_key_exists('data', $data)) {
+                return $data['data'];
+            }
+
+            return $data;
+        }
+
+        if (array_key_exists('errors', $data)) {
+            return $data['errors'];
+        }
+
+        $payload = [];
+
+        foreach ($data as $key => $value) {
+            if (in_array($key, ['message', 'error'], true)) {
+                continue;
+            }
+
+            $payload[$key] = $value;
+        }
+
+        return count($payload) > 0 ? $payload : null;
     }
 
     /**

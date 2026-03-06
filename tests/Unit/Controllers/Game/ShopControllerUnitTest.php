@@ -63,8 +63,8 @@ class ShopControllerUnitTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('Success', $data['message']);
-        $this->assertSame($payload['player_copper'], $data['player_copper']);
-        $this->assertSame($payload['items'], $data['items']);
+        $this->assertSame($payload['player_copper'], $data['data']['player_copper']);
+        $this->assertSame($payload['items'], $data['data']['items']);
     }
 
     public function test_index_returns_error_when_service_fails(): void
@@ -79,7 +79,7 @@ class ShopControllerUnitTest extends TestCase
 
         $this->assertSame(422, $response->getStatusCode());
         $this->assertSame('获取商店物品失败', $data['message']);
-        $this->assertSame('boom', $data['error']);
+        $this->assertSame('boom', $data['errors']['error']);
     }
 
     public function test_refresh_returns_success_payload(): void
@@ -95,7 +95,7 @@ class ShopControllerUnitTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('刷新成功', $data['message']);
-        $this->assertSame($payload['items'], $data['items']);
+        $this->assertSame($payload['items'], $data['data']['items']);
     }
 
     public function test_refresh_returns_error_when_service_fails(): void
@@ -130,7 +130,7 @@ class ShopControllerUnitTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('购买成功', $data['message']);
-        $this->assertSame($payload['item'], $data['item']);
+        $this->assertSame($payload['item'], $data['data']['item']);
     }
 
     public function test_buy_returns_error_when_service_fails(): void
@@ -168,7 +168,7 @@ class ShopControllerUnitTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('出售成功', $data['message']);
-        $this->assertSame($payload['sold'], $data['sold']);
+        $this->assertSame($payload['sold'], $data['data']['sold']);
     }
 
     public function test_sell_returns_error_when_service_fails(): void

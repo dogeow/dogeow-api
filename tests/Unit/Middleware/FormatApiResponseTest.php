@@ -57,12 +57,32 @@ class FormatApiResponseTest extends TestCase
         $request = new Request;
         $request->setMethod('GET');
 
-        $response = new JsonResponse(['success' => true, 'data' => 'test']);
+        $response = new JsonResponse(['success' => true, 'message' => 'Success', 'data' => 'test']);
 
         $result = $this->middleware->handle($request, function ($req) use ($response) {
             return $response;
         });
 
         $this->assertSame($response, $result);
+    }
+
+    public function test_handle_formats_message_only_error_response(): void
+    {
+        $request = new Request;
+        $request->setMethod('GET');
+        $request->headers->set('Accept', 'application/json');
+        $request->server->set('REQUEST_URI', '/api/test');
+
+        $response = new JsonResponse(['message' => 'Forbidden'], 403);
+
+        $result = $this->middleware->handle($request, function ($req) use ($response) {
+            return $response;
+        });
+
+        $this->assertInstanceOf(JsonResponse::class, $result);
+        $data = $result->getData(true);
+        $this->assertFalse($data['success']);
+        $this->assertSame('Forbidden', $data['message']);
+        $this->assertArrayNotHasKey('errors', $data);
     }
 }

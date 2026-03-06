@@ -71,12 +71,10 @@ class ChatModerationControllerTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJson([
-                'message' => 'Message deleted successfully',
-                'action' => 'delete_message',
-                'moderator' => $this->moderator->name,
-                'reason' => 'Inappropriate content',
-            ]);
+            ->assertJsonPath('message', 'Message deleted successfully')
+            ->assertJsonPath('data.action', 'delete_message')
+            ->assertJsonPath('data.moderator', $this->moderator->name)
+            ->assertJsonPath('data.reason', 'Inappropriate content');
 
         // Check if message was actually deleted
         $this->assertDatabaseMissing('chat_messages', ['id' => $this->message->id]);
@@ -118,10 +116,8 @@ class ChatModerationControllerTest extends TestCase
         $response = $this->deleteJson("/api/chat/moderation/rooms/{$this->room->id}/messages/{$this->message->id}");
 
         $response->assertStatus(200)
-            ->assertJson([
-                'message' => 'Message deleted successfully',
-                'reason' => null,
-            ]);
+            ->assertJsonPath('message', 'Message deleted successfully')
+            ->assertJsonPath('data.reason', null);
     }
 
     // ==================== MUTE USER TESTS ====================
@@ -134,14 +130,12 @@ class ChatModerationControllerTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJson([
-                'message' => 'User muted successfully',
-                'action' => 'mute_user',
-                'target_user_id' => $this->targetUser->id,
-                'moderator' => $this->moderator->name,
-                'duration_minutes' => 60,
-                'reason' => 'Spam behavior',
-            ]);
+            ->assertJsonPath('message', 'User muted successfully')
+            ->assertJsonPath('data.action', 'mute_user')
+            ->assertJsonPath('data.target_user_id', $this->targetUser->id)
+            ->assertJsonPath('data.moderator', $this->moderator->name)
+            ->assertJsonPath('data.duration_minutes', 60)
+            ->assertJsonPath('data.reason', 'Spam behavior');
 
         $this->assertDatabaseHas('chat_moderation_actions', [
             'room_id' => $this->room->id,
@@ -208,10 +202,8 @@ class ChatModerationControllerTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJson([
-                'duration_minutes' => null,
-                'muted_until' => null,
-            ]);
+            ->assertJsonPath('data.duration_minutes', null)
+            ->assertJsonPath('data.muted_until', null);
     }
 
     public function test_mute_user_invalid_duration()
@@ -238,13 +230,11 @@ class ChatModerationControllerTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJson([
-                'message' => 'User unmuted successfully',
-                'action' => 'unmute_user',
-                'target_user_id' => $this->targetUser->id,
-                'moderator' => $this->moderator->name,
-                'reason' => 'Appeal granted',
-            ]);
+            ->assertJsonPath('message', 'User unmuted successfully')
+            ->assertJsonPath('data.action', 'unmute_user')
+            ->assertJsonPath('data.target_user_id', $this->targetUser->id)
+            ->assertJsonPath('data.moderator', $this->moderator->name)
+            ->assertJsonPath('data.reason', 'Appeal granted');
 
         $this->assertDatabaseHas('chat_moderation_actions', [
             'room_id' => $this->room->id,
@@ -290,14 +280,12 @@ class ChatModerationControllerTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJson([
-                'message' => 'User banned successfully',
-                'action' => 'ban_user',
-                'target_user_id' => $this->targetUser->id,
-                'moderator' => $this->moderator->name,
-                'duration_minutes' => 1440,
-                'reason' => 'Repeated violations',
-            ]);
+            ->assertJsonPath('message', 'User banned successfully')
+            ->assertJsonPath('data.action', 'ban_user')
+            ->assertJsonPath('data.target_user_id', $this->targetUser->id)
+            ->assertJsonPath('data.moderator', $this->moderator->name)
+            ->assertJsonPath('data.duration_minutes', 1440)
+            ->assertJsonPath('data.reason', 'Repeated violations');
 
         $this->assertDatabaseHas('chat_moderation_actions', [
             'room_id' => $this->room->id,
@@ -332,10 +320,8 @@ class ChatModerationControllerTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJson([
-                'duration_minutes' => null,
-                'banned_until' => null,
-            ]);
+            ->assertJsonPath('data.duration_minutes', null)
+            ->assertJsonPath('data.banned_until', null);
     }
 
     public function test_ban_user_invalid_duration()
@@ -392,13 +378,11 @@ class ChatModerationControllerTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJson([
-                'message' => 'User unbanned successfully',
-                'action' => 'unban_user',
-                'target_user_id' => $this->targetUser->id,
-                'moderator' => $this->moderator->name,
-                'reason' => 'Appeal granted',
-            ]);
+            ->assertJsonPath('message', 'User unbanned successfully')
+            ->assertJsonPath('data.action', 'unban_user')
+            ->assertJsonPath('data.target_user_id', $this->targetUser->id)
+            ->assertJsonPath('data.moderator', $this->moderator->name)
+            ->assertJsonPath('data.reason', 'Appeal granted');
 
         $this->assertDatabaseHas('chat_moderation_actions', [
             'room_id' => $this->room->id,
@@ -468,22 +452,23 @@ class ChatModerationControllerTest extends TestCase
 
         $response = $this->getJson("/api/chat/moderation/rooms/{$this->room->id}/actions");
 
-        $response->assertStatus(200)
-            ->assertJsonStructure([
-                'data' => [
-                    '*' => [
-                        'id',
-                        'room_id',
-                        'moderator_id',
-                        'target_user_id',
-                        'action_type',
-                        'reason',
-                        'created_at',
-                        'moderator' => ['id', 'name', 'email'],
-                        'target_user' => ['id', 'name', 'email'],
-                    ],
+        $response->assertStatus(200);
+        // getModerationActions returns raw Spatie jsonPaginate via response()->json()
+        $response->assertJsonStructure([
+            'data' => [
+                '*' => [
+                    'id',
+                    'room_id',
+                    'moderator_id',
+                    'target_user_id',
+                    'action_type',
+                    'reason',
+                    'created_at',
+                    'moderator' => ['id', 'name', 'email'],
+                    'target_user' => ['id', 'name', 'email'],
                 ],
-            ]);
+            ],
+        ]);
     }
 
     public function test_get_moderation_actions_with_filters()
@@ -536,15 +521,19 @@ class ChatModerationControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'user' => ['id', 'name', 'email'],
-                'moderation_status' => [
-                    'is_muted',
-                    'muted_until',
-                    'muted_by',
-                    'is_banned',
-                    'banned_until',
-                    'banned_by',
-                    'can_send_messages',
+                'success',
+                'message',
+                'data' => [
+                    'user' => ['id', 'name', 'email'],
+                    'moderation_status' => [
+                        'is_muted',
+                        'muted_until',
+                        'muted_by',
+                        'is_banned',
+                        'banned_until',
+                        'banned_by',
+                        'can_send_messages',
+                    ],
                 ],
             ]);
     }
@@ -560,12 +549,8 @@ class ChatModerationControllerTest extends TestCase
         $response = $this->getJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->targetUser->id}/status");
 
         $response->assertStatus(200)
-            ->assertJson([
-                'moderation_status' => [
-                    'is_muted' => true,
-                    'can_send_messages' => false,
-                ],
-            ]);
+            ->assertJsonPath('data.moderation_status.is_muted', true)
+            ->assertJsonPath('data.moderation_status.can_send_messages', false);
     }
 
     public function test_get_user_moderation_status_banned_user()
@@ -579,12 +564,8 @@ class ChatModerationControllerTest extends TestCase
         $response = $this->getJson("/api/chat/moderation/rooms/{$this->room->id}/users/{$this->targetUser->id}/status");
 
         $response->assertStatus(200)
-            ->assertJson([
-                'moderation_status' => [
-                    'is_banned' => true,
-                    'can_send_messages' => false,
-                ],
-            ]);
+            ->assertJsonPath('data.moderation_status.is_banned', true)
+            ->assertJsonPath('data.moderation_status.can_send_messages', false);
     }
 
     public function test_get_user_moderation_status_user_not_in_room()
@@ -786,8 +767,8 @@ class ChatModerationControllerTest extends TestCase
         $response = $this->getJson("/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/status");
 
         $response->assertStatus(200);
-        $response->assertJsonPath('moderation_status.is_muted', false);
-        $response->assertJsonPath('moderation_status.is_banned', false);
+        $response->assertJsonPath('data.moderation_status.is_muted', false);
+        $response->assertJsonPath('data.moderation_status.is_banned', false);
     }
 
     public function test_unmute_user_not_in_room()
@@ -804,7 +785,7 @@ class ChatModerationControllerTest extends TestCase
         $response = $this->postJson("/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/unmute");
 
         $response->assertStatus(404);
-        $response->assertJson(['message' => 'User is not in this room']);
+        $response->assertJsonPath('message', 'User is not in this room');
     }
 
     public function test_unmute_user_not_muted_in_room()
@@ -826,7 +807,7 @@ class ChatModerationControllerTest extends TestCase
         $response = $this->postJson("/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/unmute");
 
         $response->assertStatus(422);
-        $response->assertJson(['message' => 'User is not muted']);
+        $response->assertJsonPath('message', 'User is not muted');
     }
 
     public function test_unban_user_not_in_room()
@@ -843,7 +824,7 @@ class ChatModerationControllerTest extends TestCase
         $response = $this->postJson("/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/unban");
 
         $response->assertStatus(404);
-        $response->assertJson(['message' => 'User is not in this room']);
+        $response->assertJsonPath('message', 'User is not in this room');
     }
 
     public function test_unban_user_not_banned_in_room()
@@ -865,7 +846,7 @@ class ChatModerationControllerTest extends TestCase
         $response = $this->postJson("/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/unban");
 
         $response->assertStatus(422);
-        $response->assertJson(['message' => 'User is not banned']);
+        $response->assertJsonPath('message', 'User is not banned');
     }
 
     public function test_delete_message_returns_500_when_transaction_throws_exception()

@@ -104,7 +104,7 @@ class LearningControllerTest extends TestCase
             ->getJson('/api/word/daily');
 
         $response->assertStatus(200)
-            ->assertExactJson(['data' => []]);
+            ->assertJsonPath('data', []);
     }
 
     public function test_can_get_review_words(): void
@@ -265,8 +265,8 @@ class LearningControllerTest extends TestCase
             ->getJson('/api/word/progress');
 
         $response->assertStatus(200)
-            ->assertJsonPath('total_words', 0)
-            ->assertJsonPath('progress_percentage', 0);
+            ->assertJsonPath('data.total_words', 0)
+            ->assertJsonPath('data.progress_percentage', 0);
     }
 
     public function test_can_search_word(): void
@@ -288,7 +288,7 @@ class LearningControllerTest extends TestCase
             ->getJson('/api/word/search/nonexistentword');
 
         $response->assertStatus(200)
-            ->assertJson(['found' => false]);
+            ->assertJsonPath('data.found', false);
     }
 
     public function test_search_word_requires_non_empty_keyword(): void
@@ -338,7 +338,7 @@ class LearningControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('message', '单词创建成功')
-            ->assertJsonPath('word.content', 'aberration');
+            ->assertJsonPath('data.word.content', 'aberration');
 
         $word = Word::where('content', 'aberration')->firstOrFail();
         $this->assertDatabaseHas('word_education_level', [

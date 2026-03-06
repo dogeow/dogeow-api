@@ -51,7 +51,7 @@ class CombatControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame(false, $data['is_fighting']);
+        $this->assertSame(false, $data['data']['is_fighting']);
     }
 
     public function test_status_returns_error_when_service_throws(): void
@@ -66,7 +66,7 @@ class CombatControllerUnitTest extends TestCase
 
         $this->assertSame(422, $response->getStatusCode());
         $this->assertSame('获取战斗状态失败', $data['message']);
-        $this->assertSame('status boom', $data['error']);
+        $this->assertSame('status boom', $data['errors']['error']);
     }
 
     public function test_update_potion_settings_returns_updated_character(): void
@@ -99,8 +99,8 @@ class CombatControllerUnitTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('药水设置已更新', $data['message']);
-        $this->assertTrue($data['character']['auto_use_hp_potion']);
-        $this->assertSame(25, $data['character']['hp_potion_threshold']);
+        $this->assertTrue($data['data']['character']['auto_use_hp_potion']);
+        $this->assertSame(25, $data['data']['character']['hp_potion_threshold']);
     }
 
     public function test_update_potion_settings_returns_error_when_service_throws(): void
@@ -121,7 +121,7 @@ class CombatControllerUnitTest extends TestCase
 
         $this->assertSame(422, $response->getStatusCode());
         $this->assertSame('更新药水自动使用设置失败', $data['message']);
-        $this->assertSame('settings boom', $data['error']);
+        $this->assertSame('settings boom', $data['errors']['error']);
     }
 
     public function test_start_revives_dead_character_without_dispatching_combat(): void
@@ -141,7 +141,7 @@ class CombatControllerUnitTest extends TestCase
         $character->refresh();
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame('角色已满血复活并传送到新手村，请手动开始战斗', $data['message']);
+        $this->assertSame('角色已满血复活并传送到新手村，请手动开始战斗', $data['data']['message']);
         $this->assertSame(1, $character->current_map_id);
         $this->assertSame($character->getMaxHp(), $character->current_hp);
         $this->assertSame($character->getMaxMana(), $character->current_mana);
@@ -184,7 +184,7 @@ class CombatControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame('自动战斗已开始，结果将通过 WebSocket 推送', $data['message']);
+        $this->assertSame('自动战斗已开始，结果将通过 WebSocket 推送', $data['data']['message']);
         Bus::assertDispatched(AutoCombatRoundJob::class, function (AutoCombatRoundJob $job) use ($character): bool {
             return $job->characterId === $character->id && $job->skillIds === [2, 7];
         });
@@ -207,7 +207,7 @@ class CombatControllerUnitTest extends TestCase
 
         $this->assertSame(422, $response->getStatusCode());
         $this->assertSame('开始战斗失败', $data['message']);
-        $this->assertSame('', $data['error']);
+        $this->assertSame('', $data['errors']['error']);
         Bus::assertNothingDispatched();
     }
 
@@ -223,7 +223,7 @@ class CombatControllerUnitTest extends TestCase
         $character->refresh();
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame('自动战斗已停止', $data['message']);
+        $this->assertSame('自动战斗已停止', $data['data']['message']);
         $this->assertFalse((bool) $character->is_fighting);
     }
 
@@ -242,7 +242,7 @@ class CombatControllerUnitTest extends TestCase
 
         $this->assertSame(422, $response->getStatusCode());
         $this->assertSame('stop boom', $data['message']);
-        $this->assertSame('stop boom', $data['error']);
+        $this->assertSame('stop boom', $data['errors']['error']);
     }
 
     public function test_logs_returns_service_payload(): void
@@ -257,7 +257,7 @@ class CombatControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame(9, $data['logs'][0]['id']);
+        $this->assertSame(9, $data['data']['logs'][0]['id']);
     }
 
     public function test_logs_returns_error_when_service_throws(): void
@@ -275,7 +275,7 @@ class CombatControllerUnitTest extends TestCase
 
         $this->assertSame(422, $response->getStatusCode());
         $this->assertSame('获取战斗日志失败', $data['message']);
-        $this->assertSame('logs boom', $data['error']);
+        $this->assertSame('logs boom', $data['errors']['error']);
     }
 
     public function test_log_detail_returns_detailed_payload(): void
@@ -300,10 +300,10 @@ class CombatControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame(15, $data['log']['id']);
-        $this->assertSame('新手村', $data['log']['map']['name']);
-        $this->assertSame('史莱姆', $data['log']['monster']['name']);
-        $this->assertSame(55, $data['log']['damage_detail']['total']);
+        $this->assertSame(15, $data['data']['log']['id']);
+        $this->assertSame('新手村', $data['data']['log']['map']['name']);
+        $this->assertSame('史莱姆', $data['data']['log']['monster']['name']);
+        $this->assertSame(55, $data['data']['log']['damage_detail']['total']);
     }
 
     public function test_log_detail_returns_error_when_service_throws(): void
@@ -321,7 +321,7 @@ class CombatControllerUnitTest extends TestCase
 
         $this->assertSame(422, $response->getStatusCode());
         $this->assertSame('获取战斗日志详情失败', $data['message']);
-        $this->assertSame('detail boom', $data['error']);
+        $this->assertSame('detail boom', $data['errors']['error']);
     }
 
     public function test_stats_returns_service_payload(): void
@@ -336,7 +336,7 @@ class CombatControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame(4, $data['stats']['total_battles']);
+        $this->assertSame(4, $data['data']['stats']['total_battles']);
     }
 
     public function test_stats_returns_error_when_service_throws(): void
@@ -354,7 +354,7 @@ class CombatControllerUnitTest extends TestCase
 
         $this->assertSame(422, $response->getStatusCode());
         $this->assertSame('获取战斗统计失败', $data['message']);
-        $this->assertSame('stats boom', $data['error']);
+        $this->assertSame('stats boom', $data['errors']['error']);
     }
 
     public function test_update_skills_requires_active_auto_combat(): void
@@ -395,7 +395,7 @@ class CombatControllerUnitTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('技能配置已更新', $data['message']);
-        $this->assertSame([5, 11], $data['skill_ids']);
+        $this->assertSame([5, 11], $data['data']['skill_ids']);
     }
 
     public function test_update_skills_returns_error_when_redis_fails(): void
@@ -413,7 +413,7 @@ class CombatControllerUnitTest extends TestCase
 
         $this->assertSame(422, $response->getStatusCode());
         $this->assertSame('更新技能配置失败', $data['message']);
-        $this->assertSame('redis boom', $data['error']);
+        $this->assertSame('redis boom', $data['errors']['error']);
     }
 
     public function test_use_potion_returns_character_resources(): void
@@ -440,9 +440,9 @@ class CombatControllerUnitTest extends TestCase
         $character->refresh();
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertStringContainsString('小型生命药水', $data['message']);
-        $this->assertStringContainsString('30 点生命值', $data['message']);
-        $this->assertSame($character->getCurrentHp(), $data['current_hp']);
+        $this->assertStringContainsString('小型生命药水', $data['data']['message']);
+        $this->assertStringContainsString('30 点生命值', $data['data']['message']);
+        $this->assertSame($character->getCurrentHp(), $data['data']['current_hp']);
         $this->assertGreaterThan(20, $character->current_hp);
         $this->assertDatabaseMissing('game_items', ['id' => $potion->id]);
     }
@@ -460,7 +460,7 @@ class CombatControllerUnitTest extends TestCase
 
         $this->assertSame(422, $response->getStatusCode());
         $this->assertSame('使用药品失败', $data['message']);
-        $this->assertSame('该物品不是药品', $data['error']);
+        $this->assertSame('该物品不是药品', $data['errors']['error']);
     }
 
     private function createCharacter(User $user, array $attributes = []): GameCharacter

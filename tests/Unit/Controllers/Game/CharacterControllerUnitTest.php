@@ -50,8 +50,8 @@ class CharacterControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame(1, $data['total']);
-        $this->assertSame(1, $data['characters'][0]['id']);
+        $this->assertSame(1, $data['data']['total']);
+        $this->assertSame(1, $data['data']['characters'][0]['id']);
     }
 
     public function test_show_passes_character_id_and_fills_default_fields(): void
@@ -68,9 +68,9 @@ class CharacterControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame($character->id, $data['character']['id']);
-        $this->assertSame([], $data['experience_table']);
-        $this->assertSame(0, $data['current_hp']);
+        $this->assertSame($character->id, $data['data']['character']['id']);
+        $this->assertSame([], $data['data']['experience_table']);
+        $this->assertSame(0, $data['data']['current_hp']);
     }
 
     public function test_show_uses_null_character_id_when_query_is_empty(): void
@@ -90,9 +90,9 @@ class CharacterControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertNull($data['character']);
-        $this->assertSame(88, $data['current_hp']);
-        $this->assertSame(44, $data['current_mana']);
+        $this->assertNull($data['data']['character']);
+        $this->assertSame(88, $data['data']['current_hp']);
+        $this->assertSame(44, $data['data']['current_mana']);
     }
 
     public function test_store_returns_created_character_payload(): void
@@ -118,8 +118,8 @@ class CharacterControllerUnitTest extends TestCase
 
         $this->assertSame(201, $response->getStatusCode());
         $this->assertSame('角色创建成功', $data['message']);
-        $this->assertSame('NewHero', $data['character']['name']);
-        $this->assertArrayHasKey('combat_stats', $data);
+        $this->assertSame('NewHero', $data['data']['character']['name']);
+        $this->assertArrayHasKey('combat_stats', $data['data']);
     }
 
     public function test_store_returns_service_error_message(): void
@@ -205,7 +205,7 @@ class CharacterControllerUnitTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('属性分配成功', $data['message']);
-        $this->assertSame(120, $data['current_hp']);
+        $this->assertSame(120, $data['data']['current_hp']);
     }
 
     public function test_allocate_stats_returns_service_error(): void
@@ -250,7 +250,7 @@ class CharacterControllerUnitTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('难度已更新', $data['message']);
-        $this->assertSame(2, $data['character']['difficulty_tier']);
+        $this->assertSame(2, $data['data']['character']['difficulty_tier']);
     }
 
     public function test_update_difficulty_returns_service_error(): void
@@ -287,8 +287,8 @@ class CharacterControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame(7, $data['inventory'][0]['id']);
-        $this->assertSame(100, $data['current_hp']);
+        $this->assertSame(7, $data['data']['inventory'][0]['id']);
+        $this->assertSame(100, $data['data']['current_hp']);
     }
 
     public function test_online_updates_last_online_timestamp(): void
@@ -301,7 +301,7 @@ class CharacterControllerUnitTest extends TestCase
         $character->refresh();
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertNotNull($data['last_online']);
+        $this->assertNotNull($data['data']['last_online']);
         $this->assertNotNull($character->last_online);
     }
 
@@ -331,8 +331,8 @@ class CharacterControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertTrue($data['available']);
-        $this->assertSame(120, $data['experience']);
+        $this->assertTrue($data['data']['available']);
+        $this->assertSame(120, $data['data']['experience']);
     }
 
     public function test_check_offline_rewards_returns_error_when_character_cannot_be_resolved(): void
@@ -362,7 +362,7 @@ class CharacterControllerUnitTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('升级到了 11 级！', $data['message']);
-        $this->assertSame(200, $data['experience']);
+        $this->assertSame(200, $data['data']['experience']);
     }
 
     public function test_claim_offline_rewards_uses_default_message_without_level_up(): void
@@ -381,7 +381,7 @@ class CharacterControllerUnitTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('离线奖励已领取', $data['message']);
-        $this->assertSame(10, $data['copper']);
+        $this->assertSame(10, $data['data']['copper']);
     }
 
     public function test_claim_offline_rewards_returns_error_when_service_throws(): void

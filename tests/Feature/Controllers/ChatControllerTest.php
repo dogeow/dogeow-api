@@ -30,7 +30,7 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        $this->assertCount(3, $data['rooms']);
+        $this->assertCount(3, $data['data']['rooms']);
     }
 
     #[Test]
@@ -47,8 +47,8 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(201);
         $data = $response->json();
-        $this->assertEquals('Test Room', $data['room']['name']);
-        $this->assertEquals('A test room', $data['room']['description']);
+        $this->assertEquals('Test Room', $data['data']['room']['name']);
+        $this->assertEquals('A test room', $data['data']['room']['description']);
     }
 
     #[Test]
@@ -79,8 +79,8 @@ class ChatControllerTest extends TestCase
         $response->assertStatus(200);
         $data = $response->json();
         $this->assertEquals('Successfully joined the room', $data['message']);
-        $this->assertArrayHasKey('room', $data);
-        $this->assertArrayHasKey('room_user', $data);
+        $this->assertArrayHasKey('room', $data['data']);
+        $this->assertArrayHasKey('room_user', $data['data']);
     }
 
     #[Test]
@@ -153,7 +153,7 @@ class ChatControllerTest extends TestCase
         $response->assertStatus(200);
         $data = $response->json();
         $this->assertArrayHasKey('data', $data);
-        $this->assertGreaterThan(0, count($data['data']));
+        $this->assertGreaterThan(0, count($data['data'] ?? []));
     }
 
     #[Test]
@@ -177,8 +177,10 @@ class ChatControllerTest extends TestCase
         $response->assertStatus(201);
         $data = $response->json();
         $this->assertArrayHasKey('data', $data);
-        $this->assertArrayHasKey('message', $data['data']);
-        $this->assertNotEmpty($data['data']['message']);
+        $this->assertArrayHasKey('data', $data['data']);
+        $messageData = $data['data']['data'] ?? $data['data'];
+        $this->assertArrayHasKey('message', $messageData);
+        $this->assertNotEmpty($messageData['message']);
     }
 
     #[Test]
@@ -252,8 +254,8 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        $this->assertArrayHasKey('online_users', $data);
-        $this->assertIsArray($data['online_users']);
+        $this->assertArrayHasKey('online_users', $data['data']);
+        $this->assertIsArray($data['data']['online_users']);
     }
 
     #[Test]
@@ -306,8 +308,9 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json();
-        $this->assertArrayHasKey('is_online', $data);
-        $this->assertArrayHasKey('last_seen_at', $data);
+        $this->assertArrayHasKey('data', $data);
+        $this->assertArrayHasKey('is_online', $data['data']);
+        $this->assertArrayHasKey('last_seen_at', $data['data']);
     }
 
     #[Test]
@@ -332,8 +335,8 @@ class ChatControllerTest extends TestCase
             ]);
 
         $response->assertStatus(429)
-            ->assertJsonPath('rate_limit.attempts', 10)
-            ->assertJsonPath('rate_limit.remaining', 0);
+            ->assertJsonPath('errors.rate_limit.attempts', 10)
+            ->assertJsonPath('errors.rate_limit.remaining', 0);
     }
 
     #[Test]

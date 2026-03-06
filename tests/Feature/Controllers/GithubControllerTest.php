@@ -32,7 +32,7 @@ class GithubControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'url',
+            'success', 'message', 'data' => ['url'],
         ]);
     }
 

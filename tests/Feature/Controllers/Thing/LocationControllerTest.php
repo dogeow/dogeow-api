@@ -37,8 +37,8 @@ class LocationControllerTest extends TestCase
         $response = $this->getJson('/api/areas');
 
         $response->assertStatus(200)
-            ->assertJsonPath('areas.0.id', $userArea->id);
-        $areas = $response->json('areas');
+            ->assertJsonPath('data.areas.0.id', $userArea->id);
+        $areas = $response->json('data.areas');
         $this->assertCount(1, $areas);
         $this->assertNotContains($otherUserArea->id, array_column($areas, 'id'));
     }
@@ -51,10 +51,13 @@ class LocationControllerTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJson([
+                'success' => true,
                 'message' => '区域创建成功',
-                'area' => [
-                    'name' => 'Test Area',
-                    'user_id' => $this->user->id,
+                'data' => [
+                    'area' => [
+                        'name' => 'Test Area',
+                        'user_id' => $this->user->id,
+                    ],
                 ],
             ]);
 
@@ -89,8 +92,8 @@ class LocationControllerTest extends TestCase
         $response = $this->getJson("/api/areas/{$area->id}");
 
         $response->assertStatus(200)
-            ->assertJsonPath('area.id', $area->id)
-            ->assertJsonPath('area.name', $area->name);
+            ->assertJsonPath('data.area.id', $area->id)
+            ->assertJsonPath('data.area.name', $area->name);
     }
 
     public function test_area_show_returns_403_for_other_user_area()
@@ -113,9 +116,11 @@ class LocationControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '区域更新成功',
-                'area' => [
-                    'id' => $area->id,
-                    'name' => 'Updated Area',
+                'data' => [
+                    'area' => [
+                        'id' => $area->id,
+                        'name' => 'Updated Area',
+                    ],
                 ],
             ]);
 
@@ -204,7 +209,7 @@ class LocationControllerTest extends TestCase
         $response = $this->getJson('/api/rooms');
 
         $response->assertStatus(200);
-        $rooms = $response->json('rooms');
+        $rooms = $response->json('data.rooms');
         $this->assertCount(1, $rooms);
         $this->assertEquals($userRoom->id, $rooms[0]['id']);
         $this->assertNotContains($otherUserRoom->id, array_column($rooms, 'id'));
@@ -220,7 +225,7 @@ class LocationControllerTest extends TestCase
         $response = $this->getJson("/api/rooms?area_id={$area1->id}");
 
         $response->assertStatus(200);
-        $rooms = $response->json('rooms');
+        $rooms = $response->json('data.rooms');
         $this->assertCount(1, $rooms);
         $this->assertEquals($room1->id, $rooms[0]['id']);
     }
@@ -232,7 +237,7 @@ class LocationControllerTest extends TestCase
         $response = $this->getJson("/api/rooms?area_id={$area->id}");
 
         $response->assertStatus(200);
-        $this->assertCount(0, $response->json('rooms'));
+        $this->assertCount(0, $response->json('data.rooms'));
     }
 
     public function test_room_store_creates_new_room()
@@ -248,10 +253,12 @@ class LocationControllerTest extends TestCase
         $response->assertStatus(201)
             ->assertJson([
                 'message' => '房间创建成功',
-                'room' => [
-                    'name' => 'Test Room',
-                    'area_id' => $area->id,
-                    'user_id' => $this->user->id,
+                'data' => [
+                    'room' => [
+                        'name' => 'Test Room',
+                        'area_id' => $area->id,
+                        'user_id' => $this->user->id,
+                    ],
                 ],
             ]);
 
@@ -305,8 +312,8 @@ class LocationControllerTest extends TestCase
         $response = $this->getJson("/api/rooms/{$room->id}");
 
         $response->assertStatus(200)
-            ->assertJsonPath('room.id', $room->id)
-            ->assertJsonPath('room.name', $room->name);
+            ->assertJsonPath('data.room.id', $room->id)
+            ->assertJsonPath('data.room.name', $room->name);
     }
 
     public function test_room_show_returns_403_for_other_user_room()
@@ -330,9 +337,11 @@ class LocationControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '房间更新成功',
-                'room' => [
-                    'id' => $room->id,
-                    'name' => 'Updated Room',
+                'data' => [
+                    'room' => [
+                        'id' => $room->id,
+                        'name' => 'Updated Room',
+                    ],
                 ],
             ]);
     }
@@ -375,9 +384,11 @@ class LocationControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '房间更新成功',
-                'room' => [
-                    'id' => $room->id,
-                    'name' => 'Updated Room',
+                'data' => [
+                    'room' => [
+                        'id' => $room->id,
+                        'name' => 'Updated Room',
+                    ],
                 ],
             ]);
     }
@@ -394,7 +405,7 @@ class LocationControllerTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJsonPath('room.area_id', $area2->id);
+            ->assertJsonPath('data.room.area_id', $area2->id);
         $this->assertDatabaseHas('thing_rooms', ['id' => $room->id, 'area_id' => $area2->id]);
     }
 
@@ -445,7 +456,7 @@ class LocationControllerTest extends TestCase
         $response = $this->getJson('/api/spots');
 
         $response->assertStatus(200);
-        $spots = $response->json('spots');
+        $spots = $response->json('data.spots');
         $this->assertCount(1, $spots);
         $this->assertEquals($userSpot->id, $spots[0]['id']);
         $this->assertNotContains($otherUserSpot->id, array_column($spots, 'id'));
@@ -462,7 +473,7 @@ class LocationControllerTest extends TestCase
         $response = $this->getJson("/api/spots?room_id={$room1->id}");
 
         $response->assertStatus(200);
-        $spots = $response->json('spots');
+        $spots = $response->json('data.spots');
         $this->assertCount(1, $spots);
         $this->assertEquals($spot1->id, $spots[0]['id']);
     }
@@ -475,7 +486,7 @@ class LocationControllerTest extends TestCase
         $response = $this->getJson("/api/spots?room_id={$room->id}");
 
         $response->assertStatus(200);
-        $this->assertCount(0, $response->json('spots'));
+        $this->assertCount(0, $response->json('data.spots'));
     }
 
     public function test_spot_store_creates_new_spot()
@@ -492,10 +503,12 @@ class LocationControllerTest extends TestCase
         $response->assertStatus(201)
             ->assertJson([
                 'message' => '具体位置创建成功',
-                'spot' => [
-                    'name' => 'Test Spot',
-                    'room_id' => $room->id,
-                    'user_id' => $this->user->id,
+                'data' => [
+                    'spot' => [
+                        'name' => 'Test Spot',
+                        'room_id' => $room->id,
+                        'user_id' => $this->user->id,
+                    ],
                 ],
             ]);
 
@@ -550,8 +563,8 @@ class LocationControllerTest extends TestCase
         $response = $this->getJson("/api/spots/{$spot->id}");
 
         $response->assertStatus(200)
-            ->assertJsonPath('spot.id', $spot->id)
-            ->assertJsonPath('spot.name', $spot->name);
+            ->assertJsonPath('data.spot.id', $spot->id)
+            ->assertJsonPath('data.spot.name', $spot->name);
     }
 
     public function test_spot_show_returns_403_for_other_user_spot()
@@ -576,9 +589,11 @@ class LocationControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '具体位置更新成功',
-                'spot' => [
-                    'id' => $spot->id,
-                    'name' => 'Updated Spot',
+                'data' => [
+                    'spot' => [
+                        'id' => $spot->id,
+                        'name' => 'Updated Spot',
+                    ],
                 ],
             ]);
     }
@@ -623,9 +638,11 @@ class LocationControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => '具体位置更新成功',
-                'spot' => [
-                    'id' => $spot->id,
-                    'name' => 'Updated Spot',
+                'data' => [
+                    'spot' => [
+                        'id' => $spot->id,
+                        'name' => 'Updated Spot',
+                    ],
                 ],
             ]);
     }
@@ -643,7 +660,7 @@ class LocationControllerTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJsonPath('spot.room_id', $room2->id);
+            ->assertJsonPath('data.spot.room_id', $room2->id);
         $this->assertDatabaseHas('thing_spots', ['id' => $spot->id, 'room_id' => $room2->id]);
     }
 
@@ -697,7 +714,7 @@ class LocationControllerTest extends TestCase
         $response = $this->getJson("/api/areas/{$area->id}/rooms");
 
         $response->assertStatus(200);
-        $rooms = $response->json('rooms');
+        $rooms = $response->json('data.rooms');
         $this->assertCount(2, $rooms);
         $this->assertContains($room1->id, array_column($rooms, 'id'));
         $this->assertContains($room2->id, array_column($rooms, 'id'));
@@ -721,7 +738,7 @@ class LocationControllerTest extends TestCase
         $response = $this->getJson("/api/areas/{$area->id}/rooms");
 
         $response->assertStatus(200);
-        $this->assertCount(0, $response->json('rooms'));
+        $this->assertCount(0, $response->json('data.rooms'));
     }
 
     // ==================== Room Spots Tests ====================
@@ -738,7 +755,7 @@ class LocationControllerTest extends TestCase
         $response = $this->getJson("/api/rooms/{$room->id}/spots");
 
         $response->assertStatus(200);
-        $spots = $response->json('spots');
+        $spots = $response->json('data.spots');
         $this->assertCount(2, $spots);
         $this->assertContains($spot1->id, array_column($spots, 'id'));
         $this->assertContains($spot2->id, array_column($spots, 'id'));
@@ -763,7 +780,7 @@ class LocationControllerTest extends TestCase
         $response = $this->getJson("/api/rooms/{$room->id}/spots");
 
         $response->assertStatus(200);
-        $this->assertCount(0, $response->json('spots'));
+        $this->assertCount(0, $response->json('data.spots'));
     }
 
     // ==================== Location Tree Tests ====================
@@ -778,19 +795,23 @@ class LocationControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'tree' => [
-                    '*' => [
-                        'id',
-                        'name',
-                        'type',
-                        'original_id',
-                        'children',
-                        'items_count',
+                'success',
+                'message',
+                'data' => [
+                    'tree' => [
+                        '*' => [
+                            'id',
+                            'name',
+                            'type',
+                            'original_id',
+                            'children',
+                            'items_count',
+                        ],
                     ],
+                    'areas',
+                    'rooms',
+                    'spots',
                 ],
-                'areas',
-                'rooms',
-                'spots',
             ])
             ->assertJsonFragment([
                 'id' => "area_{$area->id}",
@@ -827,10 +848,12 @@ class LocationControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-                'tree' => [],
-                'areas' => [],
-                'rooms' => [],
-                'spots' => [],
+                'data' => [
+                    'tree' => [],
+                    'areas' => [],
+                    'rooms' => [],
+                    'spots' => [],
+                ],
             ]);
     }
 
@@ -921,17 +944,19 @@ class LocationControllerTest extends TestCase
         $response = $this->getJson("/api/areas/{$area->id}");
 
         $response->assertStatus(200)
-            ->assertJsonPath('area.id', $area->id)
-            ->assertJsonPath('area.name', $area->name)
+            ->assertJsonPath('data.area.id', $area->id)
+            ->assertJsonPath('data.area.name', $area->name)
             ->assertJsonStructure([
-                'area' => [
-                    'id',
-                    'name',
-                    'rooms' => [
-                        '*' => [
-                            'id',
-                            'name',
-                            'area_id',
+                'data' => [
+                    'area' => [
+                        'id',
+                        'name',
+                        'rooms' => [
+                            '*' => [
+                                'id',
+                                'name',
+                                'area_id',
+                            ],
                         ],
                     ],
                 ],
@@ -947,20 +972,22 @@ class LocationControllerTest extends TestCase
         $response = $this->getJson("/api/rooms/{$room->id}");
 
         $response->assertStatus(200)
-            ->assertJsonPath('room.id', $room->id)
+            ->assertJsonPath('data.room.id', $room->id)
             ->assertJsonStructure([
-                'room' => [
-                    'id',
-                    'name',
-                    'area' => [
+                'data' => [
+                    'room' => [
                         'id',
                         'name',
-                    ],
-                    'spots' => [
-                        '*' => [
+                        'area' => [
                             'id',
                             'name',
-                            'room_id',
+                        ],
+                        'spots' => [
+                            '*' => [
+                                'id',
+                                'name',
+                                'room_id',
+                            ],
                         ],
                     ],
                 ],
@@ -977,23 +1004,25 @@ class LocationControllerTest extends TestCase
         $response = $this->getJson("/api/spots/{$spot->id}");
 
         $response->assertStatus(200)
-            ->assertJsonPath('spot.id', $spot->id)
+            ->assertJsonPath('data.spot.id', $spot->id)
             ->assertJsonStructure([
-                'spot' => [
-                    'id',
-                    'name',
-                    'room' => [
+                'data' => [
+                    'spot' => [
                         'id',
                         'name',
-                        'area' => [
+                        'room' => [
                             'id',
                             'name',
+                            'area' => [
+                                'id',
+                                'name',
+                            ],
                         ],
-                    ],
-                    'items' => [
-                        '*' => [
-                            'id',
-                            'name',
+                        'items' => [
+                            '*' => [
+                                'id',
+                                'name',
+                            ],
                         ],
                     ],
                 ],

@@ -559,12 +559,12 @@ class NoteControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('message', 'Graph retrieved successfully')
-            ->assertJsonCount(2, 'nodes')
-            ->assertJsonCount(1, 'links')
-            ->assertJsonPath('nodes.0.tags.0', 'knowledge')
-            ->assertJsonPath('links.0.type', 'related');
+            ->assertJsonCount(2, 'data.nodes')
+            ->assertJsonCount(1, 'data.links')
+            ->assertJsonPath('data.nodes.0.tags.0', 'knowledge')
+            ->assertJsonPath('data.links.0.type', 'related');
 
-        $nodeIds = collect($response->json('nodes'))->pluck('id')->all();
+        $nodeIds = collect($response->json('data.nodes'))->pluck('id')->all();
         $this->assertContains($userNote->id, $nodeIds);
         $this->assertContains($wikiNote->id, $nodeIds);
         $this->assertNotContains($otherPrivateNote->id, $nodeIds);
@@ -585,11 +585,13 @@ class NoteControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'message' => 'Article retrieved successfully',
-                'title' => 'Slug Article',
-                'slug' => 'slug-article',
-                'content' => '<p>Rendered HTML</p>',
-                'content_markdown' => '# Slug Article',
-                'html' => '<p>Rendered HTML</p>',
+                'data' => [
+                    'title' => 'Slug Article',
+                    'slug' => 'slug-article',
+                    'content' => '<p>Rendered HTML</p>',
+                    'content_markdown' => '# Slug Article',
+                    'html' => '<p>Rendered HTML</p>',
+                ],
             ]);
     }
 
@@ -627,8 +629,8 @@ class NoteControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('message', 'All wiki articles retrieved successfully')
-            ->assertJsonCount(1, 'articles')
-            ->assertJsonPath('articles.0.slug', 'wiki-one');
+            ->assertJsonCount(1, 'data.articles')
+            ->assertJsonPath('data.articles.0.slug', 'wiki-one');
     }
 
     public function test_store_handles_tags_and_json_content(): void
@@ -742,9 +744,9 @@ class NoteControllerTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonPath('message', 'Link created successfully')
-            ->assertJsonPath('link.source', $source->id)
-            ->assertJsonPath('link.target', $target->id)
-            ->assertJsonPath('link.type', 'reference');
+            ->assertJsonPath('data.link.source', $source->id)
+            ->assertJsonPath('data.link.target', $target->id)
+            ->assertJsonPath('data.link.type', 'reference');
     }
 
     public function test_store_link_rejects_duplicate_link(): void

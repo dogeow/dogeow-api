@@ -58,7 +58,7 @@ class AuthController extends Controller
 
     public function user(Request $request): JsonResponse
     {
-        return $this->success(['user' => $request->user()]);
+        return $this->success($request->user());
     }
 
     public function update(ProfileUpdateRequest $request): JsonResponse
@@ -66,6 +66,6 @@ class AuthController extends Controller
         $user = $request->user();
         $user->update($request->validated());
 
-        return $this->success(['user' => $user], 'Profile updated successfully');
+        return $this->success($user, 'Profile updated successfully');
     }
 }

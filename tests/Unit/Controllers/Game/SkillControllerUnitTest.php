@@ -43,14 +43,15 @@ class SkillControllerUnitTest extends TestCase
 
         $response = $this->controller->index($request);
         $payload = json_decode($response->getContent(), true);
-        $skillsById = collect($payload['skills'])->keyBy('id');
+        $data = $payload['data'];
+        $skillsById = collect($data['skills'])->keyBy('id');
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame(3, $payload['skill_points']);
+        $this->assertSame(3, $data['skill_points']);
         $this->assertTrue($skillsById->has($sharedSkill->id));
         $this->assertTrue($skillsById->has($classSkill->id));
-        $this->assertFalse($skillsById->has($this->getSkillIdByName($payload['skills'], 'Fireball')));
-        $this->assertFalse($skillsById->has($this->getSkillIdByName($payload['skills'], 'Disabled')));
+        $this->assertFalse($skillsById->has($this->getSkillIdByName($data['skills'], 'Fireball')));
+        $this->assertFalse($skillsById->has($this->getSkillIdByName($data['skills'], 'Disabled')));
         $this->assertFalse($skillsById[$sharedSkill->id]['is_learned']);
         $this->assertTrue($skillsById[$classSkill->id]['is_learned']);
         $this->assertSame(1, $skillsById[$classSkill->id]['level']);
@@ -187,7 +188,7 @@ class SkillControllerUnitTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('技能学习成功', $payload['message']);
-        $this->assertSame(2, $payload['skill_points']);
+        $this->assertSame(2, $payload['data']['skill_points']);
         $this->assertSame(2, $character->skill_points);
         $this->assertDatabaseHas('game_character_skills', [
             'character_id' => $character->id,
