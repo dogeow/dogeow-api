@@ -142,6 +142,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the todo lists that belong to the user.
+     */
+    public function todoLists()
+    {
+        return $this->hasMany(\App\Models\Todo\TodoList::class);
+    }
+
+    /**
      * Scope to get only active users.
      */
     public function scopeActive($query)
