@@ -8,6 +8,10 @@ use App\Events\Chat\UserMuted;
 use App\Events\Chat\UserUnbanned;
 use App\Events\Chat\UserUnmuted;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Chat\BanChatUserRequest;
+use App\Http\Requests\Chat\ChatModerationReasonRequest;
+use App\Http\Requests\Chat\GetModerationActionsRequest;
+use App\Http\Requests\Chat\MuteChatUserRequest;
 use App\Models\Chat\ChatMessage;
 use App\Models\Chat\ChatModerationAction;
 use App\Models\Chat\ChatRoom;
@@ -85,11 +89,17 @@ class ChatModerationController extends Controller
 
     /**
      * 解析分页与筛选参数
+     *
+     * @return array{per_page:int, action_type:?string, target_user_id:mixed}
      */
     private function parseModerationFilters(Request $request): array
     {
+        if ($request instanceof GetModerationActionsRequest) {
+            return $request->validatedFilters();
+        }
+
         return [
-            'per_page' => $request->get('per_page', 20),
+            'per_page' => (int) $request->get('per_page', 20),
             'action_type' => $request->get('action_type'),
             'target_user_id' => $request->get('target_user_id'),
         ];
@@ -98,21 +108,19 @@ class ChatModerationController extends Controller
     /**
      * Delete a message (admin/moderator only).
      */
-    public function deleteMessage(Request $request, int $roomId, int $messageId): JsonResponse
+    public function deleteMessage(ChatModerationReasonRequest $request, int $roomId, int $messageId): JsonResponse
     {
         $room = $this->findActiveRoom($roomId);
         $message = ChatMessage::where('room_id', $roomId)->findOrFail($messageId);
         $moderator = $this->getModerator();
+        $validated = $request->validated();
+        $reason = $validated['reason'] ?? null;
 
         // Check if user can moderate
         $guard = $this->ensureCanModerate($moderator, $room, 'You are not authorized to moderate this room');
         if ($guard) {
             return $guard;
         }
-
-        $request->validate([
-            'reason' => 'nullable|string|max:500',
-        ]);
 
         try {
             DB::beginTransaction();
@@ -124,7 +132,7 @@ class ChatModerationController extends Controller
                 'target_user_id' => $message->user_id,
                 'message_id' => $messageId,
                 'action_type' => ChatModerationAction::ACTION_DELETE_MESSAGE,
-                'reason' => $request->reason,
+                'reason' => $reason,
                 'metadata' => [
                     'original_message' => $message->message,
                     'message_type' => $message->message_type,
@@ -140,12 +148,12 @@ class ChatModerationController extends Controller
             DB::commit();
 
             // Broadcast the deletion
-            broadcast(new MessageDeleted($messageId, $roomId, $moderator->id, $request->reason));
+            broadcast(new MessageDeleted($messageId, $roomId, $moderator->id, $reason));
 
             return $this->success([
                 'action' => 'delete_message',
                 'moderator' => $moderator->name,
-                'reason' => $request->reason,
+                'reason' => $reason,
             ], 'Message deleted successfully');
 
         } catch (\Exception $e) {
@@ -167,10 +175,13 @@ class ChatModerationController extends Controller
     /**
      * Mute a user in a room.
      */
-    public function muteUser(Request $request, int $roomId, int $userId): JsonResponse
+    public function muteUser(MuteChatUserRequest $request, int $roomId, int $userId): JsonResponse
     {
         $room = $this->findActiveRoom($roomId);
         $moderator = $this->getModerator();
+        $validated = $request->validated();
+        $duration = $validated['duration'] ?? null;
+        $reason = $validated['reason'] ?? null;
 
         // Check if user can moderate
         $guard = $this->ensureCanModerate($moderator, $room, 'You are not authorized to moderate this room');
@@ -184,11 +195,6 @@ class ChatModerationController extends Controller
             return $guard;
         }
 
-        $request->validate([
-            'duration' => 'nullable|integer|min:1|max:10080', // Max 1 week in minutes
-            'reason' => 'nullable|string|max:500',
-        ]);
-
         $roomUser = $this->findRoomUser($roomId, $userId);
 
         if (! $roomUser) {
@@ -199,7 +205,7 @@ class ChatModerationController extends Controller
             DB::beginTransaction();
 
             // Mute the user
-            $roomUser->mute($moderator->id, $request->duration, $request->reason);
+            $roomUser->mute($moderator->id, $duration, $reason);
 
             // Log the moderation action
             ChatModerationAction::create([
@@ -207,25 +213,25 @@ class ChatModerationController extends Controller
                 'moderator_id' => $moderator->id,
                 'target_user_id' => $userId,
                 'action_type' => ChatModerationAction::ACTION_MUTE_USER,
-                'reason' => $request->reason,
+                'reason' => $reason,
                 'metadata' => [
-                    'duration_minutes' => $request->duration,
-                    'muted_until' => $request->duration ? now()->addMinutes($request->duration)->toISOString() : null,
+                    'duration_minutes' => $duration,
+                    'muted_until' => $duration ? now()->addMinutes($duration)->toISOString() : null,
                 ],
             ]);
 
             DB::commit();
 
             // Broadcast the mute action
-            broadcast(new UserMuted($roomId, $userId, $moderator->id, $request->duration, $request->reason));
+            broadcast(new UserMuted($roomId, $userId, $moderator->id, $duration, $reason));
 
             return $this->success([
                 'action' => 'mute_user',
                 'target_user_id' => $userId,
                 'moderator' => $moderator->name,
-                'duration_minutes' => $request->duration,
-                'reason' => $request->reason,
-                'muted_until' => $request->duration ? now()->addMinutes($request->duration)->toISOString() : null,
+                'duration_minutes' => $duration,
+                'reason' => $reason,
+                'muted_until' => $duration ? now()->addMinutes($duration)->toISOString() : null,
             ], 'User muted successfully');
 
         } catch (\Exception $e) {
@@ -247,20 +253,18 @@ class ChatModerationController extends Controller
     /**
      * Unmute a user in a room.
      */
-    public function unmuteUser(Request $request, int $roomId, int $userId): JsonResponse
+    public function unmuteUser(ChatModerationReasonRequest $request, int $roomId, int $userId): JsonResponse
     {
         $room = $this->findActiveRoom($roomId);
         $moderator = $this->getModerator();
+        $validated = $request->validated();
+        $reason = $validated['reason'] ?? null;
 
         // Check if user can moderate
         $guard = $this->ensureCanModerate($moderator, $room, 'You are not authorized to moderate this room');
         if ($guard) {
             return $guard;
         }
-
-        $request->validate([
-            'reason' => 'nullable|string|max:500',
-        ]);
 
         $roomUser = $this->findRoomUser($roomId, $userId);
 
@@ -284,19 +288,19 @@ class ChatModerationController extends Controller
                 'moderator_id' => $moderator->id,
                 'target_user_id' => $userId,
                 'action_type' => ChatModerationAction::ACTION_UNMUTE_USER,
-                'reason' => $request->reason,
+                'reason' => $reason,
             ]);
 
             DB::commit();
 
             // Broadcast the unmute action
-            broadcast(new UserUnmuted($roomId, $userId, $moderator->id, $request->reason));
+            broadcast(new UserUnmuted($roomId, $userId, $moderator->id, $reason));
 
             return $this->success([
                 'action' => 'unmute_user',
                 'target_user_id' => $userId,
                 'moderator' => $moderator->name,
-                'reason' => $request->reason,
+                'reason' => $reason,
             ], 'User unmuted successfully');
 
         } catch (\Exception $e) {
@@ -318,10 +322,13 @@ class ChatModerationController extends Controller
     /**
      * Ban a user from a room.
      */
-    public function banUser(Request $request, int $roomId, int $userId): JsonResponse
+    public function banUser(BanChatUserRequest $request, int $roomId, int $userId): JsonResponse
     {
         $room = $this->findActiveRoom($roomId);
         $moderator = $this->getModerator();
+        $validated = $request->validated();
+        $duration = $validated['duration'] ?? null;
+        $reason = $validated['reason'] ?? null;
 
         // Check if user can moderate
         $guard = $this->ensureCanModerate($moderator, $room, 'You are not authorized to moderate this room');
@@ -335,11 +342,6 @@ class ChatModerationController extends Controller
             return $guard;
         }
 
-        $request->validate([
-            'duration' => 'nullable|integer|min:1|max:525600', // Max 1 year in minutes
-            'reason' => 'nullable|string|max:500',
-        ]);
-
         $roomUser = $this->findRoomUser($roomId, $userId);
 
         if (! $roomUser) {
@@ -350,7 +352,7 @@ class ChatModerationController extends Controller
             DB::beginTransaction();
 
             // Ban the user
-            $roomUser->ban($moderator->id, $request->duration, $request->reason);
+            $roomUser->ban($moderator->id, $duration, $reason);
 
             // Log the moderation action
             ChatModerationAction::create([
@@ -358,25 +360,25 @@ class ChatModerationController extends Controller
                 'moderator_id' => $moderator->id,
                 'target_user_id' => $userId,
                 'action_type' => ChatModerationAction::ACTION_BAN_USER,
-                'reason' => $request->reason,
+                'reason' => $reason,
                 'metadata' => [
-                    'duration_minutes' => $request->duration,
-                    'banned_until' => $request->duration ? now()->addMinutes($request->duration)->toISOString() : null,
+                    'duration_minutes' => $duration,
+                    'banned_until' => $duration ? now()->addMinutes($duration)->toISOString() : null,
                 ],
             ]);
 
             DB::commit();
 
             // Broadcast the ban action
-            broadcast(new UserBanned($roomId, $userId, $moderator->id, $request->duration, $request->reason));
+            broadcast(new UserBanned($roomId, $userId, $moderator->id, $duration, $reason));
 
             return $this->success([
                 'action' => 'ban_user',
                 'target_user_id' => $userId,
                 'moderator' => $moderator->name,
-                'duration_minutes' => $request->duration,
-                'reason' => $request->reason,
-                'banned_until' => $request->duration ? now()->addMinutes($request->duration)->toISOString() : null,
+                'duration_minutes' => $duration,
+                'reason' => $reason,
+                'banned_until' => $duration ? now()->addMinutes($duration)->toISOString() : null,
             ], 'User banned successfully');
 
         } catch (\Exception $e) {
@@ -398,20 +400,18 @@ class ChatModerationController extends Controller
     /**
      * Unban a user from a room.
      */
-    public function unbanUser(Request $request, int $roomId, int $userId): JsonResponse
+    public function unbanUser(ChatModerationReasonRequest $request, int $roomId, int $userId): JsonResponse
     {
         $room = $this->findActiveRoom($roomId);
         $moderator = $this->getModerator();
+        $validated = $request->validated();
+        $reason = $validated['reason'] ?? null;
 
         // Check if user can moderate
         $guard = $this->ensureCanModerate($moderator, $room, 'You are not authorized to moderate this room');
         if ($guard) {
             return $guard;
         }
-
-        $request->validate([
-            'reason' => 'nullable|string|max:500',
-        ]);
 
         $roomUser = $this->findRoomUser($roomId, $userId);
 
@@ -435,19 +435,19 @@ class ChatModerationController extends Controller
                 'moderator_id' => $moderator->id,
                 'target_user_id' => $userId,
                 'action_type' => ChatModerationAction::ACTION_UNBAN_USER,
-                'reason' => $request->reason,
+                'reason' => $reason,
             ]);
 
             DB::commit();
 
             // Broadcast the unban action
-            broadcast(new UserUnbanned($roomId, $userId, $moderator->id, $request->reason));
+            broadcast(new UserUnbanned($roomId, $userId, $moderator->id, $reason));
 
             return $this->success([
                 'action' => 'unban_user',
                 'target_user_id' => $userId,
                 'moderator' => $moderator->name,
-                'reason' => $request->reason,
+                'reason' => $reason,
             ], 'User unbanned successfully');
 
         } catch (\Exception $e) {
@@ -469,7 +469,7 @@ class ChatModerationController extends Controller
     /**
      * Get moderation actions for a room.
      */
-    public function getModerationActions(Request $request, int $roomId): JsonResponse
+    public function getModerationActions(GetModerationActionsRequest $request, int $roomId): JsonResponse
     {
         $room = $this->findActiveRoom($roomId);
         $moderator = $this->getModerator();
@@ -503,7 +503,7 @@ class ChatModerationController extends Controller
     /**
      * Get user's moderation status in a room.
      */
-    public function getUserModerationStatus(Request $request, int $roomId, int $userId): JsonResponse
+    public function getUserModerationStatus(int $roomId, int $userId): JsonResponse
     {
         $room = $this->findActiveRoom($roomId);
         $moderator = $this->getModerator();

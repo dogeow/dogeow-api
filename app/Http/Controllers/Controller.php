@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 
 abstract class Controller
 {
+    use AuthorizesRequests;
+
     /**
      * 返回成功响应
      */

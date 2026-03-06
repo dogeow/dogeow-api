@@ -55,11 +55,13 @@ class CharacterController extends Controller
     public function store(CreateCharacterRequest $request): JsonResponse
     {
         try {
+            $validated = $request->validated();
+
             $character = $this->characterService->createCharacter(
                 $request->user()->id,
-                $request->input('name'),
-                $request->input('class'),
-                $request->input('gender', 'male')
+                $validated['name'],
+                $validated['class'],
+                $validated['gender'] ?? 'male'
             );
 
             return $this->success([
