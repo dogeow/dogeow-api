@@ -169,8 +169,8 @@ class ChatReportController extends Controller
             return $guard;
         }
 
-        $status = $request->get('status');
-        $reportType = $request->get('report_type');
+        $status = $request->input('status');
+        $reportType = $request->input('report_type');
 
         $query = ChatMessageReport::forRoom($roomId)
             ->with([
@@ -209,9 +209,9 @@ class ChatReportController extends Controller
             return $guard;
         }
 
-        $status = $request->get('status');
-        $reportType = $request->get('report_type');
-        $roomId = $request->get('room_id');
+        $status = $request->input('status');
+        $reportType = $request->input('report_type');
+        $roomId = $request->input('room_id');
 
         $query = ChatMessageReport::with([
             'reporter:id,name,email',
@@ -342,8 +342,8 @@ class ChatReportController extends Controller
     public function getReportStats(Request $request): JsonResponse
     {
         $user = $this->getUser();
-        $roomId = $request->get('room_id');
-        $days = $request->get('days', 7);
+        $roomId = $request->input('room_id');
+        $days = $request->input('days', 7);
 
         // Check permissions
         if ($roomId) {
