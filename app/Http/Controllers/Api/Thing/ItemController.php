@@ -130,7 +130,7 @@ class ItemController extends Controller
      */
     public function show(Item $item): JsonResponse
     {
-        if (! Auth::user()?->can('view', $item)) {
+        if (! $this->canViewItem($item)) {
             return response()->json(['message' => '无权查看此物品'], 403);
         }
 
@@ -142,7 +142,7 @@ class ItemController extends Controller
      */
     public function update(ItemRequest $request, Item $item): JsonResponse
     {
-        if (! Auth::user()?->can('update', $item)) {
+        if (! $this->canModifyItem($item)) {
             return response()->json(['message' => '无权更新此物品'], 403);
         }
 
@@ -166,7 +166,7 @@ class ItemController extends Controller
      */
     public function destroy(Item $item): JsonResponse|Response
     {
-        if (! Auth::user()?->can('delete', $item)) {
+        if (! $this->canModifyItem($item)) {
             return response()->json(['message' => '无权删除此物品'], 403);
         }
 
@@ -257,7 +257,7 @@ class ItemController extends Controller
      */
     public function relations(Item $item): JsonResponse
     {
-        if (! Auth::user()?->can('view', $item)) {
+        if (! $this->canViewItem($item)) {
             return response()->json(['message' => '无权查看此物品'], 403);
         }
 
@@ -274,7 +274,7 @@ class ItemController extends Controller
      */
     public function addRelation(AddItemRelationRequest $request, Item $item): JsonResponse
     {
-        if (! Auth::user()?->can('update', $item)) {
+        if (! $this->canModifyItem($item)) {
             return response()->json(['message' => '无权修改此物品'], 403);
         }
 
@@ -286,7 +286,7 @@ class ItemController extends Controller
         }
 
         $relatedItem = Item::query()->findOrFail($relatedItemId);
-        if (! $request->user()->can('view', $relatedItem)) {
+        if (! $this->canViewItem($relatedItem)) {
             return response()->json(['message' => '无权访问关联的物品'], 403);
         }
 
@@ -322,7 +322,7 @@ class ItemController extends Controller
      */
     public function removeRelation(Item $item, int $relatedItemId): JsonResponse
     {
-        if (! Auth::user()?->can('update', $item)) {
+        if (! $this->canModifyItem($item)) {
             return response()->json(['message' => '无权修改此物品'], 403);
         }
 
@@ -339,7 +339,7 @@ class ItemController extends Controller
      */
     public function batchAddRelations(BatchAddItemRelationsRequest $request, Item $item): JsonResponse
     {
-        if (! Auth::user()?->can('update', $item)) {
+        if (! $this->canModifyItem($item)) {
             return response()->json(['message' => '无权修改此物品'], 403);
         }
 
@@ -361,7 +361,7 @@ class ItemController extends Controller
             }
 
             $relatedItem = Item::query()->find($relatedItemId);
-            if (! $relatedItem || ! $request->user()->can('view', $relatedItem)) {
+            if (! $relatedItem || ! $this->canViewItem($relatedItem)) {
                 $errors[] = [
                     'related_item_id' => $relatedItemId,
                     'error' => '无权访问关联的物品',
@@ -398,6 +398,20 @@ class ItemController extends Controller
             'errors' => $errors,
             'relations' => $item->relatedItems()->with(self::ITEM_RELATIONS)->get(),
         ]);
+    }
+
+    private function canViewItem(Item $item): bool
+    {
+        if ($item->is_public) {
+            return true;
+        }
+
+        return Auth::check() && $item->user_id === Auth::id();
+    }
+
+    private function canModifyItem(Item $item): bool
+    {
+        return Auth::check() && $item->user_id === Auth::id();
     }
 
     /**

@@ -18,6 +18,7 @@ use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -45,7 +46,7 @@ class ChatModerationController extends Controller
      */
     private function ensureCanModerate(User $moderator, ChatRoom $room, string $message): ?JsonResponse
     {
-        if (! $moderator->can('moderate', $room)) {
+        if (! $moderator->canModerate($room)) {
             return $this->error($message, [], 403);
         }
 
@@ -84,6 +85,24 @@ class ChatModerationController extends Controller
         ]));
 
         return $this->error($userMessage, [], $statusCode);
+    }
+
+    /**
+     * 解析分页与筛选参数
+     *
+     * @return array{per_page:int, action_type:?string, target_user_id:mixed}
+     */
+    private function parseModerationFilters(Request $request): array
+    {
+        if ($request instanceof GetModerationActionsRequest) {
+            return $request->validatedFilters();
+        }
+
+        return [
+            'per_page' => (int) $request->get('per_page', 20),
+            'action_type' => $request->get('action_type'),
+            'target_user_id' => $request->get('target_user_id'),
+        ];
     }
 
     /**
@@ -461,7 +480,7 @@ class ChatModerationController extends Controller
             return $guard;
         }
 
-        $filters = $request->validatedFilters();
+        $filters = $this->parseModerationFilters($request);
 
         $query = ChatModerationAction::forRoom($roomId)
             ->with(['moderator:id,name,email', 'targetUser:id,name,email', 'message:id,message'])
