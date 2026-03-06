@@ -2,6 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 
+// 广播认证路由 - 支持公共和私有频道
+require base_path('routes/api/broadcast.php');
+
 Route::get('/', function () {
     return view('welcome');
 });

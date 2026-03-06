@@ -11,8 +11,8 @@ class BroadcastServiceProvider extends LaravelBroadcastServiceProvider
     {
         require base_path('routes/channels.php');
 
-        // 使用 auth:sanctum 支持 Bearer token（SPA/API 场景）
-        // Laravel 默认 web 中间件不解析 Bearer token，导致私有频道订阅 403
-        Broadcast::routes(['middleware' => ['web', 'auth:sanctum']]);
+        // 不使用默认的 Broadcast::routes()，因为它会强制要求认证
+        // 我们在 routes/api/broadcast.php 中有自定义的路由，支持公共频道
+        // Broadcast::routes(['middleware' => ['web', 'auth:sanctum']]);
     }
 }

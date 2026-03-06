@@ -4,9 +4,6 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UploadController;
 use Illuminate\Support\Facades\Route;
 
-// 广播认证路由 - 必须在认证中间件外部，但内部会检查 Sanctum 认证
-require base_path('routes/api/broadcast.php');
-
 // 公开路由
 require base_path('routes/api/public.php');
 

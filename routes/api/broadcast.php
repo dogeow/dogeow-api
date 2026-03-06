@@ -85,4 +85,4 @@ Route::post('/broadcasting/auth', function (\Illuminate\Http\Request $request) {
 
     // 认证成功
     return response()->json(['auth' => 'success']);
-})->middleware(['web', 'auth:sanctum']); // 使用 web 中间件以支持 session 和 Sanctum 认证
+}); // 路由函数内部已有完整的认证逻辑
