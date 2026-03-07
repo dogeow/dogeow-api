@@ -44,9 +44,10 @@ install_release() {
   local release_dir="$1"
   cd "$release_dir"
   mkdir -p logs
-  rm -rf storage bootstrap/cache 2>/dev/null || true
+  rm -rf storage bootstrap/cache public/storage 2>/dev/null || true
   ln -sfn ../../shared/storage storage
   ln -sfn ../../../shared/bootstrap/cache bootstrap/cache
+  ln -sfn ../../../shared/storage/app/public public/storage
   [ -L .env ] || [ -f .env ] || ln -sfn ../../.env .env
   composer install --no-dev --optimize-autoloader --no-interaction
   php artisan migrate --force
