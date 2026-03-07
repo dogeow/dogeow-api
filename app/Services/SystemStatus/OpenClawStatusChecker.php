@@ -31,13 +31,20 @@ class OpenClawStatusChecker
     {
         $url = config('services.openclaw.health_url');
         $timeout = config('services.openclaw.timeout_seconds', 5);
+        $maxRedirects = max(0, (int) config('services.openclaw.max_redirects', 5));
 
         if (empty($url)) {
             return $this->buildResult(false, 'offline', null, null, null, '未配置 OpenClaw 健康检查地址');
         }
 
         try {
-            $response = Http::timeout($timeout)->get($url);
+            $response = Http::timeout($timeout)
+                ->withOptions([
+                    'allow_redirects' => [
+                        'max' => $maxRedirects,
+                    ],
+                ])
+                ->get($url);
 
             if (! $response->successful()) {
                 return $this->buildResult(false, 'error', null, null, null, 'OpenClaw 返回异常: HTTP ' . $response->status());
@@ -59,13 +66,32 @@ class OpenClawStatusChecker
 
             return $this->buildResult($online, $status, $cpu, $memory, $disk, $details);
         } catch (\Throwable $e) {
+            $details = $this->formatConnectionDetails($e);
+
             Log::warning('OpenClaw health check failed', [
                 'url' => $url,
                 'error' => $e->getMessage(),
+                'details' => $details,
             ]);
 
-            return $this->buildResult(false, 'error', null, null, null, '无法连接 OpenClaw: ' . $this->sanitize($e->getMessage(), 100));
+            return $this->buildResult(false, 'error', null, null, null, $details);
         }
+    }
+
+    private function formatConnectionDetails(\Throwable $exception): string
+    {
+        $errorMessage = $exception->getMessage();
+        $exceptionClass = strtolower($exception::class);
+        $lower = strtolower($errorMessage);
+
+        if (
+            str_contains($exceptionClass, 'toomanyredirects')
+            || (str_contains($lower, 'will not follow more than') && str_contains($lower, 'redirect'))
+        ) {
+            return 'OpenClaw 健康检查重定向过多，请将 OPENCLAW_HEALTH_URL 配置为最终健康地址（避免循环跳转）';
+        }
+
+        return '无法连接 OpenClaw: ' . $this->sanitize($errorMessage, 100);
     }
 
     private function normalizePercent(array $body, string $key): ?float

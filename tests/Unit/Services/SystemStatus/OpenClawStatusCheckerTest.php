@@ -204,6 +204,21 @@ class OpenClawStatusCheckerTest extends TestCase
         $this->assertStringContainsString('Connection refused', $result['details']);
     }
 
+    public function test_returns_actionable_message_on_too_many_redirects(): void
+    {
+        Http::fake(fn () => throw new \Exception('Will not follow more than 5 redirects'));
+
+        Log::shouldReceive('warning')->once();
+
+        $checker = new OpenClawStatusChecker;
+        $result = $checker->check();
+
+        $this->assertFalse($result['online']);
+        $this->assertEquals('error', $result['status']);
+        $this->assertStringContainsString('重定向过多', $result['details']);
+        $this->assertStringContainsString('OPENCLAW_HEALTH_URL', $result['details']);
+    }
+
     public function test_defaults_online_true_when_not_in_response(): void
     {
         Http::fake([

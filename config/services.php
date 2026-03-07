@@ -48,11 +48,14 @@ return [
     'openclaw' => [
         'health_url' => env('OPENCLAW_HEALTH_URL'),
         'timeout_seconds' => (int) env('OPENCLAW_HEALTH_TIMEOUT', 5),
+        'max_redirects' => (int) env('OPENCLAW_HEALTH_MAX_REDIRECTS', 5),
     ],
 
     'supervisor' => [
         'reverb_program' => env('SUPERVISOR_REVERB_PROGRAM', 'reverb'),
         'queue_program' => env('SUPERVISOR_QUEUE_PROGRAM', 'queue-default'),
+        'reverb_probe_pattern' => env('SUPERVISOR_REVERB_PROBE_PATTERN', 'artisan reverb:start'),
+        'queue_probe_pattern' => env('SUPERVISOR_QUEUE_PROBE_PATTERN', 'artisan queue:(work|listen)'),
     ],
 
     'github' => [
