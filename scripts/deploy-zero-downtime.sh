@@ -75,25 +75,11 @@ if [ -L "$CURRENT_LINK" ] || [ -d "$CURRENT_LINK" ]; then
   create_shared_dirs
 
   NEW_RELEASE="${RELEASES_DIR}/$(date +%Y%m%d%H%M%S)"
-  CURRENT_RELEASE=""
-  if [ -L "$CURRENT_LINK" ]; then
-    CURRENT_RELEASE="$(readlink "$CURRENT_LINK")"
-    [[ "${CURRENT_RELEASE#/}" = "$CURRENT_RELEASE" ]] && CURRENT_RELEASE="$APP_ROOT/$CURRENT_RELEASE"
-  elif [ -d "$CURRENT_LINK" ]; then
-    CURRENT_RELEASE="$CURRENT_LINK"
-  fi
-
   echo "[deploy] 创建新发布目录: $NEW_RELEASE"
   mkdir -p "$NEW_RELEASE"
-  if [ -n "$CURRENT_RELEASE" ]; then
-    copy_source_to_release "$CURRENT_RELEASE" "$NEW_RELEASE"
-  else
-    copy_source_to_release "." "$NEW_RELEASE"
-  fi
-
-  cd "$NEW_RELEASE"
-  git pull || true
-  cd - >/dev/null
+  # APP_ROOT 工作树由外部部署流程先更新到最新提交；release 必须始终从这里复制，
+  # 不能从上一个 release 递推，否则被删除或修改的文件会一直残留。
+  copy_source_to_release "." "$NEW_RELEASE"
   install_release "$NEW_RELEASE"
 
   ln -sfn "$NEW_RELEASE" "$CURRENT_LINK"
@@ -113,10 +99,6 @@ create_shared_dirs
 NEW_RELEASE="${RELEASES_DIR}/$(date +%Y%m%d%H%M%S)"
 mkdir -p "$NEW_RELEASE"
 copy_source_to_release "." "$NEW_RELEASE"
-
-cd "$NEW_RELEASE"
-git pull || true
-cd - >/dev/null
 install_release "$NEW_RELEASE"
 
 ln -sfn "$NEW_RELEASE" "$CURRENT_LINK"
