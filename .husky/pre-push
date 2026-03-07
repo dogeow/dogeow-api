@@ -3,18 +3,18 @@ cd "$(dirname "$0")/.."
 # 获取将要推送的修改文件
 changed_files=$(git diff --name-only @{upstream}..HEAD 2>/dev/null || git diff --name-only HEAD~1..HEAD)
 
-# 检查是否有 PHP 文件修改
-if ! echo "$changed_files" | grep -q '\.php$'; then
-    echo "✓ No PHP files changed, skipping tests"
-    exit 0
-fi
-
 # 检查关键文件是否修改（这些文件改动需要跑全量测试）
 critical_files="composer.json|phpunit.xml|\.env\.example|config/"
 if echo "$changed_files" | grep -qE "$critical_files"; then
     echo "⚠ Critical files changed, running full test suite..."
     vendor/bin/phpunit --no-coverage
     exit $?
+fi
+
+# 检查是否有 PHP 文件修改
+if ! echo "$changed_files" | grep -q '\.php$'; then
+    echo "✓ No PHP files changed, skipping tests"
+    exit 0
 fi
 
 # 查找修改的测试文件

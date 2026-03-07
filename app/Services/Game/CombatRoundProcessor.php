@@ -225,14 +225,7 @@ class CombatRoundProcessor
         }
 
         if (empty($availableSkills)) {
-            // 没有可用技能，使用普通攻击
-            return [
-                'mana' => $currentMana,
-                'is_aoe' => false,
-                'skill_damage' => 0,
-                'skills_used_this_round' => [],
-                'new_cooldowns' => $newCooldowns,
-            ];
+            return $this->buildNoSkillRoundResult($currentMana, $newCooldowns);
         }
 
         // 智能选择最佳技能
@@ -267,14 +260,7 @@ class CombatRoundProcessor
             ];
         }
 
-        // 没有找到合适的技能，使用普通攻击
-        return [
-            'mana' => $currentMana,
-            'is_aoe' => false,
-            'skill_damage' => 0,
-            'skills_used_this_round' => [],
-            'new_cooldowns' => $newCooldowns,
-        ];
+        return $this->buildNoSkillRoundResult($currentMana, $newCooldowns);
     }
 
     /**
@@ -318,16 +304,10 @@ class CombatRoundProcessor
             $aoeSkills = array_filter($availableSkills, fn ($s) => $s['is_aoe']);
             if (! empty($aoeSkills)) {
                 // 从群体技能中选择伤害最高且消耗可接受的
-                usort($aoeSkills, function ($a, $b) {
-                    // 优先按效率排序（伤害/消耗），其次按伤害排序
-                    $efficiencyA = $a['mana_cost'] > 0 ? $a['damage'] / $a['mana_cost'] : $a['damage'];
-                    $efficiencyB = $b['mana_cost'] > 0 ? $b['damage'] / $b['mana_cost'] : $b['damage'];
-                    if (abs($efficiencyA - $efficiencyB) > 0.1) {
-                        return $efficiencyB <=> $efficiencyA;
-                    }
-
-                    return $b['damage'] <=> $a['damage'];
-                });
+                usort($aoeSkills, fn (array $firstSkill, array $secondSkill) => $this->compareSkillsByEfficiency(
+                    $firstSkill,
+                    $secondSkill
+                ));
 
                 return $aoeSkills[0];
             }
@@ -336,17 +316,17 @@ class CombatRoundProcessor
         // 策略2：所有怪物血量都很低（总血量 <= 角色攻击力 * 2），优先使用低消耗技能
         if ($totalMonsterHp <= $charAttack * 2) {
             // 按魔法消耗排序，选择最经济的技能
-            usort($availableSkills, function ($a, $b) {
+            usort($availableSkills, function (array $firstSkill, array $secondSkill) {
                 // 优先选择不需要魔法的技能
-                if ($a['mana_cost'] === 0 && $b['mana_cost'] > 0) {
+                if ($firstSkill['mana_cost'] === 0 && $secondSkill['mana_cost'] > 0) {
                     return -1;
                 }
-                if ($b['mana_cost'] === 0 && $a['mana_cost'] > 0) {
+                if ($secondSkill['mana_cost'] === 0 && $firstSkill['mana_cost'] > 0) {
                     return 1;
                 }
                 // 然后按效率排序
-                $efficiencyA = $a['mana_cost'] > 0 ? $a['damage'] / $a['mana_cost'] : $a['damage'] * 10;
-                $efficiencyB = $b['mana_cost'] > 0 ? $b['damage'] / $b['mana_cost'] : $b['damage'] * 10;
+                $efficiencyA = $firstSkill['mana_cost'] > 0 ? $firstSkill['damage'] / $firstSkill['mana_cost'] : $firstSkill['damage'] * 10;
+                $efficiencyB = $secondSkill['mana_cost'] > 0 ? $secondSkill['damage'] / $secondSkill['mana_cost'] : $secondSkill['damage'] * 10;
 
                 return $efficiencyB <=> $efficiencyA;
             });
@@ -359,12 +339,10 @@ class CombatRoundProcessor
         $skillsWithDamage = array_filter($availableSkills, fn ($s) => $s['damage'] > 0);
         if (! empty($skillsWithDamage)) {
             // 按伤害/消耗效率排序
-            usort($skillsWithDamage, function ($a, $b) {
-                $efficiencyA = $a['mana_cost'] > 0 ? $a['damage'] / $a['mana_cost'] : $a['damage'];
-                $efficiencyB = $b['mana_cost'] > 0 ? $b['damage'] / $b['mana_cost'] : $b['damage'];
-
-                return $efficiencyB <=> $efficiencyA;
-            });
+            usort($skillsWithDamage, fn (array $firstSkill, array $secondSkill) => $this->compareSkillsByEfficiency(
+                $firstSkill,
+                $secondSkill
+            ));
 
             // 如果最高效率的技能比普通攻击好很多，使用它
             $bestSkill = $skillsWithDamage[0];
@@ -390,6 +368,41 @@ class CombatRoundProcessor
         });
 
         return $availableSkills[0];
+    }
+
+    /**
+     * 统一构建“本回合未施放技能”的返回结构
+     *
+     * @param  array<int, int>  $cooldowns
+     * @return array{mana: int, is_aoe: bool, skill_damage: int, skills_used_this_round: array<int, mixed>, new_cooldowns: array<int, int>}
+     */
+    private function buildNoSkillRoundResult(int $mana, array $cooldowns): array
+    {
+        return [
+            'mana' => $mana,
+            'is_aoe' => false,
+            'skill_damage' => 0,
+            'skills_used_this_round' => [],
+            'new_cooldowns' => $cooldowns,
+        ];
+    }
+
+    /**
+     * 按技能效率排序（伤害/魔法），效率近似时按伤害排序
+     *
+     * @param  array{damage: int, mana_cost: int}  $firstSkill
+     * @param  array{damage: int, mana_cost: int}  $secondSkill
+     */
+    private function compareSkillsByEfficiency(array $firstSkill, array $secondSkill): int
+    {
+        $firstEfficiency = $firstSkill['mana_cost'] > 0 ? $firstSkill['damage'] / $firstSkill['mana_cost'] : $firstSkill['damage'];
+        $secondEfficiency = $secondSkill['mana_cost'] > 0 ? $secondSkill['damage'] / $secondSkill['mana_cost'] : $secondSkill['damage'];
+
+        if (abs($firstEfficiency - $secondEfficiency) > 0.1) {
+            return $secondEfficiency <=> $firstEfficiency;
+        }
+
+        return $secondSkill['damage'] <=> $firstSkill['damage'];
     }
 
     /**
@@ -782,19 +795,19 @@ class CombatRoundProcessor
         $copperConfig = config('game.copper_drop');
         if (! empty($dropTable['copper_chance'])) {
             $copperChance = $dropTable['copper_chance'];
-            $base = (int) ($dropTable['copper_base'] ?? $copperConfig['base']);
-            $range = (int) ($dropTable['copper_range'] ?? $copperConfig['range']);
+            $copperBase = (int) ($dropTable['copper_base'] ?? $copperConfig['base']);
+            $copperRange = (int) ($dropTable['copper_range'] ?? $copperConfig['range']);
         } else {
             $copperChance = $copperConfig['chance'];
-            $base = $copperConfig['base'];
-            $range = $copperConfig['range'];
+            $copperBase = (int) $copperConfig['base'];
+            $copperRange = (int) $copperConfig['range'];
         }
 
         if (! $this->rollChanceForProcessor($copperChance)) {
             return 0;
         }
 
-        return random_int($base, $base + $range);
+        return random_int($copperBase, $copperBase + $copperRange);
     }
 
     /**
