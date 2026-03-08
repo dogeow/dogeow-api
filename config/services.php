@@ -69,6 +69,7 @@ return [
         'operator' => env('UPYUN_OPERATOR'),
         'password' => env('UPYUN_PASSWORD'),
         'domain' => env('UPYUN_DOMAIN'), // 可选，CDN 加速域名，用于生成公开访问 URL
+        'cdn_url' => env('UPYUN_CDN_URL', env('UPYUN_DOMAIN')), // CDN URL for status check
         'api_host' => env('UPYUN_API_HOST'),
     ],
 
