@@ -4,14 +4,14 @@ namespace App\Events\Game;
 
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * 战斗更新事件，使用队列异步推送到 Reverb。
+ * 战斗更新事件，立即推送到 Reverb，避免战斗回合与广播各排一次队导致首帧反馈过慢。
  */
-class GameCombatUpdate implements ShouldBroadcast
+class GameCombatUpdate implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 

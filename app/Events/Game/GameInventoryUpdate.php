@@ -4,14 +4,14 @@ namespace App\Events\Game;
 
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * 背包/仓库/装备更新事件，通过队列推送到 Reverb，前端直接使用 payload 更新状态，无需再请求 GET /rpg/inventory。
+ * 背包/仓库/装备更新事件立即推送到 Reverb，减少战斗奖励与掉落同步的可见延迟。
  */
-class GameInventoryUpdate implements ShouldBroadcast
+class GameInventoryUpdate implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
