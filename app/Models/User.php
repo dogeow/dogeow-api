@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Repo\WatchedPackage;
+use App\Models\Repo\WatchedRepository;
 use App\Models\Thing\Item;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -147,6 +149,22 @@ class User extends Authenticatable
     public function todoLists()
     {
         return $this->hasMany(\App\Models\Todo\TodoList::class);
+    }
+
+    /**
+     * Get the repositories watched by the user.
+     */
+    public function watchedRepositories()
+    {
+        return $this->hasMany(WatchedRepository::class);
+    }
+
+    /**
+     * Get the packages watched by the user.
+     */
+    public function watchedPackages()
+    {
+        return $this->hasMany(WatchedPackage::class);
     }
 
     /**

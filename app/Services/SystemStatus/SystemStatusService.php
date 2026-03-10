@@ -2,6 +2,8 @@
 
 namespace App\Services\SystemStatus;
 
+use Illuminate\Support\Arr;
+
 /**
  * 聚合所有系统服务状态，返回前端所需的统一 DTO。
  */
@@ -13,7 +15,8 @@ class SystemStatusService
         private DatabaseStatusChecker $databaseChecker,
         private RedisStatusChecker $redisChecker,
         private CdnStatusChecker $cdnChecker,
-        private SchedulerStatusChecker $schedulerChecker
+        private SchedulerStatusChecker $schedulerChecker,
+        private GithubRateLimitChecker $githubRateLimitChecker
     ) {}
 
     /**
@@ -24,7 +27,8 @@ class SystemStatusService
      *   database: array{status: string, details: string, response_time?: float},
      *   redis: array{status: string, details: string, response_time?: float},
      *   cdn: array{status: string, details: string, response_time?: float},
-     *   scheduler: array{status: string, details: string, last_run?: string}
+     *   scheduler: array{status: string, details: string, last_run?: string},
+     *   github: array{status: string, details: string, core_remaining?: int|null, core_limit?: int|null, core_used?: int|null, graphql_remaining?: int|null, graphql_limit?: int|null, graphql_used?: int|null, reset_at?: string|null}
      * }
      */
     public function getAggregatedStatus(): array
@@ -39,15 +43,16 @@ class SystemStatusService
         $redis = $this->redisChecker->check();
         $cdn = $this->cdnChecker->check();
         $scheduler = $this->schedulerChecker->check();
+        $github = $this->githubRateLimitChecker->check();
 
         return [
             'openclaw' => [
-                'online' => $openclaw['online'],
-                'status' => $openclaw['status'],
-                'details' => $openclaw['details'],
-                'cpu_percent' => $openclaw['cpu_percent'],
-                'memory_percent' => $openclaw['memory_percent'],
-                'disk_percent' => $openclaw['disk_percent'],
+                'online' => Arr::get($openclaw, 'online', false),
+                'status' => Arr::get($openclaw, 'status', 'error'),
+                'details' => Arr::get($openclaw, 'details', '未知状态'),
+                'cpu_percent' => Arr::get($openclaw, 'cpu_percent'),
+                'memory_percent' => Arr::get($openclaw, 'memory_percent'),
+                'disk_percent' => Arr::get($openclaw, 'disk_percent'),
             ],
             'reverb' => [
                 'status' => $reverb['status'],
@@ -63,6 +68,7 @@ class SystemStatusService
             'redis' => $redis,
             'cdn' => $cdn,
             'scheduler' => $scheduler,
+            'github' => $github,
         ];
     }
 }

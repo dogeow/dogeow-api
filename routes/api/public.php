@@ -9,6 +9,7 @@ Route::post('/register', [App\Http\Controllers\Api\AuthController::class, 'regis
 // GitHub OAuth
 Route::get('/auth/github', [App\Http\Controllers\Api\GithubController::class, 'redirect']);
 Route::get('/auth/github/callback', [App\Http\Controllers\Api\GithubController::class, 'callback']);
+Route::post('/github/webhooks/repo-watch', [App\Http\Controllers\Api\GithubWebhookController::class, 'repoWatch']);
 
 // Web Push：VAPID 公钥（公开，供前端订阅使用）
 Route::get('/webpush/vapid', [App\Http\Controllers\Api\WebPushController::class, 'vapidKey']);
