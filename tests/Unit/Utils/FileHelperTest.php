@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Utils;
 
-use App\Utils\FileHelper;
+use Dogeow\PhpHelpers\File;
 use PHPUnit\Framework\TestCase;
 
 class FileHelperTest extends TestCase
@@ -72,26 +72,26 @@ class FileHelperTest extends TestCase
     public function test_format_bytes(): void
     {
         // Test zero bytes
-        $this->assertEquals('0 B', FileHelper::formatBytes(0));
+        $this->assertEquals('0 B', File::formatBytes(0));
 
         // Test bytes
-        $this->assertEquals('512 B', FileHelper::formatBytes(512));
+        $this->assertEquals('512 B', File::formatBytes(512));
 
         // Test kilobytes
-        $this->assertEquals('1.5 KB', FileHelper::formatBytes(1536));
-        $this->assertEquals('1 MB', FileHelper::formatBytes(1024 * 1024));
+        $this->assertEquals('1.5 KB', File::formatBytes(1536));
+        $this->assertEquals('1 MB', File::formatBytes(1024 * 1024));
 
         // Test megabytes
-        $this->assertEquals('1.5 MB', FileHelper::formatBytes(1024 * 1024 * 1.5));
+        $this->assertEquals('1.5 MB', File::formatBytes(1024 * 1024 * 1.5));
 
         // Test gigabytes
-        $this->assertEquals('1.5 GB', FileHelper::formatBytes(1024 * 1024 * 1024 * 1.5));
+        $this->assertEquals('1.5 GB', File::formatBytes(1024 * 1024 * 1024 * 1.5));
 
         // Test terabytes
-        $this->assertEquals('1.5 TB', FileHelper::formatBytes(1024 * 1024 * 1024 * 1024 * 1.5));
+        $this->assertEquals('1.5 TB', File::formatBytes(1024 * 1024 * 1024 * 1024 * 1.5));
 
         // Test negative values (should be treated as 0)
-        $this->assertEquals('0 B', FileHelper::formatBytes(-100));
+        $this->assertEquals('0 B', File::formatBytes(-100));
     }
 
     /**
@@ -100,15 +100,15 @@ class FileHelperTest extends TestCase
     public function test_format_bytes_edge_cases(): void
     {
         // Test very large numbers
-        $this->assertEquals('1 TB', FileHelper::formatBytes(1024 * 1024 * 1024 * 1024));
+        $this->assertEquals('1 TB', File::formatBytes(1024 * 1024 * 1024 * 1024));
 
         // Test values just below unit thresholds
-        $this->assertEquals('1023 B', FileHelper::formatBytes(1023));
-        $this->assertEquals('1024 KB', FileHelper::formatBytes(1024 * 1024 - 1));
+        $this->assertEquals('1023 B', File::formatBytes(1023));
+        $this->assertEquals('1024 KB', File::formatBytes(1024 * 1024 - 1));
 
         // Test values just above unit thresholds
-        $this->assertEquals('1 KB', FileHelper::formatBytes(1024));
-        $this->assertEquals('1 MB', FileHelper::formatBytes(1024 * 1024));
+        $this->assertEquals('1 KB', File::formatBytes(1024));
+        $this->assertEquals('1 MB', File::formatBytes(1024 * 1024));
     }
 
     /**
@@ -117,12 +117,12 @@ class FileHelperTest extends TestCase
     public function test_get_file_size(): void
     {
         // Test with non-existent file (returns false)
-        $this->assertFalse(FileHelper::getFileSize($this->nonExistentFile));
+        $this->assertFalse(File::getSize($this->nonExistentFile));
 
         // Test with existing file
         $content = 'Hello World!';
         file_put_contents($this->testFile, $content);
-        $this->assertEquals(strlen($content), FileHelper::getFileSize($this->testFile));
+        $this->assertEquals(strlen($content), File::getSize($this->testFile));
     }
 
     /**
@@ -131,13 +131,13 @@ class FileHelperTest extends TestCase
     public function test_get_formatted_file_size(): void
     {
         // Test with non-existent file
-        $this->assertEquals('0 B', FileHelper::getFormattedFileSize($this->nonExistentFile));
+        $this->assertEquals('0 B', File::getFormattedSize($this->nonExistentFile));
 
         // Test with existing file
         $content = 'Hello World!';
         file_put_contents($this->testFile, $content);
-        $expectedSize = FileHelper::formatBytes(strlen($content));
-        $this->assertEquals($expectedSize, FileHelper::getFormattedFileSize($this->testFile));
+        $expectedSize = File::formatBytes(strlen($content));
+        $this->assertEquals($expectedSize, File::getFormattedSize($this->testFile));
     }
 
     /**
@@ -146,19 +146,19 @@ class FileHelperTest extends TestCase
     public function test_is_valid_file(): void
     {
         // Test with non-existent file
-        $this->assertFalse(FileHelper::isValidFile($this->nonExistentFile));
+        $this->assertFalse(File::isValid($this->nonExistentFile));
 
         // Test with existing but empty file
         file_put_contents($this->testFile, '');
-        $this->assertFalse(FileHelper::isValidFile($this->testFile));
+        $this->assertFalse(File::isValid($this->testFile));
 
         // Test with existing file with content
         $content = 'Hello World!';
         file_put_contents($this->testFile, $content);
-        $this->assertTrue(FileHelper::isValidFile($this->testFile));
+        $this->assertTrue(File::isValid($this->testFile));
 
         // Test with directory (returns true if directory exists and is readable)
-        $this->assertTrue(FileHelper::isValidFile($this->testDir));
+        $this->assertTrue(File::isValid($this->testDir));
     }
 
     /**
@@ -168,15 +168,15 @@ class FileHelperTest extends TestCase
     {
         // Test creating new directory
         $newDir = $this->testDir . '/subdir';
-        $this->assertTrue(FileHelper::ensureDirectoryExists($newDir));
+        $this->assertTrue(File::ensureDirectoryExists($newDir));
         $this->assertTrue(is_dir($newDir));
 
         // Test with existing directory
-        $this->assertTrue(FileHelper::ensureDirectoryExists($newDir));
+        $this->assertTrue(File::ensureDirectoryExists($newDir));
 
         // Test creating nested directories
         $nestedDir = $newDir . '/deep/nested/directory';
-        $this->assertTrue(FileHelper::ensureDirectoryExists($nestedDir));
+        $this->assertTrue(File::ensureDirectoryExists($nestedDir));
         $this->assertTrue(is_dir($nestedDir));
     }
 
@@ -186,7 +186,7 @@ class FileHelperTest extends TestCase
     public function test_ensure_directory_exists_with_custom_permissions(): void
     {
         $customDir = $this->testDir . '/custom_perms';
-        $this->assertTrue(FileHelper::ensureDirectoryExists($customDir, 0777));
+        $this->assertTrue(File::ensureDirectoryExists($customDir, 0777));
         $this->assertTrue(is_dir($customDir));
 
         // Check if permissions are set correctly (may vary by system)
@@ -204,9 +204,9 @@ class FileHelperTest extends TestCase
         file_put_contents($this->testFile, $content);
 
         // Test that all methods work together
-        $this->assertTrue(FileHelper::isValidFile($this->testFile));
-        $this->assertEquals(strlen($content), FileHelper::getFileSize($this->testFile));
-        $this->assertEquals(FileHelper::formatBytes(strlen($content)), FileHelper::getFormattedFileSize($this->testFile));
+        $this->assertTrue(File::isValid($this->testFile));
+        $this->assertEquals(strlen($content), File::getSize($this->testFile));
+        $this->assertEquals(File::formatBytes(strlen($content)), File::getFormattedSize($this->testFile));
     }
 
     /**
@@ -218,9 +218,9 @@ class FileHelperTest extends TestCase
         $content = 'Test content';
         file_put_contents($specialFile, $content);
 
-        $this->assertTrue(FileHelper::isValidFile($specialFile));
-        $this->assertEquals(strlen($content), FileHelper::getFileSize($specialFile));
-        $this->assertEquals(FileHelper::formatBytes(strlen($content)), FileHelper::getFormattedFileSize($specialFile));
+        $this->assertTrue(File::isValid($specialFile));
+        $this->assertEquals(strlen($content), File::getSize($specialFile));
+        $this->assertEquals(File::formatBytes(strlen($content)), File::getFormattedSize($specialFile));
 
         // Clean up
         unlink($specialFile);
@@ -236,7 +236,7 @@ class FileHelperTest extends TestCase
         $content = str_repeat('A', $size);
         file_put_contents($this->testFile, $content);
 
-        $this->assertEquals($size, FileHelper::getFileSize($this->testFile));
-        $this->assertEquals('1 MB', FileHelper::getFormattedFileSize($this->testFile));
+        $this->assertEquals($size, File::getSize($this->testFile));
+        $this->assertEquals('1 MB', File::getFormattedSize($this->testFile));
     }
 }

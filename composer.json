@@ -9,6 +9,7 @@
     ],
     "license": "MIT",
     "require": {
+        "dogeow/php-helpers": "dev-main",
         "php": "^8.2",
         "intervention/image": "^3.11",
         "laravel-notification-channels/webpush": "^10.4",
@@ -39,6 +40,15 @@
         "phpstan/phpstan": "^2.1",
         "phpunit/phpunit": "^11.5.3"
     },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../php-helpers",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
     "autoload": {
         "psr-4": {
             "App\\": "app/",

@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Utils;
 
-use App\Utils\CharLengthHelper;
+use Dogeow\PhpHelpers\CharLength;
 use PHPUnit\Framework\TestCase;
 
 class CharLengthHelperTest extends TestCase
@@ -12,7 +12,7 @@ class CharLengthHelperTest extends TestCase
      */
     public function test_calculate_char_length_with_empty_string(): void
     {
-        $this->assertEquals(0, CharLengthHelper::calculateCharLength(''));
+        $this->assertEquals(0, CharLength::calculate(''));
     }
 
     /**
@@ -20,8 +20,8 @@ class CharLengthHelperTest extends TestCase
      */
     public function test_calculate_char_length_with_english(): void
     {
-        $this->assertEquals(5, CharLengthHelper::calculateCharLength('hello'));
-        $this->assertEquals(11, CharLengthHelper::calculateCharLength('Hello World'));
+        $this->assertEquals(5, CharLength::calculate('hello'));
+        $this->assertEquals(11, CharLength::calculate('Hello World'));
     }
 
     /**
@@ -29,8 +29,8 @@ class CharLengthHelperTest extends TestCase
      */
     public function test_calculate_char_length_with_numbers(): void
     {
-        $this->assertEquals(3, CharLengthHelper::calculateCharLength('123'));
-        $this->assertEquals(5, CharLengthHelper::calculateCharLength('12345'));
+        $this->assertEquals(3, CharLength::calculate('123'));
+        $this->assertEquals(5, CharLength::calculate('12345'));
     }
 
     /**
@@ -39,9 +39,9 @@ class CharLengthHelperTest extends TestCase
     public function test_calculate_char_length_with_chinese(): void
     {
         // 每个中文字符算 2
-        $this->assertEquals(2, CharLengthHelper::calculateCharLength('你'));
-        $this->assertEquals(4, CharLengthHelper::calculateCharLength('你好'));
-        $this->assertEquals(6, CharLengthHelper::calculateCharLength('你好吗'));
+        $this->assertEquals(2, CharLength::calculate('你'));
+        $this->assertEquals(4, CharLength::calculate('你好'));
+        $this->assertEquals(6, CharLength::calculate('你好吗'));
     }
 
     /**
@@ -50,9 +50,9 @@ class CharLengthHelperTest extends TestCase
     public function test_calculate_char_length_with_mixed_english_chinese(): void
     {
         // hello (5) + 你好 (4) = 9
-        $this->assertEquals(9, CharLengthHelper::calculateCharLength('hello你好'));
+        $this->assertEquals(9, CharLength::calculate('hello你好'));
         // hi (2) + 中国 (4) = 6
-        $this->assertEquals(6, CharLengthHelper::calculateCharLength('hi中国'));
+        $this->assertEquals(6, CharLength::calculate('hi中国'));
     }
 
     /**
@@ -61,8 +61,8 @@ class CharLengthHelperTest extends TestCase
     public function test_calculate_char_length_with_simple_emoji(): void
     {
         // 每个 emoji 算 2
-        $this->assertEquals(2, CharLengthHelper::calculateCharLength('😀'));
-        $this->assertEquals(4, CharLengthHelper::calculateCharLength('😀😁'));
+        $this->assertEquals(2, CharLength::calculate('😀'));
+        $this->assertEquals(4, CharLength::calculate('😀😁'));
     }
 
     /**
@@ -71,9 +71,9 @@ class CharLengthHelperTest extends TestCase
     public function test_calculate_char_length_with_misc_symbols(): void
     {
         // ☀ (misc symbols) 算 2
-        $this->assertEquals(2, CharLengthHelper::calculateCharLength('☀'));
+        $this->assertEquals(2, CharLength::calculate('☀'));
         // ★ (dingbats) 算 2
-        $this->assertEquals(2, CharLengthHelper::calculateCharLength('★'));
+        $this->assertEquals(2, CharLength::calculate('★'));
     }
 
     /**
@@ -84,9 +84,9 @@ class CharLengthHelperTest extends TestCase
     {
         // 国旗 emoji 由两个区域指示符号组成
         // 🇨🇳 (CN) 算 2 个字符长度
-        $this->assertEquals(2, CharLengthHelper::calculateCharLength('🇨🇳'));
+        $this->assertEquals(2, CharLength::calculate('🇨🇳'));
         // 🇺🇸 (US) 算 2 个字符长度
-        $this->assertEquals(2, CharLengthHelper::calculateCharLength('🇺🇸'));
+        $this->assertEquals(2, CharLength::calculate('🇺🇸'));
     }
 
     /**
@@ -95,9 +95,9 @@ class CharLengthHelperTest extends TestCase
     public function test_calculate_char_length_with_mixed_content(): void
     {
         // hello (5) + 😀 (2) + 你好 (4) = 11
-        $this->assertEquals(11, CharLengthHelper::calculateCharLength('hello😀你好'));
+        $this->assertEquals(11, CharLength::calculate('hello😀你好'));
         // hi (2) + 🇨🇳 (2) + 中国 (4) = 8
-        $this->assertEquals(8, CharLengthHelper::calculateCharLength('hi🇨🇳中国'));
+        $this->assertEquals(8, CharLength::calculate('hi🇨🇳中国'));
     }
 
     /**
@@ -105,10 +105,10 @@ class CharLengthHelperTest extends TestCase
      */
     public function test_exceeds_max_length(): void
     {
-        $this->assertFalse(CharLengthHelper::exceedsMaxLength('hello', 10));
-        $this->assertTrue(CharLengthHelper::exceedsMaxLength('hello', 3));
-        $this->assertFalse(CharLengthHelper::exceedsMaxLength('你好', 10));
-        $this->assertTrue(CharLengthHelper::exceedsMaxLength('你好', 3));
+        $this->assertFalse(CharLength::exceedsMax('hello', 10));
+        $this->assertTrue(CharLength::exceedsMax('hello', 3));
+        $this->assertFalse(CharLength::exceedsMax('你好', 10));
+        $this->assertTrue(CharLength::exceedsMax('你好', 3));
     }
 
     /**
@@ -116,10 +116,10 @@ class CharLengthHelperTest extends TestCase
      */
     public function test_below_min_length(): void
     {
-        $this->assertFalse(CharLengthHelper::belowMinLength('hello', 3));
-        $this->assertTrue(CharLengthHelper::belowMinLength('hello', 10));
-        $this->assertFalse(CharLengthHelper::belowMinLength('你好', 3));
-        $this->assertTrue(CharLengthHelper::belowMinLength('你好', 10));
+        $this->assertFalse(CharLength::belowMin('hello', 3));
+        $this->assertTrue(CharLength::belowMin('hello', 10));
+        $this->assertFalse(CharLength::belowMin('你好', 3));
+        $this->assertTrue(CharLength::belowMin('你好', 10));
     }
 
     /**
@@ -128,11 +128,11 @@ class CharLengthHelperTest extends TestCase
     public function test_calculate_char_length_with_special_characters(): void
     {
         // 空格算 1
-        $this->assertEquals(6, CharLengthHelper::calculateCharLength('hello '));
+        $this->assertEquals(6, CharLength::calculate('hello '));
         // 标点符号算 1
-        $this->assertEquals(6, CharLengthHelper::calculateCharLength('hello!'));
+        $this->assertEquals(6, CharLength::calculate('hello!'));
         // 混合: 你好(4) + ,(1) + 空格(1) + world(5) + !(1) = 12
-        $this->assertEquals(12, CharLengthHelper::calculateCharLength('你好, world!'));
+        $this->assertEquals(12, CharLength::calculate('你好, world!'));
     }
 
     /**
@@ -140,9 +140,9 @@ class CharLengthHelperTest extends TestCase
      */
     public function test_exceeds_max_length_at_boundary(): void
     {
-        $this->assertFalse(CharLengthHelper::exceedsMaxLength('hello', 5));
-        $this->assertFalse(CharLengthHelper::exceedsMaxLength('你好', 4));
-        $this->assertTrue(CharLengthHelper::exceedsMaxLength('hello', 4));
+        $this->assertFalse(CharLength::exceedsMax('hello', 5));
+        $this->assertFalse(CharLength::exceedsMax('你好', 4));
+        $this->assertTrue(CharLength::exceedsMax('hello', 4));
     }
 
     /**
@@ -150,8 +150,8 @@ class CharLengthHelperTest extends TestCase
      */
     public function test_below_min_length_at_boundary(): void
     {
-        $this->assertFalse(CharLengthHelper::belowMinLength('hello', 5));
-        $this->assertFalse(CharLengthHelper::belowMinLength('你好', 4));
-        $this->assertTrue(CharLengthHelper::belowMinLength('hi', 5));
+        $this->assertFalse(CharLength::belowMin('hello', 5));
+        $this->assertFalse(CharLength::belowMin('你好', 4));
+        $this->assertTrue(CharLength::belowMin('hi', 5));
     }
 }

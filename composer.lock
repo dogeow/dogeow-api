@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "95c75911461639d19baed113c88820e8",
+    "content-hash": "85dfca6196b438ab98670ee7cde82092",
     "packages": [
         {
             "name": "brick/math",
@@ -583,6 +583,46 @@
                 }
             ],
             "time": "2024-02-05T11:56:58+00:00"
+        },
+        {
+            "name": "dogeow/php-helpers",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../php-helpers",
+                "reference": "ee0b48d3d3ba7f6eaab8b1a7dcec4fda3386920b"
+            },
+            "require": {
+                "ext-bcmath": "*",
+                "php": ">=7.4"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^9.5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Dogeow\\PhpHelpers\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Dogeow\\PhpHelpers\\Test\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "dogeow",
+                    "email": "lky216@gmail.com"
+                }
+            ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "dragonmantank/cron-expression",
@@ -12086,7 +12126,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "dogeow/php-helpers": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Chat;
 
-use App\Utils\CharLengthHelper;
+use Dogeow\PhpHelpers\CharLength;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -53,14 +53,14 @@ class UpdateRoomRequest extends FormRequest
                 return;
             }
 
-            if (CharLengthHelper::belowMinLength($name, self::MIN_ROOM_NAME_LENGTH)) {
+            if (CharLength::belowMin($name, self::MIN_ROOM_NAME_LENGTH)) {
                 $validator->errors()->add(
                     'name',
                     '房间名称至少需要' . self::MIN_ROOM_NAME_LENGTH . '个字符'
                 );
             }
 
-            if (CharLengthHelper::exceedsMaxLength($name, self::MAX_ROOM_NAME_LENGTH)) {
+            if (CharLength::exceedsMax($name, self::MAX_ROOM_NAME_LENGTH)) {
                 $validator->errors()->add(
                     'name',
                     '房间名称不能超过' . self::MAX_ROOM_NAME_LENGTH . '个字符（中文/emoji算2个字符，数字/字母算1个字符）'

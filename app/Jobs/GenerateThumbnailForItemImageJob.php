@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Thing\ItemImage;
-use App\Utils\FileHelper;
+use Dogeow\PhpHelpers\File;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -91,7 +91,7 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
 
         // 检查文件是否可读且未损坏
         $originalPath = $disk->path($this->itemImage->path);
-        if (! FileHelper::isValidFile($originalPath)) {
+        if (! File::isValid($originalPath)) {
             Log::error("原始图片不可读或为空，ItemImage ID: {$this->itemImage->id}");
 
             return false;
@@ -140,7 +140,7 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
 
         try {
             // 确保目录存在
-            FileHelper::ensureDirectoryExists(dirname($thumbnailFullPath));
+            File::ensureDirectoryExists(dirname($thumbnailFullPath));
 
             $manager = new ImageManager(new Driver);
             $image = $manager->read($originalFullPath);
@@ -162,7 +162,7 @@ class GenerateThumbnailForItemImageJob implements ShouldQueue
                 'thumbnail_path' => $thumbnailPath,
                 'original_size' => "{$originalWidth}x{$originalHeight}",
                 'thumbnail_size' => "{$this->thumbnailWidth}x{$this->thumbnailHeight}",
-                'file_size' => FileHelper::getFormattedFileSize($thumbnailFullPath),
+                'file_size' => File::getFormattedSize($thumbnailFullPath),
             ]);
 
         } catch (\Exception $e) {
