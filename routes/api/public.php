@@ -28,6 +28,7 @@ require base_path('routes/api/cloud.php');
 // Musics
 Route::prefix('musics')->group(function () {
     Route::get('/', [App\Http\Controllers\Api\MusicController::class, 'index']);
+    Route::get('/lyrics/{filename}', [App\Http\Controllers\Api\MusicController::class, 'lyrics']);
     Route::get('/{filename}', [App\Http\Controllers\Api\MusicController::class, 'download']);
 });
 

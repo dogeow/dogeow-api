@@ -120,8 +120,7 @@ class UpyunService
             return ['success' => false, 'message' => '又拍云未配置，请设置 UPYUN_BUCKET、UPYUN_OPERATOR、UPYUN_PASSWORD'];
         }
 
-        $remoteDirectory = trim($remoteDirectory);
-        $remoteDirectory = $remoteDirectory === '' ? '/' : '/' . trim($remoteDirectory, '/');
+        $remoteDirectory = $this->normalizeRemotePath($remoteDirectory);
 
         $files = [];
         $iter = null;
@@ -163,13 +162,57 @@ class UpyunService
 
     public function buildPublicUrl(string $remotePath): string
     {
-        $normalizedPath = '/' . ltrim($remotePath, '/');
+        $normalizedPath = $this->normalizeRemotePath($remotePath);
 
         if ($this->domain !== null && $this->domain !== '') {
             return rtrim($this->domain, '/') . $normalizedPath;
         }
 
         return $normalizedPath;
+    }
+
+    /**
+     * 读取又拍云上的文件内容
+     *
+     * @return array{
+     *     success: bool,
+     *     body?: string,
+     *     content_type?: string|null,
+     *     status?: int,
+     *     message?: string
+     * }
+     */
+    public function readFile(string $remotePath): array
+    {
+        if (! $this->isConfigured()) {
+            return ['success' => false, 'message' => '又拍云未配置，请设置 UPYUN_BUCKET、UPYUN_OPERATOR、UPYUN_PASSWORD'];
+        }
+
+        $normalizedPath = $this->normalizeRemotePath($remotePath);
+        $encodedPath = $this->encodeRemotePath($normalizedPath);
+        $uri = '/' . $this->bucket . $encodedPath;
+        $date = gmdate('D, d M Y H:i:s \G\M\T');
+        $signature = $this->makeSignature('GET', $uri, $date, '');
+        $url = 'https://' . $this->apiHost . $uri;
+
+        $response = Http::withHeaders([
+            'Authorization' => $signature,
+            'Date' => $date,
+        ])->get($url);
+
+        if (! $response->successful()) {
+            return [
+                'success' => false,
+                'status' => $response->status(),
+                'message' => '又拍云文件读取失败: ' . $response->status() . ' ' . $response->body(),
+            ];
+        }
+
+        return [
+            'success' => true,
+            'body' => $response->body(),
+            'content_type' => $response->header('Content-Type'),
+        ];
     }
 
     /**
@@ -221,5 +264,26 @@ class UpyunService
         ];
 
         return $map[$ext] ?? 'application/octet-stream';
+    }
+
+    private function normalizeRemotePath(string $remotePath): string
+    {
+        $remotePath = trim($remotePath);
+
+        return $remotePath === '' ? '/' : '/' . trim($remotePath, '/');
+    }
+
+    private function encodeRemotePath(string $remotePath): string
+    {
+        $segments = array_filter(
+            explode('/', trim($remotePath, '/')),
+            static fn (string $segment): bool => $segment !== ''
+        );
+
+        if ($segments === []) {
+            return '/';
+        }
+
+        return '/' . implode('/', array_map('rawurlencode', $segments));
     }
 }

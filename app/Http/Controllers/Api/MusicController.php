@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\UpyunService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\HttpFoundation\Response;
@@ -53,6 +54,40 @@ class MusicController extends Controller
         });
 
         return response()->json($musicList);
+    }
+
+    /**
+     * 读取与音频同名的 LRC 歌词文件
+     */
+    public function lyrics(string $filename): HttpResponse|JsonResponse
+    {
+        $upyunService = $this->upyunService ?? app(UpyunService::class);
+
+        if (! $upyunService->isConfigured()) {
+            return response()->json(['error' => '又拍云未配置'], 503);
+        }
+
+        $basename = pathinfo($filename, PATHINFO_FILENAME);
+        $lyricsPath = '/music/' . $basename . '.lrc';
+        $result = $upyunService->readFile($lyricsPath);
+
+        if (! ($result['success'] ?? false)) {
+            $status = (int) ($result['status'] ?? 500);
+
+            if ($status === 404) {
+                return response()->json(['error' => '歌词不存在'], 404);
+            }
+
+            return response()->json(
+                ['error' => $result['message'] ?? '歌词读取失败'],
+                $status > 0 ? $status : 500
+            );
+        }
+
+        return response($result['body'] ?? '', 200, [
+            'Content-Type' => 'text/plain; charset=UTF-8',
+            'Cache-Control' => 'public, max-age=300',
+        ]);
     }
 
     /**

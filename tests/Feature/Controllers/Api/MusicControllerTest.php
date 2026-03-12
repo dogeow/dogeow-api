@@ -96,4 +96,53 @@ class MusicControllerTest extends TestCase
 
         $response->assertStatus(500);
     }
+
+    public function test_lyrics_returns_matching_lrc_content_from_upyun()
+    {
+        config()->set('services.upyun.bucket', 'bucket');
+        config()->set('services.upyun.operator', 'operator');
+        config()->set('services.upyun.password', 'password');
+
+        $this->mock(UpyunService::class, function ($mock): void {
+            $mock->shouldReceive('isConfigured')->once()->andReturn(true);
+            $mock->shouldReceive('readFile')
+                ->once()
+                ->with('/music/test file 你好.lrc')
+                ->andReturn([
+                    'success' => true,
+                    'body' => "[00:01.00]第一句歌词\n[00:02.00]第二句歌词",
+                    'content_type' => 'text/plain',
+                ]);
+        });
+
+        $response = $this->get('/api/musics/lyrics/test%20file%20%E4%BD%A0%E5%A5%BD.mp3');
+
+        $response->assertOk()
+            ->assertHeader('Content-Type', 'text/plain; charset=UTF-8')
+            ->assertSee('第一句歌词');
+    }
+
+    public function test_lyrics_returns_404_when_matching_lrc_is_missing()
+    {
+        config()->set('services.upyun.bucket', 'bucket');
+        config()->set('services.upyun.operator', 'operator');
+        config()->set('services.upyun.password', 'password');
+
+        $this->mock(UpyunService::class, function ($mock): void {
+            $mock->shouldReceive('isConfigured')->once()->andReturn(true);
+            $mock->shouldReceive('readFile')
+                ->once()
+                ->with('/music/missing.lrc')
+                ->andReturn([
+                    'success' => false,
+                    'status' => 404,
+                    'message' => 'not found',
+                ]);
+        });
+
+        $response = $this->get('/api/musics/lyrics/missing.mp3');
+
+        $response->assertNotFound()
+            ->assertJson(['error' => '歌词不存在']);
+    }
 }
