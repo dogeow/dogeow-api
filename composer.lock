@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "85dfca6196b438ab98670ee7cde82092",
+    "content-hash": "e58aaacd6f255069cd46b0404874b604",
     "packages": [
         {
             "name": "brick/math",
@@ -587,18 +587,25 @@
         {
             "name": "dogeow/php-helpers",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:dogeow/php-helpers.git",
+                "reference": "23eec77e5ed04056bb6cab375a2c417ec43c54b5"
+            },
             "dist": {
-                "type": "path",
-                "url": "../php-helpers",
-                "reference": "ee0b48d3d3ba7f6eaab8b1a7dcec4fda3386920b"
+                "type": "zip",
+                "url": "https://api.github.com/repos/dogeow/php-helpers/zipball/23eec77e5ed04056bb6cab375a2c417ec43c54b5",
+                "reference": "23eec77e5ed04056bb6cab375a2c417ec43c54b5",
+                "shasum": ""
             },
             "require": {
                 "ext-bcmath": "*",
-                "php": ">=7.4"
+                "php": ">=8.0"
             },
             "require-dev": {
                 "phpunit/phpunit": "^9.5"
             },
+            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -619,10 +626,11 @@
                     "email": "lky216@gmail.com"
                 }
             ],
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "source": "https://github.com/dogeow/php-helpers/tree/main",
+                "issues": "https://github.com/dogeow/php-helpers/issues"
+            },
+            "time": "2026-03-10T10:47:21+00:00"
         },
         {
             "name": "dragonmantank/cron-expression",

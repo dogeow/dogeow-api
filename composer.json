@@ -42,11 +42,8 @@
     },
     "repositories": [
         {
-            "type": "path",
-            "url": "../php-helpers",
-            "options": {
-                "symlink": true
-            }
+            "type": "vcs",
+            "url": "https://github.com/dogeow/php-helpers.git"
         }
     ],
     "autoload": {
