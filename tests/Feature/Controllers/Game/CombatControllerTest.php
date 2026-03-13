@@ -53,7 +53,7 @@ class CombatControllerTest extends TestCase
     {
         Bus::fake();
         Redis::shouldReceive('get')->once()->andReturn(null);
-        Redis::shouldReceive('set')->once()->andReturn(true);
+        Redis::shouldReceive('setex')->once()->andReturn(true);
 
         $user = User::factory()->create();
         $character = $this->createCharacter($user, ['current_map_id' => 1, 'is_fighting' => false]);

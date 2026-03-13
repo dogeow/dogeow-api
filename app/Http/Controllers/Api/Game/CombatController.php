@@ -82,7 +82,7 @@ class CombatController extends Controller
             $skillIds = $request->input('skill_ids') ?? [];
             $skillIds = is_array($skillIds) ? array_map('intval', array_values($skillIds)) : [];
 
-            Redis::set($key, json_encode(['skill_ids' => $skillIds]));
+            Redis::setex($key, AutoCombatRoundJob::ttl(), json_encode(['skill_ids' => $skillIds]));
 
             AutoCombatRoundJob::dispatch($character->id, $skillIds);
 
@@ -177,10 +177,14 @@ class CombatController extends Controller
             }
 
             $data = json_decode($payload, true);
+            if (! is_array($data)) {
+                $data = [];
+            }
+
             $data['skill_ids'] = $skillIds;
             $data['cancelled_skill_ids'] = [];
 
-            Redis::set($key, json_encode($data));
+            Redis::setex($key, AutoCombatRoundJob::ttl(), json_encode($data));
 
             return $this->success(['skill_ids' => $data['skill_ids']], '技能配置已更新');
         } catch (Throwable $e) {

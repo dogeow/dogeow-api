@@ -175,9 +175,13 @@ class CombatControllerUnitTest extends TestCase
         $request = $this->makeRequest($user, $character, ['skill_ids' => ['2', '7']]);
 
         Redis::shouldReceive('get')->once()->with(AutoCombatRoundJob::redisKey($character->id))->andReturn(null);
-        Redis::shouldReceive('set')
+        Redis::shouldReceive('setex')
             ->once()
-            ->with(AutoCombatRoundJob::redisKey($character->id), json_encode(['skill_ids' => [2, 7]]))
+            ->with(
+                AutoCombatRoundJob::redisKey($character->id),
+                AutoCombatRoundJob::ttl(),
+                json_encode(['skill_ids' => [2, 7]])
+            )
             ->andReturnTrue();
 
         $response = $this->controller->start($request);
@@ -388,7 +392,34 @@ class CombatControllerUnitTest extends TestCase
         ]);
 
         Redis::shouldReceive('get')->once()->with($key)->andReturn($existingPayload);
-        Redis::shouldReceive('set')->once()->with($key, $expectedPayload)->andReturnTrue();
+        Redis::shouldReceive('setex')
+            ->once()
+            ->with($key, AutoCombatRoundJob::ttl(), $expectedPayload)
+            ->andReturnTrue();
+
+        $response = $this->controller->updateSkills($this->makeRequest($user, $character, ['skill_ids' => ['5', '11']]));
+        $data = json_decode($response->getContent(), true);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('技能配置已更新', $data['message']);
+        $this->assertSame([5, 11], $data['data']['skill_ids']);
+    }
+
+    public function test_update_skills_handles_invalid_redis_payload(): void
+    {
+        $user = User::factory()->create();
+        $character = $this->createCharacter($user);
+        $key = AutoCombatRoundJob::redisKey($character->id);
+        $expectedPayload = json_encode([
+            'skill_ids' => [5, 11],
+            'cancelled_skill_ids' => [],
+        ]);
+
+        Redis::shouldReceive('get')->once()->with($key)->andReturn('invalid-json');
+        Redis::shouldReceive('setex')
+            ->once()
+            ->with($key, AutoCombatRoundJob::ttl(), $expectedPayload)
+            ->andReturnTrue();
 
         $response = $this->controller->updateSkills($this->makeRequest($user, $character, ['skill_ids' => ['5', '11']]));
         $data = json_decode($response->getContent(), true);

@@ -143,6 +143,7 @@ class AutoCombatRoundJobTest extends TestCase
 
         $lock = \Mockery::mock();
         $lock->shouldReceive('get')->once()->andReturn(true);
+        $lock->shouldReceive('release')->once();
 
         Cache::shouldReceive('lock')
             ->with('rpg:combat:lock:1', 35)
@@ -264,8 +265,8 @@ class AutoCombatRoundJobTest extends TestCase
         Redis::shouldReceive('get')
             ->with($key)
             ->andReturn($initialPayload, $initialPayload, $updatedPayload);
-        Redis::shouldReceive('set')
-            ->with($key, $updatedPayload)
+        Redis::shouldReceive('setex')
+            ->with($key, AutoCombatRoundJob::ttl(), $updatedPayload)
             ->once();
         Redis::shouldReceive('del')->with($key)->once();
 
@@ -503,6 +504,35 @@ class AutoCombatRoundJobTest extends TestCase
         $job->handle($combatService);
     }
 
+    public function test_handle_handles_invalid_json_payload(): void
+    {
+        $map = $this->createMap();
+        $character = $this->createCharacter(['current_map_id' => $map->id]);
+
+        $key = 'rpg:combat:auto:' . $character->id;
+        $payload = 'invalid-json';
+
+        Redis::shouldReceive('get')->with($key)->andReturn($payload);
+        Redis::shouldReceive('del')->with($key)->once();
+        Redis::shouldNotReceive('set');
+
+        $lock = \Mockery::mock();
+        $lock->shouldReceive('get')->andReturn(true);
+        $lock->shouldReceive('release')->once();
+
+        Cache::shouldReceive('lock')->andReturn($lock);
+
+        $combatService = $this->mock(GameCombatService::class);
+        $combatService->shouldReceive('shouldRefreshMonsters')->andReturn(false);
+        $combatService->shouldReceive('executeRound')
+            ->with(\Mockery::type(GameCharacter::class), [])
+            ->once()
+            ->andReturn(['defeat' => true]);
+
+        $job = new AutoCombatRoundJob($character->id);
+        $job->handle($combatService);
+    }
+
     public function test_handle_does_not_broadcast_monsters_appear_when_map_is_null(): void
     {
         $character = $this->createCharacter(['current_map_id' => null]);
@@ -544,6 +574,10 @@ class AutoCombatRoundJobTest extends TestCase
             $payload,
             $payload
         );
+        Redis::shouldReceive('setex')
+            ->once()
+            ->with($key, AutoCombatRoundJob::ttl(), $payload)
+            ->andReturnTrue();
 
         $lock = \Mockery::mock();
         $lock->shouldReceive('get')->andReturn(true);
@@ -563,6 +597,11 @@ class AutoCombatRoundJobTest extends TestCase
         Bus::assertDispatched(AutoCombatRoundJob::class, function (AutoCombatRoundJob $dispatched) use ($character) {
             return $dispatched->characterId === $character->id;
         });
+    }
+
+    public function test_ttl_returns_expected_seconds(): void
+    {
+        $this->assertSame(900, AutoCombatRoundJob::ttl());
     }
 
     public function test_handle_uses_previous_exception_payload_for_current_hp(): void
