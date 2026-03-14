@@ -119,6 +119,113 @@ class CombatRoundProcessorTest extends TestCase
         $this->assertIsArray($result['skills_used_this_round']);
     }
 
+    public function test_process_one_round_with_explicit_empty_skill_list_disables_skills(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'resolveRoundSkill');
+        $method->setAccessible(true);
+
+        $skill = (object) [
+            'id' => 101,
+            'name' => 'Fireball',
+            'icon' => 'flame',
+            'effect_key' => 'fireball',
+            'target_type' => 'single',
+            'mana_cost' => 10,
+            'damage' => 120,
+            'cooldown' => 0,
+        ];
+
+        $charSkill = (object) ['skill' => $skill];
+
+        $skillsRelation = \Mockery::mock(HasMany::class);
+        $skillsRelation->shouldReceive('whereHas')->once()->andReturnSelf();
+        $skillsRelation->shouldReceive('with')->once()->andReturnSelf();
+        $skillsRelation->shouldReceive('get')->once()->andReturn(collect([$charSkill]));
+
+        $character = \Mockery::mock(GameCharacter::class)->makePartial();
+        $character->combat_monsters = [[
+            'id' => 1,
+            'name' => 'Goblin',
+            'hp' => 100,
+            'max_hp' => 100,
+            'position' => 1,
+        ]];
+        $character->shouldReceive('skills')->once()->andReturn($skillsRelation);
+        $character->shouldReceive('getCombatStats')->once()->andReturn([
+            'attack' => 50,
+            'defense' => 10,
+            'crit_rate' => 0.1,
+            'crit_damage' => 1.5,
+        ]);
+
+        $result = $method->invoke(
+            $this->processor,
+            $character,
+            [],
+            1,
+            100,
+            []
+        );
+
+        $this->assertSame([], $result['skills_used_this_round']);
+        $this->assertSame(100, $result['mana']);
+        $this->assertSame(0, $result['skill_damage']);
+    }
+
+    public function test_process_one_round_with_null_skill_list_keeps_default_skill_selection(): void
+    {
+        $method = new ReflectionMethod($this->processor, 'resolveRoundSkill');
+        $method->setAccessible(true);
+
+        $skill = (object) [
+            'id' => 101,
+            'name' => 'Fireball',
+            'icon' => 'flame',
+            'effect_key' => 'fireball',
+            'target_type' => 'single',
+            'mana_cost' => 10,
+            'damage' => 120,
+            'cooldown' => 0,
+        ];
+
+        $charSkill = (object) ['skill' => $skill];
+
+        $skillsRelation = \Mockery::mock(HasMany::class);
+        $skillsRelation->shouldReceive('whereHas')->once()->andReturnSelf();
+        $skillsRelation->shouldReceive('with')->once()->andReturnSelf();
+        $skillsRelation->shouldReceive('get')->once()->andReturn(collect([$charSkill]));
+
+        $character = \Mockery::mock(GameCharacter::class)->makePartial();
+        $character->combat_monsters = [[
+            'id' => 1,
+            'name' => 'Goblin',
+            'hp' => 100,
+            'max_hp' => 100,
+            'position' => 1,
+        ]];
+        $character->shouldReceive('skills')->once()->andReturn($skillsRelation);
+        $character->shouldReceive('getCombatStats')->once()->andReturn([
+            'attack' => 50,
+            'defense' => 10,
+            'crit_rate' => 0.1,
+            'crit_damage' => 1.5,
+        ]);
+
+        $result = $method->invoke(
+            $this->processor,
+            $character,
+            null,
+            1,
+            100,
+            []
+        );
+
+        $this->assertCount(1, $result['skills_used_this_round']);
+        $this->assertSame(101, $result['skills_used_this_round'][0]['skill_id']);
+        $this->assertSame(90, $result['mana']);
+        $this->assertSame(120, $result['skill_damage']);
+    }
+
     public function test_process_one_round_returns_experience_and_copper(): void
     {
         $character = $this->createTestCharacter();

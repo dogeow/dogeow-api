@@ -29,7 +29,7 @@ class AutoCombatRoundJob implements ShouldQueue
 
     public function __construct(
         public int $characterId,
-        public array $skillIds = []
+        public ?array $skillIds = null
     ) {
         $this->onQueue('default');
     }
@@ -66,15 +66,17 @@ class AutoCombatRoundJob implements ShouldQueue
             }
             $latestPayloadData = $data;
 
-            $skillIds = $data['skill_ids'] ?? [];
-            if (! is_array($skillIds)) {
+            $skillIds = $data['skill_ids'] ?? null;
+            if ($skillIds !== null && ! is_array($skillIds)) {
                 $skillIds = [];
             }
-            $skillIds = array_values(array_map('intval', $skillIds));
+            if (is_array($skillIds)) {
+                $skillIds = array_values(array_map('intval', $skillIds));
+            }
 
             // 检查是否有被取消的技能，如果有则从列表中移除
             $cancelledSkillIds = $data['cancelled_skill_ids'] ?? [];
-            if (is_array($cancelledSkillIds) && ! empty($cancelledSkillIds)) {
+            if (is_array($skillIds) && is_array($cancelledSkillIds) && ! empty($cancelledSkillIds)) {
                 $cancelledSkillIds = array_values(array_map('intval', $cancelledSkillIds));
                 $skillIds = array_values(array_diff($skillIds, $cancelledSkillIds));
                 $data['skill_ids'] = $skillIds;
@@ -106,6 +108,8 @@ class AutoCombatRoundJob implements ShouldQueue
                     $freshSkillIds = $freshData['skill_ids'] ?? [];
                     if (is_array($freshSkillIds)) {
                         $skillIds = array_values(array_map('intval', $freshSkillIds));
+                    } elseif ($freshSkillIds === null) {
+                        $skillIds = null;
                     }
                 }
             }

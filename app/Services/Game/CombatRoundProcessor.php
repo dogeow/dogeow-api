@@ -21,7 +21,7 @@ class CombatRoundProcessor
         int $currentRound,
         array $skillCooldowns,
         array $skillsUsedAggregated,
-        array $requestedSkillIds = []
+        ?array $requestedSkillIds = null
     ): array {
         $character->initializeHpMana();
 
@@ -172,7 +172,7 @@ class CombatRoundProcessor
      */
     private function resolveRoundSkill(
         GameCharacter $character,
-        array $requestedSkillIds,
+        ?array $requestedSkillIds,
         int $currentRound,
         int $currentMana,
         array $skillCooldowns
@@ -188,7 +188,7 @@ class CombatRoundProcessor
             ->get();
 
         // 若前端指定了自动施法技能列表，只从该列表中选技能（否则会从全部主动技能里智能选择）
-        if ($requestedSkillIds !== []) {
+        if ($requestedSkillIds !== null) {
             $allowedIds = array_flip($requestedSkillIds);
             $activeSkills = $activeSkills->filter(fn ($cs) => $cs->skill && isset($allowedIds[$cs->skill->id]));
         }

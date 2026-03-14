@@ -27,6 +27,17 @@ class CombatController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
+            $autoCombatRunning = Redis::get(AutoCombatRoundJob::redisKey($character->id)) !== null;
+
+            // 自动战斗状态以 Redis key 为准，数据库里的 is_fighting 只作为持久化镜像。
+            // 双向纠正可以避免：
+            // 1. DB=true 但 Redis key 已失效，前端误以为正在战斗
+            // 2. Redis key/job 仍在运行，但 DB=false，前端误以为没有战斗
+            if ($character->is_fighting !== $autoCombatRunning) {
+                $character->update(['is_fighting' => $autoCombatRunning]);
+                $character->refresh();
+            }
+
             $result = $this->combatService->getCombatStatus($character);
 
             return $this->success($result);
@@ -79,8 +90,11 @@ class CombatController extends Controller
                 return $this->error('自动战斗已在运行中，请先停止当前战斗');
             }
 
-            $skillIds = $request->input('skill_ids') ?? [];
-            $skillIds = is_array($skillIds) ? array_map('intval', array_values($skillIds)) : [];
+            $skillIds = null;
+            if ($request->exists('skill_ids')) {
+                $rawSkillIds = $request->input('skill_ids');
+                $skillIds = is_array($rawSkillIds) ? array_map('intval', array_values($rawSkillIds)) : [];
+            }
 
             Redis::setex($key, AutoCombatRoundJob::ttl(), json_encode(['skill_ids' => $skillIds]));
 

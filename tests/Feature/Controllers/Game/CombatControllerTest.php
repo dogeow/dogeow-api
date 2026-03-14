@@ -42,6 +42,10 @@ class CombatControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $character = $this->createCharacter($user);
+        Redis::shouldReceive('get')
+            ->once()
+            ->with(AutoCombatRoundJob::redisKey($character->id))
+            ->andReturn(null);
 
         $response = $this->actingAs($user)
             ->getJson('/api/rpg/combat/status?character_id=' . $character->id);

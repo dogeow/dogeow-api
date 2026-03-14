@@ -45,6 +45,7 @@ class CombatControllerUnitTest extends TestCase
         $character = $this->createCharacter($user);
         $payload = ['is_fighting' => false, 'monster' => null];
 
+        Redis::shouldReceive('get')->once()->with(AutoCombatRoundJob::redisKey($character->id))->andReturn(null);
         $this->combatService->shouldReceive('getCombatStatus')->once()->with($this->sameCharacter($character))->andReturn($payload);
 
         $response = $this->controller->status($this->makeRequest($user, $character));
@@ -54,11 +55,48 @@ class CombatControllerUnitTest extends TestCase
         $this->assertSame(false, $data['data']['is_fighting']);
     }
 
+    public function test_status_resets_stale_fighting_flag_when_auto_combat_key_is_missing(): void
+    {
+        $user = User::factory()->create();
+        $character = $this->createCharacter($user, ['is_fighting' => true]);
+        $payload = ['is_fighting' => false, 'monster' => null];
+
+        Redis::shouldReceive('get')->once()->with(AutoCombatRoundJob::redisKey($character->id))->andReturn(null);
+        $this->combatService->shouldReceive('getCombatStatus')->once()->with($this->sameCharacter($character))->andReturn($payload);
+
+        $response = $this->controller->status($this->makeRequest($user, $character));
+        $data = json_decode($response->getContent(), true);
+        $character->refresh();
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertFalse((bool) $character->is_fighting);
+        $this->assertSame(false, $data['data']['is_fighting']);
+    }
+
+    public function test_status_restores_fighting_flag_when_auto_combat_key_exists(): void
+    {
+        $user = User::factory()->create();
+        $character = $this->createCharacter($user, ['is_fighting' => false]);
+        $payload = ['is_fighting' => true, 'monster' => null];
+
+        Redis::shouldReceive('get')->once()->with(AutoCombatRoundJob::redisKey($character->id))->andReturn('{"skill_ids":[1]}');
+        $this->combatService->shouldReceive('getCombatStatus')->once()->with($this->sameCharacter($character))->andReturn($payload);
+
+        $response = $this->controller->status($this->makeRequest($user, $character));
+        $data = json_decode($response->getContent(), true);
+        $character->refresh();
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertTrue((bool) $character->is_fighting);
+        $this->assertSame(true, $data['data']['is_fighting']);
+    }
+
     public function test_status_returns_error_when_service_throws(): void
     {
         $user = User::factory()->create();
         $character = $this->createCharacter($user);
 
+        Redis::shouldReceive('get')->once()->with(AutoCombatRoundJob::redisKey($character->id))->andReturn(null);
         $this->combatService->shouldReceive('getCombatStatus')->once()->with($this->sameCharacter($character))->andThrow(new \RuntimeException('status boom'));
 
         $response = $this->controller->status($this->makeRequest($user, $character));
@@ -191,6 +229,31 @@ class CombatControllerUnitTest extends TestCase
         $this->assertSame('自动战斗已开始，结果将通过 WebSocket 推送', $data['data']['message']);
         Bus::assertDispatched(AutoCombatRoundJob::class, function (AutoCombatRoundJob $job) use ($character): bool {
             return $job->characterId === $character->id && $job->skillIds === [2, 7];
+        });
+    }
+
+    public function test_start_persists_null_skill_ids_when_request_does_not_include_them(): void
+    {
+        Bus::fake();
+
+        $user = User::factory()->create();
+        $character = $this->createCharacter($user);
+
+        Redis::shouldReceive('get')->once()->with(AutoCombatRoundJob::redisKey($character->id))->andReturn(null);
+        Redis::shouldReceive('setex')
+            ->once()
+            ->with(
+                AutoCombatRoundJob::redisKey($character->id),
+                AutoCombatRoundJob::ttl(),
+                json_encode(['skill_ids' => null])
+            )
+            ->andReturnTrue();
+
+        $response = $this->controller->start($this->makeRequest($user, $character));
+
+        $this->assertSame(200, $response->getStatusCode());
+        Bus::assertDispatched(AutoCombatRoundJob::class, function (AutoCombatRoundJob $job) use ($character): bool {
+            return $job->characterId === $character->id && $job->skillIds === null;
         });
     }
 

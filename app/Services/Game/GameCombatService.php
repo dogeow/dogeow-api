@@ -144,12 +144,12 @@ class GameCombatService
      * 执行一轮战斗（支持多怪物连续战斗）
      *
      * @param  GameCharacter  $character  角色实例
-     * @param  int[]  $skillIds  使用的技能ID数组
+     * @param  int[]|null  $skillIds  使用的技能ID数组；null 表示不限技能，[] 表示禁用所有技能
      *
      * @throws \InvalidArgumentException 地图不存在或没有怪物
      * @throws \RuntimeException 血量不足或战斗结束
      */
-    public function executeRound(GameCharacter $character, array $skillIds = []): array
+    public function executeRound(GameCharacter $character, ?array $skillIds = null): array
     {
         // 检查是否选择了地图
         if (! $character->current_map_id) {
@@ -200,7 +200,9 @@ class GameCombatService
         $currentRound = (int) $character->combat_rounds + 1;
         $skillCooldowns = is_array($character->combat_skill_cooldowns ?? []) ? $character->combat_skill_cooldowns : [];
         $skillsUsedAggregated = is_array($character->combat_skills_used ?? []) ? $character->combat_skills_used : [];
-        $requestedSkillIds = array_map(fn ($v) => (int) $v, array_values($skillIds));
+        $requestedSkillIds = $skillIds === null
+            ? null
+            : array_map(fn ($v) => (int) $v, array_values($skillIds));
 
         // 回合前的药水使用记录（用于日志和响应），默认空数组
         $potionUsedBeforeRound = [];
