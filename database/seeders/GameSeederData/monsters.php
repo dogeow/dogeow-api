@@ -1,6 +1,6 @@
 <?php
 
-return [
+$monsters = [
     [
         'name' => '小野猪',
         'type' => 'normal',
@@ -416,3 +416,60 @@ return [
         'experience_base' => 20000,
     ],
 ];
+
+$assetKeys = [
+    'wild-boar',
+    'wild-wolf',
+    'forest-goblin',
+    'giant-alpha-wolf',
+    'treant-elder',
+    'wild-boar-king',
+    'cave-bat',
+    'cave-spider',
+    'skeleton-soldier',
+    'skeleton-mage',
+    'bone-king',
+    'giant-spider',
+    'small-demon-imp',
+    'fire-elemental',
+    'hell-knight',
+    'hell-demon-king',
+    'fire-demon',
+    'demon-wizard',
+    'abyss-worm',
+    'shadow-ghost',
+    'void-walker',
+    'abyss-lord',
+    'angel-guardian',
+    'seraph',
+    'archangel',
+    'fallen-angel',
+    'archangel-chief',
+    'temple-knight',
+    'divine-servant',
+    'divine-messenger',
+    'divine-general',
+    'divine-priest',
+    'god-king-avatar',
+    'judgment-angel',
+    'eternal-guardian',
+    'time-space-rift-creature',
+    'eternal-warrior',
+    'eternal-mage',
+    'eternal-king',
+    'eternal-knight',
+    'chaos-sprite',
+    'void-lord',
+    'chaos-warrior',
+    'chaos-demon-god',
+    'chaos-origin',
+    'chaos-king',
+];
+
+return array_map(
+    fn (array $monster, int $index) => array_merge($monster, [
+        'asset_key' => $assetKeys[$index],
+    ]),
+    $monsters,
+    array_keys($monsters)
+);

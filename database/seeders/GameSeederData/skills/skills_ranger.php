@@ -29,7 +29,7 @@ return [
     ],
     [
         'name' => '疾风步',
-        'effect_key' => 'dash',
+        'effect_key' => 'gale-step',
         'type' => 'active',
         'class_restriction' => 'ranger',
         'mana_cost' => 30,
@@ -40,6 +40,7 @@ return [
     ],
     [
         'name' => '鹰眼',
+        'effect_key' => 'eagle-eye',
         'type' => 'passive',
         'class_restriction' => 'ranger',
         'mana_cost' => 0,
@@ -80,6 +81,7 @@ return [
     ],
     [
         'name' => '致命瞄准',
+        'effect_key' => 'deadly-aim',
         'type' => 'passive',
         'class_restriction' => 'ranger',
         'mana_cost' => 0,

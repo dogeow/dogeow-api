@@ -27,7 +27,7 @@ return [
     [
         'name' => '烈焰风暴',
         'effect_key' => 'meteor-storm',
-        'prerequisite_effect_key' => 'burn',
+        'prerequisite_effect_key' => 'fireball',
         'type' => 'active',
         'class_restriction' => 'mage',
         'branch' => 'fire',
@@ -45,7 +45,7 @@ return [
     ],
     [
         'name' => '冰霜新星',
-        'effect_key' => 'ice-arrow',
+        'effect_key' => 'frost-nova',
         'type' => 'active',
         'class_restriction' => 'mage',
         'mana_cost' => 20,
@@ -75,7 +75,7 @@ return [
     ],
     [
         'name' => '魔力涌动',
-        'effect_key' => 'buff',
+        'effect_key' => 'mana-surge',
         'type' => 'passive',
         'class_restriction' => 'mage',
         'mana_cost' => 0,
@@ -111,7 +111,7 @@ return [
     ],
     [
         'name' => '雷霆万钧',
-        'effect_key' => 'lightning',
+        'effect_key' => 'thunder-wrath',
         'type' => 'active',
         'class_restriction' => 'mage',
         'mana_cost' => 60,
@@ -137,7 +137,7 @@ return [
     ],
     [
         'name' => '奥术智慧',
-        'effect_key' => 'buff',
+        'effect_key' => 'arcane-wisdom',
         'type' => 'passive',
         'class_restriction' => 'mage',
         'mana_cost' => 0,

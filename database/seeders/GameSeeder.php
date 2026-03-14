@@ -28,8 +28,11 @@ class GameSeeder extends Seeder
         $items = require __DIR__ . '/GameSeederData/items.php';
 
         foreach ($items as $item) {
+            $assetKey = $item['asset_key'] ?? ('item_' . $item['id']);
+            unset($item['asset_key']);
+
             GameItemDefinition::create(array_merge($item, [
-                'icon' => 'item_' . $item['id'] . '.png',
+                'icon' => $assetKey . '.png',
                 'is_active' => true,
             ]));
         }
@@ -120,7 +123,9 @@ class GameSeeder extends Seeder
                     'description' => $skill['description'],
                     'effects' => $skill['effects'] ?? null,
                     'target_type' => $skill['target_type'] ?? 'single',
-                    'icon' => 'skill_' . strtolower(str_replace(' ', '_', $skill['name'])) . '.png',
+                    'icon' => ! empty($skill['effect_key'])
+                        ? $skill['effect_key'] . '.png'
+                        : 'skill_' . strtolower(str_replace(' ', '_', $skill['name'])) . '.png',
                     'is_active' => true,
                     'max_level' => 10,
                     'base_damage' => $baseDamage,
@@ -138,8 +143,11 @@ class GameSeeder extends Seeder
         $monsters = require __DIR__ . '/GameSeederData/monsters.php';
 
         foreach ($monsters as $monster) {
+            $assetKey = $monster['asset_key'] ?? ('monster_' . strtolower(str_replace(' ', '_', $monster['name'])));
+            unset($monster['asset_key']);
+
             GameMonsterDefinition::create(array_merge($monster, [
-                'icon' => 'monster_' . strtolower(str_replace(' ', '_', $monster['name'])) . '.png',
+                'icon' => $assetKey . '.png',
                 'is_active' => true,
             ]));
         }
@@ -158,6 +166,8 @@ class GameSeeder extends Seeder
             ->all();
 
         foreach ($maps as $index => $map) {
+            $assetKey = $map['asset_key'] ?? ('map_' . ($index + 1));
+            unset($map['asset_key']);
             $rawIds = $map['monster_ids'] ?? [];
             $resolvedIds = array_values(array_filter(array_map(
                 fn ($ord) => $monsterIdsByOrder[$ord - 1] ?? null,
@@ -174,7 +184,7 @@ class GameSeeder extends Seeder
                 ],
                 array_merge($map, [
                     'monster_ids' => $resolvedIds,
-                    'background' => 'map_' . ($index + 1) . '.jpg',
+                    'background' => $assetKey . '.jpg',
                     'is_active' => true,
                 ])
             );

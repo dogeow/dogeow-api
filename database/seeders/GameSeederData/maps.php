@@ -1,6 +1,6 @@
 <?php
 
-return [
+$maps = [
     // 第一幕 - 森林
     ['name' => '新手营地', 'act' => 1, 'monster_ids' => [1, 2], 'description' => '安全的训练场所'],
     ['name' => '幽暗森林', 'act' => 1, 'monster_ids' => [2, 3], 'description' => '野狼出没的森林'],
@@ -58,3 +58,55 @@ return [
     ['name' => '混沌源点', 'act' => 8, 'monster_ids' => [44, 45], 'description' => '混沌的源头'],
     ['name' => '混沌王座', 'act' => 8, 'monster_ids' => [45, 46], 'description' => '混沌之王的最终王座'],
 ];
+
+$assetKeys = [
+    'safe-training-camp',
+    'dark-enchanted-forest',
+    'goblin-cave-lair',
+    'wild-boar-plains',
+    'treant-sacred-grove',
+    'dark-cave-entrance',
+    'spider-cave',
+    'skeleton-graveyard',
+    'bone-hall',
+    'hell-gate',
+    'burning-fire-plains',
+    'fire-demon-cave',
+    'demon-fortress',
+    'demon-king-palace',
+    'abyss-entrance',
+    'dark-maze',
+    'void-rift',
+    'abyss-throne',
+    'heaven-gate',
+    'angel-temple',
+    'hall-of-glory',
+    'fallen-angel-realm',
+    'archangel-temple',
+    'god-realm-entrance',
+    'god-servant-hall',
+    'god-priest-temple',
+    'god-general-palace',
+    'god-king-temple',
+    'judgment-court',
+    'eternal-gate',
+    'time-space-rift',
+    'eternal-battlefield',
+    'eternal-mage-tower',
+    'eternal-throne',
+    'eternal-sanctuary',
+    'chaos-gate',
+    'void-edge',
+    'chaos-rift',
+    'chaos-demon-hall',
+    'chaos-origin-point',
+    'chaos-king-throne',
+];
+
+return array_map(
+    fn (array $map, int $index) => array_merge($map, [
+        'asset_key' => $assetKeys[$index],
+    ]),
+    $maps,
+    array_keys($maps)
+);

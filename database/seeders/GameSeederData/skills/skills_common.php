@@ -17,6 +17,7 @@ return [
     ],
     [
         'name' => '力量强化',
+        'effect_key' => 'strength-boost',
         'type' => 'passive',
         'class_restriction' => 'all',
         'mana_cost' => 0,
@@ -29,6 +30,7 @@ return [
     ],
     [
         'name' => '敏捷强化',
+        'effect_key' => 'agility-boost',
         'type' => 'passive',
         'class_restriction' => 'all',
         'mana_cost' => 0,
@@ -41,6 +43,7 @@ return [
     ],
     [
         'name' => '体力强化',
+        'effect_key' => 'vitality-boost',
         'type' => 'passive',
         'class_restriction' => 'all',
         'mana_cost' => 0,
@@ -53,6 +56,7 @@ return [
     ],
     [
         'name' => '能量强化',
+        'effect_key' => 'energy-boost',
         'type' => 'passive',
         'class_restriction' => 'all',
         'mana_cost' => 0,
@@ -65,6 +69,7 @@ return [
     ],
     [
         'name' => '吸血',
+        'effect_key' => 'life-steal',
         'type' => 'passive',
         'class_restriction' => 'all',
         'mana_cost' => 0,
@@ -77,6 +82,7 @@ return [
     ],
     [
         'name' => '回蓝',
+        'effect_key' => 'mana-regen',
         'type' => 'passive',
         'class_restriction' => 'all',
         'mana_cost' => 0,
@@ -86,5 +92,31 @@ return [
             'mana_regen' => 2,
         ],
         'description' => '被动回复法力值',
+    ],
+    [
+        'name' => 'HP强化',
+        'effect_key' => 'hp-boost',
+        'type' => 'passive',
+        'class_restriction' => 'all',
+        'mana_cost' => 0,
+        'cooldown' => 0,
+        'skill_points_cost' => 1,
+        'effects' => [
+            'max_hp_bonus' => 50,
+        ],
+        'description' => '被动提升最大生命值',
+    ],
+    [
+        'name' => 'MP强化',
+        'effect_key' => 'mp-boost',
+        'type' => 'passive',
+        'class_restriction' => 'all',
+        'mana_cost' => 0,
+        'cooldown' => 0,
+        'skill_points_cost' => 1,
+        'effects' => [
+            'max_mana_bonus' => 30,
+        ],
+        'description' => '被动提升最大法力值',
     ],
 ];

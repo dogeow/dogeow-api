@@ -2,6 +2,7 @@
 
 namespace App\Models\Game;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -16,6 +17,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class GameSkillDefinition extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'name',
         'description',
@@ -37,6 +40,7 @@ class GameSkillDefinition extends Model
         'branch',
         'tier',
         'prerequisite_skill_id',
+        'prerequisite_effect_key',
     ];
 
     protected function casts(): array

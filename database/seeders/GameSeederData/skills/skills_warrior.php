@@ -15,7 +15,7 @@ return [
     ],
     [
         'name' => '战吼',
-        'effect_key' => 'buff',
+        'effect_key' => 'battle-roar',
         'type' => 'active',
         'class_restriction' => 'warrior',
         'mana_cost' => 15,
@@ -29,6 +29,7 @@ return [
     ],
     [
         'name' => '铁壁',
+        'effect_key' => 'iron-wall',
         'type' => 'passive',
         'class_restriction' => 'warrior',
         'mana_cost' => 0,
@@ -79,6 +80,7 @@ return [
     ],
     [
         'name' => '钢铁之躯',
+        'effect_key' => 'iron-body',
         'type' => 'passive',
         'class_restriction' => 'warrior',
         'mana_cost' => 0,
