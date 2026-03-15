@@ -167,6 +167,7 @@ class GameMonsterService
                     ? ($existingByPosition[$slot]['instance_id'] ?? uniqid('m-', true))
                     : uniqid('m-', true),
                 'name' => $baseMonster->name,
+                'icon' => $baseMonster->icon,
                 'type' => $baseMonster->type,
                 'level' => $level,
                 'hp' => $hp,
@@ -315,6 +316,7 @@ class GameMonsterService
                 'id' => $baseMonster->id,
                 'instance_id' => uniqid('m-', true), // 唯一实例ID，用于前端检测新怪物
                 'name' => $baseMonster->name,
+                'icon' => $baseMonster->icon,
                 'type' => $baseMonster->type,
                 'level' => $level,
                 'hp' => $maxHp,
@@ -355,11 +357,25 @@ class GameMonsterService
     public function formatMonstersForResponse(GameCharacter $character): array
     {
         $currentMonsters = $character->combat_monsters ?? [];
+        $monsterIds = [];
+        foreach ($currentMonsters as $monster) {
+            if (is_array($monster) && isset($monster['id']) && is_numeric($monster['id'])) {
+                $monsterIds[] = (int) $monster['id'];
+            }
+        }
+        $iconsById = GameMonsterDefinition::query()
+            ->whereIn('id', array_values(array_unique($monsterIds)))
+            ->pluck('icon', 'id')
+            ->all();
         $fixedMonsters = array_fill(0, 5, null);
         for ($idx = 0; $idx < 5; $idx++) {
             $m = $currentMonsters[$idx] ?? null;
             if (is_array($m)) {
                 $m['position'] = $idx;
+                $monsterId = isset($m['id']) && is_numeric($m['id']) ? (int) $m['id'] : null;
+                if (($m['icon'] ?? null) === null && $monsterId !== null) {
+                    $m['icon'] = $iconsById[$monsterId] ?? null;
+                }
                 $fixedMonsters[$idx] = $m;
             }
         }
@@ -373,7 +389,7 @@ class GameMonsterService
             }
         }
         if (! $firstAliveMonster) {
-            $firstAliveMonster = ['name' => '怪物', 'type' => 'normal', 'level' => 1];
+            $firstAliveMonster = ['name' => '怪物', 'type' => 'normal', 'level' => 1, 'icon' => null];
         }
 
         return [

@@ -98,6 +98,7 @@ class GameCombatService
                 $result['current_combat_monster'] = [
                     'id' => $firstAliveOrAny['id'],
                     'name' => $firstAliveOrAny['name'] ?? '',
+                    'icon' => $firstAliveOrAny['icon'] ?? null,
                     'type' => $firstAliveOrAny['type'] ?? 'normal',
                     'level' => (int) ($firstAliveOrAny['level'] ?? 1),
                     'hp' => (int) ($firstAliveOrAny['hp'] ?? 0),
@@ -109,6 +110,7 @@ class GameCombatService
                     $result['current_combat_monster'] = [
                         'id' => $def->id,
                         'name' => $def->name,
+                        'icon' => $def->icon,
                         'type' => $def->type ?? 'normal',
                         'level' => (int) $def->level,
                         'hp' => (int) ($character->combat_monster_hp ?? 0),
@@ -283,6 +285,7 @@ class GameCombatService
             'monsters' => $fixedMonsters,
             'monster' => [
                 'name' => $firstAliveMonster['name'] ?? $monster->name,
+                'icon' => $firstAliveMonster['icon'] ?? $monster->icon,
                 'type' => $firstAliveMonster['type'] ?? $monster->type,
                 'level' => $firstAliveMonster['level'] ?? $monsterLevel,
                 'hp' => max(0, $roundResult['new_monster_hp'] ?? $monsterHp),

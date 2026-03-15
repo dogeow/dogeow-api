@@ -5,6 +5,7 @@ namespace App\Console\Commands\Game;
 use App\Models\Game\GameItemDefinition;
 use App\Models\Game\GameMapDefinition;
 use App\Models\Game\GameMonsterDefinition;
+use App\Models\Game\GameSkillDefinition;
 use Illuminate\Console\Command;
 
 class SyncRpgAssetNamesCommand extends Command
@@ -25,6 +26,7 @@ class SyncRpgAssetNamesCommand extends Command
         $itemSummary = $this->syncItemDefinitions($dryRun);
         $monsterSummary = $this->syncMonsterDefinitions($dryRun);
         $mapSummary = $this->syncMapDefinitions($dryRun);
+        $skillSummary = $this->syncSkillDefinitions($dryRun);
 
         $this->newLine();
         $this->table(
@@ -33,6 +35,7 @@ class SyncRpgAssetNamesCommand extends Command
                 ['game_item_definitions', $itemSummary['matched'], $itemSummary['updated'], $itemSummary['missing']],
                 ['game_monster_definitions', $monsterSummary['matched'], $monsterSummary['updated'], $monsterSummary['missing']],
                 ['game_map_definitions', $mapSummary['matched'], $mapSummary['updated'], $mapSummary['missing']],
+                ['game_skill_definitions', $skillSummary['matched'], $skillSummary['updated'], $skillSummary['missing']],
             ]
         );
 
@@ -197,6 +200,79 @@ class SyncRpgAssetNamesCommand extends Command
             'matched' => $matched,
             'updated' => $updated,
             'missing' => max(GameMapDefinition::query()->count() - $matched, 0),
+        ];
+    }
+
+    /**
+     * @return array{matched:int,updated:int,missing:int}
+     */
+    private function syncSkillDefinitions(bool $dryRun): array
+    {
+        $skillsDir = database_path('seeders/GameSeederData/skills');
+        $skillFiles = [
+            'skills_warrior.php',
+            'skills_mage.php',
+            'skills_ranger.php',
+            'skills_common.php',
+        ];
+        $assetMap = [];
+        foreach ($skillFiles as $file) {
+            $path = $skillsDir . '/' . $file;
+            if (! file_exists($path)) {
+                continue;
+            }
+            $entries = require $path;
+            foreach ($entries as $skill) {
+                $icon = $skill['icon'] ?? null;
+                if (! $icon && ! empty($skill['effect_key'])) {
+                    $icon = $skill['effect_key'] . '.png';
+                }
+                if (! $icon && ! empty($skill['name'])) {
+                    $icon = 'skill_' . preg_replace('/[^a-z0-9]+/', '_', strtolower($skill['name'])) . '.png';
+                }
+                if ($icon) {
+                    $assetMap[$skill['name']] = $icon;
+                }
+            }
+        }
+
+        $matched = 0;
+        $updated = 0;
+
+        GameSkillDefinition::query()->orderBy('id')->each(function (GameSkillDefinition $definition) use (
+            $assetMap,
+            $dryRun,
+            &$matched,
+            &$updated
+        ): void {
+            $fileName = $assetMap[$definition->name] ?? null;
+            if ($fileName === null) {
+                return;
+            }
+
+            $matched++;
+            if ($definition->icon === $fileName) {
+                return;
+            }
+
+            $updated++;
+            $this->line(sprintf(
+                '[skill] #%d %s: %s -> %s',
+                $definition->id,
+                $definition->name,
+                $definition->icon ?? '(null)',
+                $fileName
+            ));
+
+            if (! $dryRun) {
+                $definition->forceFill(['icon' => $fileName])->save();
+            }
+        });
+
+        return [
+            'matched' => $matched,
+            'updated' => $updated,
+            'missing' => max(GameSkillDefinition::query()->count() - $matched, 0),
         ];
     }
 }
