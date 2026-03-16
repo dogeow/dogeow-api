@@ -11,6 +11,7 @@ use App\Models\Thing\Item;
 use App\Models\Thing\ItemCategory;
 use App\Services\Thing\ItemSearchService;
 use App\Services\Thing\ItemService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -22,8 +23,6 @@ use Spatie\QueryBuilder\QueryBuilder;
 
 class ItemController extends Controller
 {
-    private const DEFAULT_PAGE_SIZE = 10;
-
     private const ITEM_RELATIONS = ['user', 'primaryImage', 'images', 'category', 'spot.room.area', 'tags'];
 
     public function __construct(
@@ -50,9 +49,9 @@ class ItemController extends Controller
     /**
      * 获取请求限制
      */
-    private function getRequestLimit(Request $request, int $default = self::DEFAULT_PAGE_SIZE): int
+    private function getRequestLimit(Request $request): int
     {
-        return (int) $request->get('limit', $default);
+        return (int) $request->input('limit', 10);
     }
 
     /**
@@ -130,7 +129,9 @@ class ItemController extends Controller
      */
     public function show(Item $item): JsonResponse
     {
-        if (! $this->canViewItem($item)) {
+        try {
+            $this->authorize('view', $item);
+        } catch (AuthorizationException $e) {
             return response()->json(['message' => '无权查看此物品'], 403);
         }
 
@@ -142,7 +143,9 @@ class ItemController extends Controller
      */
     public function update(ItemRequest $request, Item $item): JsonResponse
     {
-        if (! $this->canModifyItem($item)) {
+        try {
+            $this->authorize('update', $item);
+        } catch (AuthorizationException $e) {
             return response()->json(['message' => '无权更新此物品'], 403);
         }
 
@@ -166,9 +169,7 @@ class ItemController extends Controller
      */
     public function destroy(Item $item): JsonResponse|Response
     {
-        if (! $this->canModifyItem($item)) {
-            return response()->json(['message' => '无权删除此物品'], 403);
-        }
+        $this->authorize('delete', $item);
 
         return DB::transaction(function () use ($item) {
             $item->images()->delete();
@@ -184,7 +185,7 @@ class ItemController extends Controller
      */
     public function search(Request $request): JsonResponse
     {
-        $searchTerm = $request->get('q', '');
+        $searchTerm = $request->input('q', '');
         $limit = $this->getRequestLimit($request);
 
         if (empty($searchTerm)) {
@@ -215,7 +216,7 @@ class ItemController extends Controller
      */
     public function searchSuggestions(Request $request): JsonResponse
     {
-        $query = $request->get('q', '');
+        $query = $request->input('q', '');
         $limit = $this->getRequestLimit($request, 5);
 
         $suggestions = $this->itemSearchService->getSuggestions($query, $limit);
@@ -257,7 +258,9 @@ class ItemController extends Controller
      */
     public function relations(Item $item): JsonResponse
     {
-        if (! $this->canViewItem($item)) {
+        try {
+            $this->authorize('view', $item);
+        } catch (AuthorizationException $e) {
             return response()->json(['message' => '无权查看此物品'], 403);
         }
 
@@ -274,9 +277,7 @@ class ItemController extends Controller
      */
     public function addRelation(AddItemRelationRequest $request, Item $item): JsonResponse
     {
-        if (! $this->canModifyItem($item)) {
-            return response()->json(['message' => '无权修改此物品'], 403);
-        }
+        $this->authorize('update', $item);
 
         $validated = $request->validated();
         $relatedItemId = (int) $validated['related_item_id'];
@@ -286,7 +287,9 @@ class ItemController extends Controller
         }
 
         $relatedItem = Item::query()->findOrFail($relatedItemId);
-        if (! $this->canViewItem($relatedItem)) {
+        try {
+            $this->authorize('view', $relatedItem);
+        } catch (AuthorizationException $e) {
             return response()->json(['message' => '无权访问关联的物品'], 403);
         }
 
@@ -322,9 +325,7 @@ class ItemController extends Controller
      */
     public function removeRelation(Item $item, int $relatedItemId): JsonResponse
     {
-        if (! $this->canModifyItem($item)) {
-            return response()->json(['message' => '无权修改此物品'], 403);
-        }
+        $this->authorize('update', $item);
 
         $item->removeRelation($relatedItemId);
 
@@ -339,7 +340,9 @@ class ItemController extends Controller
      */
     public function batchAddRelations(BatchAddItemRelationsRequest $request, Item $item): JsonResponse
     {
-        if (! $this->canModifyItem($item)) {
+        try {
+            $this->authorize('update', $item);
+        } catch (AuthorizationException $e) {
             return response()->json(['message' => '无权修改此物品'], 403);
         }
 
@@ -361,7 +364,18 @@ class ItemController extends Controller
             }
 
             $relatedItem = Item::query()->find($relatedItemId);
-            if (! $relatedItem || ! $this->canViewItem($relatedItem)) {
+            if (! $relatedItem) {
+                $errors[] = [
+                    'related_item_id' => $relatedItemId,
+                    'error' => '无权访问关联的物品',
+                ];
+
+                continue;
+            }
+
+            try {
+                $this->authorize('view', $relatedItem);
+            } catch (AuthorizationException $e) {
                 $errors[] = [
                     'related_item_id' => $relatedItemId,
                     'error' => '无权访问关联的物品',
@@ -398,20 +412,6 @@ class ItemController extends Controller
             'errors' => $errors,
             'relations' => $item->relatedItems()->with(self::ITEM_RELATIONS)->get(),
         ]);
-    }
-
-    private function canViewItem(Item $item): bool
-    {
-        if ($item->is_public) {
-            return true;
-        }
-
-        return Auth::check() && $item->user_id === Auth::id();
-    }
-
-    private function canModifyItem(Item $item): bool
-    {
-        return Auth::check() && $item->user_id === Auth::id();
     }
 
     /**

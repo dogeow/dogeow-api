@@ -8,6 +8,7 @@ use App\Models\Thing\Area;
 use App\Models\Thing\Room;
 use App\Models\Thing\Spot;
 use App\Services\Location\LocationTreeService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,20 @@ class LocationController extends Controller
     public function __construct(
         private readonly LocationTreeService $locationTreeService
     ) {}
+
+    /**
+     * 授权检查辅助方法，返回 JsonResponse 或 null（授权成功时）
+     */
+    private function authorizeOrFail(string $ability, mixed $model, ?string $errorMessage = null): ?\Illuminate\Http\JsonResponse
+    {
+        try {
+            $this->authorize($ability, $model);
+
+            return null;
+        } catch (AuthorizationException $e) {
+            return $this->error($errorMessage ?? '无权执行此操作', [], 403);
+        }
+    }
 
     /**
      * 获取区域列表
@@ -47,9 +62,8 @@ class LocationController extends Controller
      */
     public function areaShow(Area $area)
     {
-        // 检查权限：只有区域所有者可以查看
-        if ($area->user_id !== Auth::id()) {
-            return $this->error('无权查看此区域', [], 403);
+        if ($error = $this->authorizeOrFail('view', $area, '无权查看此区域')) {
+            return $error;
         }
 
         return $this->success(['area' => $area->load('rooms')], 'Area retrieved successfully');
@@ -60,9 +74,8 @@ class LocationController extends Controller
      */
     public function areaUpdate(LocationRequest $request, Area $area)
     {
-        // 检查权限：只有区域所有者可以更新
-        if ($area->user_id !== Auth::id()) {
-            return $this->error('无权更新此区域', [], 403);
+        if ($error = $this->authorizeOrFail('update', $area, '无权更新此区域')) {
+            return $error;
         }
 
         $area->update($request->validated());
@@ -75,9 +88,8 @@ class LocationController extends Controller
      */
     public function areaDestroy(Area $area)
     {
-        // 检查权限：只有区域所有者可以删除
-        if ($area->user_id !== Auth::id()) {
-            return $this->error('无权删除此区域', [], 403);
+        if ($error = $this->authorizeOrFail('delete', $area, '无权删除此区域')) {
+            return $error;
         }
 
         // 检查区域是否有关联的房间
@@ -95,9 +107,8 @@ class LocationController extends Controller
      */
     public function setDefaultArea(Area $area)
     {
-        // 检查权限：只有区域所有者可以设置默认
-        if ($area->user_id !== Auth::id()) {
-            return $this->error('无权设置此区域为默认', [], 403);
+        if ($error = $this->authorizeOrFail('setDefault', $area, '无权设置此区域为默认')) {
+            return $error;
         }
 
         // 使用事务确保数据一致性
@@ -136,10 +147,9 @@ class LocationController extends Controller
      */
     public function roomStore(LocationRequest $request)
     {
-        // 检查区域是否属于当前用户
         $area = Area::findOrFail($request->area_id);
-        if ($area->user_id !== Auth::id()) {
-            return $this->error('无权在此区域创建房间', [], 403);
+        if ($error = $this->authorizeOrFail('createForArea', [Room::class, $area], '无权在此区域创建房间')) {
+            return $error;
         }
 
         $room = new Room($request->validated());
@@ -154,9 +164,8 @@ class LocationController extends Controller
      */
     public function roomShow(Room $room)
     {
-        // 检查权限：只有房间所有者可以查看
-        if ($room->user_id !== Auth::id()) {
-            return $this->error('无权查看此房间', [], 403);
+        if ($error = $this->authorizeOrFail('view', $room, '无权查看此房间')) {
+            return $error;
         }
 
         return $this->success(['room' => $room->load(['area', 'spots'])], 'Room retrieved successfully');
@@ -167,16 +176,15 @@ class LocationController extends Controller
      */
     public function roomUpdate(LocationRequest $request, Room $room)
     {
-        // 检查权限：只有房间所有者可以更新
-        if ($room->user_id !== Auth::id()) {
-            return $this->error('无权更新此房间', [], 403);
+        if ($error = $this->authorizeOrFail('update', $room, '无权更新此房间')) {
+            return $error;
         }
 
         // 如果更改了区域，检查新区域是否属于当前用户
         if ($request->has('area_id') && $request->area_id != $room->area_id) {
             $area = Area::findOrFail($request->area_id);
-            if ($area->user_id !== Auth::id()) {
-                return $this->error('无权将房间移动到此区域', [], 403);
+            if ($error = $this->authorizeOrFail('moveToArea', [$room, $area], '无权将房间移动到此区域')) {
+                return $error;
             }
         }
 
@@ -190,9 +198,8 @@ class LocationController extends Controller
      */
     public function roomDestroy(Room $room)
     {
-        // 检查权限：只有房间所有者可以删除
-        if ($room->user_id !== Auth::id()) {
-            return $this->error('无权删除此房间', [], 403);
+        if ($error = $this->authorizeOrFail('delete', $room, '无权删除此房间')) {
+            return $error;
         }
 
         // 检查房间是否有关联的具体位置
@@ -229,10 +236,9 @@ class LocationController extends Controller
      */
     public function spotStore(LocationRequest $request)
     {
-        // 检查房间是否属于当前用户
         $room = Room::findOrFail($request->room_id);
-        if ($room->user_id !== Auth::id()) {
-            return $this->error('无权在此房间创建具体位置', [], 403);
+        if ($error = $this->authorizeOrFail('createForRoom', [Spot::class, $room], '无权在此房间创建具体位置')) {
+            return $error;
         }
 
         $spot = new Spot($request->validated());
@@ -247,9 +253,8 @@ class LocationController extends Controller
      */
     public function spotShow(Spot $spot)
     {
-        // 检查权限：只有具体位置所有者可以查看
-        if ($spot->user_id !== Auth::id()) {
-            return $this->error('无权查看此具体位置', [], 403);
+        if ($error = $this->authorizeOrFail('view', $spot, '无权查看此具体位置')) {
+            return $error;
         }
 
         return $this->success(['spot' => $spot->load(['room.area', 'items'])], 'Spot retrieved successfully');
@@ -260,16 +265,15 @@ class LocationController extends Controller
      */
     public function spotUpdate(LocationRequest $request, Spot $spot)
     {
-        // 检查权限：只有具体位置所有者可以更新
-        if ($spot->user_id !== Auth::id()) {
-            return $this->error('无权更新此具体位置', [], 403);
+        if ($error = $this->authorizeOrFail('update', $spot, '无权更新此具体位置')) {
+            return $error;
         }
 
         // 如果更改了房间，检查新房间是否属于当前用户
         if ($request->has('room_id') && $request->room_id != $spot->room_id) {
             $room = Room::findOrFail($request->room_id);
-            if ($room->user_id !== Auth::id()) {
-                return $this->error('无权将具体位置移动到此房间', [], 403);
+            if ($error = $this->authorizeOrFail('moveToRoom', [$spot, $room], '无权将具体位置移动到此房间')) {
+                return $error;
             }
         }
 
@@ -283,9 +287,8 @@ class LocationController extends Controller
      */
     public function spotDestroy(Spot $spot)
     {
-        // 检查权限：只有具体位置所有者可以删除
-        if ($spot->user_id !== Auth::id()) {
-            return $this->error('无权删除此具体位置', [], 403);
+        if ($error = $this->authorizeOrFail('delete', $spot, '无权删除此具体位置')) {
+            return $error;
         }
 
         // 检查具体位置是否有关联的物品
@@ -303,9 +306,8 @@ class LocationController extends Controller
      */
     public function areaRooms(Area $area)
     {
-        // 检查权限：只有区域所有者可以查看
-        if ($area->user_id !== Auth::id()) {
-            return $this->error('无权查看此区域的房间', [], 403);
+        if ($error = $this->authorizeOrFail('view', $area, '无权查看此区域的房间')) {
+            return $error;
         }
 
         $rooms = Room::where('area_id', $area->id)
@@ -322,9 +324,8 @@ class LocationController extends Controller
      */
     public function roomSpots(Room $room)
     {
-        // 检查权限：只有房间所有者可以查看
-        if ($room->user_id !== Auth::id()) {
-            return $this->error('无权查看此房间的位置', [], 403);
+        if ($error = $this->authorizeOrFail('view', $room, '无权查看此房间的位置')) {
+            return $error;
         }
 
         $spots = Spot::where('room_id', $room->id)

@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api\Thing;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Thing\CategoryRequest;
 use App\Models\Thing\ItemCategory;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class CategoryController extends Controller
 {
@@ -44,7 +46,8 @@ class CategoryController extends Controller
         // 如果指定了父分类，验证父分类是否属于当前用户
         if (isset($validated['parent_id'])) {
             $parentCategory = ItemCategory::find($validated['parent_id']);
-            if (! $parentCategory || $parentCategory->user_id !== Auth::id()) {
+
+            if (! $parentCategory || ! Gate::allows('view', $parentCategory)) {
                 return response()->json(['message' => '指定的父分类不存在或无权访问'], 400);
             }
 
@@ -69,8 +72,9 @@ class CategoryController extends Controller
      */
     public function show(ItemCategory $category)
     {
-        // 检查权限：只有分类所有者可以查看
-        if ($category->user_id !== Auth::id()) {
+        try {
+            $this->authorize('view', $category);
+        } catch (AuthorizationException $e) {
             return response()->json(['message' => '无权查看此分类'], 403);
         }
 
@@ -82,8 +86,9 @@ class CategoryController extends Controller
      */
     public function update(CategoryRequest $request, ItemCategory $category)
     {
-        // 检查权限：只有分类所有者可以更新
-        if ($category->user_id !== Auth::id()) {
+        try {
+            $this->authorize('update', $category);
+        } catch (AuthorizationException $e) {
             return response()->json(['message' => '无权更新此分类'], 403);
         }
 
@@ -100,8 +105,9 @@ class CategoryController extends Controller
      */
     public function destroy(ItemCategory $category)
     {
-        // 检查权限：只有分类所有者可以删除
-        if ($category->user_id !== Auth::id()) {
+        try {
+            $this->authorize('delete', $category);
+        } catch (AuthorizationException $e) {
             return response()->json(['message' => '无权删除此分类'], 403);
         }
 

@@ -122,55 +122,6 @@ class ItemControllerUnitTest extends TestCase
         $this->assertContains($child->id, $results->pluck('category_id'));
     }
 
-    public function test_can_view_item_returns_true_for_public_item(): void
-    {
-        $item = Item::factory()->make(['is_public' => true]);
-
-        $reflection = new ReflectionClass(ItemController::class);
-        $method = $reflection->getMethod('canViewItem');
-        $method->setAccessible(true);
-
-        $canView = $method->invoke($this->controller, $item);
-
-        $this->assertTrue($canView);
-    }
-
-    public function test_can_modify_item_returns_true_only_for_owner(): void
-    {
-        $owner = User::factory()->create();
-        $otherUser = User::factory()->create();
-        $item = Item::factory()->create(['user_id' => $owner->id]);
-
-        $reflection = new ReflectionClass(ItemController::class);
-        $method = $reflection->getMethod('canModifyItem');
-        $method->setAccessible(true);
-
-        $this->actingAs($otherUser);
-        $this->assertFalse($method->invoke($this->controller, $item));
-
-        $this->actingAs($owner);
-        $this->assertTrue($method->invoke($this->controller, $item));
-    }
-
-    public function test_can_view_private_item_returns_true_for_owner_and_false_for_guest(): void
-    {
-        $owner = User::factory()->create();
-        $item = Item::factory()->create([
-            'user_id' => $owner->id,
-            'is_public' => false,
-        ]);
-
-        $reflection = new ReflectionClass(ItemController::class);
-        $method = $reflection->getMethod('canViewItem');
-        $method->setAccessible(true);
-
-        $this->actingAs($owner);
-        $this->assertTrue($method->invoke($this->controller, $item));
-
-        auth()->logout();
-        $this->assertFalse($method->invoke($this->controller, $item));
-    }
-
     public function test_apply_visibility_filter_for_guest_only_keeps_public_items(): void
     {
         Item::factory()->create(['is_public' => true]);
