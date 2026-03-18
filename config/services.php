@@ -76,4 +76,9 @@ return [
         'api_host' => env('UPYUN_API_HOST'),
     ],
 
+    'minimax' => [
+        'api_key' => env('MINIMAX_API_KEY'),
+        'group_id' => env('MINIMAX_GROUP_ID'),
+    ],
+
 ];
