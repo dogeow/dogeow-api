@@ -4,6 +4,9 @@ namespace Tests\Unit\Services\Game;
 
 use App\Models\Game\GameCharacter;
 use App\Models\Game\GameMonsterDefinition;
+use App\Services\Game\Combat\CombatDamageCalculator;
+use App\Services\Game\Combat\CombatRewardCalculator;
+use App\Services\Game\Combat\CombatSkillSelector;
 use App\Services\Game\CombatRoundProcessor;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -121,8 +124,7 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_process_one_round_with_explicit_empty_skill_list_disables_skills(): void
     {
-        $method = new ReflectionMethod($this->processor, 'resolveRoundSkill');
-        $method->setAccessible(true);
+        $skillSelector = new CombatSkillSelector;
 
         $skill = (object) [
             'id' => 101,
@@ -158,8 +160,7 @@ class CombatRoundProcessorTest extends TestCase
             'crit_damage' => 1.5,
         ]);
 
-        $result = $method->invoke(
-            $this->processor,
+        $result = $skillSelector->resolveRoundSkill(
             $character,
             [],
             1,
@@ -174,8 +175,7 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_process_one_round_with_null_skill_list_keeps_default_skill_selection(): void
     {
-        $method = new ReflectionMethod($this->processor, 'resolveRoundSkill');
-        $method->setAccessible(true);
+        $skillSelector = new CombatSkillSelector;
 
         $skill = (object) [
             'id' => 101,
@@ -211,8 +211,7 @@ class CombatRoundProcessorTest extends TestCase
             'crit_damage' => 1.5,
         ]);
 
-        $result = $method->invoke(
-            $this->processor,
+        $result = $skillSelector->resolveRoundSkill(
             $character,
             null,
             1,
@@ -855,8 +854,7 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_select_optimal_skill_prefers_aoe_when_many_low_hp_monsters(): void
     {
-        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
-        $method->setAccessible(true);
+        $skillSelector = new CombatSkillSelector;
 
         $singleTargetSkill = [
             'damage' => 180,
@@ -875,8 +873,7 @@ class CombatRoundProcessorTest extends TestCase
             'char_skill' => null,
         ];
 
-        $selected = $method->invoke(
-            $this->processor,
+        $selected = $skillSelector->selectOptimalSkill(
             [$singleTargetSkill, $aoeSkill],
             3,
             2,
@@ -891,8 +888,7 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_select_optimal_skill_prefers_economical_skill_when_total_hp_is_low(): void
     {
-        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
-        $method->setAccessible(true);
+        $skillSelector = new CombatSkillSelector;
 
         $highCostSkill = [
             'damage' => 160,
@@ -911,8 +907,7 @@ class CombatRoundProcessorTest extends TestCase
             'char_skill' => null,
         ];
 
-        $selected = $method->invoke(
-            $this->processor,
+        $selected = $skillSelector->selectOptimalSkill(
             [$highCostSkill, $zeroCostSkill],
             2,
             0,
@@ -943,11 +938,9 @@ class CombatRoundProcessorTest extends TestCase
             'is_active' => true,
         ]);
 
-        $method = new ReflectionMethod($this->processor, 'calculateRoundDeathRewards');
-        $method->setAccessible(true);
+        $rewardCalculator = new CombatRewardCalculator;
 
-        [$experience, $copper] = $method->invoke(
-            $this->processor,
+        [$experience, $copper] = $rewardCalculator->calculateRoundDeathRewards(
             [[
                 'id' => $monsterDefinition->id,
                 'level' => 1,
@@ -964,12 +957,10 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_calculate_round_death_rewards_with_no_dead_monsters(): void
     {
-        $method = new ReflectionMethod($this->processor, 'calculateRoundDeathRewards');
-        $method->setAccessible(true);
+        $rewardCalculator = new CombatRewardCalculator;
 
         // No dead monsters - should return 0 experience and copper
-        [$experience, $copper] = $method->invoke(
-            $this->processor,
+        [$experience, $copper] = $rewardCalculator->calculateRoundDeathRewards(
             [], // empty - no monsters
             [], // hp snapshot
             ['reward' => 1]
@@ -993,11 +984,9 @@ class CombatRoundProcessorTest extends TestCase
             'is_active' => true,
         ]);
 
-        $method = new ReflectionMethod($this->processor, 'calculateRoundDeathRewards');
-        $method->setAccessible(true);
+        $rewardCalculator = new CombatRewardCalculator;
 
-        [$experience, $copper] = $method->invoke(
-            $this->processor,
+        [$experience, $copper] = $rewardCalculator->calculateRoundDeathRewards(
             [[
                 'id' => $bossDefinition->id,
                 'level' => 10,
@@ -1027,10 +1016,9 @@ class CombatRoundProcessorTest extends TestCase
             'is_active' => true,
         ]);
 
-        $method = new ReflectionMethod($this->processor, 'calculateMonsterCopperLoot');
-        $method->setAccessible(true);
+        $rewardCalculator = new CombatRewardCalculator;
 
-        $copper = $method->invoke($this->processor, [
+        $copper = $rewardCalculator->calculateMonsterCopperLoot([
             'id' => $monsterDefinition->id,
             'level' => 1,
         ]);
@@ -1054,10 +1042,9 @@ class CombatRoundProcessorTest extends TestCase
             'is_active' => true,
         ]);
 
-        $method = new ReflectionMethod($this->processor, 'calculateMonsterCopperLoot');
-        $method->setAccessible(true);
+        $rewardCalculator = new CombatRewardCalculator;
 
-        $copper = $method->invoke($this->processor, [
+        $copper = $rewardCalculator->calculateMonsterCopperLoot([
             'id' => $monsterDefinition->id,
             'level' => 1,
         ]);
@@ -1067,31 +1054,27 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_roll_chance_for_processor_always_returns_true_when_chance_is_one(): void
     {
-        $method = new ReflectionMethod($this->processor, 'rollChanceForProcessor');
-        $method->setAccessible(true);
+        $damageCalculator = new CombatDamageCalculator;
 
         // With chance = 1.0, should always return true
-        $result = $method->invoke($this->processor, 1.0);
+        $result = $damageCalculator->rollChanceForProcessor(1.0);
         $this->assertTrue($result);
     }
 
     public function test_roll_chance_for_processor_always_returns_false_when_chance_is_zero(): void
     {
-        $method = new ReflectionMethod($this->processor, 'rollChanceForProcessor');
-        $method->setAccessible(true);
+        $damageCalculator = new CombatDamageCalculator;
 
         // With chance = 0.0, should always return false
-        $result = $method->invoke($this->processor, 0.0);
+        $result = $damageCalculator->rollChanceForProcessor(0.0);
         $this->assertFalse($result);
     }
 
     public function test_compute_base_attack_damage_with_empty_targets(): void
     {
-        // Use reflection to call the private method with empty targets
-        $method = new ReflectionMethod($this->processor, 'computeBaseAttackDamage');
-        $method->setAccessible(true);
+        $damageCalculator = new CombatDamageCalculator;
 
-        $result = $method->invoke($this->processor, [], 10, 15, 1.5, false, 0.0);
+        $result = $damageCalculator->computeBaseAttackDamage([], 10, 15, 1.5, false, 0.0);
 
         // Should return [0, 0] for empty targets
         $this->assertSame([0, 0], $result);
@@ -1099,16 +1082,14 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_compute_base_attack_damage_with_skill_damage(): void
     {
-        // Use reflection to call the private method with skill damage
-        $method = new ReflectionMethod($this->processor, 'computeBaseAttackDamage');
-        $method->setAccessible(true);
+        $damageCalculator = new CombatDamageCalculator;
 
         $monsters = [[
             'id' => 1,
             'defense' => 5,
         ]];
 
-        $result = $method->invoke($this->processor, $monsters, 50, 15, 1.5, false, 0.0);
+        $result = $damageCalculator->computeBaseAttackDamage($monsters, 50, 15, 1.5, false, 0.0);
 
         // Should return [skillDamage, 0] when skillDamage > 0
         $this->assertSame([50, 0], $result);
@@ -1116,16 +1097,14 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_compute_base_attack_damage_without_skill_calculates_from_attack(): void
     {
-        // Use reflection to call the private method without skill damage (skillDamage = 0)
-        $method = new ReflectionMethod($this->processor, 'computeBaseAttackDamage');
-        $method->setAccessible(true);
+        $damageCalculator = new CombatDamageCalculator;
 
         $monsters = [[
             'id' => 1,
             'defense' => 5,
         ]];
 
-        $result = $method->invoke($this->processor, $monsters, 0, 20, 1.5, false, 0.0);
+        $result = $damageCalculator->computeBaseAttackDamage($monsters, 0, 20, 1.5, false, 0.0);
 
         // When skillDamage = 0, it calculates from attack and defense
         $this->assertIsArray($result);
@@ -1172,8 +1151,7 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_calculate_monster_counter_damage_with_living_monsters(): void
     {
-        $method = new ReflectionMethod($this->processor, 'calculateMonsterCounterDamage');
-        $method->setAccessible(true);
+        $damageCalculator = new CombatDamageCalculator;
 
         $monstersUpdated = [
             ['hp' => 10, 'attack' => 15],
@@ -1181,7 +1159,7 @@ class CombatRoundProcessorTest extends TestCase
             ['hp' => 5, 'attack' => 8],
         ];
 
-        $result = $method->invoke($this->processor, $monstersUpdated, 5);
+        $result = $damageCalculator->calculateMonsterCounterDamage($monstersUpdated, 5);
 
         // Monster 1: 15 - 5*0.3 = 13.5 -> 13
         // Monster 2: dead, skipped
@@ -1192,14 +1170,13 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_calculate_monster_counter_damage_with_zero_defense(): void
     {
-        $method = new ReflectionMethod($this->processor, 'calculateMonsterCounterDamage');
-        $method->setAccessible(true);
+        $damageCalculator = new CombatDamageCalculator;
 
         $monstersUpdated = [
             ['hp' => 10, 'attack' => 20],
         ];
 
-        $result = $method->invoke($this->processor, $monstersUpdated, 0);
+        $result = $damageCalculator->calculateMonsterCounterDamage($monstersUpdated, 0);
 
         // 20 - 0 = 20
         $this->assertEquals(20, $result);
@@ -1269,23 +1246,21 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_select_round_targets_returns_empty_when_no_living_monsters(): void
     {
-        $method = new ReflectionMethod($this->processor, 'selectRoundTargets');
-        $method->setAccessible(true);
+        $calculator = new CombatDamageCalculator;
 
         $monsters = [
             ['hp' => 0],
             ['hp' => 0],
         ];
 
-        $result = $method->invoke($this->processor, $monsters, false);
+        $result = $calculator->selectRoundTargets($monsters, false);
 
         $this->assertCount(0, $result);
     }
 
     public function test_select_round_targets_returns_single_for_non_aoe(): void
     {
-        $method = new ReflectionMethod($this->processor, 'selectRoundTargets');
-        $method->setAccessible(true);
+        $calculator = new CombatDamageCalculator;
 
         $monsters = [
             ['hp' => 10, 'id' => 1],
@@ -1293,15 +1268,14 @@ class CombatRoundProcessorTest extends TestCase
             ['hp' => 0, 'id' => 3],
         ];
 
-        $result = $method->invoke($this->processor, $monsters, false);
+        $result = $calculator->selectRoundTargets($monsters, false);
 
         $this->assertCount(1, $result);
     }
 
     public function test_select_round_targets_returns_all_for_aoe(): void
     {
-        $method = new ReflectionMethod($this->processor, 'selectRoundTargets');
-        $method->setAccessible(true);
+        $calculator = new CombatDamageCalculator;
 
         $monsters = [
             ['hp' => 10, 'id' => 1],
@@ -1309,15 +1283,14 @@ class CombatRoundProcessorTest extends TestCase
             ['hp' => 5, 'id' => 3],
         ];
 
-        $result = $method->invoke($this->processor, $monsters, true);
+        $result = $calculator->selectRoundTargets($monsters, true);
 
         $this->assertCount(3, $result);
     }
 
     public function test_get_skill_target_positions_with_valid_positions(): void
     {
-        $method = new ReflectionMethod($this->processor, 'getSkillTargetPositions');
-        $method->setAccessible(true);
+        $calculator = new CombatDamageCalculator;
 
         $targetMonsters = [
             ['position' => 0],
@@ -1325,7 +1298,7 @@ class CombatRoundProcessorTest extends TestCase
             ['position' => 5],
         ];
 
-        $result = $method->invoke($this->processor, $targetMonsters);
+        $result = $calculator->getSkillTargetPositions($targetMonsters);
 
         $this->assertCount(3, $result);
         $this->assertContains(0, $result);
@@ -1335,8 +1308,7 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_get_skill_target_positions_filters_null(): void
     {
-        $method = new ReflectionMethod($this->processor, 'getSkillTargetPositions');
-        $method->setAccessible(true);
+        $calculator = new CombatDamageCalculator;
 
         $targetMonsters = [
             ['position' => 0],
@@ -1344,7 +1316,7 @@ class CombatRoundProcessorTest extends TestCase
             ['position' => 2],
         ];
 
-        $result = $method->invoke($this->processor, $targetMonsters);
+        $result = $calculator->getSkillTargetPositions($targetMonsters);
 
         $this->assertCount(2, $result);
         $this->assertContains(0, $result);
@@ -1389,8 +1361,7 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_is_monster_in_targets_returns_true_when_found(): void
     {
-        $method = new ReflectionMethod($this->processor, 'isMonsterInTargets');
-        $method->setAccessible(true);
+        $calculator = new CombatDamageCalculator;
 
         $monster = ['position' => 2, 'id' => 1];
         $targets = [
@@ -1399,15 +1370,14 @@ class CombatRoundProcessorTest extends TestCase
             ['position' => 5],
         ];
 
-        $result = $method->invoke($this->processor, $monster, $targets);
+        $result = $calculator->isMonsterInTargets($monster, $targets);
 
         $this->assertTrue($result);
     }
 
     public function test_is_monster_in_targets_returns_false_when_not_found(): void
     {
-        $method = new ReflectionMethod($this->processor, 'isMonsterInTargets');
-        $method->setAccessible(true);
+        $calculator = new CombatDamageCalculator;
 
         $monster = ['position' => 3, 'id' => 1];
         $targets = [
@@ -1415,15 +1385,14 @@ class CombatRoundProcessorTest extends TestCase
             ['position' => 2],
         ];
 
-        $result = $method->invoke($this->processor, $monster, $targets);
+        $result = $calculator->isMonsterInTargets($monster, $targets);
 
         $this->assertFalse($result);
     }
 
     public function test_is_monster_in_targets_returns_false_when_no_position(): void
     {
-        $method = new ReflectionMethod($this->processor, 'isMonsterInTargets');
-        $method->setAccessible(true);
+        $calculator = new CombatDamageCalculator;
 
         $monster = ['id' => 1]; // no position
         $targets = [
@@ -1431,7 +1400,7 @@ class CombatRoundProcessorTest extends TestCase
             ['position' => 2],
         ];
 
-        $result = $method->invoke($this->processor, $monster, $targets);
+        $result = $calculator->isMonsterInTargets($monster, $targets);
 
         $this->assertFalse($result);
     }
@@ -1459,12 +1428,10 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_select_optimal_skill_with_no_available_skills(): void
     {
-        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
-        $method->setAccessible(true);
+        $skillSelector = new CombatSkillSelector;
 
         // Empty available skills
-        $result = $method->invoke(
-            $this->processor,
+        $result = $skillSelector->selectOptimalSkill(
             [],
             3,
             50,
@@ -1477,8 +1444,7 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_apply_character_damage_to_monsters_splits_when_crit(): void
     {
-        $method = new ReflectionMethod($this->processor, 'applyCharacterDamageToMonsters');
-        $method->setAccessible(true);
+        $damageCalculator = new CombatDamageCalculator;
 
         $monsters = [
             ['id' => 1, 'hp' => 100, 'defense' => 0, 'name' => 'Monster1'],
@@ -1487,8 +1453,7 @@ class CombatRoundProcessorTest extends TestCase
             ['id' => 1, 'position' => 0],
         ];
 
-        [$monstersUpdated, $totalDamage] = $method->invoke(
-            $this->processor,
+        [$monstersUpdated, $totalDamage] = $damageCalculator->applyCharacterDamageToMonsters(
             $monsters,
             $targetMonsters,
             50,  // charAttack
@@ -1505,8 +1470,7 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_resolve_round_skill_filters_requested_ids_and_updates_cooldown(): void
     {
-        $method = new ReflectionMethod($this->processor, 'resolveRoundSkill');
-        $method->setAccessible(true);
+        $skillSelector = new CombatSkillSelector;
 
         $skillA = (object) [
             'id' => 101,
@@ -1546,8 +1510,7 @@ class CombatRoundProcessorTest extends TestCase
         $character->shouldReceive('skills')->once()->andReturn($skillsRelation);
         $character->shouldReceive('getCombatStats')->once()->andReturn(['attack' => 100]);
 
-        $result = $method->invoke(
-            $this->processor,
+        $result = $skillSelector->resolveRoundSkill(
             $character,
             [101],
             3,
@@ -1565,8 +1528,7 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_select_optimal_skill_returns_single_skill_when_only_one_available(): void
     {
-        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
-        $method->setAccessible(true);
+        $skillSelector = new CombatSkillSelector;
 
         $singleSkill = [
             'damage' => 30,
@@ -1577,15 +1539,14 @@ class CombatRoundProcessorTest extends TestCase
             'char_skill' => null,
         ];
 
-        $result = $method->invoke($this->processor, [$singleSkill], 1, 0, 100, 50);
+        $result = $skillSelector->selectOptimalSkill([$singleSkill], 1, 0, 100, 50);
 
         $this->assertSame(201, $result['skill']->id);
     }
 
     public function test_select_optimal_skill_falls_back_to_lowest_mana_when_efficiency_is_low(): void
     {
-        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
-        $method->setAccessible(true);
+        $skillSelector = new CombatSkillSelector;
 
         $skillA = [
             'damage' => 10,
@@ -1604,7 +1565,7 @@ class CombatRoundProcessorTest extends TestCase
             'char_skill' => null,
         ];
 
-        $result = $method->invoke($this->processor, [$skillA, $skillB], 2, 0, 1000, 200);
+        $result = $skillSelector->selectOptimalSkill([$skillA, $skillB], 2, 0, 1000, 200);
 
         $this->assertSame(302, $result['skill']->id);
         $this->assertSame(40, $result['mana_cost']);
@@ -1612,25 +1573,23 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_compute_base_attack_damage_with_crit_returns_crit_values(): void
     {
-        $method = new ReflectionMethod($this->processor, 'computeBaseAttackDamage');
-        $method->setAccessible(true);
+        $damageCalculator = new CombatDamageCalculator;
 
         $targets = [[
             'id' => 1,
             'defense' => 10,
         ]];
 
-        $result = $method->invoke($this->processor, $targets, 0, 100, 2.0, true, 0.5);
+        $result = $damageCalculator->computeBaseAttackDamage($targets, 0, 100, 2.0, true, 0.5);
 
         $this->assertSame([190, 95], $result);
     }
 
     public function test_calculate_monster_copper_loot_without_id_uses_fallback_random_range(): void
     {
-        $method = new ReflectionMethod($this->processor, 'calculateMonsterCopperLoot');
-        $method->setAccessible(true);
+        $rewardCalculator = new CombatRewardCalculator;
 
-        $result = $method->invoke($this->processor, [
+        $result = $rewardCalculator->calculateMonsterCopperLoot([
             'name' => 'Unknown Monster',
             'level' => 1,
         ]);
@@ -1641,8 +1600,7 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_apply_character_damage_to_monsters_uses_skill_damage_branch(): void
     {
-        $method = new ReflectionMethod($this->processor, 'applyCharacterDamageToMonsters');
-        $method->setAccessible(true);
+        $damageCalculator = new CombatDamageCalculator;
 
         $monsters = [
             ['id' => 1, 'position' => 0, 'hp' => 100, 'defense' => 10, 'name' => 'SkillTarget'],
@@ -1651,8 +1609,7 @@ class CombatRoundProcessorTest extends TestCase
             ['position' => 0],
         ];
 
-        [$updated, $total] = $method->invoke(
-            $this->processor,
+        [$updated, $total] = $damageCalculator->applyCharacterDamageToMonsters(
             $monsters,
             $targets,
             40,
@@ -1671,8 +1628,7 @@ class CombatRoundProcessorTest extends TestCase
     {
         config(['game.combat.aoe_damage_multiplier' => 0.7]);
 
-        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
-        $method->setAccessible(true);
+        $skillSelector = new CombatSkillSelector;
 
         $availableSkills = [
             [
@@ -1692,8 +1648,7 @@ class CombatRoundProcessorTest extends TestCase
         ];
 
         // 3个存活怪物，总血量150 (低血量场景)
-        $result = $method->invoke(
-            $this->processor,
+        $result = $skillSelector->selectOptimalSkill(
             $availableSkills,
             150,
             3,
@@ -1708,8 +1663,7 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_select_optimal_skill_prefers_economical_when_total_hp_low(): void
     {
-        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
-        $method->setAccessible(true);
+        $skillSelector = new CombatSkillSelector;
 
         $availableSkills = [
             [
@@ -1729,8 +1683,7 @@ class CombatRoundProcessorTest extends TestCase
         ];
 
         // totalMonsterHp = 90, charAttack = 50, 90 < 50 * 2 = 100
-        $result = $method->invoke(
-            $this->processor,
+        $result = $skillSelector->selectOptimalSkill(
             $availableSkills,
             90,
             2,
@@ -1745,8 +1698,7 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_select_optimal_skill_with_zero_mana_cost_skill(): void
     {
-        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
-        $method->setAccessible(true);
+        $skillSelector = new CombatSkillSelector;
 
         $availableSkills = [
             [
@@ -1766,8 +1718,7 @@ class CombatRoundProcessorTest extends TestCase
         ];
 
         // 低总血量场景
-        $result = $method->invoke(
-            $this->processor,
+        $result = $skillSelector->selectOptimalSkill(
             $availableSkills,
             50,
             1,
@@ -1782,8 +1733,7 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_select_optimal_skill_falls_back_to_most_economical_by_mana(): void
     {
-        $method = new ReflectionMethod($this->processor, 'selectOptimalSkill');
-        $method->setAccessible(true);
+        $skillSelector = new CombatSkillSelector;
 
         $availableSkills = [
             [
@@ -1803,8 +1753,7 @@ class CombatRoundProcessorTest extends TestCase
         ];
 
         // 不满足特殊条件时，应选择最经济的（按魔法消耗排序）
-        $result = $method->invoke(
-            $this->processor,
+        $result = $skillSelector->selectOptimalSkill(
             $availableSkills,
             500,
             2,
@@ -1818,14 +1767,12 @@ class CombatRoundProcessorTest extends TestCase
 
     public function test_resolve_round_skill_with_no_available_skills_returns_default(): void
     {
-        $method = new ReflectionMethod($this->processor, 'resolveRoundSkill');
-        $method->setAccessible(true);
+        $skillSelector = new CombatSkillSelector;
 
         $character = $this->createTestCharacter(['mp' => 50]);
         // 角色没有技能，所以没有可用技能
 
-        $result = $method->invoke(
-            $this->processor,
+        $result = $skillSelector->resolveRoundSkill(
             $character,
             [],
             1,

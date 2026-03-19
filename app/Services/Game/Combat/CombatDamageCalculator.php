@@ -192,4 +192,13 @@ class CombatDamageCalculator
 
         return array_values(array_filter($positions, fn ($p) => $p !== null));
     }
+
+    /**
+     * 概率判定
+     */
+    public function rollChanceForProcessor(float $chance): bool
+    {
+        // $chance是0~1，例如0.12就是12%概率
+        return mt_rand() / mt_getrandmax() < $chance;
+    }
 }
