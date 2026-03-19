@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Cloud\FileController;
+use App\Http\Controllers\Api\Cloud\FileTreeController;
 use Illuminate\Support\Facades\Route;
 
 // 云存储
@@ -13,5 +14,7 @@ Route::get('/cloud/files/{id}/preview', [FileController::class, 'preview']);
 Route::delete('/cloud/files/{id}', [FileController::class, 'destroy']);
 Route::put('/cloud/files/{id}', [FileController::class, 'update']);
 Route::post('/cloud/files/move', [FileController::class, 'move']);
-Route::get('/cloud/tree', [FileController::class, 'tree']);
-Route::get('/cloud/statistics', [FileController::class, 'statistics']);
+
+// 树形结构和统计
+Route::get('/cloud/tree', [FileTreeController::class, 'tree']);
+Route::get('/cloud/statistics', [FileTreeController::class, 'statistics']);
