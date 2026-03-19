@@ -2,24 +2,27 @@
 
 namespace App\Models\Game;
 
+use App\Models\Game\Concerns\CharacterCombatStats;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * @property array<int, array<string,mixed>|null>|null $combat_monsters
- * @property \Illuminate\Support\Carbon|null $combat_monsters_refreshed_at
+ * @property Carbon|null $combat_monsters_refreshed_at
  * @property int|null $combat_monster_id
  * @property int|null $combat_monster_hp
  * @property int|null $combat_monster_max_hp
  * @property array<int, int>|null $discovered_items
  * @property array<int, int>|null $discovered_monsters
- * @property \App\Models\Game\GameMapDefinition|null $currentMap
+ * @property GameMapDefinition|null $currentMap
  */
 class GameCharacter extends Model
 {
+    use CharacterCombatStats;
     use HasFactory;
 
     protected $fillable = [
@@ -145,11 +148,11 @@ class GameCharacter extends Model
     }
 
     /**
-     * 是否处于一场战斗的进行中（有当前怪物且至少有一只存活）
+     * 是否处于一场战斗的进行中
      */
     public function hasActiveCombat(): bool
     {
-        // 多怪物模式：检查 combat_monsters
+        // 多怪物模式
         $monsters = $this->combat_monsters ?? [];
         if (! empty($monsters)) {
             foreach ($monsters as $monster) {
@@ -167,7 +170,7 @@ class GameCharacter extends Model
     }
 
     /**
-     * 清除当前战斗状态（战斗结束或停止时调用）
+     * 清除当前战斗状态
      */
     public function clearCombatState(): void
     {
@@ -185,139 +188,7 @@ class GameCharacter extends Model
     }
 
     /**
-     * 生命值基础值（仅配置中的 base，用于复活等）
-     */
-    public function getBaseHp(): int
-    {
-        $hpConfig = config('game.hp', []);
-        $base = $hpConfig['base'] ?? [];
-
-        return (int) ($base[$this->class] ?? ($base['default'] ?? 15));
-    }
-
-    /**
-     * 计算最大生命值（基础 + 体力 + 装备加成）
-     */
-    public function getMaxHp(): int
-    {
-        $hpConfig = config('game.hp', []);
-        $base = $hpConfig['base'] ?? [];
-        $baseHp = $base[$this->class] ?? ($base['default'] ?? 15);
-        $multiplier = $hpConfig['vitality_multiplier'] ?? 5;
-        $equipmentBonus = (int) $this->getEquipmentBonus('max_hp');
-
-        return (int) ($baseHp + $this->vitality * $multiplier) + $equipmentBonus;
-    }
-
-    /**
-     * 法力值基础值（仅配置中的 base，用于复活等）
-     */
-    public function getBaseMana(): int
-    {
-        $manaConfig = config('game.mana', []);
-        $base = $manaConfig['base'] ?? [];
-
-        return (int) ($base[$this->class] ?? ($base['default'] ?? 15));
-    }
-
-    /**
-     * 计算最大法力值（基础 + 精力 + 装备加成）
-     */
-    public function getMaxMana(): int
-    {
-        $manaConfig = config('game.mana', []);
-        $base = $manaConfig['base'] ?? [];
-        $baseMana = $base[$this->class] ?? ($base['default'] ?? 50);
-        $multiplier = $manaConfig['energy_multiplier'] ?? 3;
-        $equipmentBonus = (int) $this->getEquipmentBonus('max_mana');
-
-        return (int) ($baseMana + $this->energy * $multiplier) + $equipmentBonus;
-    }
-
-    /**
-     * 基础攻击力（不含装备）
-     */
-    public function getBaseAttack(): int
-    {
-        $attackConfig = config('game.combat.attack', []);
-        $classConfig = $attackConfig[$this->class] ?? ($attackConfig['default'] ?? ['stat' => 'strength', 'multiplier' => 1]);
-        $stat = $classConfig['stat'] ?? 'strength';
-        $multiplier = (float) ($classConfig['multiplier'] ?? 1);
-
-        return (int) ($this->{$stat} * $multiplier);
-    }
-
-    /**
-     * 计算攻击力（力量/敏捷影响物理攻击，精力影响法术攻击）
-     */
-    public function getAttack(): int
-    {
-        return (int) ($this->getBaseAttack() + $this->getEquipmentBonus('attack'));
-    }
-
-    /**
-     * 基础防御力（不含装备）
-     */
-    public function getBaseDefense(): int
-    {
-        $def = config('game.combat.defense', []);
-        $vCoef = (float) ($def['vitality_multiplier'] ?? 0.5);
-        $dCoef = (float) ($def['dexterity_multiplier'] ?? 0.3);
-
-        return (int) ($this->vitality * $vCoef + $this->dexterity * $dCoef);
-    }
-
-    /**
-     * 计算防御力（体力+敏捷影响防御）
-     */
-    public function getDefense(): int
-    {
-        return (int) ($this->getBaseDefense() + $this->getEquipmentBonus('defense'));
-    }
-
-    /**
-     * 基础暴击率（不含装备，未封顶）
-     */
-    public function getBaseCritRate(): float
-    {
-        $critConfig = config('game.combat.crit_rate', []);
-        $coef = (float) ($critConfig['dexterity_multiplier'] ?? 0.01);
-
-        return $this->dexterity * $coef;
-    }
-
-    /**
-     * 计算暴击率（敏捷影响暴击率）
-     */
-    public function getCritRate(): float
-    {
-        $critConfig = config('game.combat.crit_rate', []);
-        $cap = (float) ($critConfig['cap'] ?? 0.10);
-
-        return min($cap, $this->getBaseCritRate() + $this->getEquipmentBonus('crit_rate'));
-    }
-
-    /**
-     * 基础暴击伤害倍率（不含装备）
-     */
-    public function getBaseCritDamage(): float
-    {
-        $critConfig = config('game.combat.crit_damage', []);
-
-        return (float) ($critConfig['base'] ?? 1.5);
-    }
-
-    /**
-     * 计算暴击伤害
-     */
-    public function getCritDamage(): float
-    {
-        return $this->getBaseCritDamage() + $this->getEquipmentBonus('crit_damage');
-    }
-
-    /**
-     * 难度倍率：普通/困难/高手/大师/痛苦1-6（表格数据）
-     * 怪物生命、怪物伤害、金币与经验分别使用对应加成。
+     * 难度倍率
      *
      * @return array{monster_hp: float, monster_damage: float, reward: float}
      */
@@ -327,34 +198,6 @@ class GameCharacter extends Model
         $table = config('game.difficulty_multipliers', [0 => ['monster_hp' => 1.0, 'monster_damage' => 1.0, 'reward' => 1.0]]);
 
         return $table[$tier] ?? $table[0];
-    }
-
-    /**
-     * 获取装备属性加成
-     */
-    public function getEquipmentBonus(string $stat): float
-    {
-        $bonus = 0;
-
-        $equipmentSlots = $this->equipment()->with('item.definition', 'item')->get();
-
-        /** @var \App\Models\Game\GameEquipment $slot */
-        foreach ($equipmentSlots as $slot) {
-            if ($slot->item) {
-                $itemStats = $slot->item->stats ?? [];
-                $bonus += (float) ($itemStats[$stat] ?? 0);
-
-                // 词缀加成
-                $affixes = $slot->item->affixes ?? [];
-                foreach ($affixes as $affix) {
-                    if (isset($affix[$stat])) {
-                        $bonus += (float) $affix[$stat];
-                    }
-                }
-            }
-        }
-
-        return $bonus;
     }
 
     /**
@@ -379,8 +222,7 @@ class GameCharacter extends Model
     }
 
     /**
-     * 根据当前总经验重算等级（兜底：经验已达标但等级未更新的情况）
-     * 在获取角色详情时调用，确保等级与经验一致。
+     * 根据当前总经验重算等级
      */
     public function reconcileLevelFromExperience(): bool
     {
@@ -403,7 +245,7 @@ class GameCharacter extends Model
     }
 
     /**
-     * 添加经验值（自动升级）
+     * 添加经验值
      */
     public function addExperience(int $amount): array
     {
@@ -428,127 +270,6 @@ class GameCharacter extends Model
     }
 
     /**
-     * 获取完整战斗属性
-     */
-    /**
-     * @return array<string,mixed>
-     */
-    public function getCombatStats(): array
-    {
-        return [
-            'max_hp' => $this->getMaxHp(),
-            'max_mana' => $this->getMaxMana(),
-            'attack' => $this->getAttack(),
-            'defense' => $this->getDefense(),
-            'crit_rate' => $this->getCritRate(),
-            'crit_damage' => $this->getCritDamage(),
-        ];
-    }
-
-    /**
-     * 获取战斗属性明细（基础 + 装备），用于前端展示来源
-     *
-     * @return array<string, array{base: int|float, equipment: float, total: int|float}>
-     */
-    public function getCombatStatsBreakdown(): array
-    {
-        $equipAttack = $this->getEquipmentBonus('attack');
-        $equipDefense = $this->getEquipmentBonus('defense');
-        $equipCritRate = $this->getEquipmentBonus('crit_rate');
-        $equipCritDamage = $this->getEquipmentBonus('crit_damage');
-
-        $critConfig = config('game.combat.crit_rate', []);
-        $critCap = (float) ($critConfig['cap'] ?? 0.10);
-        $totalCritRate = min($critCap, $this->getBaseCritRate() + $equipCritRate);
-        $totalCritDamage = $this->getBaseCritDamage() + $equipCritDamage;
-
-        return [
-            'attack' => [
-                'base' => $this->getBaseAttack(),
-                'equipment' => (float) $equipAttack,
-                'total' => $this->getAttack(),
-            ],
-            'defense' => [
-                'base' => $this->getBaseDefense(),
-                'equipment' => (float) $equipDefense,
-                'total' => $this->getDefense(),
-            ],
-            'crit_rate' => [
-                'base' => round($this->getBaseCritRate(), 4),
-                'equipment' => (float) $equipCritRate,
-                'total' => round($totalCritRate, 4),
-            ],
-            'crit_damage' => [
-                'base' => $this->getBaseCritDamage(),
-                'equipment' => (float) $equipCritDamage,
-                'total' => round($totalCritDamage, 4),
-            ],
-        ];
-    }
-
-    /**
-     * 获取当前生命值（如果未设置则返回最大值）
-     */
-    public function getCurrentHp(): int
-    {
-        return $this->current_hp ?? $this->getMaxHp();
-    }
-
-    /**
-     * 获取当前法力值（如果未设置则返回最大值）
-     */
-    public function getCurrentMana(): int
-    {
-        return $this->current_mana ?? $this->getMaxMana();
-    }
-
-    /**
-     * 恢复生命值
-     */
-    public function restoreHp(int $amount): void
-    {
-        $maxHp = $this->getMaxHp();
-        $currentHp = $this->getCurrentHp();
-        $this->current_hp = min($maxHp, $currentHp + $amount);
-        $this->save();
-    }
-
-    /**
-     * 恢复法力值
-     */
-    public function restoreMana(int $amount): void
-    {
-        $maxMana = $this->getMaxMana();
-        $currentMana = $this->getCurrentMana();
-        $this->current_mana = min($maxMana, $currentMana + $amount);
-        $this->save();
-    }
-
-    /**
-     * 初始化HP/Mana（用于新角色或重置）
-     * 只在字段为NULL时设置，不会覆盖已存在的值（包括0）
-     */
-    public function initializeHpMana(): void
-    {
-        $needsSave = false;
-
-        // 只有当字段真正为NULL时才初始化（新角色）
-        if ($this->current_hp === null && $this->getAttribute('current_hp') === null) {
-            $this->current_hp = $this->getMaxHp();
-            $needsSave = true;
-        }
-
-        if ($this->current_mana === null && $this->getAttribute('current_mana') === null) {
-            $this->current_mana = $this->getMaxMana();
-            $needsSave = true;
-        }
-
-        if ($needsSave) {
-            $this->save();
-        }
-    }
-
-    /**
      * 获取装备中的所有物品
      */
     public function getEquippedItems(): array
@@ -556,11 +277,11 @@ class GameCharacter extends Model
         $equipped = [];
         $equipmentSlots = $this->equipment()->with('item.definition', 'item.gems')->get();
 
-        /** @var \App\Models\Game\GameEquipment $slot */
+        /** @var GameEquipment $slot */
         foreach ($equipmentSlots as $slot) {
             if ($slot->item) {
                 $item = $slot->item;
-                // 计算卖出价格（如果未设置）
+                // 计算卖出价格
                 if (! isset($item->sell_price) || $item->sell_price === 0) {
                     $item->sell_price = $item->calculateSellPrice();
                 }
