@@ -9,6 +9,7 @@ use App\Models\Game\GameItemDefinition;
 use App\Models\User;
 use App\Services\Game\GameInventoryService;
 use App\Services\Game\GameShopService;
+use App\Services\Game\InventoryItemCalculator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -775,9 +776,7 @@ class GameShopServiceTest extends TestCase
 
     public function test_generate_random_quality_can_hit_all_quality_branches(): void
     {
-        $reflection = new \ReflectionClass($this->service);
-        $method = $reflection->getMethod('generateRandomQuality');
-        $method->setAccessible(true);
+        $calculator = new InventoryItemCalculator;
 
         config([
             'game.shop.quality_chance' => [
@@ -787,7 +786,7 @@ class GameShopServiceTest extends TestCase
                 'magic' => ['base' => 0, 'per_level' => 0, 'max' => 0],
             ],
         ]);
-        $this->assertSame('mythic', $method->invoke($this->service, 10));
+        $this->assertSame('mythic', $calculator->generateRandomQuality(10));
 
         config([
             'game.shop.quality_chance' => [
@@ -797,7 +796,7 @@ class GameShopServiceTest extends TestCase
                 'magic' => ['base' => 0, 'per_level' => 0, 'max' => 0],
             ],
         ]);
-        $this->assertSame('legendary', $method->invoke($this->service, 10));
+        $this->assertSame('legendary', $calculator->generateRandomQuality(10));
 
         config([
             'game.shop.quality_chance' => [
@@ -807,7 +806,7 @@ class GameShopServiceTest extends TestCase
                 'magic' => ['base' => 0, 'per_level' => 0, 'max' => 0],
             ],
         ]);
-        $this->assertSame('rare', $method->invoke($this->service, 10));
+        $this->assertSame('rare', $calculator->generateRandomQuality(10));
 
         config([
             'game.shop.quality_chance' => [
@@ -817,7 +816,7 @@ class GameShopServiceTest extends TestCase
                 'magic' => ['base' => 100, 'per_level' => 0, 'max' => 100],
             ],
         ]);
-        $this->assertSame('magic', $method->invoke($this->service, 10));
+        $this->assertSame('magic', $calculator->generateRandomQuality(10));
 
         config([
             'game.shop.quality_chance' => [
@@ -827,21 +826,19 @@ class GameShopServiceTest extends TestCase
                 'magic' => ['base' => 0, 'per_level' => 0, 'max' => 0],
             ],
         ]);
-        $this->assertSame('common', $method->invoke($this->service, 10));
+        $this->assertSame('common', $calculator->generateRandomQuality(10));
     }
 
     public function test_generate_random_stats_for_ring_amulet_and_potion(): void
     {
-        $reflection = new \ReflectionClass($this->service);
-        $method = $reflection->getMethod('generateRandomStats');
-        $method->setAccessible(true);
+        $calculator = new InventoryItemCalculator;
 
         $ring = $this->createItemDefinition([
             'name' => '测试戒指',
             'type' => 'ring',
             'required_level' => 8,
         ]);
-        $ringStats = $method->invoke($this->service, $ring);
+        $ringStats = $calculator->generateRandomStats($ring);
         $this->assertNotEmpty($ringStats);
 
         $amulet = $this->createItemDefinition([
@@ -849,7 +846,7 @@ class GameShopServiceTest extends TestCase
             'type' => 'amulet',
             'required_level' => 8,
         ]);
-        $amuletStats = $method->invoke($this->service, $amulet);
+        $amuletStats = $calculator->generateRandomStats($amulet);
         $this->assertArrayHasKey('max_hp', $amuletStats);
         $this->assertArrayHasKey('max_mana', $amuletStats);
 
@@ -859,16 +856,14 @@ class GameShopServiceTest extends TestCase
             'sub_type' => 'hp',
             'required_level' => 5,
         ]);
-        $potionStats = $method->invoke($this->service, $potion);
+        $potionStats = $calculator->generateRandomStats($potion);
         $this->assertArrayHasKey('restore', $potionStats);
         $this->assertTrue(isset($potionStats['max_hp']) || isset($potionStats['max_mana']));
     }
 
     public function test_calculate_buy_price_uses_base_stats_price_and_config_fallbacks(): void
     {
-        $reflection = new \ReflectionClass($this->service);
-        $method = $reflection->getMethod('calculateBuyPrice');
-        $method->setAccessible(true);
+        $calculator = new InventoryItemCalculator;
 
         $baseStatsPriceItem = $this->createItemDefinition([
             'name' => '基础价物品',
@@ -878,7 +873,7 @@ class GameShopServiceTest extends TestCase
             'type' => 'weapon',
         ]);
 
-        $priceFromBaseStats = $method->invoke($this->service, $baseStatsPriceItem, ['attack' => 10], 'common');
+        $priceFromBaseStats = $calculator->calculateBuyPrice($baseStatsPriceItem, ['attack' => 10], 'common');
         $this->assertSame(345, $priceFromBaseStats);
 
         config([
@@ -896,7 +891,7 @@ class GameShopServiceTest extends TestCase
             'type' => 'weapon',
         ]);
 
-        $priceWithFallbacks = $method->invoke($this->service, $configFallbackItem, ['attack' => 10], 'mythic');
+        $priceWithFallbacks = $calculator->calculateBuyPrice($configFallbackItem, ['attack' => 10], 'mythic');
         $this->assertSame(24000, $priceWithFallbacks);
     }
 
@@ -957,9 +952,7 @@ class GameShopServiceTest extends TestCase
 
     public function test_generate_random_stats_covers_rare_random_branches(): void
     {
-        $reflection = new \ReflectionClass($this->service);
-        $method = $reflection->getMethod('generateRandomStats');
-        $method->setAccessible(true);
+        $calculator = new InventoryItemCalculator;
 
         $helmet = $this->createItemDefinition([
             'name' => '随机头盔',
@@ -990,12 +983,12 @@ class GameShopServiceTest extends TestCase
         $amuletDefense = false;
 
         for ($i = 0; $i < 500; $i++) {
-            $helmetStats = $method->invoke($this->service, $helmet);
+            $helmetStats = $calculator->generateRandomStats($helmet);
             if (isset($helmetStats['crit_rate'])) {
                 $helmetCrit = true;
             }
 
-            $ringStats = $method->invoke($this->service, $ring);
+            $ringStats = $calculator->generateRandomStats($ring);
             if ((array_key_first($ringStats) === 'crit_rate')) {
                 $ringFirstCrit = true;
             }
@@ -1010,12 +1003,12 @@ class GameShopServiceTest extends TestCase
                 }
             }
 
-            $bootsStats = $method->invoke($this->service, $boots);
+            $bootsStats = $calculator->generateRandomStats($boots);
             if (isset($bootsStats['dexterity'])) {
                 $bootsDexterity = true;
             }
 
-            $amuletStats = $method->invoke($this->service, $amulet);
+            $amuletStats = $calculator->generateRandomStats($amulet);
             if (isset($amuletStats['defense'])) {
                 $amuletDefense = true;
             }
@@ -1035,9 +1028,7 @@ class GameShopServiceTest extends TestCase
 
     public function test_calculate_buy_price_uses_type_base_price_when_config_is_array(): void
     {
-        $reflection = new \ReflectionClass($this->service);
-        $method = $reflection->getMethod('calculateBuyPrice');
-        $method->setAccessible(true);
+        $calculator = new InventoryItemCalculator;
 
         config([
             'game.shop.level_price_multiplier' => 0,
@@ -1054,7 +1045,7 @@ class GameShopServiceTest extends TestCase
             'base_stats' => [],
         ]);
 
-        $price = $method->invoke($this->service, $item, [], 'common');
+        $price = $calculator->calculateBuyPrice($item, [], 'common');
 
         $this->assertSame(7700, $price);
     }
