@@ -232,7 +232,7 @@ class GameInventoryService
             throw new \InvalidArgumentException('物品数量不足');
         }
 
-        $sellPrice = $this->itemCalculator->calculateSellPrice($item) * $quantity;
+        $sellPrice = $item->calculateSellPrice() * $quantity;
 
         return DB::transaction(function () use ($character, $item, $quantity, $sellPrice) {
             $character->copper += $sellPrice;
@@ -388,7 +388,7 @@ class GameInventoryService
                     continue;
                 }
 
-                $price = $this->itemCalculator->calculateSellPrice($item) * $item->quantity;
+                $price = $item->calculateSellPrice() * $item->quantity;
                 $totalPrice += $price;
                 $count++;
                 $item->delete();
@@ -440,7 +440,7 @@ class GameInventoryService
     {
         foreach ($items as $item) {
             if (! isset($item->sell_price) || $item->sell_price === 0) {
-                $item->sell_price = $this->itemCalculator->calculateSellPrice($item);
+                $item->sell_price = $item->calculateSellPrice();
                 $item->saveQuietly();
             }
         }
