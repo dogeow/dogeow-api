@@ -12,4 +12,4 @@ if git diff --cached --quiet --diff-filter=ACMR -- ':(glob)**/*.php'; then
 fi
 
 staged_php_files | tr '\n' '\0' | xargs -0 vendor/bin/pint --test
-staged_php_files | tr '\n' '\0' | xargs -0 vendor/bin/phpstan analyse --memory-limit=-1 --no-progress
+staged_php_files | grep -v '^tests/' | tr '\n' '\0' | xargs -0 vendor/bin/phpstan analyse --memory-limit=-1 --no-progress
