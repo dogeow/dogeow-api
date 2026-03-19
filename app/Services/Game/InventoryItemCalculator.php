@@ -17,11 +17,11 @@ class InventoryItemCalculator
     {
         $definition = $item->definition;
         /** @var GameItemDefinition|null $definition */
+        // calculateBuyPrice already includes quality multiplier, so don't multiply again
         $basePrice = $this->calculateBuyPrice($definition, $item->stats ?? [], $item->quality);
-        $qualityMultiplier = GameItem::QUALITY_MULTIPLIERS[$item->quality] ?? 1.0;
         $sellRatio = (float) config('game.shop.sell_ratio', 0.3);
 
-        return (int) ($basePrice * $qualityMultiplier * $sellRatio);
+        return (int) ($basePrice * $sellRatio);
     }
 
     /**
