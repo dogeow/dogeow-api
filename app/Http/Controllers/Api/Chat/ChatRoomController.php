@@ -107,13 +107,13 @@ class ChatRoomController extends Controller
     /**
      * Join room
      */
-    public function join(int $roomId): JsonResponse
+    public function join(string|int $roomId): JsonResponse
     {
         $userId = null;
         $resolvedRoomId = null;
 
         try {
-            [$userId, $resolvedRoomId] = $this->resolveUserAndRoomId($roomId);
+            [$userId, $resolvedRoomId] = $this->resolveUserAndRoomId((int) $roomId);
             $result = $this->chatService->joinRoom($resolvedRoomId, $userId);
 
             if (empty($result['success'])) {
@@ -144,13 +144,13 @@ class ChatRoomController extends Controller
     /**
      * Leave room
      */
-    public function leave(int $roomId): JsonResponse
+    public function leave(string|int $roomId): JsonResponse
     {
         $userId = null;
         $resolvedRoomId = null;
 
         try {
-            [$userId, $resolvedRoomId] = $this->resolveUserAndRoomId($roomId);
+            [$userId, $resolvedRoomId] = $this->resolveUserAndRoomId((int) $roomId);
             $result = $this->chatService->leaveRoom($resolvedRoomId, $userId);
 
             if (empty($result['success'])) {
@@ -178,13 +178,13 @@ class ChatRoomController extends Controller
     /**
      * Delete room (creator only)
      */
-    public function destroy(int $roomId): JsonResponse
+    public function destroy(string|int $roomId): JsonResponse
     {
         $userId = null;
         $resolvedRoomId = null;
 
         try {
-            [$userId, $resolvedRoomId] = $this->resolveUserAndRoomId($roomId);
+            [$userId, $resolvedRoomId] = $this->resolveUserAndRoomId((int) $roomId);
             $result = $this->chatService->deleteRoom($resolvedRoomId, $userId);
 
             if (empty($result['success'])) {

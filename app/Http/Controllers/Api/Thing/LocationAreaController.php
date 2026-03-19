@@ -118,7 +118,7 @@ class LocationAreaController extends Controller
      */
     public function setDefault(Area $area)
     {
-        if ($error = $this->authorizeOrFail('update', $area, '无权设置默认区域')) {
+        if ($error = $this->authorizeOrFail('update', $area, '无权设置此区域为默认')) {
             return $error;
         }
 

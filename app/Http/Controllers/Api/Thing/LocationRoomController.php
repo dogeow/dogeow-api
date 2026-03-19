@@ -85,6 +85,14 @@ class LocationRoomController extends Controller
             return $error;
         }
 
+        // 检查 area_id 是否属于当前用户
+        if ($request->filled('area_id')) {
+            $area = Area::find($request->input('area_id'));
+            if (! $area || $area->user_id !== auth()->id()) {
+                return $this->error('无权将房间移动到此区域', [], 403);
+            }
+        }
+
         $room->update($request->validated());
 
         return $this->success(['room' => $room], '房间更新成功');
@@ -101,7 +109,7 @@ class LocationRoomController extends Controller
 
         // 检查房间是否有关联的位置
         if ($room->spots()->count() > 0) {
-            return $this->error('无法删除已有位置的房间', [], 400);
+            return $this->error('无法删除已有具体位置的房间', [], 400);
         }
 
         $room->delete();

@@ -84,6 +84,14 @@ class LocationSpotController extends Controller
             return $error;
         }
 
+        // 检查 room_id 是否属于当前用户
+        if ($request->filled('room_id')) {
+            $room = Room::find($request->input('room_id'));
+            if (! $room || $room->user_id !== auth()->id()) {
+                return $this->error('无权将具体位置移动到此房间', [], 403);
+            }
+        }
+
         $spot->update($request->validated());
 
         return $this->success(['spot' => $spot], '具体位置更新成功');

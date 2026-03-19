@@ -63,6 +63,27 @@ class ItemSearchService
     }
 
     /**
+     * 记录搜索历史（指定用户）
+     */
+    public function recordSearchHistoryWithUser(int $userId, string $searchTerm, int $resultsCount, Request $request): void
+    {
+        try {
+            DB::table('thing_search_history')->insert([
+                'user_id' => $userId,
+                'search_term' => $searchTerm,
+                'results_count' => $resultsCount,
+                'filters' => json_encode($request->except(['q', 'limit'])),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (\Exception $e) {
+            // 记录失败不影响主要功能
+            Log::warning('记录搜索历史失败: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * 获取搜索建议
      */
     public function getSuggestions(string $query, int $limit = 5)
