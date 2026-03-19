@@ -55,6 +55,7 @@ class InventoryEquipmentHelper
      */
     public function getOrCreateEquipmentSlot(GameCharacter $character, string $slot): GameEquipment
     {
+        /** @var GameEquipment|null $equipmentSlot */
         $equipmentSlot = $character->equipment()->where('slot', $slot)->first();
 
         if (! $equipmentSlot) {
