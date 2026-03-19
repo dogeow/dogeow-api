@@ -15,44 +15,17 @@ use App\Services\Chat\ContentFilterService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ChatReportController extends Controller
 {
+    use ChatControllerHelpers;
+
     public function __construct(protected ContentFilterService $contentFilterService) {}
 
     /**
-     * 获取活跃房间
-     */
-    private function findActiveRoom(int $roomId): ChatRoom
-    {
-        return ChatRoom::active()->findOrFail($roomId);
-    }
-
-    /**
-     * 获取当前用户
-     */
-    private function getUser(): User
-    {
-        return Auth::user();
-    }
-
-    /**
-     * 检查是否有房间管理权限
-     */
-    private function ensureCanModerate(User $user, ChatRoom $room, string $message): ?JsonResponse
-    {
-        if (! $user->canModerate($room)) {
-            return $this->error($message, [], 403);
-        }
-
-        return null;
-    }
-
-    /**
-     * 检查是否是管理员
+     * Check if user is an admin
      */
     private function ensureAdmin(User $user, string $message): ?JsonResponse
     {
@@ -70,7 +43,7 @@ class ChatReportController extends Controller
     {
         $this->findActiveRoom($roomId);
         $message = ChatMessage::where('room_id', $roomId)->findOrFail($messageId);
-        $reporter = $this->getUser();
+        $reporter = $this->getModerator();
 
         if ($message->user_id === $reporter->id) {
             return $this->error('You cannot report your own message');
@@ -130,7 +103,7 @@ class ChatReportController extends Controller
     public function getRoomReports(Request $request, int $roomId): JsonResponse
     {
         $room = $this->findActiveRoom($roomId);
-        $user = $this->getUser();
+        $user = $this->getModerator();
 
         $guard = $this->ensureCanModerate($user, $room, 'You are not authorized to view reports for this room');
         if ($guard) {
@@ -170,7 +143,7 @@ class ChatReportController extends Controller
      */
     public function getAllReports(Request $request): JsonResponse
     {
-        $user = $this->getUser();
+        $user = $this->getModerator();
 
         $guard = $this->ensureAdmin($user, 'You are not authorized to view all reports');
         if ($guard) {
@@ -216,7 +189,7 @@ class ChatReportController extends Controller
     public function reviewReport(ReviewReportRequest $request, int $reportId): JsonResponse
     {
         $report = ChatMessageReport::with(['room', 'message'])->findOrFail($reportId);
-        $reviewer = $this->getUser();
+        $reviewer = $this->getModerator();
 
         $room = $report->room;
         if (! $room instanceof ChatRoom) {
@@ -288,7 +261,7 @@ class ChatReportController extends Controller
      */
     public function getReportStats(Request $request): JsonResponse
     {
-        $user = $this->getUser();
+        $user = $this->getModerator();
         $roomId = $request->input('room_id');
         $days = (int) $request->input('days', 7);
 

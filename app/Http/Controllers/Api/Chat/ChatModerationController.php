@@ -19,91 +19,12 @@ use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ChatModerationController extends Controller
 {
-    /**
-     * 获取活跃房间
-     */
-    private function findActiveRoom(int $roomId): ChatRoom
-    {
-        return ChatRoom::active()->findOrFail($roomId);
-    }
-
-    /**
-     * 获取当前操作员
-     */
-    private function getModerator(): User
-    {
-        return Auth::user();
-    }
-
-    /**
-     * 检查是否有房间管理权限
-     */
-    private function ensureCanModerate(User $moderator, ChatRoom $room, string $message): ?JsonResponse
-    {
-        if (! $moderator->canModerate($room)) {
-            return $this->error($message, [], 403);
-        }
-
-        return null;
-    }
-
-    /**
-     * 防止对自己执行操作
-     */
-    private function ensureNotSelfModeration(int $moderatorId, int $targetUserId, string $message): ?JsonResponse
-    {
-        if ($targetUserId === $moderatorId) {
-            return $this->error($message, [], 422);
-        }
-
-        return null;
-    }
-
-    /**
-     * 获取房间成员记录
-     */
-    private function findRoomUser(int $roomId, int $userId): ?ChatRoomUser
-    {
-        return ChatRoomUser::where('room_id', $roomId)
-            ->where('user_id', $userId)
-            ->first();
-    }
-
-    /**
-     * 统一记录错误并返回错误响应
-     */
-    private function logAndError(string $logMessage, \Throwable $e, array $context, string $userMessage, int $statusCode = 500): JsonResponse
-    {
-        Log::error($logMessage, array_merge($context, [
-            'error' => $e->getMessage(),
-        ]));
-
-        return $this->error($userMessage, [], $statusCode);
-    }
-
-    /**
-     * 解析分页与筛选参数
-     *
-     * @return array{per_page:int, action_type:?string, target_user_id:mixed}
-     */
-    private function parseModerationFilters(Request $request): array
-    {
-        if ($request instanceof GetModerationActionsRequest) {
-            return $request->validatedFilters();
-        }
-
-        return [
-            'per_page' => (int) $request->get('per_page', 20),
-            'action_type' => $request->get('action_type'),
-            'target_user_id' => $request->get('target_user_id'),
-        ];
-    }
+    use ChatControllerHelpers;
 
     /**
      * Delete a message (admin/moderator only).

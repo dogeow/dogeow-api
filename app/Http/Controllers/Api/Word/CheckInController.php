@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Word;
 use App\Http\Controllers\Controller;
 use App\Models\Word\CheckIn;
 use App\Models\Word\UserWord;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
@@ -77,25 +78,7 @@ class CheckInController extends Controller
         $startDate = now()->setYear($year)->setMonth($month)->startOfMonth();
         $endDate = now()->setYear($year)->setMonth($month)->endOfMonth();
 
-        $checkIns = CheckIn::where('user_id', $user->id)
-            ->whereBetween('check_in_date', [$startDate, $endDate])
-            ->get()
-            ->keyBy(fn ($item) => \Carbon\Carbon::parse($item->check_in_date)->toDateString());
-
-        // 生成该月所有日期的打卡状态
-        $calendar = [];
-        $currentDate = $startDate->copy();
-        while ($currentDate->lte($endDate)) {
-            $dateStr = $currentDate->toDateString();
-            $checkIn = $checkIns->get($dateStr);
-            $calendar[] = [
-                'date' => $dateStr,
-                'checked' => $checkIns->has($dateStr),
-                'new_words_count' => $checkIn !== null ? ($checkIn->new_words_count ?? 0) : 0,
-                'review_words_count' => $checkIn !== null ? ($checkIn->review_words_count ?? 0) : 0,
-            ];
-            $currentDate->addDay();
-        }
+        $calendar = $this->generateCalendar($user->id, $startDate, $endDate);
 
         return response()->json([
             'year' => $year,
@@ -114,24 +97,7 @@ class CheckInController extends Controller
         $startDate = now()->setYear($year)->startOfYear();
         $endDate = now()->setYear($year)->endOfYear();
 
-        $checkIns = CheckIn::where('user_id', $user->id)
-            ->whereBetween('check_in_date', [$startDate, $endDate])
-            ->get()
-            ->keyBy(fn ($item) => \Carbon\Carbon::parse($item->check_in_date)->toDateString());
-
-        $calendar = [];
-        $currentDate = $startDate->copy();
-        while ($currentDate->lte($endDate)) {
-            $dateStr = $currentDate->toDateString();
-            $checkIn = $checkIns->get($dateStr);
-            $calendar[] = [
-                'date' => $dateStr,
-                'checked' => $checkIns->has($dateStr),
-                'new_words_count' => $checkIn !== null ? ($checkIn->new_words_count ?? 0) : 0,
-                'review_words_count' => $checkIn !== null ? ($checkIn->review_words_count ?? 0) : 0,
-            ];
-            $currentDate->addDay();
-        }
+        $calendar = $this->generateCalendar($user->id, $startDate, $endDate);
 
         return response()->json([
             'year' => $year,
@@ -149,10 +115,26 @@ class CheckInController extends Controller
         $endDate = now()->endOfDay();
         $startDate = now()->startOfDay()->subDays(364); // 共 365 天
 
-        $checkIns = CheckIn::where('user_id', $user->id)
+        $calendar = $this->generateCalendar($user->id, $startDate, $endDate);
+
+        return response()->json([
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
+            'calendar' => $calendar,
+        ]);
+    }
+
+    /**
+     * Generate calendar data for a date range
+     *
+     * @return array<int, array{date: string, checked: bool, new_words_count: int, review_words_count: int}>
+     */
+    private function generateCalendar(int $userId, Carbon $startDate, Carbon $endDate): array
+    {
+        $checkIns = CheckIn::where('user_id', $userId)
             ->whereBetween('check_in_date', [$startDate, $endDate])
             ->get()
-            ->keyBy(fn ($item) => \Carbon\Carbon::parse($item->check_in_date)->toDateString());
+            ->keyBy(fn ($item) => Carbon::parse($item->check_in_date)->toDateString());
 
         $calendar = [];
         $currentDate = $startDate->copy();
@@ -168,11 +150,7 @@ class CheckInController extends Controller
             $currentDate->addDay();
         }
 
-        return response()->json([
-            'start_date' => $startDate->toDateString(),
-            'end_date' => $endDate->toDateString(),
-            'calendar' => $calendar,
-        ]);
+        return $calendar;
     }
 
     /**

@@ -3,39 +3,11 @@
 namespace App\Http\Controllers\Api\Chat;
 
 use App\Http\Controllers\Controller;
-use App\Models\Chat\ChatRoom;
-use App\Models\Chat\ChatRoomUser;
-use App\Models\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
 
 class ChatUserModerationController extends Controller
 {
-    private function findActiveRoom(int $roomId): ChatRoom
-    {
-        return ChatRoom::active()->findOrFail($roomId);
-    }
-
-    private function getModerator(): User
-    {
-        return Auth::user();
-    }
-
-    private function ensureCanModerate(User $moderator, ChatRoom $room, string $message): ?JsonResponse
-    {
-        if (! $moderator->canModerate($room)) {
-            return $this->error($message, [], 403);
-        }
-
-        return null;
-    }
-
-    private function findRoomUser(int $roomId, int $userId): ?ChatRoomUser
-    {
-        return ChatRoomUser::where('room_id', $roomId)
-            ->where('user_id', $userId)
-            ->first();
-    }
+    use ChatControllerHelpers;
 
     /**
      * Get user's moderation status in a room.
