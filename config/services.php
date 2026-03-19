@@ -77,8 +77,11 @@ return [
     ],
 
     'minimax' => [
-        'api_key' => env('MINIMAX_API_KEY'),
+        'token_api_key' => env('MINIMAX_TOKEN_API_KEY'),
+        'balance_api_key' => env('MINIMAX_BALANCE_API_KEY'),
         'group_id' => env('MINIMAX_GROUP_ID'),
+        'api_base_url' => env('MINIMAX_API_BASE_URL', 'https://api.minimaxi.com'),
+        'roleplay_model' => env('MINIMAX_ROLEPLAY_MODEL', 'M2-her'),
     ],
 
 ];

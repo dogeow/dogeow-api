@@ -1,1 +1,15 @@
-cd "$(dirname "$0")/.." && vendor/bin/pint --test && vendor/bin/phpstan analyse --memory-limit=-1
+#!/usr/bin/env sh
+set -e
+
+cd "$(dirname "$0")/.."
+
+staged_php_files() {
+  git diff --cached --name-only --diff-filter=ACMR -- ':(glob)**/*.php'
+}
+
+if git diff --cached --quiet --diff-filter=ACMR -- ':(glob)**/*.php'; then
+  exit 0
+fi
+
+staged_php_files | tr '\n' '\0' | xargs -0 vendor/bin/pint --test
+staged_php_files | tr '\n' '\0' | xargs -0 vendor/bin/phpstan analyse --memory-limit=-1 --no-progress
