@@ -229,50 +229,49 @@ class ChatReportController extends Controller
         }
 
         try {
-            DB::beginTransaction();
+            $result = DB::transaction(function () use ($request, $report, $reviewer) {
+                $action = $request->action;
+                $notes = $request->notes;
 
-            $action = $request->action;
-            $notes = $request->notes;
+                match ((string) $action) {
+                    'resolve' => $report->markAsResolved($reviewer->id, $notes),
+                    'dismiss' => $report->markAsDismissed($reviewer->id, $notes),
+                    'escalate' => $report->markAsReviewed($reviewer->id, $notes),
+                    default => null,
+                };
 
-            match ((string) $action) {
-                'resolve' => $report->markAsResolved($reviewer->id, $notes),
-                'dismiss' => $report->markAsDismissed($reviewer->id, $notes),
-                'escalate' => $report->markAsReviewed($reviewer->id, $notes),
-                default => null,
-            };
+                $actionsPerformed = [];
 
-            $actionsPerformed = [];
-
-            if ($request->delete_message && $report->message) {
-                $report->message->delete();
-                $actionsPerformed[] = 'message_deleted';
-            }
-
-            if ($request->mute_user && $report->message) {
-                $roomUser = ChatRoomUser::where('room_id', $report->room_id)
-                    ->where('user_id', $report->message->user_id)
-                    ->first();
-
-                if ($roomUser) {
-                    $muteDuration = $request->mute_duration ?? 60;
-                    $roomUser->update([
-                        'is_muted' => true,
-                        'muted_until' => now()->addMinutes($muteDuration),
-                        'muted_by' => $reviewer->id,
-                    ]);
-                    $actionsPerformed[] = 'user_muted';
+                if ($request->delete_message && $report->message) {
+                    $report->message->delete();
+                    $actionsPerformed[] = 'message_deleted';
                 }
-            }
 
-            DB::commit();
+                if ($request->mute_user && $report->message) {
+                    $roomUser = ChatRoomUser::where('room_id', $report->room_id)
+                        ->where('user_id', $report->message->user_id)
+                        ->first();
 
-            return $this->success([
-                'report' => $report->fresh(['reporter:id,name,email', 'reviewer:id,name,email']),
-                'action' => $action,
-                'actions_performed' => $actionsPerformed,
-            ], 'Report reviewed successfully');
+                    if ($roomUser) {
+                        $muteDuration = $request->mute_duration ?? 60;
+                        $roomUser->update([
+                            'is_muted' => true,
+                            'muted_until' => now()->addMinutes($muteDuration),
+                            'muted_by' => $reviewer->id,
+                        ]);
+                        $actionsPerformed[] = 'user_muted';
+                    }
+                }
+
+                return [
+                    'report' => $report->fresh(['reporter:id,name,email', 'reviewer:id,name,email']),
+                    'action' => $action,
+                    'actions_performed' => $actionsPerformed,
+                ];
+            });
+
+            return $this->success($result, 'Report reviewed successfully');
         } catch (\Exception $e) {
-            DB::rollBack();
 
             Log::error('Failed to review report', [
                 'report_id' => $reportId,

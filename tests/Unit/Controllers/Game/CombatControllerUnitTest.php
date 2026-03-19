@@ -10,6 +10,7 @@ use App\Models\Game\GameCharacter;
 use App\Models\Game\GameItem;
 use App\Models\Game\GameItemDefinition;
 use App\Models\User;
+use App\Services\Cache\RedisLockService;
 use App\Services\Game\GameCombatService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
@@ -22,6 +23,8 @@ class CombatControllerUnitTest extends TestCase
 {
     private GameCombatService $combatService;
 
+    private RedisLockService $redisLockService;
+
     private CombatController $controller;
 
     protected function setUp(): void
@@ -29,7 +32,8 @@ class CombatControllerUnitTest extends TestCase
         parent::setUp();
 
         $this->combatService = Mockery::mock(GameCombatService::class);
-        $this->controller = new CombatController($this->combatService);
+        $this->redisLockService = Mockery::mock(RedisLockService::class);
+        $this->controller = new CombatController($this->combatService, $this->redisLockService);
     }
 
     protected function tearDown(): void
@@ -194,6 +198,16 @@ class CombatControllerUnitTest extends TestCase
         $user = User::factory()->create();
         $character = $this->createCharacter($user);
 
+        // Lock would be acquired, but Redis shows combat already running
+        $this->redisLockService->shouldReceive('lock')
+            ->once()
+            ->with('combat_start:' . $character->id, 5)
+            ->andReturn('mock-token');
+        $this->redisLockService->shouldReceive('release')
+            ->once()
+            ->with('combat_start:' . $character->id, 'mock-token')
+            ->andReturnTrue();
+
         Redis::shouldReceive('get')->once()->with(AutoCombatRoundJob::redisKey($character->id))->andReturn('{"skill_ids":[1]}');
 
         $response = $this->controller->start($this->makeRequest($user, $character));
@@ -211,6 +225,15 @@ class CombatControllerUnitTest extends TestCase
         $user = User::factory()->create();
         $character = $this->createCharacter($user);
         $request = $this->makeRequest($user, $character, ['skill_ids' => ['2', '7']]);
+
+        $this->redisLockService->shouldReceive('lock')
+            ->once()
+            ->with('combat_start:' . $character->id, 5)
+            ->andReturn('mock-token');
+        $this->redisLockService->shouldReceive('release')
+            ->once()
+            ->with('combat_start:' . $character->id, 'mock-token')
+            ->andReturnTrue();
 
         Redis::shouldReceive('get')->once()->with(AutoCombatRoundJob::redisKey($character->id))->andReturn(null);
         Redis::shouldReceive('setex')
@@ -239,6 +262,15 @@ class CombatControllerUnitTest extends TestCase
         $user = User::factory()->create();
         $character = $this->createCharacter($user);
 
+        $this->redisLockService->shouldReceive('lock')
+            ->once()
+            ->with('combat_start:' . $character->id, 5)
+            ->andReturn('mock-token');
+        $this->redisLockService->shouldReceive('release')
+            ->once()
+            ->with('combat_start:' . $character->id, 'mock-token')
+            ->andReturnTrue();
+
         Redis::shouldReceive('get')->once()->with(AutoCombatRoundJob::redisKey($character->id))->andReturn(null);
         Redis::shouldReceive('setex')
             ->once()
@@ -263,6 +295,15 @@ class CombatControllerUnitTest extends TestCase
 
         $user = User::factory()->create();
         $character = $this->createCharacter($user);
+
+        $this->redisLockService->shouldReceive('lock')
+            ->once()
+            ->with('combat_start:' . $character->id, 5)
+            ->andReturn('mock-token');
+        $this->redisLockService->shouldReceive('release')
+            ->once()
+            ->with('combat_start:' . $character->id, 'mock-token')
+            ->andReturnTrue();
 
         Redis::shouldReceive('get')
             ->once()
