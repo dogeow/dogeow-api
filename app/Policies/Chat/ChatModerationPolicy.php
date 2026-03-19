@@ -25,7 +25,7 @@ class ChatModerationPolicy
     public function mute(User $user, ChatRoom $room, ChatRoomUser $roomUser): bool
     {
         if ($room->created_by === $user->id || $user->hasRole('admin')) {
-            return $roomUser->user_id !== $user->id;
+            return $roomUser->user_id !== $user->id && $roomUser->room_id === $room->id;
         }
 
         return false;
@@ -37,7 +37,7 @@ class ChatModerationPolicy
     public function ban(User $user, ChatRoom $room, ChatRoomUser $roomUser): bool
     {
         if ($room->created_by === $user->id || $user->hasRole('admin')) {
-            return $roomUser->user_id !== $user->id;
+            return $roomUser->user_id !== $user->id && $roomUser->room_id === $room->id;
         }
 
         return false;
@@ -49,7 +49,7 @@ class ChatModerationPolicy
     public function kick(User $user, ChatRoom $room, ChatRoomUser $roomUser): bool
     {
         if ($room->created_by === $user->id || $user->hasRole('admin')) {
-            return $roomUser->user_id !== $user->id;
+            return $roomUser->user_id !== $user->id && $roomUser->room_id === $room->id;
         }
 
         return false;

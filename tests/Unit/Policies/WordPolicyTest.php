@@ -85,12 +85,20 @@ class WordPolicyTest extends TestCase
         $this->assertFalse($this->policy->delete($user, $word));
     }
 
-    public function test_review_returns_true(): void
+    public function test_review_returns_true_for_owner(): void
+    {
+        $user = $this->createUser(1);
+        $word = $this->createWord(1);
+
+        $this->assertTrue($this->policy->review($user, $word));
+    }
+
+    public function test_review_returns_false_for_non_owner(): void
     {
         $user = $this->createUser(1);
         $word = $this->createWord(999);
 
-        $this->assertTrue($this->policy->review($user, $word));
+        $this->assertFalse($this->policy->review($user, $word));
     }
 
     public function test_mark_learned_returns_true_for_owner(): void

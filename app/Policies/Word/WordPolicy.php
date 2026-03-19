@@ -55,7 +55,7 @@ class WordPolicy
      */
     public function review(User $user, Word $word): bool
     {
-        return true;
+        return $word->user_id === $user->id;
     }
 
     /**

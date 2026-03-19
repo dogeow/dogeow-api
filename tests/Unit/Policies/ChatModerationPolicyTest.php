@@ -34,10 +34,11 @@ class ChatModerationPolicyTest extends TestCase
         return $room;
     }
 
-    private function createRoomUser(int $userId): ChatRoomUser
+    private function createRoomUser(int $userId, int $roomId = 1): ChatRoomUser
     {
         $roomUser = new ChatRoomUser;
         $roomUser->user_id = $userId;
+        $roomUser->room_id = $roomId;
 
         return $roomUser;
     }
@@ -135,6 +136,36 @@ class ChatModerationPolicyTest extends TestCase
         $user = $this->createUser(1);
         $room = $this->createRoom(999);
         $roomUser = $this->createRoomUser(888);
+
+        $this->assertFalse($this->policy->kick($user, $room, $roomUser));
+    }
+
+    public function test_mute_returns_false_for_user_not_in_room(): void
+    {
+        $user = $this->createUser(1);
+        $room = $this->createRoom(1);
+        // User 999 is in room 2, not room 1
+        $roomUser = $this->createRoomUser(999, 2);
+
+        $this->assertFalse($this->policy->mute($user, $room, $roomUser));
+    }
+
+    public function test_ban_returns_false_for_user_not_in_room(): void
+    {
+        $user = $this->createUser(1);
+        $room = $this->createRoom(1);
+        // User 999 is in room 2, not room 1
+        $roomUser = $this->createRoomUser(999, 2);
+
+        $this->assertFalse($this->policy->ban($user, $room, $roomUser));
+    }
+
+    public function test_kick_returns_false_for_user_not_in_room(): void
+    {
+        $user = $this->createUser(1);
+        $room = $this->createRoom(1);
+        // User 999 is in room 2, not room 1
+        $roomUser = $this->createRoomUser(999, 2);
 
         $this->assertFalse($this->policy->kick($user, $room, $roomUser));
     }

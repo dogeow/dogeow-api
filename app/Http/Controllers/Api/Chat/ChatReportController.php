@@ -406,7 +406,7 @@ class ChatReportController extends Controller
 
         ChatModerationAction::create([
             'room_id' => $roomId,
-            'moderator_id' => 1,
+            'moderator_id' => null,
             'target_user_id' => $message->user_id,
             'message_id' => $messageId,
             'action_type' => ChatModerationAction::ACTION_DELETE_MESSAGE,
@@ -423,7 +423,7 @@ class ChatReportController extends Controller
             ->where('status', ChatMessageReport::STATUS_PENDING)
             ->update([
                 'status' => ChatMessageReport::STATUS_RESOLVED,
-                'reviewed_by' => 1,
+                'reviewed_by' => null,
                 'reviewed_at' => now(),
                 'review_notes' => 'Auto-resolved due to message deletion from multiple reports',
             ]);
