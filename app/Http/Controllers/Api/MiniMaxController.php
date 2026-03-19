@@ -237,24 +237,31 @@ class MiniMaxController extends Controller
      */
     public function billing(): JsonResponse
     {
-        $apiKey = $this->getBalanceApiKey();
-        $groupId = config('services.minimax.group_id');
-
-        if (empty($apiKey)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'MiniMax Balance API Key 未配置，请设置 MINIMAX_BALANCE_API_KEY',
-            ], 500);
-        }
-
-        if (empty($groupId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'MiniMax Group ID 未配置，请在 .env 中设置 MINIMAX_GROUP_ID',
-            ], 500);
-        }
-
         try {
+            $apiKey = $this->getBalanceApiKey();
+            $groupId = config('services.minimax.group_id');
+
+            Log::info('[MiniMax] billing 配置检查', [
+                'apiKey_exists' => ! empty($apiKey),
+                'apiKey_length' => $apiKey ? strlen($apiKey) : 0,
+                'groupId' => $groupId,
+                'services_config' => config('services.minimax'),
+            ]);
+
+            if (empty($apiKey)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'MiniMax Balance API Key 未配置，请设置 MINIMAX_BALANCE_API_KEY',
+                ], 500);
+            }
+
+            if (empty($groupId)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'MiniMax Group ID 未配置，请在 .env 中设置 MINIMAX_GROUP_ID',
+                ], 500);
+            }
+
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type' => 'application/json',
@@ -283,7 +290,7 @@ class MiniMaxController extends Controller
                 'data' => $response->json(),
             ]);
         } catch (\Exception $e) {
-            Log::error('[MiniMax] 账单异常', ['error' => $e->getMessage()]);
+            Log::error('[MiniMax] 账单异常', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
 
             return response()->json([
                 'success' => false,
