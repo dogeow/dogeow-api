@@ -24,9 +24,6 @@ test_files=$(echo "$changed_files" | grep '^tests/.*\.php$' | tr '\n' ' ')
 app_files=$(echo "$changed_files" | grep '^app/.*\.php$')
 if [ -n "$app_files" ]; then
     for file in $app_files; do
-        # 尝试找对应的测试文件
-        # app/Models/User.php -> tests/Unit/Models/UserTest.php
-        # app/Http/Controllers/ApiController.php -> tests/Feature/ApiControllerTest.php
         base=$(basename "$file" .php)
         test_candidates="tests/Unit/**/${base}Test.php tests/Feature/**/${base}Test.php"
         for pattern in $test_candidates; do
