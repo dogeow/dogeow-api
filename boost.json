@@ -1,0 +1,17 @@
+{
+    "agents": [
+        "junie",
+        "cursor",
+        "claude_code",
+        "codex",
+        "opencode"
+    ],
+    "guidelines": true,
+    "herd_mcp": false,
+    "mcp": true,
+    "nightwatch_mcp": false,
+    "sail": false,
+    "skills": [
+        "tailwindcss-development"
+    ]
+}
