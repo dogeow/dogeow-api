@@ -142,11 +142,16 @@ class ThingItemControllerTest extends TestCase
             'is_public' => true,
         ]);
 
-        $this->getJson('/api/things/search?q=apple')->assertStatus(200);
+        $response1 = $this->getJson('/api/things/search?q=apple');
+        $response1->assertStatus(200);
+
         $this->travel(1)->seconds();
-        $this->getJson('/api/things/search?q=apple')->assertStatus(200);
+        $response2 = $this->getJson('/api/things/search?q=apple');
+        $response2->assertStatus(200);
+
         $this->travel(1)->seconds();
-        $this->getJson('/api/things/search?q=app')->assertStatus(200);
+        $response3 = $this->getJson('/api/things/search?q=app');
+        $response3->assertStatus(200);
 
         $this->assertDatabaseHas('thing_search_history', [
             'user_id' => $this->user->id,
@@ -159,7 +164,7 @@ class ThingItemControllerTest extends TestCase
 
         $historyResponse = $this->getJson('/api/things/search/history?limit=10');
         $historyResponse->assertStatus(200);
-        $history = collect($historyResponse->json());
+        $history = collect($historyResponse->json('history'));
         $this->assertCount(2, $history);
         $appleHistory = $history->firstWhere('search_term', 'apple');
         $this->assertNotNull($appleHistory);
