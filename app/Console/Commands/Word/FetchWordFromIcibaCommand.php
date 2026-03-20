@@ -189,22 +189,22 @@ class FetchWordFromIcibaCommand extends Command
                 $this->newLine();
                 $this->info("✓ {$word->content} [{$source}]");
                 if ($phonetic) {
-                    $this->line("  音标: /{$phonetic}/");
+                    $this->line("  音标：/{$phonetic}/");
                 }
-                $this->line('  释义: ' . ($zhMeaning ?: '（无）'));
+                $this->line('  释义：' . ($zhMeaning ?: '（无）'));
                 if (! empty($newExamples) && $this->hasChineseExamples($newExamples)) {
-                    $this->line('  例句: ' . count($newExamples) . ' 条（含中文）');
+                    $this->line('  例句：' . count($newExamples) . ' 条（含中文）');
                 }
                 $this->successCount++;
             } else {
                 $this->newLine();
                 $this->warn("✗ {$word->content} - 未找到数据");
-                $this->line('  已尝试: 有道 API、有道(网页)');
-                $this->line('  已获取音标: （无）');
-                $this->line('  已获取释义: （无）');
+                $this->line('  已尝试：有道 API、有道（网页）');
+                $this->line('  已获取音标：（无）');
+                $this->line('  已获取释义：（无）');
                 if (! empty($examples)) {
                     $hasZh = $this->hasChineseExamples($examples);
-                    $this->line('  已获取例句: ' . count($examples) . ' 条（' . ($hasZh ? '含中文，但因释义/音标未获取未写入' : '无中文未采用') . '）');
+                    $this->line('  已获取例句：' . count($examples) . ' 条（' . ($hasZh ? '含中文，但因释义/音标未获取未写入' : '无中文未采用') . '）');
                     foreach (array_slice($examples, 0, 5) as $i => $ex) {
                         $en = $ex['en'] ?? '';
                         $zh = $ex['zh'] ?? '';
@@ -234,12 +234,12 @@ class FetchWordFromIcibaCommand extends Command
             $fetcher = $this->getFetcher();
             $html = $fetcher->fetchYoudaoResultHtml($word);
             if ($html === null) {
-                $this->line('  诊断: 有道网页请求失败或超时');
+                $this->line('  诊断：有道网页请求失败或超时');
 
                 return;
             }
             if (stripos($html, $word) === false && stripos($html, 'word=' . urlencode($word)) === false) {
-                $this->line('  诊断: 网页已返回，但内容中未包含该词');
+                $this->line('  诊断：网页已返回，但内容中未包含该词');
 
                 return;
             }
@@ -248,9 +248,9 @@ class FetchWordFromIcibaCommand extends Command
             $phoneticCount = $crawler->filter('.phonetic')->count();
             $perPhoneCount = $crawler->filter('.per-phone')->count();
             $senEngCount = $crawler->filter('.sen-eng')->count();
-            $this->line("  诊断: 网页已获取，页面内 .phonetic={$phoneticCount} .per-phone={$perPhoneCount} .sen-eng={$senEngCount}（若均为 0 可能页面结构已变化）");
+            $this->line("  诊断：网页已获取，页面内 .phonetic={$phoneticCount} .per-phone={$perPhoneCount} .sen-eng={$senEngCount}（若均为 0 可能页面结构已变化）");
         } catch (\Throwable $e) {
-            $this->line('  诊断: 检查时异常 - ' . $e->getMessage());
+            $this->line('  诊断：检查时异常 - ' . $e->getMessage());
         }
     }
 
@@ -274,12 +274,12 @@ class FetchWordFromIcibaCommand extends Command
             if ($levelIds) {
                 $word->educationLevels()->sync($levelIds);
                 $levelNames = EducationLevel::whereIn('id', $levelIds)->pluck('name')->all();
-                $this->line('  教育级别: ' . implode(', ', $levelNames));
+                $this->line('  教育级别：' . implode(', ', $levelNames));
             } else {
-                $this->line('  教育级别: 无（小学或未匹配）');
+                $this->line('  教育级别：无（小学或未匹配）');
             }
         } catch (\Throwable $e) {
-            $this->warn("  警告: 关联教育级别失败: {$e->getMessage()}");
+            $this->warn("  警告：关联教育级别失败: {$e->getMessage()}");
             Log::warning("关联教育级别失败: {$word->content}", ['error' => $e->getMessage()]);
         }
     }
