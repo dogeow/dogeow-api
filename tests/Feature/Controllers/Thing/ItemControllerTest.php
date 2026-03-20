@@ -252,10 +252,12 @@ class ItemControllerTest extends TestCase
         Item::factory()->create([
             'name' => 'Apple iPhone',
             'user_id' => $this->user->id,
+            'is_public' => true,
         ]);
         Item::factory()->create([
             'name' => 'Samsung Galaxy',
             'user_id' => $this->user->id,
+            'is_public' => true,
         ]);
 
         $response = $this->getJson('/api/things/search?q=iPhone');

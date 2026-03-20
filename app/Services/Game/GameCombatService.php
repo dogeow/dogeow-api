@@ -7,6 +7,7 @@ use App\Events\Game\GameInventoryUpdate;
 use App\Models\Game\GameCharacter;
 use App\Models\Game\GameMapDefinition;
 use App\Models\Game\GameMonsterDefinition;
+use App\Services\Game\DTOs\DefeatContext;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -230,7 +231,14 @@ class GameCombatService
 
         // 处理失败
         if (! empty($roundResult['defeat'])) {
-            return $this->handleDefeat($character, $map, $monster, $monsterLevel ?? 0, $monsterMaxHp, $currentRound, $roundResult, $monsterHp);
+            $defeatContext = DefeatContext::fromParams(
+                $monster,
+                $monsterLevel ?? 0,
+                $monsterMaxHp,
+                $monsterHp
+            );
+
+            return $this->handleDefeat($character, $map, $defeatContext, $currentRound, $roundResult);
         }
 
         // 检查是否所有怪物都死亡
@@ -348,30 +356,24 @@ class GameCombatService
      *
      * @param  GameCharacter  $character  角色实例
      * @param  GameMapDefinition  $map  地图实例
-     * @param  GameMonsterDefinition  $monster  怪物实例
-     * @param  int  $monsterLevel  怪物等级
-     * @param  int  $monsterMaxHp  怪物最大生命值
+     * @param  DefeatContext  $defeatContext  失败上下文DTO
      * @param  int  $currentRound  当前回合数
      * @param  array<string,mixed>  $roundResult  回合结果
-     * @param  int  $monsterHpBeforeRound  回合前怪物生命值
      * @return array 失败结果
      */
     private function handleDefeat(
         GameCharacter $character,
         GameMapDefinition $map,
-        GameMonsterDefinition $monster,
-        int $monsterLevel,
-        int $monsterMaxHp,
+        DefeatContext $defeatContext,
         int $currentRound,
-        array $roundResult,
-        int $monsterHpBeforeRound
+        array $roundResult
     ): array {
         // 失败时（显式转换为 int，避免 mixed 导致的静态分析问题）
         $character->current_hp = max(0, (int) ($roundResult['new_char_hp'] ?? 0));
         $character->is_fighting = false;
 
         // 创建失败日志
-        $combatLog = $this->combatLogService->createDefeatLog($character, $map, $monster, $roundResult, $currentRound);
+        $combatLog = $this->combatLogService->createDefeatLog($character, $map, $defeatContext->monster, $roundResult, $currentRound);
 
         // 清除战斗状态并保存
         $character->clearCombatState();
@@ -395,16 +397,16 @@ class GameCombatService
             'victory' => false,
             'defeat' => true,
             'auto_stopped' => true,
-            'monster_id' => $monster->id,
+            'monster_id' => $defeatContext->monster->id,
             'monsters' => [],
             'monster' => [
-                'name' => $monster->name,
-                'type' => $monster->type,
-                'level' => $monsterLevel,
-                'hp' => max(0, $roundResult['new_monster_hp'] ?? $monsterHpBeforeRound),
-                'max_hp' => $monsterMaxHp,
+                'name' => $defeatContext->monster->name,
+                'type' => $defeatContext->monster->type,
+                'level' => $defeatContext->monsterLevel,
+                'hp' => max(0, $roundResult['new_monster_hp'] ?? $defeatContext->monsterHpBeforeRound),
+                'max_hp' => $defeatContext->monsterMaxHp,
             ],
-            'monster_hp_before_round' => $monsterHpBeforeRound,
+            'monster_hp_before_round' => $defeatContext->monsterHpBeforeRound,
             'damage_dealt' => (int) $character->combat_total_damage_dealt,
             'damage_taken' => (int) $character->combat_total_damage_taken,
             'rounds' => $currentRound,
