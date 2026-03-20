@@ -55,9 +55,9 @@ $user->notify(new WebPushNotification(
 ));
 ```
 
-Tinker
+### Tinker
 
-```
+```php
 $userId = 1;  // 改成你要推送的用户 ID
 $user = App\Models\User::find($userId);
 $user->notify(new App\Notifications\WebPushNotification(
@@ -69,21 +69,25 @@ $user->notify(new App\Notifications\WebPushNotification(
 ));
 ```
 
-一行
+### 一行
 
-```
+```php
 App\Models\User::find(1)->notify(new App\Notifications\WebPushNotification(title: '测试', body: '来自 Tinker 的推送', url: '/chat'));
 ```
 
-查看推送次数
+### 查看推送次数
 
+```php
 App\Models\User::find(1)->pushSubscriptions()->count()
+```
 
-直接推送，不走队列
+### 直接推送，不走队列
 
+```php
 App\Models\User::find(1)->notifyNow(new App\Notifications\WebPushNotification(title: '测试', body: '来自 Tinker 的推送', url: '/chat'));
+```
 
-php artisan webpush:test 1
+### php artisan webpush:test 1
 
 - **title** 必填，**body** / **url** / **icon** / **tag** 可选。
 - 用户需已登录并授权过浏览器通知，前端会自动上报订阅到 `POST /api/user/push-subscription`。
