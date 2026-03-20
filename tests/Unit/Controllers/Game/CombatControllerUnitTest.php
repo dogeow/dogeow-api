@@ -193,8 +193,13 @@ class CombatControllerUnitTest extends TestCase
 
         $user = User::factory()->create();
         $character = $this->createCharacter($user);
+        $key = AutoCombatRoundJob::redisKey($character->id);
 
-        Redis::shouldReceive('get')->once()->with(AutoCombatRoundJob::redisKey($character->id))->andReturn('{"skill_ids":[1]}');
+        // Redis::set with NX returns false when key already exists
+        Redis::shouldReceive('set')
+            ->once()
+            ->with($key, Mockery::any(), 'EX', AutoCombatRoundJob::ttl(), 'NX')
+            ->andReturn(false);
 
         $response = $this->controller->start($this->makeRequest($user, $character));
         $data = json_decode($response->getContent(), true);
@@ -211,16 +216,14 @@ class CombatControllerUnitTest extends TestCase
         $user = User::factory()->create();
         $character = $this->createCharacter($user);
         $request = $this->makeRequest($user, $character, ['skill_ids' => ['2', '7']]);
+        $key = AutoCombatRoundJob::redisKey($character->id);
+        $payload = json_encode(['skill_ids' => [2, 7]]);
 
-        Redis::shouldReceive('get')->once()->with(AutoCombatRoundJob::redisKey($character->id))->andReturn(null);
-        Redis::shouldReceive('setex')
+        // Redis::set with NX returns true when key is successfully set
+        Redis::shouldReceive('set')
             ->once()
-            ->with(
-                AutoCombatRoundJob::redisKey($character->id),
-                AutoCombatRoundJob::ttl(),
-                json_encode(['skill_ids' => [2, 7]])
-            )
-            ->andReturnTrue();
+            ->with($key, $payload, 'EX', AutoCombatRoundJob::ttl(), 'NX')
+            ->andReturn(true);
 
         $response = $this->controller->start($request);
         $data = json_decode($response->getContent(), true);
@@ -238,16 +241,14 @@ class CombatControllerUnitTest extends TestCase
 
         $user = User::factory()->create();
         $character = $this->createCharacter($user);
+        $key = AutoCombatRoundJob::redisKey($character->id);
+        $payload = json_encode(['skill_ids' => null]);
 
-        Redis::shouldReceive('get')->once()->with(AutoCombatRoundJob::redisKey($character->id))->andReturn(null);
-        Redis::shouldReceive('setex')
+        // Redis::set with NX returns true when key is successfully set
+        Redis::shouldReceive('set')
             ->once()
-            ->with(
-                AutoCombatRoundJob::redisKey($character->id),
-                AutoCombatRoundJob::ttl(),
-                json_encode(['skill_ids' => null])
-            )
-            ->andReturnTrue();
+            ->with($key, $payload, 'EX', AutoCombatRoundJob::ttl(), 'NX')
+            ->andReturn(true);
 
         $response = $this->controller->start($this->makeRequest($user, $character));
 
@@ -264,9 +265,9 @@ class CombatControllerUnitTest extends TestCase
         $user = User::factory()->create();
         $character = $this->createCharacter($user);
 
-        Redis::shouldReceive('get')
+        Redis::shouldReceive('set')
             ->once()
-            ->with(AutoCombatRoundJob::redisKey($character->id))
+            ->with(AutoCombatRoundJob::redisKey($character->id), Mockery::any(), 'EX', AutoCombatRoundJob::ttl(), 'NX')
             ->andThrow(new \RuntimeException(''));
 
         $response = $this->controller->start($this->makeRequest($user, $character));
