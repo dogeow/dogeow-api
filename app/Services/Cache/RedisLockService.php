@@ -15,6 +15,7 @@ use Illuminate\Support\Str;
 class RedisLockService extends BaseService
 {
     private const DEFAULT_LOCK_TTL = 10; // seconds
+
     private const LOCK_PREFIX = 'lock:';
 
     /**
@@ -22,7 +23,7 @@ class RedisLockService extends BaseService
      *
      * @param  string  $key  The lock key (without prefix)
      * @param  int  $ttlSeconds  Lock TTL in seconds (auto-release)
-     * @return string|false  Lock token on success, false on failure
+     * @return string|false Lock token on success, false on failure
      */
     public function lock(string $key, int $ttlSeconds = self::DEFAULT_LOCK_TTL): string|false
     {
@@ -52,7 +53,7 @@ class RedisLockService extends BaseService
      *
      * @param  string  $key  The lock key (without prefix)
      * @param  string  $token  The token returned from lock()
-     * @return bool  True if released, false otherwise
+     * @return bool True if released, false otherwise
      */
     public function release(string $key, string $token): bool
     {
@@ -79,7 +80,7 @@ class RedisLockService extends BaseService
      * @param  string  $key  The lock key (without prefix)
      * @param  string  $token  The token returned from lock()
      * @param  int  $ttlSeconds  New TTL in seconds
-     * @return bool  True if extended, false otherwise
+     * @return bool True if extended, false otherwise
      */
     public function extend(string $key, string $token, int $ttlSeconds = self::DEFAULT_LOCK_TTL): bool
     {
@@ -101,7 +102,6 @@ class RedisLockService extends BaseService
      * Check if a lock is currently held.
      *
      * @param  string  $key  The lock key (without prefix)
-     * @return bool
      */
     public function isLocked(string $key): bool
     {
@@ -120,7 +120,7 @@ class RedisLockService extends BaseService
      * @param  int  $ttlSeconds  Lock TTL in seconds
      * @param  int  $maxRetries  Maximum number of retries
      * @param  int  $retryDelayMs  Delay between retries in milliseconds
-     * @return string|false  Lock token on success, false on failure
+     * @return string|false Lock token on success, false on failure
      */
     public function waitAndLock(
         string $key,

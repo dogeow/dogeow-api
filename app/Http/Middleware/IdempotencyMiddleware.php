@@ -5,7 +5,6 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redis;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -20,7 +19,9 @@ use Symfony\Component\HttpFoundation\Response;
 class IdempotencyMiddleware
 {
     private const IDEMPOTENCY_HEADER = 'X-Idempotency-Key';
+
     private const IDEMPOTENCY_PREFIX = 'idempotency:';
+
     private const IDEMPOTENCY_TTL = 86400; // 24 hours in seconds
 
     /**
