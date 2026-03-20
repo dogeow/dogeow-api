@@ -56,11 +56,19 @@ class CombatControllerTest extends TestCase
     public function test_can_start_combat(): void
     {
         Bus::fake();
-        Redis::shouldReceive('get')->once()->andReturn(null);
-        Redis::shouldReceive('setex')->once()->andReturn(true);
 
         $user = User::factory()->create();
         $character = $this->createCharacter($user, ['current_map_id' => 1, 'is_fighting' => false]);
+
+        Redis::shouldReceive('set')
+            ->once()
+            ->withArgs(function ($key, $value, $ex, $ttl, $nx) use ($character) {
+                return str_ends_with($key, (string) $character->id)
+                    && $ex === 'EX'
+                    && is_int($ttl)
+                    && $nx === 'NX';
+            })
+            ->andReturn(true);
 
         $response = $this->actingAs($user)
             ->postJson('/api/rpg/combat/start?character_id=' . $character->id);
