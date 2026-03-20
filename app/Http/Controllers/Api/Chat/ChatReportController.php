@@ -379,7 +379,7 @@ class ChatReportController extends Controller
 
         ChatModerationAction::create([
             'room_id' => $roomId,
-            'moderator_id' => 1,
+            'moderator_id' => null, // Automated action - no human moderator
             'target_user_id' => $message->user_id,
             'message_id' => $messageId,
             'action_type' => ChatModerationAction::ACTION_DELETE_MESSAGE,
@@ -387,6 +387,7 @@ class ChatReportController extends Controller
             'metadata' => [
                 'report_count' => $reportCount,
                 'auto_action' => true,
+                'auto_action_reason' => 'Message received 3+ reports',
                 'original_message' => $message->message,
             ],
         ]);
@@ -396,7 +397,7 @@ class ChatReportController extends Controller
             ->where('status', ChatMessageReport::STATUS_PENDING)
             ->update([
                 'status' => ChatMessageReport::STATUS_RESOLVED,
-                'reviewed_by' => 1,
+                'reviewed_by' => null, // Automated action - no human reviewer
                 'reviewed_at' => now(),
                 'review_notes' => 'Auto-resolved due to message deletion from multiple reports',
             ]);
