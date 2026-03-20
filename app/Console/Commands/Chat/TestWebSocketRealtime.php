@@ -65,7 +65,7 @@ class TestWebSocketRealtime extends Command
 
         if ($simulateDisconnect) {
             $this->newLine();
-            $this->info('🔄 正在模拟 WebSocket 断开连接...');
+            $this->info('🔄 正在模拟 WebSocket 断开连接 ...');
 
             // 模拟断开连接事件
             event(new WebSocketDisconnected($user, 'test-connection-id'));

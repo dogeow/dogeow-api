@@ -13,7 +13,7 @@ class SkillController extends Controller
     use \App\Http\Controllers\Concerns\CharacterConcern;
 
     /**
-     * 获取技能列表（单一列表，每项含 is_learned 及已学时的 character_skill 信息）
+     * 获取技能列表(单一列表，每项含 is_learned 及已学时的 character_skill 信息)
      */
     public function index(Request $request): JsonResponse
     {
@@ -76,7 +76,7 @@ class SkillController extends Controller
             return $this->error('已经学习了该技能');
         }
 
-        // 检查前置技能（优先使用 effect_key 判断，其次使用 skill_id）
+        // 检查前置技能(优先使用 effect_key 判断，其次使用 skill_id)
         $prereqError = null;
         if ($skill->prerequisite_effect_key) {
             // 根据 effect_key 检查是否已学习前置技能

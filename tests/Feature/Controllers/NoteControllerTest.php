@@ -240,7 +240,7 @@ class NoteControllerTest extends TestCase
     public function test_store_validation_fails_with_long_title()
     {
         $data = [
-            'title' => str_repeat('a', 256), // 超过255字符
+            'title' => str_repeat('a', 256), // 超过 255 字符
             'content' => 'Test content',
         ];
 
@@ -255,7 +255,7 @@ class NoteControllerTest extends TestCase
         $note = Note::factory()->create(['user_id' => $this->user->id]);
 
         $data = [
-            'title' => str_repeat('a', 256), // 超过255字符
+            'title' => str_repeat('a', 256), // 超过 255 字符
         ];
 
         $response = $this->putJson("/api/notes/{$note->id}", $data);

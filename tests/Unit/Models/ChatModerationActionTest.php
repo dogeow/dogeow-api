@@ -272,7 +272,7 @@ class ChatModerationActionTest extends TestCase
 
         $this->assertEquals('high', $banAction->getSeverityLevel());
 
-        // 默认分支（未知类型）
+        // 默认分支(未知类型)
         $unknownAction = new ChatModerationAction;
         $unknownAction->action_type = 'unknown_action';
         $this->assertEquals('low', $unknownAction->getSeverityLevel());

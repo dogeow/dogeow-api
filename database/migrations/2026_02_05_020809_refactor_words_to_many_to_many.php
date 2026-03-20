@@ -21,8 +21,8 @@ return new class extends Migration
         // 1. 创建中间表
         Schema::create('word_book_word', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('word_book_id')->comment('单词书ID');
-            $table->unsignedBigInteger('word_id')->comment('单词ID');
+            $table->unsignedBigInteger('word_book_id')->comment('单词书 ID');
+            $table->unsignedBigInteger('word_id')->comment('单词 ID');
             $table->integer('sort_order')->default(0)->comment('排序');
             $table->timestamps();
 
@@ -39,7 +39,7 @@ return new class extends Migration
             ->having('cnt', '>', 1)
             ->get();
 
-        $wordMapping = []; // 旧ID => 新ID 的映射
+        $wordMapping = []; // 旧 ID => 新 ID 的映射
 
         foreach ($duplicates as $dup) {
             $ids = explode(',', $dup->ids);
@@ -49,7 +49,7 @@ return new class extends Migration
                 ->whereIn('id', $ids)
                 ->get();
 
-            // 选择数据最完整的记录（优先有中文释义的）
+            // 选择数据最完整的记录(优先有中文释义的)
             $bestWord = null;
             $bestScore = -1;
 
@@ -94,7 +94,7 @@ return new class extends Migration
         $processedPairs = [];
 
         foreach ($existingWords as $word) {
-            // 如果是重复的单词，使用映射后的ID
+            // 如果是重复的单词，使用映射后的 ID
             $wordId = $wordMapping[$word->id] ?? $word->id;
             $bookId = $word->word_book_id;
 
@@ -169,7 +169,7 @@ return new class extends Migration
             $table->index('word_book_id');
         });
 
-        // 2. 从中间表恢复数据（取第一个关联的 book_id）
+        // 2. 从中间表恢复数据(取第一个关联的 book_id)
         $pivotData = DB::table('word_book_word')
             ->select('word_id', DB::raw('MIN(word_book_id) as word_book_id'))
             ->groupBy('word_id')

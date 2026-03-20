@@ -100,8 +100,8 @@ class GameSeeder extends Seeder
             '能量强化' => ['branch' => 'passive', 'tier' => 1],
             '吸血' => ['branch' => 'passive', 'tier' => 2],
             '回蓝' => ['branch' => 'passive', 'tier' => 2],
-            'HP强化' => ['branch' => 'passive', 'tier' => 1],
-            'MP强化' => ['branch' => 'passive', 'tier' => 1],
+            'HP 强化' => ['branch' => 'passive', 'tier' => 1],
+            'MP 强化' => ['branch' => 'passive', 'tier' => 1],
         ];
 
         // 使用 updateOrCreate 根据名称更新或创建技能
@@ -157,7 +157,7 @@ class GameSeeder extends Seeder
     {
         $maps = require __DIR__ . '/GameSeederData/maps.php';
 
-        // 按 ID 顺序取当前库中怪物，用于把配置里的“序号”转成真实 ID（避免多次 seed 后 ID 错位）
+        // 按 ID 顺序取当前库中怪物，用于把配置里的“序号”转成真实 ID(避免多次 seed 后 ID 错位)
         $monsterIdsByOrder = GameMonsterDefinition::query()
             ->where('is_active', true)
             ->orderBy('id')
@@ -190,7 +190,7 @@ class GameSeeder extends Seeder
             );
         }
 
-        // 为所有缺少怪物的地图补全 monster_ids（含历史/重复行）
+        // 为所有缺少怪物的地图补全 monster_ids(含历史/重复行)
         $mapList = $maps;
         GameMapDefinition::query()->chunk(50, function ($definitions) use ($mapList, $monsterIdsByOrder) {
             foreach ($definitions as $def) {

@@ -8,10 +8,10 @@ use Illuminate\Validation\Validator;
 
 class CreateRoomRequest extends FormRequest
 {
-    // 房间名称长度限制（按字符数计算：中文/emoji算2，数字/字母算1）
-    private const MIN_ROOM_NAME_LENGTH = 2; // 最少2个字符
+    // 房间名称长度限制(按字符数计算：中文/emoji 算 2，数字/字母算 1)
+    private const MIN_ROOM_NAME_LENGTH = 2; // 最少 2 个字符
 
-    private const MAX_ROOM_NAME_LENGTH = 20; // 最多20个字符
+    private const MAX_ROOM_NAME_LENGTH = 20; // 最多 20 个字符
 
     /**
      * Determine if the user is authorized to make this request.
@@ -64,7 +64,7 @@ class CreateRoomRequest extends FormRequest
             if (CharLength::exceedsMax($name, self::MAX_ROOM_NAME_LENGTH)) {
                 $validator->errors()->add(
                     'name',
-                    '房间名称不能超过' . self::MAX_ROOM_NAME_LENGTH . '个字符（中文/emoji算2个字符，数字/字母算1个字符）'
+                    '房间名称不能超过' . self::MAX_ROOM_NAME_LENGTH . '个字符(中文/emoji 算 2 个字符，数字/字母算 1 个字符)'
                 );
             }
         });
@@ -93,7 +93,7 @@ class CreateRoomRequest extends FormRequest
         return [
             'name.required' => '房间名称是必需的',
             'name.unique' => '该房间名称已存在',
-            'description.max' => '描述不能超过1000个字符',
+            'description.max' => '描述不能超过 1000 个字符',
         ];
     }
 }

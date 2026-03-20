@@ -21,7 +21,7 @@ class ItemControllerTest extends TestCase
     }
 
     /**
-     * 测试获取所有导航项（默认只显示可见的）
+     * 测试获取所有导航项(默认只显示可见的)
      */
     public function test_index_returns_visible_items()
     {
@@ -38,7 +38,7 @@ class ItemControllerTest extends TestCase
     }
 
     /**
-     * 测试获取所有导航项（管理员视图）
+     * 测试获取所有导航项(管理员视图)
      */
     public function test_index_with_show_all_returns_all_items()
     {
@@ -191,7 +191,7 @@ class ItemControllerTest extends TestCase
 
         $data = [
             'nav_category_id' => $category->id,
-            'name' => str_repeat('a', 51), // 超过50字符限制
+            'name' => str_repeat('a', 51), // 超过 50 字符限制
             'url' => 'https://example.com',
         ];
 
@@ -202,7 +202,7 @@ class ItemControllerTest extends TestCase
     }
 
     /**
-     * 测试创建导航项时的验证失败 - URL过长
+     * 测试创建导航项时的验证失败 - URL 过长
      */
     public function test_store_validation_fails_with_long_url()
     {
@@ -213,7 +213,7 @@ class ItemControllerTest extends TestCase
         $data = [
             'nav_category_id' => $category->id,
             'name' => 'Test Item',
-            'url' => str_repeat('a', 256), // 超过255字符限制
+            'url' => str_repeat('a', 256), // 超过 255 字符限制
         ];
 
         $response = $this->postJson('/api/nav/items', $data);
@@ -317,7 +317,7 @@ class ItemControllerTest extends TestCase
         $updateData = [
             'nav_category_id' => $category->id,
             'name' => 'Updated Name',
-            'url' => $item->url, // 保持原有URL
+            'url' => $item->url, // 保持原有 URL
         ];
 
         $response = $this->putJson("/api/nav/items/{$item->id}", $updateData);

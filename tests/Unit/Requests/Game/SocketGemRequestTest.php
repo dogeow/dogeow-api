@@ -30,11 +30,11 @@ class SocketGemRequestTest extends TestCase
         $request = new SocketGemRequest;
         $messages = $request->messages();
 
-        $this->assertSame('装备ID不能为空', $messages['item_id.required']);
-        $this->assertSame('装备ID必须大于0', $messages['item_id.min']);
+        $this->assertSame('装备 ID 不能为空', $messages['item_id.required']);
+        $this->assertSame('装备 ID 必须大于 0', $messages['item_id.min']);
         $this->assertSame('装备不存在', $messages['item_id.exists']);
-        $this->assertSame('宝石ID不能为空', $messages['gem_item_id.required']);
-        $this->assertSame('宝石ID必须大于0', $messages['gem_item_id.min']);
+        $this->assertSame('宝石 ID 不能为空', $messages['gem_item_id.required']);
+        $this->assertSame('宝石 ID 必须大于 0', $messages['gem_item_id.min']);
         $this->assertSame('宝石不存在', $messages['gem_item_id.exists']);
         $this->assertSame('插槽索引不能为空', $messages['socket_index.required']);
         $this->assertSame('插槽索引无效', $messages['socket_index.min']);

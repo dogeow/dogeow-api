@@ -11,10 +11,10 @@ use Illuminate\Support\Facades\DB;
 
 class GameShopService
 {
-    /** 商店装备列表缓存时间（秒） */
+    /** 商店装备列表缓存时间(秒) */
     private const SHOP_CACHE_TTL_SECONDS = 1800; // 30 分钟
 
-    /** 强制刷新商店费用（铜币），1 银 = 100 铜 */
+    /** 强制刷新商店费用(铜币)，1 银 = 100 铜 */
     public const REFRESH_COST_COPPER = 100;
 
     private const SHOP_CACHE_KEY_PREFIX = 'game_shop_';
@@ -71,7 +71,7 @@ class GameShopService
         }
         $equipment = collect($equipmentArray);
 
-        // 获取已购买的装备ID列表
+        // 获取已购买的装备 ID 列表
         $purchasedItemIds = $this->getPurchasedItemIds($character);
 
         if (is_array($cached) && isset($cached['equipment'], $cached['refreshed_at'])) {
@@ -111,7 +111,7 @@ class GameShopService
     }
 
     /**
-     * 获取已购买的物品ID列表
+     * 获取已购买的物品 ID 列表
      *
      * @return int[]
      */
@@ -142,7 +142,7 @@ class GameShopService
     }
 
     /**
-     * 记录已购买的物品ID
+     * 记录已购买的物品 ID
      */
     public function recordPurchasedItem(GameCharacter $character, int $definitionId): void
     {

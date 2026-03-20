@@ -137,7 +137,7 @@ class TitleControllerTest extends TestCase
         $response = $this->getJson('/api/fetch-title');
 
         $response->assertStatus(400)
-            ->assertJson(['error' => '缺少url参数']);
+            ->assertJson(['error' => '缺少 url 参数']);
     }
 
     public function test_fetch_returns_400_when_url_empty()
@@ -145,7 +145,7 @@ class TitleControllerTest extends TestCase
         $response = $this->getJson('/api/fetch-title?url=');
 
         $response->assertStatus(400)
-            ->assertJson(['error' => '缺少url参数']);
+            ->assertJson(['error' => '缺少 url 参数']);
     }
 
     public function test_fetch_with_url_encoding()

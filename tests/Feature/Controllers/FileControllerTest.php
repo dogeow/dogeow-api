@@ -936,7 +936,7 @@ class FileControllerTest extends TestCase
 
     public function test_upload_file_with_special_characters_in_name()
     {
-        $file = UploadedFile::fake()->create('test-文件-123.txt', 100);
+        $file = UploadedFile::fake()->create('test- 文件 -123.txt', 100);
 
         $response = $this->postJson('/api/cloud/files', [
             'file' => $file,
@@ -944,20 +944,20 @@ class FileControllerTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJson([
-                'original_name' => 'test-文件-123.txt',
+                'original_name' => 'test- 文件 -123.txt',
             ]);
     }
 
     public function test_create_folder_with_special_characters()
     {
         $response = $this->postJson('/api/cloud/folders', [
-            'name' => '测试文件夹-123',
+            'name' => '测试文件夹 -123',
             'description' => '测试描述',
         ]);
 
         $response->assertStatus(201)
             ->assertJson([
-                'name' => '测试文件夹-123',
+                'name' => '测试文件夹 -123',
                 'description' => '测试描述',
             ]);
     }

@@ -25,13 +25,15 @@ class GameCombatService
      * @param  GamePotionService  $potionService  药水服务
      * @param  GameCombatLootService  $lootService  战利品服务
      * @param  GameCombatLogService  $combatLogService  战斗日志服务
+     * @param  GameInventoryService  $inventoryService  背包服务
      */
     public function __construct(
         private readonly CombatRoundProcessor $roundProcessor,
         private readonly GameMonsterService $monsterService,
         private readonly GamePotionService $potionService,
         private readonly GameCombatLootService $lootService,
-        private readonly GameCombatLogService $combatLogService
+        private readonly GameCombatLogService $combatLogService,
+        private readonly GameInventoryService $inventoryService
     ) {}
 
     /**
@@ -43,7 +45,7 @@ class GameCombatService
     }
 
     /**
-     * 广播怪物出现（不处理攻击）
+     * 广播怪物出现(不处理攻击)
      */
     public function broadcastMonstersAppear(GameCharacter $character, GameMapDefinition $map): void
     {
@@ -144,10 +146,10 @@ class GameCombatService
     }
 
     /**
-     * 执行一轮战斗（支持多怪物连续战斗）
+     * 执行一轮战斗(支持多怪物连续战斗)
      *
      * @param  GameCharacter  $character  角色实例
-     * @param  int[]|null  $skillIds  使用的技能ID数组；null 表示不限技能，[] 表示禁用所有技能
+     * @param  int[]|null  $skillIds  使用的技能 ID 数组；null 表示不限技能，[] 表示禁用所有技能
      *
      * @throws \InvalidArgumentException 地图不存在或没有怪物
      * @throws \RuntimeException 血量不足或战斗结束
@@ -167,7 +169,7 @@ class GameCombatService
             ])->save();
         }
 
-        // 初始化HP和Mana
+        // 初始化 HP 和 Mana
         $character->initializeHpMana();
         $currentHp = (int) $character->getCurrentHp();
         $currentMana = (int) $character->getCurrentMana();
@@ -207,7 +209,7 @@ class GameCombatService
             ? null
             : array_map(fn ($v) => (int) $v, array_values($skillIds));
 
-        // 回合前的药水使用记录（用于日志和响应），默认空数组
+        // 回合前的药水使用记录(用于日志和响应)，默认空数组
         $potionUsedBeforeRound = [];
 
         $roundResult = $this->roundProcessor->processOneRound(
@@ -218,7 +220,7 @@ class GameCombatService
             $requestedSkillIds
         );
 
-        // 回合后自动使用药水（确保传入数值为 int）
+        // 回合后自动使用药水(确保传入数值为 int)
         $charStats = $character->getCombatStats();
         $potionUsed = $this->potionService->tryAutoUsePotions($character, (int) $roundResult['new_char_hp'], (int) $roundResult['new_char_mana'], $charStats);
         if (! empty($potionUsed)) {
@@ -245,11 +247,11 @@ class GameCombatService
         $isVictory = ! $roundResult['has_alive_monster'];
         if ($isVictory) {
             // 所有怪物死亡，不立即重生，保持死亡怪物可见直到下一回合
-            $roundResult['new_monster_max_hp'] = $roundResult['new_monster_hp']; // 保持总HP不变
+            $roundResult['new_monster_max_hp'] = $roundResult['new_monster_hp']; // 保持总 HP 不变
             $roundResult['victory'] = true;
         }
 
-        // 每回合按概率尝试补充新怪物（30% 不生成，70% 按权重生成 1～5 只），不要求全部死亡
+        // 每回合按概率尝试补充新怪物(30% 不生成，70% 按权重生成 1～5 只)，不要求全部死亡
         $roundResult = $this->monsterService->tryAddNewMonsters($character, $map, $roundResult, $currentRound);
 
         // 为本回合死亡的怪物发放经验和铜币
@@ -271,7 +273,7 @@ class GameCombatService
         $character->combat_monster_max_hp = max(0, $roundResult['new_monster_max_hp'] ?? $roundResult['new_monster_hp']);
         $character->save();
 
-        // 获取当前怪物列表用于响应（固定5个槽位）
+        // 获取当前怪物列表用于响应(固定 5 个槽位)
         $monsterData = $this->monsterService->formatMonstersForResponse($character);
         $fixedMonsters = $monsterData['monsters'];
         $firstAliveMonster = $monsterData['first_alive_monster'];
@@ -308,7 +310,7 @@ class GameCombatService
             'loot' => $roundResult['loot'] ?? [],
             'skills_used' => $roundResult['skills_used_this_round'],
             'skill_target_positions' => $roundResult['skill_target_positions'] ?? [],
-            'skill_cooldowns' => $character->combat_skill_cooldowns ?? [], // 技能冷却（回合数）
+            'skill_cooldowns' => $character->combat_skill_cooldowns ?? [], // 技能冷却(回合数)
             'potion_used' => [
                 'before' => $potionUsedBeforeRound,
                 'after' => $potionUsed,
@@ -322,7 +324,7 @@ class GameCombatService
         $character->refresh();
 
         // 广播背包更新
-        $inventoryPayload = app(GameInventoryService::class)->getInventoryForBroadcast($character);
+        $inventoryPayload = $this->inventoryService->getInventoryForBroadcast($character);
         broadcast(new GameInventoryUpdate($character->id, $inventoryPayload));
 
         return $result;
@@ -345,7 +347,7 @@ class GameCombatService
         $character->combat_skills_used = is_array($roundResult['new_skills_aggregated'] ?? []) ? $roundResult['new_skills_aggregated'] : [];
         $character->combat_skill_cooldowns = is_array($roundResult['new_cooldowns'] ?? []) ? $roundResult['new_cooldowns'] : [];
 
-        // 保存更新的怪物数组（如果有）
+        // 保存更新的怪物数组(如果有)
         if (isset($roundResult['monsters_updated']) && is_array($roundResult['monsters_updated'])) {
             $character->combat_monsters = $roundResult['monsters_updated'];
         }
@@ -356,7 +358,7 @@ class GameCombatService
      *
      * @param  GameCharacter  $character  角色实例
      * @param  GameMapDefinition  $map  地图实例
-     * @param  DefeatContext  $defeatContext  失败上下文DTO
+     * @param  DefeatContext  $defeatContext  失败上下文 DTO
      * @param  int  $currentRound  当前回合数
      * @param  array<string,mixed>  $roundResult  回合结果
      * @return array 失败结果
@@ -368,7 +370,7 @@ class GameCombatService
         int $currentRound,
         array $roundResult
     ): array {
-        // 失败时（显式转换为 int，避免 mixed 导致的静态分析问题）
+        // 失败时(显式转换为 int，避免 mixed 导致的静态分析问题)
         $character->current_hp = max(0, (int) ($roundResult['new_char_hp'] ?? 0));
         $character->is_fighting = false;
 
@@ -379,9 +381,9 @@ class GameCombatService
         $character->clearCombatState();
         $character->save();
 
-        // 调试：保存后检查值（fresh 可能为 null，使用 ?? 回退）
+        // 调试：保存后检查值(fresh 可能为 null，使用 ?? 回退)
         $freshCharacter = $character->fresh() ?? $character;
-        Log::info('[handleDefeat] 保存后数据库中的current_hp:', [
+        Log::info('[handleDefeat] 保存后数据库中的 current_hp:', [
             'character_id' => $character->id,
             'current_hp' => $character->current_hp,
             'fresh_current_hp' => $freshCharacter->current_hp,
@@ -391,7 +393,7 @@ class GameCombatService
         $charArray = $freshCharacter->toArray();
         $charArray['current_hp'] = 0;
         $charArray['current_mana'] = 0;
-        Log::info('[handleDefeat] 覆盖后的charArray:', ['current_hp' => $charArray['current_hp']]);
+        Log::info('[handleDefeat] 覆盖后的 charArray:', ['current_hp' => $charArray['current_hp']]);
 
         $result = [
             'victory' => false,
@@ -425,7 +427,7 @@ class GameCombatService
         $character->refresh();
 
         // 广播背包更新
-        $inventoryPayload = app(GameInventoryService::class)->getInventoryForBroadcast($character);
+        $inventoryPayload = $this->inventoryService->getInventoryForBroadcast($character);
         broadcast(new GameInventoryUpdate($character->id, $inventoryPayload));
 
         return $result;
@@ -446,7 +448,7 @@ class GameCombatService
      * 获取单条战斗日志详情
      *
      * @param  GameCharacter  $character  角色实例
-     * @param  int  $logId  日志ID
+     * @param  int  $logId  日志 ID
      * @return array 日志详情
      */
     public function getCombatLogDetail(GameCharacter $character, int $logId): array

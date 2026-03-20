@@ -94,7 +94,7 @@ class NoteRequestTest extends TestCase
     {
         $attributes = $this->request->attributes();
 
-        $this->assertEquals('笔记Markdown内容', $attributes['content_markdown']);
+        $this->assertEquals('笔记 Markdown 内容', $attributes['content_markdown']);
     }
 
     public function test_is_draft_attribute()

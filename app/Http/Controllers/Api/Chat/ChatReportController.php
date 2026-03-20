@@ -282,7 +282,7 @@ class ChatReportController extends Controller
             ->where('chat_message_reports.created_at', '>=', now()->subDays($days))
             ->when($roomId, fn ($q) => $q->where('chat_message_reports.room_id', $roomId));
 
-        // 状态统计（单次查询）
+        // 状态统计(单次查询)
         $statusCounts = $baseQuery()
             ->selectRaw('status, count(*) as count')
             ->groupBy('status')
@@ -297,7 +297,7 @@ class ChatReportController extends Controller
             ->pluck('count', 'report_type')
             ->toArray();
 
-        // 严重程度统计（通过 report_type 映射）
+        // 严重程度统计(通过 report_type 映射)
         $severityMap = [
             ChatMessageReport::TYPE_HATE_SPEECH => 'high',
             ChatMessageReport::TYPE_VIOLENCE => 'high',

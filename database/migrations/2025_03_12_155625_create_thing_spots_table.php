@@ -12,11 +12,11 @@ return new class extends Migration
 {
     /**
      * 运行迁移
-     * 创建spots表，包含以下字段：
+     * 创建 spots 表，包含以下字段：
      * - id: 主键
      * - name: 位置名称
-     * - room_id: 所属房间ID
-     * - user_id: 所属用户ID
+     * - room_id: 所属房间 ID
+     * - user_id: 所属用户 ID
      */
     public function up(): void
     {
@@ -31,7 +31,7 @@ return new class extends Migration
 
     /**
      * 回滚迁移
-     * 删除spots表
+     * 删除 spots 表
      */
     public function down(): void
     {

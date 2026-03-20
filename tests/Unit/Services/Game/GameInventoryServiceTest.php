@@ -336,7 +336,7 @@ class GameInventoryServiceTest extends TestCase
 
         $this->assertSame(40, $result['current_hp']);
         $this->assertSame(25, $result['current_mana']);
-        $this->assertStringContainsString('30 点生命值和20 点法力值', $result['message']);
+        $this->assertStringContainsString('30 点生命值和 20 点法力值', $result['message']);
         $this->assertSame(1, $potion->fresh()->quantity);
     }
 

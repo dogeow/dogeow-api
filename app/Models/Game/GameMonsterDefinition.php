@@ -42,7 +42,7 @@ class GameMonsterDefinition extends Model
     }
 
     /**
-     * 获取生命值（直接返回数据库值）
+     * 获取生命值(直接返回数据库值)
      */
     public function getHp(): int
     {
@@ -50,7 +50,7 @@ class GameMonsterDefinition extends Model
     }
 
     /**
-     * 获取攻击力（直接返回数据库值）
+     * 获取攻击力(直接返回数据库值)
      */
     public function getAttack(): int
     {
@@ -58,7 +58,7 @@ class GameMonsterDefinition extends Model
     }
 
     /**
-     * 获取防御力（直接返回数据库值）
+     * 获取防御力(直接返回数据库值)
      */
     public function getDefense(): int
     {
@@ -66,7 +66,7 @@ class GameMonsterDefinition extends Model
     }
 
     /**
-     * 获取经验值（直接返回数据库值）
+     * 获取经验值(直接返回数据库值)
      */
     public function getExperience(): int
     {

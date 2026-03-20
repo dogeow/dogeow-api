@@ -39,8 +39,8 @@ class MuteChatUserRequestTest extends TestCase
         $messages = $this->request->messages();
 
         $this->assertSame('禁言时长必须为整数分钟', $messages['duration.integer']);
-        $this->assertSame('禁言时长至少为1分钟', $messages['duration.min']);
-        $this->assertSame('禁言时长不能超过10080分钟', $messages['duration.max']);
-        $this->assertSame('禁言原因不能超过500个字符', $messages['reason.max']);
+        $this->assertSame('禁言时长至少为 1 分钟', $messages['duration.min']);
+        $this->assertSame('禁言时长不能超过 10080 分钟', $messages['duration.max']);
+        $this->assertSame('禁言原因不能超过 500 个字符', $messages['reason.max']);
     }
 }

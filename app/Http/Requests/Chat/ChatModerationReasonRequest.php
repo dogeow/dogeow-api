@@ -33,7 +33,7 @@ class ChatModerationReasonRequest extends FormRequest
     {
         return [
             'reason.string' => '原因必须是字符串',
-            'reason.max' => '原因不能超过500个字符',
+            'reason.max' => '原因不能超过 500 个字符',
         ];
     }
 }

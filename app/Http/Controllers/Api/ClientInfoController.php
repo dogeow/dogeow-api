@@ -14,7 +14,7 @@ class ClientInfoController extends Controller
     ) {}
 
     /**
-     * 获取客户端基本信息（IP和User-Agent），立即返回
+     * 获取客户端基本信息(IP 和 User-Agent)，立即返回
      */
     public function getBasicInfo(Request $request): JsonResponse
     {
@@ -40,7 +40,7 @@ class ClientInfoController extends Controller
     }
 
     /**
-     * 获取完整客户端信息（保持向后兼容）
+     * 获取完整客户端信息(保持向后兼容)
      */
     public function getClientInfo(Request $request): JsonResponse
     {

@@ -28,8 +28,8 @@ class DeleteCharacterRequestTest extends TestCase
         $request = new DeleteCharacterRequest;
         $messages = $request->messages();
 
-        $this->assertSame('角色ID不能为空', $messages['character_id.required']);
-        $this->assertSame('角色ID必须大于0', $messages['character_id.min']);
+        $this->assertSame('角色 ID 不能为空', $messages['character_id.required']);
+        $this->assertSame('角色 ID 必须大于 0', $messages['character_id.min']);
         $this->assertSame('角色不存在', $messages['character_id.exists']);
     }
 }

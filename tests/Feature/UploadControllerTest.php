@@ -180,8 +180,8 @@ class UploadControllerTest extends TestCase
         Sanctum::actingAs($user);
 
         $images = [
-            UploadedFile::fake()->image('测试图片.jpg'),
-            UploadedFile::fake()->image('image-测试.png'),
+            UploadedFile::fake()->image('测试图片 .jpg'),
+            UploadedFile::fake()->image('image- 测试 .png'),
         ];
 
         $response = $this->postJson('/api/upload/images', [

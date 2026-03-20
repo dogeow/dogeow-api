@@ -33,7 +33,7 @@ class CreateCharacterRequest extends FormRequest
     {
         return [
             'name.required' => '请输入角色名称',
-            'name.max' => '角色名称不能超过32个字符',
+            'name.max' => '角色名称不能超过 32 个字符',
             'name.alpha_num' => '角色名称只能包含字母和数字',
             'class.required' => '请选择职业',
             'class.in' => '职业选择无效',

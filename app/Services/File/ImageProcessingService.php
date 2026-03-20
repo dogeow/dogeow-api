@@ -37,7 +37,7 @@ class ImageProcessingService extends BaseService
     }
 
     /**
-     * 处理图片（生成缩略图和压缩图）
+     * 处理图片(生成缩略图和压缩图)
      */
     public function processImage(string $originPath, string $compressedPath): array
     {
@@ -134,7 +134,7 @@ class ImageProcessingService extends BaseService
     }
 
     /**
-     * 调整图片尺寸（保持宽高比）
+     * 调整图片尺寸(保持宽高比)
      */
     private function resizeImage($image, int $maxSize)
     {

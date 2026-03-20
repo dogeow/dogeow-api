@@ -54,7 +54,7 @@ class BatchAddItemRelationsRequest extends FormRequest
             'relations.*.relation_type.required' => '关联类型不能为空',
             'relations.*.relation_type.string' => '关联类型格式不正确',
             'relations.*.description.string' => '关联描述必须是字符串',
-            'relations.*.description.max' => '关联描述不能超过500个字符',
+            'relations.*.description.max' => '关联描述不能超过 500 个字符',
         ];
     }
 }

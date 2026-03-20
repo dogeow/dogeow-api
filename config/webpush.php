@@ -12,7 +12,7 @@ return [
 
     /*
     | Guzzle 客户端选项，用于请求 FCM 等推送服务。
-    | 若服务器无法直连 Google（如国内），可设置 HTTP 代理，例如：
+    | 若服务器无法直连 Google(如国内)，可设置 HTTP 代理，例如：
     | 'client_options' => ['proxy' => env('WEBPUSH_HTTP_PROXY')],
     | 并在 .env 中设置 WEBPUSH_HTTP_PROXY=http://127.0.0.1:3128
     */

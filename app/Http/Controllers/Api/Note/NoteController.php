@@ -43,7 +43,7 @@ class NoteController extends Controller
     }
 
     /**
-     * 获取完整图谱数据（公开）
+     * 获取完整图谱数据(公开)
      */
     public function getGraph(): JsonResponse
     {
@@ -57,7 +57,7 @@ class NoteController extends Controller
     }
 
     /**
-     * 通过 slug 获取文章（公开）
+     * 通过 slug 获取文章(公开)
      */
     public function getArticleBySlug(string $slug): JsonResponse
     {
@@ -77,7 +77,7 @@ class NoteController extends Controller
     }
 
     /**
-     * 批量获取所有 wiki 文章内容（公开）
+     * 批量获取所有 wiki 文章内容(公开)
      * 用于知识库批量加载，提高性能
      */
     public function getAllWikiArticles(): JsonResponse
@@ -180,7 +180,7 @@ class NoteController extends Controller
      */
     private function findUserNote(string $id): \App\Models\Note\Note
     {
-        // 先查找笔记（不限制条件）
+        // 先查找笔记(不限制条件)
         $note = \App\Models\Note\Note::find($id);
 
         if (! $note) {
@@ -192,8 +192,8 @@ class NoteController extends Controller
         $userId = $this->getCurrentUserId();
 
         // 检查权限：
-        // 1. 如果是用户自己的笔记（user_id 匹配）
-        // 2. 或者是 wiki 节点（is_wiki = true，允许所有认证用户编辑）
+        // 1. 如果是用户自己的笔记(user_id 匹配)
+        // 2. 或者是 wiki 节点(is_wiki = true，允许所有认证用户编辑)
         $isUserNote = $note->user_id === $userId;
         $isWikiNode = $note->is_wiki === true;
 
@@ -211,7 +211,7 @@ class NoteController extends Controller
      */
     private function buildGraphNodes()
     {
-        // 获取所有 wiki 节点（is_wiki = true）和用户自己的笔记
+        // 获取所有 wiki 节点(is_wiki = true)和用户自己的笔记
         return \App\Models\Note\Note::with('tags')
             ->where(function ($query) {
                 $query->where('is_wiki', true)
@@ -320,11 +320,11 @@ class NoteController extends Controller
     }
 
     /**
-     * 对更新后的数据进行后处理（空内容、派生 markdown、wiki slug）
+     * 对更新后的数据进行后处理(空内容、派生 markdown、wiki slug)
      */
     private function prepareUpdateData(array $validatedData, UpdateNoteRequest $request, \App\Models\Note\Note $note): array
     {
-        // 处理内容为空的情况（处理 Middleware 转换空字符串为 null 的情况）
+        // 处理内容为空的情况(处理 Middleware 转换空字符串为 null 的情况)
         if ($request->has('content') && is_null($validatedData['content'] ?? null)) {
             $validatedData['content'] = '';
         }

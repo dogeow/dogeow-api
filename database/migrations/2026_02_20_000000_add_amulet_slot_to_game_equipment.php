@@ -19,7 +19,7 @@ return new class extends Migration
             return;
         }
 
-        // 恢复 amulet 槽位（需要先删除旧 enum，再创建新的）
+        // 恢复 amulet 槽位(需要先删除旧 enum，再创建新的)
         DB::statement("ALTER TABLE game_equipment MODIFY COLUMN slot ENUM('weapon', 'helmet', 'armor', 'gloves', 'boots', 'belt', 'ring', 'amulet') NOT NULL COMMENT '装备槽位'");
     }
 

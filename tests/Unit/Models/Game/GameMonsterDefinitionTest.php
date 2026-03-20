@@ -231,7 +231,7 @@ class GameMonsterDefinitionTest extends TestCase
         $method = $reflection->getMethod('weightedRandom');
         $method->setAccessible(true);
 
-        // 运行大量次数以触发 fallback 分支（由于浮点数精度问题）
+        // 运行大量次数以触发 fallback 分支(由于浮点数精度问题)
         // 使用不规则的权重值增加浮点数精度误差的可能性
         $results = [];
         for ($i = 0; $i < 5000; $i++) {

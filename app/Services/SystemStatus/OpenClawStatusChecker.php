@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * OpenClaw 服务器健康检查。
  *
- * 契约：GET {OPENCLAW_HEALTH_URL} 返回 JSON，支持以下字段（均为可选）：
+ * 契约：GET {OPENCLAW_HEALTH_URL} 返回 JSON，支持以下字段(均为可选)：
  * - online: bool  是否在线
  * - cpu_percent: float 0-100  CPU 使用率
  * - memory_percent: float 0-100  内存使用率
@@ -88,7 +88,7 @@ class OpenClawStatusChecker
             str_contains($exceptionClass, 'toomanyredirects')
             || (str_contains($lower, 'will not follow more than') && str_contains($lower, 'redirect'))
         ) {
-            return 'OpenClaw 健康检查重定向过多，请将 OPENCLAW_HEALTH_URL 配置为最终健康地址（避免循环跳转）';
+            return 'OpenClaw 健康检查重定向过多，请将 OPENCLAW_HEALTH_URL 配置为最终健康地址(避免循环跳转)';
         }
 
         return '无法连接 OpenClaw: ' . $this->sanitize($errorMessage, 100);

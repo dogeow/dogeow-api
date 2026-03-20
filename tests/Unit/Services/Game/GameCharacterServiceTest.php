@@ -138,7 +138,7 @@ class GameCharacterServiceTest extends TestCase
         $this->createCharacter($user, ['name' => 'TakenName']);
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('角色名至少需要2个字符');
+        $this->expectExceptionMessage('角色名至少需要 2 个字符');
         $this->service->createCharacter($user->id, 'A', 'warrior');
     }
 
@@ -164,7 +164,7 @@ class GameCharacterServiceTest extends TestCase
         $user = User::factory()->create();
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('角色名最多12个字符');
+        $this->expectExceptionMessage('角色名最多 12 个字符');
         $this->service->createCharacter($user->id, 'NameTooLong123', 'warrior');
     }
 

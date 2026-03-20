@@ -27,7 +27,7 @@ class FormatApiResponse
         $data = $response->getData(true);
         $statusCode = $response->getStatusCode();
 
-        // 非数组数据（null、标量等）直接包装
+        // 非数组数据(null、标量等)直接包装
         if (! is_array($data)) {
             $success = $statusCode >= 200 && $statusCode < 300;
             $formatted = [

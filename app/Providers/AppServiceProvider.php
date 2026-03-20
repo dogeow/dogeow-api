@@ -33,7 +33,7 @@ class AppServiceProvider extends ServiceProvider
         // 注册 WebSocket 断开连接事件监听器
         Event::listen(WebSocketDisconnected::class, WebSocketDisconnectListener::class);
 
-        // Web Push 发送结果日志（诊断用）
+        // Web Push 发送结果日志(诊断用)
         Event::listen(WebPushNotificationSent::class, LogWebPushResult::class);
         Event::listen(WebPushNotificationFailed::class, LogWebPushResult::class);
 

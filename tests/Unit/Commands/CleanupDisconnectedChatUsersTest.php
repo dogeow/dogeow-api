@@ -68,7 +68,7 @@ class CleanupDisconnectedChatUsersTest extends TestCase
 
         // Run the command
         $this->artisan('chat:cleanup-disconnected', ['--minutes' => 5])
-            ->expectsOutput('开始清理未活跃超过 5 分钟的聊天室用户...')
+            ->expectsOutput('开始清理未活跃超过 5 分钟的聊天室用户 ...')
             ->expectsOutput('清理完成，共有 2 名用户被标记为离线。')
             ->assertExitCode(0);
 
@@ -109,7 +109,7 @@ class CleanupDisconnectedChatUsersTest extends TestCase
 
         // Run cleanup with 5 minutes threshold
         $this->artisan('chat:cleanup-disconnected', ['--minutes' => 5])
-            ->expectsOutput('开始清理未活跃超过 5 分钟的聊天室用户...')
+            ->expectsOutput('开始清理未活跃超过 5 分钟的聊天室用户 ...')
             ->expectsOutput('清理完成，共有 1 名用户被标记为离线。')
             ->assertExitCode(0);
 
@@ -143,7 +143,7 @@ class CleanupDisconnectedChatUsersTest extends TestCase
         ]);
 
         $this->artisan('chat:cleanup-disconnected', ['--minutes' => 5])
-            ->expectsOutput('开始清理未活跃超过 5 分钟的聊天室用户...')
+            ->expectsOutput('开始清理未活跃超过 5 分钟的聊天室用户 ...')
             ->expectsOutput('清理完成，共有 0 名用户被标记为离线。')
             ->assertExitCode(0);
     }
@@ -167,7 +167,7 @@ class CleanupDisconnectedChatUsersTest extends TestCase
         ]);
 
         $this->artisan('chat:cleanup-disconnected', ['--minutes' => 5])
-            ->expectsOutput('开始清理未活跃超过 5 分钟的聊天室用户...')
+            ->expectsOutput('开始清理未活跃超过 5 分钟的聊天室用户 ...')
             ->expectsOutput('清理完成，共有 1 名用户被标记为离线。')
             ->assertExitCode(0);
 
@@ -190,7 +190,7 @@ class CleanupDisconnectedChatUsersTest extends TestCase
 
         // Run without specifying minutes (should use default 5)
         $this->artisan('chat:cleanup-disconnected')
-            ->expectsOutput('开始清理未活跃超过 5 分钟的聊天室用户...')
+            ->expectsOutput('开始清理未活跃超过 5 分钟的聊天室用户 ...')
             ->expectsOutput('清理完成，共有 1 名用户被标记为离线。')
             ->assertExitCode(0);
 
@@ -219,7 +219,7 @@ class CleanupDisconnectedChatUsersTest extends TestCase
 
         // Run with 0 minutes (should mark all online users as offline)
         $this->artisan('chat:cleanup-disconnected', ['--minutes' => 0])
-            ->expectsOutput('开始清理未活跃超过 0 分钟的聊天室用户...')
+            ->expectsOutput('开始清理未活跃超过 0 分钟的聊天室用户 ...')
             ->expectsOutput('清理完成，共有 2 名用户被标记为离线。')
             ->assertExitCode(0);
 
@@ -254,7 +254,7 @@ class CleanupDisconnectedChatUsersTest extends TestCase
 
         // Run with 30 minutes threshold (should not mark any users as offline)
         $this->artisan('chat:cleanup-disconnected', ['--minutes' => 30])
-            ->expectsOutput('开始清理未活跃超过 30 分钟的聊天室用户...')
+            ->expectsOutput('开始清理未活跃超过 30 分钟的聊天室用户 ...')
             ->expectsOutput('清理完成，共有 0 名用户被标记为离线。')
             ->assertExitCode(0);
 
@@ -281,7 +281,7 @@ class CleanupDisconnectedChatUsersTest extends TestCase
         ]);
 
         $this->artisan('chat:cleanup-disconnected', ['--minutes' => 5])
-            ->expectsOutput('开始清理未活跃超过 5 分钟的聊天室用户...')
+            ->expectsOutput('开始清理未活跃超过 5 分钟的聊天室用户 ...')
             ->expectsOutput('清理完成，共有 0 名用户被标记为离线。')
             ->assertExitCode(0);
 

@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 class ContentFilterService
 {
     /**
-     * 不当词汇列表（基础实现）
+     * 不当词汇列表(基础实现)
      * 生产环境应存储在数据库或外部服务中
      */
     private const INAPPROPRIATE_WORDS = [
@@ -37,9 +37,9 @@ class ContentFilterService
 
     private const SPAM_DUPLICATE_LIMIT = 3; // 重复消息上限
 
-    private const SPAM_CAPS_THRESHOLD = 0.7; // 大写字母比例70%
+    private const SPAM_CAPS_THRESHOLD = 0.7; // 大写字母比例 70%
 
-    private const SPAM_REPETITION_THRESHOLD = 0.5; // 重复字符比例50%
+    private const SPAM_REPETITION_THRESHOLD = 0.5; // 重复字符比例 50%
 
     /**
      * 检查消息是否包含不当内容
@@ -152,7 +152,7 @@ class ContentFilterService
             ];
         }
 
-        // 检查URL垃圾信息
+        // 检查 URL 垃圾信息
         $urlCheck = $this->checkUrlSpam($message);
         if ($urlCheck['is_spam']) {
             $violations[] = [
@@ -181,7 +181,7 @@ class ContentFilterService
         $cacheKey = "chat_message_frequency_{$userId}_{$roomId}";
         $messages = Cache::get($cacheKey, []);
 
-        // 清理1分钟前的旧消息
+        // 清理 1 分钟前的旧消息
         $oneMinuteAgo = now()->subMinute()->timestamp;
         $messages = array_filter($messages, static function ($timestamp) use ($oneMinuteAgo) {
             return $timestamp > $oneMinuteAgo;
@@ -190,8 +190,8 @@ class ContentFilterService
         // 添加当前消息时间戳
         $messages[] = now()->timestamp;
 
-        // 存回缓存，有效期5分钟
-        Cache::put($cacheKey, $messages, 300); // 5分钟
+        // 存回缓存，有效期 5 分钟
+        Cache::put($cacheKey, $messages, 300); // 5 分钟
 
         $messageCount = count($messages);
 
@@ -270,7 +270,7 @@ class ContentFilterService
                 $j++;
             }
             $consecutiveCount = $j - $i;
-            if ($consecutiveCount >= 4) { // 4个及以上连续相同字符
+            if ($consecutiveCount >= 4) { // 4 个及以上连续相同字符
                 $repetitionCount += $consecutiveCount;
             }
             $i = $j;
@@ -288,16 +288,16 @@ class ContentFilterService
     }
 
     /**
-     * 检查URL垃圾信息
+     * 检查 URL 垃圾信息
      */
     private function checkUrlSpam(string $message): array
     {
-        // 统计消息中的URL数量
+        // 统计消息中的 URL 数量
         $urlPattern = '/https?:\/\/[^\s]+/i';
         preg_match_all($urlPattern, $message, $matches);
         $urlCount = count($matches[0]);
 
-        // 检查可疑URL模式
+        // 检查可疑 URL 模式
         $suspiciousPatterns = [
             '/bit\.ly/i',
             '/tinyurl/i',

@@ -50,7 +50,7 @@ return [
         'skill_points_cost' => 1,
         'effects' => [],
         'target_type' => 'single',
-        'description' => '冲向敌人造成120%伤害',
+        'description' => '冲向敌人造成 120%伤害',
     ],
     [
         'name' => '旋风斩',

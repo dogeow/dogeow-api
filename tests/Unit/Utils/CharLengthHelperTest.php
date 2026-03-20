@@ -50,9 +50,9 @@ class CharLengthHelperTest extends TestCase
     public function test_calculate_char_length_with_mixed_english_chinese(): void
     {
         // hello (5) + 你好 (4) = 9
-        $this->assertEquals(9, CharLength::calculate('hello你好'));
+        $this->assertEquals(9, CharLength::calculate('hello 你好'));
         // hi (2) + 中国 (4) = 6
-        $this->assertEquals(6, CharLength::calculate('hi中国'));
+        $this->assertEquals(6, CharLength::calculate('hi 中国'));
     }
 
     /**

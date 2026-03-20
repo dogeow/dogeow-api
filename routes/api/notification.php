@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/user/push-subscription', [WebPushController::class, 'updateSubscription']);
 Route::delete('/user/push-subscription', [WebPushController::class, 'deleteSubscription']);
 
-// 未读通知（含打开时补发汇总推送）
+// 未读通知(含打开时补发汇总推送)
 Route::get('/notifications/unread', [NotificationController::class, 'unread']);
 Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);

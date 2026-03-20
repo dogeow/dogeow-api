@@ -47,7 +47,7 @@ class ReportMessageRequest extends FormRequest
         return [
             'report_type.required' => '举报类型不能为空',
             'report_type.in' => '举报类型无效',
-            'reason.max' => '举报原因不能超过500个字符',
+            'reason.max' => '举报原因不能超过 500 个字符',
         ];
     }
 }

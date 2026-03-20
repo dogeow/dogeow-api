@@ -54,7 +54,7 @@ class TestRealtimeDisconnect extends Command
         $this->info("房间 {$roomId} 当前在线人数: {$onlineCount}");
 
         // 模拟断开连接
-        $this->info("正在模拟用户 {$userId} 的断开连接...");
+        $this->info("正在模拟用户 {$userId} 的断开连接 ...");
         $this->disconnectService->handleDisconnect($userId);
 
         // 检查断开后的状态

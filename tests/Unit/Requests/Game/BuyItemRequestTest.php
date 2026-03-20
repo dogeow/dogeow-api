@@ -54,7 +54,7 @@ class BuyItemRequestTest extends TestCase
     {
         $messages = $this->request->messages();
 
-        $this->assertStringContainsString('物品ID', $messages['item_id.required']);
+        $this->assertStringContainsString('物品 ID', $messages['item_id.required']);
         $this->assertStringContainsString('数量', $messages['quantity.min']);
     }
 }

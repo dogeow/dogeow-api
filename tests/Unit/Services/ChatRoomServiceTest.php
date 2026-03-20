@@ -528,8 +528,8 @@ class ChatRoomServiceTest extends TestCase
     public function test_validate_room_data_with_mixed_length_calculation(): void
     {
         // Test mixing Chinese (2 chars) and English (1 char)
-        // 'Test你好' = 4 (Test) + 4 (你好) = 8 characters
-        $result = $this->service->validateRoomData(['name' => 'Test你好']);
+        // 'Test 你好' = 4 (Test) + 4 (你好) = 8 characters
+        $result = $this->service->validateRoomData(['name' => 'Test 你好']);
 
         $this->assertTrue($result['valid']);
     }

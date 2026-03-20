@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('game_characters', function (Blueprint $table) {
-            $table->json('discovered_items')->nullable()->comment('已发现的物品ID数组')->after('combat_monsters');
-            $table->json('discovered_monsters')->nullable()->comment('已发现的怪物ID数组')->after('discovered_items');
+            $table->json('discovered_items')->nullable()->comment('已发现的物品 ID 数组')->after('combat_monsters');
+            $table->json('discovered_monsters')->nullable()->comment('已发现的怪物 ID 数组')->after('discovered_items');
         });
     }
 

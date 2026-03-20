@@ -223,7 +223,7 @@ class NoteTagControllerTest extends TestCase
     {
         $tag = NoteTag::factory()->create(['user_id' => $this->user->id]);
 
-        // 模拟笔记关联（这里需要根据实际的关联关系调整）
+        // 模拟笔记关联(这里需要根据实际的关联关系调整)
         // 假设有一个 notes 关联方法
 
         $response = $this->deleteJson("/api/notes/tags/{$tag->id}");

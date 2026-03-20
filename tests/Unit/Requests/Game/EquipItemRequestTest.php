@@ -28,8 +28,8 @@ class EquipItemRequestTest extends TestCase
         $request = new EquipItemRequest;
         $messages = $request->messages();
 
-        $this->assertSame('物品ID不能为空', $messages['item_id.required']);
-        $this->assertSame('物品ID必须大于0', $messages['item_id.min']);
+        $this->assertSame('物品 ID 不能为空', $messages['item_id.required']);
+        $this->assertSame('物品 ID 必须大于 0', $messages['item_id.min']);
         $this->assertSame('物品不存在', $messages['item_id.exists']);
     }
 }

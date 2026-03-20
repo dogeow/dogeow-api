@@ -265,7 +265,7 @@ trait CharacterCombatStats
     }
 
     /**
-     * 初始化HP/Mana
+     * 初始化 HP/Mana
      */
     public function initializeHpMana(): void
     {

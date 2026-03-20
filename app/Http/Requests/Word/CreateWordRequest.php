@@ -39,7 +39,7 @@ class CreateWordRequest extends FormRequest
         return [
             'content.required' => '单词内容不能为空',
             'content.unique' => '该单词已存在',
-            'content.max' => '单词长度不能超过255个字符',
+            'content.max' => '单词长度不能超过 255 个字符',
             'example_sentences.*.en.required_with' => '例句英文内容不能为空',
         ];
     }

@@ -92,7 +92,7 @@ class FileController extends Controller
         $mimeType = $uploadedFile->getMimeType();
         $size = $uploadedFile->getSize();
 
-        Log::info("上传文件: 原始名称={$originalName}, 扩展名={$extension}, MIME类型={$mimeType}, 大小={$size}");
+        Log::info("上传文件: 原始名称={$originalName}, 扩展名={$extension}, MIME 类型={$mimeType}, 大小={$size}");
 
         $userId = $this->getCurrentUserId();
 
@@ -179,7 +179,7 @@ class FileController extends Controller
     }
 
     /**
-     * 迭代方式删除文件夹（避免递归栈溢出）
+     * 迭代方式删除文件夹(避免递归栈溢出)
      */
     private function deleteFolderIteratively(File $folder): void
     {
@@ -260,7 +260,7 @@ class FileController extends Controller
 
         $targetFolderId = $request->target_folder_id;
 
-        // 如果目标文件夹ID存在，验证它是否是文件夹
+        // 如果目标文件夹 ID 存在，验证它是否是文件夹
         if ($targetFolderId) {
             $targetFolder = File::where('user_id', $userId)
                 ->where('id', $targetFolderId)
@@ -285,7 +285,7 @@ class FileController extends Controller
             }
         }
 
-        // 更新所有选中文件的父文件夹ID
+        // 更新所有选中文件的父文件夹 ID
         File::where('user_id', $userId)
             ->whereIn('id', $request->file_ids)
             ->update(['parent_id' => $targetFolderId]);
@@ -353,7 +353,7 @@ class FileController extends Controller
             Log::info("图片预览请求: ID={$id}, 是否缩略图={$isThumb}, 扩展名={$extension}");
 
             $publicUrl = url('storage/' . $file->path);
-            Log::info("返回图片URL: {$publicUrl}");
+            Log::info("返回图片 URL: {$publicUrl}");
 
             return response()->json([
                 'type' => 'image',

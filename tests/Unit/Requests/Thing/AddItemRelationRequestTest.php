@@ -53,6 +53,6 @@ class AddItemRelationRequestTest extends TestCase
         $this->assertSame('关联物品不能为空', $messages['related_item_id.required']);
         $this->assertSame('关联物品不存在', $messages['related_item_id.exists']);
         $this->assertSame('关联类型不能为空', $messages['relation_type.required']);
-        $this->assertSame('关联描述不能超过500个字符', $messages['description.max']);
+        $this->assertSame('关联描述不能超过 500 个字符', $messages['description.max']);
     }
 }

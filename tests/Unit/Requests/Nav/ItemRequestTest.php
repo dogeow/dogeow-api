@@ -122,7 +122,7 @@ class ItemRequestTest extends TestCase
     {
         $attributes = $this->request->attributes();
 
-        $this->assertEquals('分类ID', $attributes['nav_category_id']);
+        $this->assertEquals('分类 ID', $attributes['nav_category_id']);
     }
 
     public function test_name_attribute()

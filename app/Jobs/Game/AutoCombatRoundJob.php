@@ -140,7 +140,7 @@ class AutoCombatRoundJob implements ShouldQueue
     }
 
     /**
-     * 获取下一个 job 应该执行的时间（秒）
+     * 获取下一个 job 应该执行的时间(秒)
      */
     public function withExponentialBackoff(int $attempt): int
     {

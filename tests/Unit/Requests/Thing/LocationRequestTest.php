@@ -62,14 +62,14 @@ class LocationRequestTest extends TestCase
     {
         $messages = $this->request->messages();
 
-        $this->assertEquals('名称不能超过255个字符', $messages['name.max']);
+        $this->assertEquals('名称不能超过 255 个字符', $messages['name.max']);
     }
 
     public function test_area_id_required_message()
     {
         $messages = $this->request->messages();
 
-        $this->assertEquals('区域ID不能为空', $messages['area_id.required']);
+        $this->assertEquals('区域 ID 不能为空', $messages['area_id.required']);
     }
 
     public function test_area_id_exists_message()
@@ -83,7 +83,7 @@ class LocationRequestTest extends TestCase
     {
         $messages = $this->request->messages();
 
-        $this->assertEquals('房间ID不能为空', $messages['room_id.required']);
+        $this->assertEquals('房间 ID 不能为空', $messages['room_id.required']);
     }
 
     public function test_room_id_exists_message()

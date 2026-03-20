@@ -39,7 +39,7 @@ class UpdatePotionSettingsRequestTest extends TestCase
 
         $this->assertTrue($validator->fails());
         $this->assertSame(
-            '启用自动HP药水时必须设置HP药水阈值',
+            '启用自动 HP 药水时必须设置 HP 药水阈值',
             $validator->errors()->first('hp_potion_threshold')
         );
     }
@@ -62,6 +62,6 @@ class UpdatePotionSettingsRequestTest extends TestCase
         $request = new UpdatePotionSettingsRequest;
         $messages = $request->messages();
 
-        $this->assertSame('启用自动MP药水时必须设置MP药水阈值', $messages['mp_potion_threshold.required_if_accepted']);
+        $this->assertSame('启用自动 MP 药水时必须设置 MP 药水阈值', $messages['mp_potion_threshold.required_if_accepted']);
     }
 }

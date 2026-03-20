@@ -2,10 +2,10 @@
 
 本项目要求 **100% 的代码覆盖率**，确保所有代码都经过测试。
 
-## 确保已安装Xdebug扩展
+## 确保已安装 Xdebug 扩展
 
 ```bash
-# 检查Xdebug是否已安装
+# 检查 Xdebug 是否已安装
 php -m | grep xdebug
 ```
 
@@ -18,7 +18,7 @@ php -m | grep xdebug
 composer run test:coverage
 ```
 
-### 2. 检查覆盖率是否达到100%
+### 2. 检查覆盖率是否达到 100%
 
 ```bash
 # 检查覆盖率要求
@@ -36,24 +36,24 @@ composer run test:coverage-full
 
 运行测试后，覆盖率报告会生成在以下位置：
 
-- **HTML报告**: `coverage/html/` - 可在浏览器中查看详细的覆盖率信息
-- **Clover XML**: `coverage/clover.xml` - 用于CI/CD和代码质量工具
+- **HTML 报告**: `coverage/html/` - 可在浏览器中查看详细的覆盖率信息
+- **Clover XML**: `coverage/clover.xml` - 用于 CI/CD 和代码质量工具
 - **文本报告**: `coverage/coverage.txt` - 简单的文本格式报告
 
 ## 查看覆盖率报告
 
 ```bash
-# 在浏览器中打开HTML报告
+# 在浏览器中打开 HTML 报告
 open coverage/html/index.html
 ```
 
 ## CI/CD 集成
 
-项目已配置GitHub Actions来自动检查覆盖率：
+项目已配置 GitHub Actions 来自动检查覆盖率：
 
 - 每次推送到 `main` 或 `develop` 分支时会自动运行
-- 每次创建Pull Request时会自动运行
-- 如果覆盖率低于100%，CI会失败
+- 每次创建 Pull Request 时会自动运行
+- 如果覆盖率低于 100%，CI 会失败
 
 ## 覆盖率检查脚本
 
@@ -64,7 +64,7 @@ open coverage/html/index.html
 3. 计算总体覆盖率
 4. 显示详细的覆盖率信息
 5. 列出未完全覆盖的文件
-6. 如果覆盖率低于100%，脚本会失败
+6. 如果覆盖率低于 100%，脚本会失败
 
 ## 排除的文件
 
@@ -77,7 +77,7 @@ open coverage/html/index.html
 
 ## 提高覆盖率
 
-如果覆盖率未达到100%：
+如果覆盖率未达到 100%：
 
 1. 查看覆盖率报告，找出未覆盖的代码
 2. 为未覆盖的代码编写测试
@@ -98,14 +98,14 @@ vendor/bin/phpunit --testsuite=Feature
 
 ## 覆盖率改进历史
 
-### 2026年3月 - Rounds 16-20
+### 2026 年 3 月 - Rounds 16-20
 
 系统性地提升了测试覆盖率，重点关注 Controllers 和 Services 层。
 
 #### Round 16: InventoryController
 - **文件**: `app/Http/Controllers/Api/Game/InventoryController.php`
 - **改进**: 96.1% (73/76) → **100%** (76/76)
-- **新增测试**: 3个测试方法
+- **新增测试**: 3 个测试方法
   - `test_get_quality_name_returns_magic_for_magic`
   - `test_get_quality_name_returns_legendary_for_legendary`
   - `test_get_quality_name_returns_mythic_for_mythic`
@@ -115,30 +115,30 @@ vendor/bin/phpunit --testsuite=Feature
 #### Round 17: ImageUploadService
 - **文件**: `app/Services/File/ImageUploadService.php`
 - **改进**: 96.1% (73/76) → **98.7%** (75/76)
-- **新增测试**: 2个测试方法
+- **新增测试**: 2 个测试方法
   - `test_process_uploaded_images_creates_directory_if_not_exists`
   - `test_process_image_paths_creates_directory_if_not_exists`
 - **覆盖内容**: 目录不存在时的 mkdir() 调用场景
 - **测试文件**: `tests/Unit/Services/ImageUploadServiceTest.php`
-- **未覆盖**: 1行（Line 117: rename() 失败时的 Log::error）
+- **未覆盖**: 1 行（Line 117: rename() 失败时的 Log::error）
 
 #### Round 18: GameInventoryService
 - **文件**: `app/Services/Game/GameInventoryService.php`
 - **改进**: 96.5% (303/314) → **96.8%** (304/314)
-- **新增测试**: 1个测试方法
+- **新增测试**: 1 个测试方法
   - `test_equip_item_creates_equipment_slot_if_not_exists`
 - **覆盖内容**: 首次创建装备槽位的场景（`getOrCreateEquipmentSlot`）
 - **测试文件**: `tests/Unit/Services/Game/GameInventoryServiceTest.php`
-- **未覆盖**: 10行（类型转换、防御性检查、数据库异常）
+- **未覆盖**: 10 行（类型转换、防御性检查、数据库异常）
 
 #### Round 19: ItemSearchService
 - **文件**: `app/Services/Thing/ItemSearchService.php`
 - **改进**: 94.8% (55/58) → **98.3%** (57/58)
-- **新增测试**: 1个测试方法
+- **新增测试**: 1 个测试方法
   - `test_record_search_history_logs_error_on_database_failure`
 - **覆盖内容**: 数据库插入失败时的异常处理和日志记录
 - **测试文件**: `tests/Unit/Services/Thing/ItemSearchServiceTest.php`
-- **未覆盖**: 1行（Line 77: 低频分支条件）
+- **未覆盖**: 1 行（Line 77: 低频分支条件）
 
 #### Round 20: 覆盖率分析总结
 - **总测试数**: 3,201 passing
@@ -150,23 +150,23 @@ vendor/bin/phpunit --testsuite=Feature
 以下文件覆盖率 <97%，主要包含难以测试的代码：
 
 1. **FileStorageService** (93.8%)
-   - 6行未覆盖：异常处理中的 catch 块
+   - 6 行未覆盖：异常处理中的 catch 块
    - 原因：需要实际文件系统故障才能触发
 
 2. **ChatPaginationService** (94.7%)
-   - 7行未覆盖：数据库异常 + 低频分支
+   - 7 行未覆盖：数据库异常 + 低频分支
    - 原因：需要特殊数据库状态
 
 3. **ContentFilterService** (94.9%)
-   - 14行未覆盖：复杂的违规检测逻辑
+   - 14 行未覆盖：复杂的违规检测逻辑
    - 部分改进已完成（Round 15）
 
 4. **CombatRoundProcessor** (95.2%)
-   - 19行未覆盖：复杂的 AOE 计算和技能选择算法
+   - 19 行未覆盖：复杂的 AOE 计算和技能选择算法
    - 原因：需要极端的游戏状态组合
 
 5. **GameCombatLootService** (96.2%)
-   - 8行未覆盖：装备品质系统的边界情况
+   - 8 行未覆盖：装备品质系统的边界情况
 
 ### 测试最佳实践
 

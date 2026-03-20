@@ -1647,7 +1647,7 @@ class CombatRoundProcessorTest extends TestCase
             ],
         ];
 
-        // 3个存活怪物，总血量150 (低血量场景)
+        // 3 个存活怪物，总血量 150 (低血量场景)
         $result = $skillSelector->selectOptimalSkill(
             $availableSkills,
             150,
@@ -1727,7 +1727,7 @@ class CombatRoundProcessorTest extends TestCase
         );
 
         $this->assertIsArray($result);
-        // 优先选择0消耗技能
+        // 优先选择 0 消耗技能
         $this->assertEquals(1, $result['id']);
     }
 
@@ -1752,7 +1752,7 @@ class CombatRoundProcessorTest extends TestCase
             ],
         ];
 
-        // 不满足特殊条件时，应选择最经济的（按魔法消耗排序）
+        // 不满足特殊条件时，应选择最经济的(按魔法消耗排序)
         $result = $skillSelector->selectOptimalSkill(
             $availableSkills,
             500,

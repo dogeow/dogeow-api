@@ -14,8 +14,8 @@ return new class extends Migration
     {
         Schema::create('word_book_education_level', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('word_book_id')->comment('单词书ID');
-            $table->unsignedBigInteger('education_level_id')->comment('教育级别ID');
+            $table->unsignedBigInteger('word_book_id')->comment('单词书 ID');
+            $table->unsignedBigInteger('education_level_id')->comment('教育级别 ID');
             $table->timestamps();
 
             $table->unique(['word_book_id', 'education_level_id']);

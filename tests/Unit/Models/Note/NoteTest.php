@@ -150,7 +150,7 @@ class NoteTest extends TestCase
     {
         $slug = Note::normalizeSlug('你好 世界');
 
-        $this->assertEquals('你好-世界', $slug);
+        $this->assertEquals('你好 - 世界', $slug);
     }
 
     public function test_normalize_slug_removes_special_characters()

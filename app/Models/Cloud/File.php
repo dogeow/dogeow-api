@@ -102,7 +102,7 @@ class File extends Model
     }
 
     /**
-     * 获取所有后代文件夹（用于移动验证）
+     * 获取所有后代文件夹(用于移动验证)
      */
     public function getAllDescendants(): array
     {

@@ -10,7 +10,7 @@ use App\Http\Controllers\Api\Game\ShopController;
 use App\Http\Controllers\Api\Game\SkillController;
 use Illuminate\Support\Facades\Route;
 
-// RPG游戏路由
+// RPG 游戏路由
 Route::prefix('rpg')->group(function () {
     // 角色相关
     Route::get('/characters', [CharacterController::class, 'index']);
@@ -21,7 +21,7 @@ Route::prefix('rpg')->group(function () {
     Route::put('/character/difficulty', [CharacterController::class, 'updateDifficulty']);
     Route::get('/character/detail', [CharacterController::class, 'detail']);
     Route::post('/character/online', [CharacterController::class, 'online']);
-    // 离线奖励（已禁用）
+    // 离线奖励(已禁用)
     // Route::get('/character/offline-rewards', [CharacterController::class, 'checkOfflineRewards']);
     // Route::post('/character/offline-rewards', [CharacterController::class, 'claimOfflineRewards']);
 

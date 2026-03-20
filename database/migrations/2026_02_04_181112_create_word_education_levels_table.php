@@ -25,8 +25,8 @@ return new class extends Migration
         // 创建单词和教育级别的关联表
         Schema::create('word_education_level', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('word_id')->comment('单词ID');
-            $table->unsignedBigInteger('education_level_id')->comment('教育级别ID');
+            $table->unsignedBigInteger('word_id')->comment('单词 ID');
+            $table->unsignedBigInteger('education_level_id')->comment('教育级别 ID');
             $table->timestamps();
 
             $table->unique(['word_id', 'education_level_id']);

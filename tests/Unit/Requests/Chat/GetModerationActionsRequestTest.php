@@ -41,8 +41,8 @@ class GetModerationActionsRequestTest extends TestCase
         $messages = $this->request->messages();
 
         $this->assertSame('每页数量必须为整数', $messages['per_page.integer']);
-        $this->assertSame('每页数量至少为1', $messages['per_page.min']);
-        $this->assertSame('每页数量不能超过100', $messages['per_page.max']);
+        $this->assertSame('每页数量至少为 1', $messages['per_page.min']);
+        $this->assertSame('每页数量不能超过 100', $messages['per_page.max']);
         $this->assertSame('目标用户 ID 必须为整数', $messages['target_user_id.integer']);
     }
 }

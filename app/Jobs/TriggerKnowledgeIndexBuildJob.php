@@ -20,7 +20,7 @@ class TriggerKnowledgeIndexBuildJob implements ShouldBeUnique, ShouldQueue
 
     public int $timeout = 300;
 
-    /** 唯一锁持有时间（秒），避免重复入队 */
+    /** 唯一锁持有时间(秒)，避免重复入队 */
     public int $uniqueFor = 120;
 
     /**

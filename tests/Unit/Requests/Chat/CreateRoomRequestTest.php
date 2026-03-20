@@ -86,7 +86,7 @@ class CreateRoomRequestTest extends TestCase
         $messages = $this->request->messages();
 
         // localized message
-        $this->assertEquals('描述不能超过1000个字符', $messages['description.max']);
+        $this->assertEquals('描述不能超过 1000 个字符', $messages['description.max']);
     }
 
     // 字符长度验证已由 Feature 测试覆盖
@@ -96,7 +96,7 @@ class CreateRoomRequestTest extends TestCase
 
     public function test_validates_empty_name_skips_char_length_check()
     {
-        // 空名称应该跳过字符长度检查（会被 required 规则捕获）
+        // 空名称应该跳过字符长度检查(会被 required 规则捕获)
         $validator = \Validator::make(
             ['name' => ''],
             $this->request->rules()
@@ -105,7 +105,7 @@ class CreateRoomRequestTest extends TestCase
         $this->request->setValidator($validator);
         $this->request->withValidator($validator);
 
-        // withValidator 的 after 回调应该提前return，不添加额外错误
+        // withValidator 的 after 回调应该提前 return，不添加额外错误
         // 只有 required 规则的错误
         $this->assertTrue($validator->fails());
         $this->assertTrue($validator->errors()->has('name'));

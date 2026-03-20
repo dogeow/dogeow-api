@@ -6,17 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * 创建物品分类表迁移
- * 包含分类名称、父分类ID和所属用户，支持两级分类
+ * 包含分类名称、父分类 ID 和所属用户，支持两级分类
  */
 return new class extends Migration
 {
     /**
      * 运行迁移
-     * 创建item_categories表，包含以下字段：
+     * 创建 item_categories 表，包含以下字段：
      * - id: 主键
      * - name: 分类名称
-     * - parent_id: 父分类ID（可为空，支持两级分类）
-     * - user_id: 所属用户ID
+     * - parent_id: 父分类 ID(可为空，支持两级分类)
+     * - user_id: 所属用户 ID
      */
     public function up(): void
     {
@@ -33,7 +33,7 @@ return new class extends Migration
 
     /**
      * 回滚迁移
-     * 删除item_categories表
+     * 删除 item_categories 表
      */
     public function down(): void
     {

@@ -50,7 +50,7 @@ class AddItemRelationRequest extends FormRequest
             'relation_type.required' => '关联类型不能为空',
             'relation_type.string' => '关联类型格式不正确',
             'description.string' => '关联描述必须是字符串',
-            'description.max' => '关联描述不能超过500个字符',
+            'description.max' => '关联描述不能超过 500 个字符',
         ];
     }
 }

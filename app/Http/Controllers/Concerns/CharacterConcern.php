@@ -25,7 +25,7 @@ trait CharacterConcern
     }
 
     /**
-     * 从请求中获取角色ID
+     * 从请求中获取角色 ID
      */
     protected function getCharacterId(Request $request): ?int
     {

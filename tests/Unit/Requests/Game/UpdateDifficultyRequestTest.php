@@ -29,9 +29,9 @@ class UpdateDifficultyRequestTest extends TestCase
         $request = new UpdateDifficultyRequest;
         $messages = $request->messages();
 
-        $this->assertSame('角色ID必须大于0', $messages['character_id.min']);
+        $this->assertSame('角色 ID 必须大于 0', $messages['character_id.min']);
         $this->assertSame('难度等级不能为空', $messages['difficulty_tier.required']);
-        $this->assertSame('难度等级不能小于0', $messages['difficulty_tier.min']);
-        $this->assertSame('难度等级不能大于9', $messages['difficulty_tier.max']);
+        $this->assertSame('难度等级不能小于 0', $messages['difficulty_tier.min']);
+        $this->assertSame('难度等级不能大于 9', $messages['difficulty_tier.max']);
     }
 }

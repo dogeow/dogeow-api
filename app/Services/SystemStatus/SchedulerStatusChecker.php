@@ -12,7 +12,7 @@ class SchedulerStatusChecker
     private const HEARTBEAT_THRESHOLD = 90; // 秒
 
     /**
-     * 检查调度器状态（通过心跳检测）
+     * 检查调度器状态(通过心跳检测)
      *
      * @return array{status: string, details: string, last_run?: string}
      */

@@ -40,7 +40,7 @@ class UpdateNoteRequest extends FormRequest
         return [
             'title' => '标题',
             'content' => '内容',
-            'content_markdown' => 'Markdown内容',
+            'content_markdown' => 'Markdown 内容',
             'is_draft' => '草稿状态',
             'slug' => 'Slug',
             'summary' => '摘要',

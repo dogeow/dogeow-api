@@ -12,10 +12,10 @@ return new class extends Migration
 {
     /**
      * 运行迁移
-     * 创建areas表，包含以下字段：
+     * 创建 areas 表，包含以下字段：
      * - id: 主键
      * - name: 区域名称
-     * - user_id: 所属用户ID
+     * - user_id: 所属用户 ID
      * - is_default: 是否为默认区域
      */
     public function up(): void
@@ -31,7 +31,7 @@ return new class extends Migration
 
     /**
      * 回滚迁移
-     * 删除areas表
+     * 删除 areas 表
      */
     public function down(): void
     {

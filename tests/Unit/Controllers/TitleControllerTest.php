@@ -146,7 +146,7 @@ class TitleControllerTest extends TestCase
         $response = $this->controller->fetch($request);
 
         $this->assertEquals(400, $response->getStatusCode());
-        $this->assertEquals(['error' => '缺少url参数'], json_decode($response->getContent(), true));
+        $this->assertEquals(['error' => '缺少 url 参数'], json_decode($response->getContent(), true));
     }
 
     public function test_fetch_returns_400_when_url_empty()
@@ -156,7 +156,7 @@ class TitleControllerTest extends TestCase
         $response = $this->controller->fetch($request);
 
         $this->assertEquals(400, $response->getStatusCode());
-        $this->assertEquals(['error' => '缺少url参数'], json_decode($response->getContent(), true));
+        $this->assertEquals(['error' => '缺少 url 参数'], json_decode($response->getContent(), true));
     }
 
     public function test_fetch_returns_400_when_url_null()
@@ -166,7 +166,7 @@ class TitleControllerTest extends TestCase
         $response = $this->controller->fetch($request);
 
         $this->assertEquals(400, $response->getStatusCode());
-        $this->assertEquals(['error' => '缺少url参数'], json_decode($response->getContent(), true));
+        $this->assertEquals(['error' => '缺少 url 参数'], json_decode($response->getContent(), true));
     }
 
     public function test_fetch_with_runtime_exception()

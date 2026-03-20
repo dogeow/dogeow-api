@@ -35,7 +35,7 @@ abstract class Controller
     }
 
     /**
-     * 获取当前认证用户ID
+     * 获取当前认证用户 ID
      */
     protected function getCurrentUserId(): int
     {

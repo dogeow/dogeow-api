@@ -236,7 +236,7 @@ class ItemImageManagementServiceTest extends TestCase
 
         // 验证有效的图片被删除
         $this->assertDatabaseMissing('thing_item_images', ['id' => $validImage->id]);
-        // 验证无效的ID不会影响其他操作
+        // 验证无效的 ID 不会影响其他操作
         $this->assertEquals(0, ItemImage::where('item_id', $item->id)->count());
     }
 
@@ -251,7 +251,7 @@ class ItemImageManagementServiceTest extends TestCase
         // 尝试删除 item2 的图片，但传入 item1
         $this->service->deleteImagesByIds([$image2->id], $item1);
 
-        // 验证 item2 的图片没有被删除（因为不属于 item1）
+        // 验证 item2 的图片没有被删除(因为不属于 item1)
         $this->assertDatabaseHas('thing_item_images', ['id' => $image2->id]);
         // 验证 item1 的图片也没有被删除
         $this->assertDatabaseHas('thing_item_images', ['id' => $image1->id]);

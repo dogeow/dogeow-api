@@ -20,7 +20,7 @@ return new class extends Migration
                 $table->integer('stage')->default(0)->comment('复习阶段 0-7 (艾宾浩斯)')->after('status');
             }
             if (! Schema::hasColumn('user_words', 'ease_factor')) {
-                $table->decimal('ease_factor', 3, 2)->default(2.50)->comment('难度因子 (SM-2算法)')->after('stage');
+                $table->decimal('ease_factor', 3, 2)->default(2.50)->comment('难度因子 (SM-2 算法)')->after('stage');
             }
         });
     }

@@ -41,7 +41,7 @@ class ChatModerationLogController extends Controller
 
         $paged = $query->jsonPaginate();
 
-        // Spatie 返回 JSON:API 格式（data/meta/links），直接返回给客户端
+        // Spatie 返回 JSON:API 格式(data/meta/links)，直接返回给客户端
         return response()->json($paged);
     }
 }

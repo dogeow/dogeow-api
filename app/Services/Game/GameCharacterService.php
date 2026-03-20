@@ -17,13 +17,13 @@ class GameCharacterService
     /** 缓存键前缀 */
     private const CACHE_PREFIX = 'game_character:';
 
-    /** 缓存有效期（秒） */
+    /** 缓存有效期(秒) */
     private const CACHE_TTL = 300;
 
     /**
      * 获取用户角色列表
      *
-     * @param  int  $userId  用户ID
+     * @param  int  $userId  用户 ID
      * @return array 角色列表和经验表
      */
     public function getCharacterList(int $userId): array
@@ -50,8 +50,8 @@ class GameCharacterService
     /**
      * 获取角色详情
      *
-     * @param  int  $userId  用户ID
-     * @param  int|null  $characterId  角色ID（可选）
+     * @param  int  $userId  用户 ID
+     * @param  int|null  $characterId  角色 ID(可选)
      * @return array|null 角色详情数组
      */
     public function getCharacterDetail(int $userId, ?int $characterId = null): ?array
@@ -90,7 +90,7 @@ class GameCharacterService
     /**
      * 创建新角色
      *
-     * @param  int  $userId  用户ID
+     * @param  int  $userId  用户 ID
      * @param  string  $name  角色名称
      * @param  string  $class  职业类型
      * @param  string  $gender  性别 male 或 female
@@ -142,8 +142,8 @@ class GameCharacterService
     /**
      * 删除角色
      *
-     * @param  int  $userId  用户ID
-     * @param  int  $characterId  角色ID
+     * @param  int  $userId  用户 ID
+     * @param  int  $characterId  角色 ID
      *
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException 角色不存在
      */
@@ -163,8 +163,8 @@ class GameCharacterService
     /**
      * 分配属性点
      *
-     * @param  int  $userId  用户ID
-     * @param  int  $characterId  角色ID
+     * @param  int  $userId  用户 ID
+     * @param  int  $characterId  角色 ID
      * @param  array  $stats  要分配的属性 ['strength' => 1, 'dexterity' => 2, ...]
      * @return array 更新后的角色数据
      *
@@ -214,9 +214,9 @@ class GameCharacterService
     /**
      * 更新难度设置
      *
-     * @param  int  $userId  用户ID
+     * @param  int  $userId  用户 ID
      * @param  int  $difficultyTier  难度等级 (1-4)
-     * @param  int|null  $characterId  角色ID（可选）
+     * @param  int|null  $characterId  角色 ID(可选)
      * @return GameCharacter 更新后的角色
      */
     public function updateDifficulty(int $userId, int $difficultyTier, ?int $characterId = null): GameCharacter
@@ -235,10 +235,10 @@ class GameCharacterService
     }
 
     /**
-     * 获取角色完整详情（包含背包、技能等）
+     * 获取角色完整详情(包含背包、技能等)
      *
-     * @param  int  $userId  用户ID
-     * @param  int|null  $characterId  角色ID（可选）
+     * @param  int  $userId  用户 ID
+     * @param  int|null  $characterId  角色 ID(可选)
      * @return array 完整角色数据
      */
     public function getCharacterFullDetail(int $userId, ?int $characterId = null): array
@@ -308,16 +308,16 @@ class GameCharacterService
         $now = now();
         $offlineSeconds = $rewardStartTime->diffInSeconds($now);
 
-        // 最小60秒才发放离线奖励
+        // 最小 60 秒才发放离线奖励
         if ($offlineSeconds < 60) {
             return $this->formatOfflineRewards((int) $offlineSeconds, false);
         }
 
-        // 最多24小时（从配置读取）
+        // 最多 24 小时(从配置读取)
         $maxSeconds = config('game.offline_rewards.max_seconds', 86400);
         $offlineSeconds = min($offlineSeconds, $maxSeconds);
 
-        // 计算奖励（从配置读取系数）
+        // 计算奖励(从配置读取系数)
         $level = $character->level;
         $expPerLevel = config('game.offline_rewards.experience_per_level', 1);
         $copperPerLevel = config('game.offline_rewards.copper_per_level', 0.5);
@@ -387,11 +387,11 @@ class GameCharacterService
         $length = mb_strlen($name);
 
         if ($length < 2) {
-            throw new \InvalidArgumentException('角色名至少需要2个字符');
+            throw new \InvalidArgumentException('角色名至少需要 2 个字符');
         }
 
         if ($length > 12) {
-            throw new \InvalidArgumentException('角色名最多12个字符');
+            throw new \InvalidArgumentException('角色名最多 12 个字符');
         }
 
         if (! preg_match('/^[\x{4e00}-\x{9fa5}a-zA-Z0-9]+$/u', $name)) {
@@ -482,9 +482,9 @@ class GameCharacterService
      *
      * @param  int  $offlineSeconds  离线秒数
      * @param  bool  $available  是否可领取
-     * @param  int  $experience  经验（可选）
-     * @param  int  $copper  铜币（可选）
-     * @param  bool  $levelUp  是否升级（可选）
+     * @param  int  $experience  经验(可选)
+     * @param  int  $copper  铜币(可选)
+     * @param  bool  $levelUp  是否升级(可选)
      * @return array 格式化后的数据
      */
     private function formatOfflineRewards(
@@ -506,7 +506,7 @@ class GameCharacterService
     /**
      * 清除角色相关缓存
      *
-     * @param  int  $userId  用户ID
+     * @param  int  $userId  用户 ID
      */
     private function clearCharacterCache(int $userId): void
     {

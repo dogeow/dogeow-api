@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('user_word_check_ins', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id')->comment('用户ID');
+            $table->unsignedBigInteger('user_id')->comment('用户 ID');
             $table->date('check_in_date')->comment('打卡日期');
             $table->integer('new_words_count')->default(0)->comment('新学单词数');
             $table->integer('review_words_count')->default(0)->comment('复习单词数');

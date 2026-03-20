@@ -57,7 +57,7 @@ class LogController extends Controller
 
         $content = File::get($filepath);
 
-        // 按行分割并返回最后 N 行（默认 500 行）
+        // 按行分割并返回最后 N 行(默认 500 行)
         $lines = explode("\n", $content);
         $maxLines = (int) $request->input('lines', 500);
         $lines = array_slice($lines, -$maxLines);

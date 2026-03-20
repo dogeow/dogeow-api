@@ -21,7 +21,7 @@ class LearnSkillRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'skill_id.required' => '技能ID不能为空',
+            'skill_id.required' => '技能 ID 不能为空',
             'skill_id.exists' => '技能不存在',
         ];
     }

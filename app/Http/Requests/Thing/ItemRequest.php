@@ -50,19 +50,19 @@ class ItemRequest extends FormRequest
     {
         return [
             'name.required' => '物品名称不能为空',
-            'name.max' => '物品名称不能超过255个字符',
+            'name.max' => '物品名称不能超过 255 个字符',
             'quantity.required' => '物品数量不能为空',
             'quantity.integer' => '物品数量必须为整数',
-            'quantity.min' => '物品数量必须大于0',
+            'quantity.min' => '物品数量必须大于 0',
             'purchase_price.numeric' => '购买价格必须为数字',
             'purchase_price.min' => '购买价格不能为负数',
             'category_id.exists' => '所选分类不存在',
             'spot_id.exists' => '所选位置不存在',
             'images.*.image' => '上传的文件必须是图片',
-            'images.*.mimes' => '图片格式必须为jpeg,png,jpg,gif',
-            'images.*.max' => '图片大小不能超过2MB',
+            'images.*.mimes' => '图片格式必须为 jpeg,png,jpg,gif',
+            'images.*.max' => '图片大小不能超过 2MB',
             'tags.*.string' => '标签必须是字符串',
-            'tags.*.max' => '标签长度不能超过255个字符',
+            'tags.*.max' => '标签长度不能超过 255 个字符',
         ];
     }
 }

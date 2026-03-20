@@ -14,7 +14,7 @@ use Illuminate\Http\Request;
 class TodoListController extends Controller
 {
     /**
-     * 当前用户的所有待办列表（含任务，按 position 排序）
+     * 当前用户的所有待办列表(含任务，按 position 排序)
      */
     public function index(): JsonResponse
     {
@@ -27,7 +27,7 @@ class TodoListController extends Controller
     }
 
     /**
-     * 单个待办列表（含任务）
+     * 单个待办列表(含任务)
      */
     public function show(string $id): JsonResponse
     {
@@ -67,7 +67,7 @@ class TodoListController extends Controller
     }
 
     /**
-     * 删除待办列表（及其任务）
+     * 删除待办列表(及其任务)
      */
     public function destroy(string $id): JsonResponse
     {
@@ -99,7 +99,7 @@ class TodoListController extends Controller
     }
 
     /**
-     * 更新任务（标题、完成状态、排序）
+     * 更新任务(标题、完成状态、排序)
      */
     public function updateTask(TodoTaskRequest $request, string $listId, string $taskId): JsonResponse
     {
@@ -134,7 +134,7 @@ class TodoListController extends Controller
     }
 
     /**
-     * 批量重排任务顺序（传 task_ids 顺序即新 position 0,1,2...）
+     * 批量重排任务顺序(传 task_ids 顺序即新 position 0,1,2...)
      */
     public function reorderTasks(ReorderTodoTasksRequest $request, string $listId): JsonResponse
     {

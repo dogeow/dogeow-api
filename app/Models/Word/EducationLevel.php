@@ -26,7 +26,7 @@ class EducationLevel extends Model
     }
 
     /**
-     * 关联的单词（多对多）
+     * 关联的单词(多对多)
      */
     public function words(): BelongsToMany
     {
@@ -35,7 +35,7 @@ class EducationLevel extends Model
     }
 
     /**
-     * 关联的单词书（多对多）
+     * 关联的单词书(多对多)
      */
     public function books(): BelongsToMany
     {

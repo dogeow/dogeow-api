@@ -66,7 +66,7 @@ class UploadControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        // 创建一个超过20MB的图片文件
+        // 创建一个超过 20MB 的图片文件
         $largeImage = UploadedFile::fake()->create('large.jpg', 25000); // 25MB
 
         $response = $this->actingAs($user)

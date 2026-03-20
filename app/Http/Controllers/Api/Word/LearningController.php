@@ -24,7 +24,7 @@ class LearningController extends Controller
     ) {}
 
     /**
-     * 获取今日学习单词（包含复习词和新词）
+     * 获取今日学习单词(包含复习词和新词)
      */
     public function getDailyWords(): AnonymousResourceCollection
     {
@@ -42,7 +42,7 @@ class LearningController extends Controller
         $dailyCount = $setting->daily_new_words;
         $reviewCount = $setting->daily_new_words * $setting->review_multiplier;
 
-        // 1. 先获取需要复习的单词（优先，限制在当前单词书）
+        // 1. 先获取需要复习的单词(优先，限制在当前单词书)
         $reviewUserWords = UserWord::where('user_id', $user->id)
             ->where('word_book_id', $book->id)
             ->whereNotIn('status', [0, 4]) // 已学习且非简单词
@@ -56,13 +56,13 @@ class LearningController extends Controller
         // property 'word' on UserWord is non-nullable, so return type can be Word
         $reviewWords = $reviewUserWords->map(fn (UserWord $userWord): Word => $userWord->word)->filter();
 
-        // 2. 获取用户已学习的单词ID（该单词书下的）
+        // 2. 获取用户已学习的单词 ID(该单词书下的)
         $learnedWordIds = UserWord::where('user_id', $user->id)
             ->where('word_book_id', $book->id)
             ->pluck('word_id')
             ->unique();
 
-        // 3. 获取未学习的新单词（排除已学习的，包括复习词）
+        // 3. 获取未学习的新单词(排除已学习的，包括复习词)
         /** @var \Illuminate\Database\Eloquent\Collection<int, Word> $newWords */
         $newWords = $book->words()
             ->with('educationLevels')
@@ -77,7 +77,7 @@ class LearningController extends Controller
     }
 
     /**
-     * 获取今日复习单词（艾宾浩斯算法）
+     * 获取今日复习单词(艾宾浩斯算法)
      */
     public function getReviewWords(): AnonymousResourceCollection
     {
@@ -86,7 +86,7 @@ class LearningController extends Controller
 
         $reviewCount = $setting->daily_new_words * $setting->review_multiplier;
 
-        // 获取需要复习的单词（下次复习时间已到，排除简单词 status=4）
+        // 获取需要复习的单词(下次复习时间已到，排除简单词 status=4)
         $userWords = UserWord::where('user_id', $user->id)
             ->whereNotIn('status', [0, 4]) // 已学习且非简单词
             ->where('next_review_at', '<=', now())
@@ -101,7 +101,7 @@ class LearningController extends Controller
     }
 
     /**
-     * 标记单词（记住/忘记）
+     * 标记单词(记住/忘记)
      */
     public function markWord(int $id, MarkWordRequest $request): JsonResponse
     {
@@ -111,7 +111,7 @@ class LearningController extends Controller
         $word = Word::findOrFail($id);
         $setting = $this->getUserSetting($user->id);
 
-        // 从用户设置中获取当前单词书ID
+        // 从用户设置中获取当前单词书 ID
         $bookId = $setting->current_book_id;
 
         DB::transaction(function () use ($user, $word, $remembered, $bookId) {
@@ -145,7 +145,7 @@ class LearningController extends Controller
     }
 
     /**
-     * 标记为简单词（已会，不再出现在每日新词和复习中）
+     * 标记为简单词(已会，不再出现在每日新词和复习中)
      */
     public function markWordAsSimple(int $id): JsonResponse
     {
@@ -239,7 +239,7 @@ class LearningController extends Controller
     }
 
     /**
-     * 更新单词数据（修正释义、例句等）
+     * 更新单词数据(修正释义、例句等)
      */
     public function updateWord(int $id): JsonResponse
     {
@@ -331,7 +331,7 @@ class LearningController extends Controller
     }
 
     /**
-     * 获取填空练习单词（只从已学过且有例句的单词中获取）
+     * 获取填空练习单词(只从已学过且有例句的单词中获取)
      */
     public function getFillBlankWords(): AnonymousResourceCollection
     {
@@ -341,7 +341,7 @@ class LearningController extends Controller
         // 获取练习数量，默认为每日新词数量
         $count = $setting->daily_new_words;
 
-        // 获取已学习的单词（排除未学习和简单词，且必须有例句）
+        // 获取已学习的单词(排除未学习和简单词，且必须有例句)
         $userWords = UserWord::where('user_id', $user->id)
             ->whereNotIn('status', [0, 4]) // 排除未学习和简单词
             ->with(['word.educationLevels'])

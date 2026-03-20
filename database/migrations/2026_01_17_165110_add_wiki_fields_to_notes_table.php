@@ -21,7 +21,7 @@ return new class extends Migration
 
         // 使用原生 SQL 修改 user_id 字段为可空
         // 注意：如果外键约束存在，可能需要先删除再重新添加
-        // 在 sqlite 中 information_schema 不可用，跳过复杂的原生 SQL 修改（测试环境通常使用 sqlite）
+        // 在 sqlite 中 information_schema 不可用，跳过复杂的原生 SQL 修改(测试环境通常使用 sqlite)
         if (DB::connection()->getDriverName() === 'mysql') {
             try {
                 DB::statement('ALTER TABLE notes MODIFY COLUMN user_id BIGINT UNSIGNED NULL');
@@ -43,7 +43,7 @@ return new class extends Migration
                 DB::statement('ALTER TABLE notes MODIFY COLUMN user_id BIGINT UNSIGNED NULL');
             }
         } else {
-            // sqlite 环境：跳过原生 ALTER 操作（测试环境兼容）
+            // sqlite 环境：跳过原生 ALTER 操作(测试环境兼容)
             // 如果你希望在 sqlite 中也改变列为 nullable，可在需要时添加 doctrine/dbal 并使用 Schema::table(...)->change()
         }
     }

@@ -41,7 +41,7 @@ class ItemRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'nav_category_id' => '分类ID',
+            'nav_category_id' => '分类 ID',
             'name' => '导航名称',
             'url' => '链接地址',
             'icon' => '图标',

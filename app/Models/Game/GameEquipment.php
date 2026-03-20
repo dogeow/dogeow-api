@@ -18,7 +18,7 @@ class GameEquipment extends Model
     ];
 
     /**
-     * 装备槽位列表（与 GameCharacter 共用 config）
+     * 装备槽位列表(与 GameCharacter 共用 config)
      *
      * @return array<int, string>
      */

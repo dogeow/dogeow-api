@@ -36,7 +36,7 @@ return [
     ],
 
     'knowledge' => [
-        // 知识库索引构建接口（Next.js API），需在 .env 配置 KNOWLEDGE_BUILD_INDEX_URL
+        // 知识库索引构建接口(Next.js API)，需在 .env 配置 KNOWLEDGE_BUILD_INDEX_URL
         'build_index_url' => env('KNOWLEDGE_BUILD_INDEX_URL'),
     ],
 

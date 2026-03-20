@@ -23,8 +23,8 @@ class MoveItemRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'item_id.required' => '物品ID不能为空',
-            'item_id.min' => '物品ID必须大于0',
+            'item_id.required' => '物品 ID 不能为空',
+            'item_id.min' => '物品 ID 必须大于 0',
             'item_id.exists' => '物品不存在',
             'to_storage.required' => '目标位置不能为空',
         ];

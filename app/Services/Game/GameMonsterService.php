@@ -9,7 +9,7 @@ use Illuminate\Support\Carbon;
 
 class GameMonsterService
 {
-    // 怪物刷新间隔（秒），从配置中读取，默认60秒
+    // 怪物刷新间隔(秒)，从配置中读取，默认 60 秒
     protected function getRefreshInterval(): int
     {
         $val = config('game.combat.monster_refresh_interval', 60);
@@ -50,7 +50,7 @@ class GameMonsterService
             }
         }
 
-        // 检查是否需要刷新怪物（定期从数据库读取最新属性）
+        // 检查是否需要刷新怪物(定期从数据库读取最新属性)
         $shouldRefresh = $this->shouldRefreshMonsters($character);
 
         if ($character->hasActiveCombat() && $hasAliveMonster && ! $shouldRefresh) {
@@ -105,7 +105,7 @@ class GameMonsterService
     }
 
     /**
-     * 生成新怪物 (1-5个)
+     * 生成新怪物 (1-5 个)
      *
      * @param  array<int, array<string,mixed>|null>  $existingMonsters
      * @return array{0: ?\App\Models\Game\GameMonsterDefinition,1: ?int,2: ?array<string,int>,3: int,4: int}
@@ -128,7 +128,7 @@ class GameMonsterService
         $baseMonster = $monsters[array_rand($monsters)];
         $baseLevel = max(1, $baseMonster->level + rand(-3, 3));
 
-        // 如果是刷新，保留现有怪物的HP
+        // 如果是刷新，保留现有怪物的 HP
         $existingByPosition = [];
         if ($isRefresh && ! empty($existingMonsters)) {
             foreach ($existingMonsters as $m) {
@@ -149,11 +149,11 @@ class GameMonsterService
             // 固定槽位位置，确保刷新时怪物位置一致
             $slot = $i;
 
-            // 如果是刷新且该位置有现有怪物，保留HP
+            // 如果是刷新且该位置有现有怪物，保留 HP
             $hp = $maxHp;
             if ($isRefresh && isset($existingByPosition[$slot])) {
                 $existing = $existingByPosition[$slot];
-                // 保持现有HP，但不超出新maxHp
+                // 保持现有 HP，但不超出新 maxHp
                 $hp = min(isset($existing['hp']) && is_numeric($existing['hp']) ? (int) $existing['hp'] : $maxHp, $maxHp);
             }
 
@@ -180,14 +180,14 @@ class GameMonsterService
             ];
         }
 
-        // 固定5个槽位(0-4)
+        // 固定 5 个槽位(0-4)
         $newMonsters = array_fill(0, 5, null);
         foreach ($monsterDataList as $data) {
             $slot = $data['position'];
             $newMonsters[$slot] = $data;
         }
 
-        // 持久化怪物数组（5个槽位，可能包含null）
+        // 持久化怪物数组(5 个槽位，可能包含 null)
         $character->combat_monsters = $newMonsters;
         // 更新刷新时间戳
         $character->combat_monsters_refreshed_at = now();
@@ -230,7 +230,7 @@ class GameMonsterService
     }
 
     /**
-     * 每回合按概率尝试补充新怪物：30% 不生成，70% 按权重生成 1～5 只（1 只概率最大，依次递减）
+     * 每回合按概率尝试补充新怪物：30% 不生成，70% 按权重生成 1～5 只(1 只概率最大，依次递减)
      * 空槽位 = 未占用或怪物已死亡，每回合都可能补怪，不要求全部死亡才刷新
      */
     /**
@@ -243,7 +243,7 @@ class GameMonsterService
         $indexed = $currentMonsters === [] ? [] : array_values($currentMonsters);
         $currentMonsters = array_pad($indexed, 5, null);
 
-        // 空槽位：未设置、null、或怪物已死亡（hp<=0）
+        // 空槽位：未设置、null、或怪物已死亡(hp<=0)
         $emptySlots = [];
         for ($i = 0; $i < 5; $i++) {
             $m = $currentMonsters[$i] ?? null;
@@ -314,7 +314,7 @@ class GameMonsterService
 
             $currentMonsters[$slot] = [
                 'id' => $baseMonster->id,
-                'instance_id' => uniqid('m-', true), // 唯一实例ID，用于前端检测新怪物
+                'instance_id' => uniqid('m-', true), // 唯一实例 ID，用于前端检测新怪物
                 'name' => $baseMonster->name,
                 'icon' => $baseMonster->icon,
                 'type' => $baseMonster->type,
@@ -349,7 +349,7 @@ class GameMonsterService
     }
 
     /**
-     * 格式化怪物用于响应（固定5个槽位）
+     * 格式化怪物用于响应(固定 5 个槽位)
      */
     /**
      * @return array{monsters: array<int, array<string,mixed>|null>, first_alive_monster: array<string,mixed>}

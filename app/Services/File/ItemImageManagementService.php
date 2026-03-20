@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Storage;
 class ItemImageManagementService
 {
     /**
-     * 删除指定ID的图片及其文件
+     * 删除指定 ID 的图片及其文件
      *
-     * @param  array  $imageIdsToDelete  要删除的图片ID数组
+     * @param  array  $imageIdsToDelete  要删除的图片 ID 数组
      * @param  Item  $item  要删除图片的物品
      */
     public function deleteImagesByIds(array $imageIdsToDelete, Item $item): void
@@ -27,7 +27,7 @@ class ItemImageManagementService
     }
 
     /**
-     * 删除与物品关联的所有图片（文件和记录）
+     * 删除与物品关联的所有图片(文件和记录)
      * 通常在删除物品本身时使用
      *
      * @param  Item  $item  要删除图片的物品

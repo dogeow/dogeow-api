@@ -13,7 +13,7 @@ class ItemService
     ) {}
 
     /**
-     * 处理物品图片（创建时）
+     * 处理物品图片(创建时)
      */
     public function processItemImages(Request $request, Item $item): void
     {
@@ -39,7 +39,7 @@ class ItemService
     }
 
     /**
-     * 同步图片集合（保留 image_ids，其余删除）
+     * 同步图片集合(保留 image_ids，其余删除)
      */
     private function syncImagesByIds(Request $request, Item $item): void
     {

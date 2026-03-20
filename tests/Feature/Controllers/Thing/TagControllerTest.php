@@ -448,7 +448,7 @@ class TagControllerTest extends TestCase
 
         $response->assertStatus(204);
 
-        // 由于使用了SoftDeletes，数据仍然存在但被标记为已删除
+        // 由于使用了 SoftDeletes，数据仍然存在但被标记为已删除
         $this->assertSoftDeleted('thing_tags', ['id' => $tag->id]);
     }
 
@@ -471,7 +471,7 @@ class TagControllerTest extends TestCase
 
         $response->assertStatus(204);
 
-        // 由于使用了SoftDeletes，数据仍然存在但被标记为已删除
+        // 由于使用了 SoftDeletes，数据仍然存在但被标记为已删除
         $this->assertSoftDeleted('thing_tags', ['id' => $tag->id]);
 
         // 检查关联关系已被删除

@@ -19,16 +19,16 @@ class CleanupDisconnectedChatUsers extends Command
      * php artisan chat:cleanup-disconnected --minutes=10
      *
      * 参数说明:
-     * --minutes  指定聊天室用户的非活跃时间阈值（分钟），达到该时长未活跃的用户会被标记为离线。默认为5分钟。
+     * --minutes  指定聊天室用户的非活跃时间阈值(分钟)，达到该时长未活跃的用户会被标记为离线。默认为 5 分钟。
      */
-    protected $signature = 'chat:cleanup-disconnected {--minutes=5 : 用户多久未活跃（分钟）后被标记为离线，默认5分钟}';
+    protected $signature = 'chat:cleanup-disconnected {--minutes=5 : 用户多久未活跃(分钟)后被标记为离线，默认 5 分钟}';
 
     /**
      * 命令描述
      *
      * @var string
      */
-    protected $description = '清理指定分钟未活跃的聊天室用户（将其状态标记为离线）';
+    protected $description = '清理指定分钟未活跃的聊天室用户(将其状态标记为离线)';
 
     /**
      * 执行控制台命令
@@ -37,7 +37,7 @@ class CleanupDisconnectedChatUsers extends Command
     {
         $inactiveMinutes = (int) $this->option('minutes');
 
-        $this->info("开始清理未活跃超过 {$inactiveMinutes} 分钟的聊天室用户...");
+        $this->info("开始清理未活跃超过 {$inactiveMinutes} 分钟的聊天室用户 ...");
 
         try {
             DB::beginTransaction();

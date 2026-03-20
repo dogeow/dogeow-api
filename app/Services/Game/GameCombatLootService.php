@@ -285,7 +285,7 @@ class GameCombatLootService
         // 根据宝石属性计算价格
         $gemValue = 0;
         foreach ($gemStats as $stat => $value) {
-            $gemValue += (int) ($value * 100); // 每个属性点100金币
+            $gemValue += (int) ($value * 100); // 每个属性点 100 金币
         }
 
         $definition = GameItemDefinition::create([
@@ -299,7 +299,7 @@ class GameCombatLootService
             'is_active' => true,
             'sockets' => 0,
             'gem_stats' => $gemStats,
-            'buy_price' => max(10, $gemValue), // 最低10金币
+            'buy_price' => max(10, $gemValue), // 最低 10 金币
         ]);
 
         $gem = GameItem::create([

@@ -6,6 +6,7 @@ use App\Models\Game\GameCharacter;
 use App\Services\Game\Combat\CombatDamageCalculator;
 use App\Services\Game\Combat\CombatRewardCalculator;
 use App\Services\Game\Combat\CombatSkillSelector;
+use App\Services\Game\DTOs\RoundDetailsContext;
 
 /**
  * 单回合战斗处理器：技能选择、目标选择、伤害计算、反击、奖励结算
@@ -19,7 +20,7 @@ class CombatRoundProcessor
     ) {}
 
     /**
-     * 处理一回合战斗（支持多怪物）
+     * 处理一回合战斗(支持多怪物)
      *
      * @return array{round_damage_dealt: int, round_damage_taken: int, new_monster_hp: int, new_char_hp: int, new_char_mana: int, defeat: bool, has_alive_monster: bool, skills_used_this_round: array, new_cooldowns: array, new_skills_aggregated: array, monsters_updated: array, slots_where_monster_died_this_round: array<int>, experience_gained: int, copper_gained: int, round_details: array}
      */
@@ -136,25 +137,27 @@ class CombatRoundProcessor
         // 获取第一个存活怪物的详细信息
         $firstAliveMonster = $this->getFirstAliveMonster($monstersUpdated);
         $roundDetails = $this->buildRoundDetails(
-            $character,
-            $firstAliveMonster,
-            $charAttack,
-            $charDefense,
-            $charCritRate,
-            $charCritDamage,
-            $baseAttackDamage,
-            $skillDamage,
-            $critDamageAmount,
-            $aoeDamageAmount,
-            $totalDamageDealt,
-            $defenseReduction,
-            $totalMonsterDamage,
-            $currentRound,
-            count($aliveMonstersAtStart),
-            $monstersKilledThisRound,
-            $isCrit,
-            $useAoe,
-            $difficulty
+            RoundDetailsContext::fromParams(
+                character: $character,
+                firstAliveMonster: $firstAliveMonster,
+                charAttack: $charAttack,
+                charDefense: $charDefense,
+                charCritRate: $charCritRate,
+                charCritDamage: $charCritDamage,
+                baseAttackDamage: $baseAttackDamage,
+                skillDamage: $skillDamage,
+                critDamageAmount: $critDamageAmount,
+                aoeDamageAmount: $aoeDamageAmount,
+                totalDamageDealt: $totalDamageDealt,
+                defenseReduction: $defenseReduction,
+                totalMonsterDamage: $totalMonsterDamage,
+                currentRound: $currentRound,
+                aliveMonsterCount: count($aliveMonstersAtStart),
+                monstersKilledThisRound: $monstersKilledThisRound,
+                isCrit: $isCrit,
+                useAoe: $useAoe,
+                difficulty: $difficulty
+            )
         );
 
         return [
@@ -218,63 +221,44 @@ class CombatRoundProcessor
     /**
      * @return array<string, mixed>
      */
-    private function buildRoundDetails(
-        GameCharacter $character,
-        ?array $firstAliveMonster,
-        int $charAttack,
-        int $charDefense,
-        float $charCritRate,
-        float $charCritDamage,
-        int $baseAttackDamage,
-        int $skillDamage,
-        int $critDamageAmount,
-        int $aoeDamageAmount,
-        int $totalDamageDealt,
-        float $defenseReduction,
-        int $totalMonsterDamage,
-        int $currentRound,
-        int $aliveMonsterCount,
-        int $monstersKilledThisRound,
-        bool $isCrit,
-        bool $useAoe,
-        array $difficulty
-    ): array {
+    private function buildRoundDetails(RoundDetailsContext $context): array
+    {
         return [
             'character' => [
-                'level' => $character->level,
-                'class' => $character->class,
-                'attack' => $charAttack,
-                'defense' => $charDefense,
-                'crit_rate' => $charCritRate,
-                'crit_damage' => $charCritDamage,
+                'level' => $context->character->level,
+                'class' => $context->character->class,
+                'attack' => $context->charAttack,
+                'defense' => $context->charDefense,
+                'crit_rate' => $context->charCritRate,
+                'crit_damage' => $context->charCritDamage,
             ],
-            'monster' => $firstAliveMonster ? [
-                'level' => $firstAliveMonster['level'] ?? 1,
-                'hp' => $firstAliveMonster['hp'] ?? 0,
-                'max_hp' => $firstAliveMonster['max_hp'] ?? 0,
-                'attack' => $firstAliveMonster['attack'] ?? 0,
-                'defense' => $firstAliveMonster['defense'] ?? 0,
-                'experience' => $firstAliveMonster['experience'] ?? 0,
+            'monster' => $context->firstAliveMonster ? [
+                'level' => $context->firstAliveMonster['level'] ?? 1,
+                'hp' => $context->firstAliveMonster['hp'] ?? 0,
+                'max_hp' => $context->firstAliveMonster['max_hp'] ?? 0,
+                'attack' => $context->firstAliveMonster['attack'] ?? 0,
+                'defense' => $context->firstAliveMonster['defense'] ?? 0,
+                'experience' => $context->firstAliveMonster['experience'] ?? 0,
             ] : null,
             'damage' => [
-                'base_attack' => $baseAttackDamage,
-                'skill_damage' => $skillDamage,
-                'crit_damage' => $critDamageAmount,
-                'aoe_damage' => $aoeDamageAmount,
-                'total' => $totalDamageDealt,
-                'defense_reduction' => $defenseReduction,
-                'monster_counter' => $totalMonsterDamage,
+                'base_attack' => $context->baseAttackDamage,
+                'skill_damage' => $context->skillDamage,
+                'crit_damage' => $context->critDamageAmount,
+                'aoe_damage' => $context->aoeDamageAmount,
+                'total' => $context->totalDamageDealt,
+                'defense_reduction' => $context->defenseReduction,
+                'monster_counter' => $context->totalMonsterDamage,
             ],
             'battle' => [
-                'round' => $currentRound,
-                'alive_count' => $aliveMonsterCount,
-                'killed_count' => $monstersKilledThisRound,
-                'is_crit' => $isCrit,
-                'is_aoe' => $useAoe,
+                'round' => $context->currentRound,
+                'alive_count' => $context->aliveMonsterCount,
+                'killed_count' => $context->monstersKilledThisRound,
+                'is_crit' => $context->isCrit,
+                'is_aoe' => $context->useAoe,
             ],
             'difficulty' => [
-                'tier' => $character->difficulty_tier ?? 0,
-                'multiplier' => $difficulty['reward'] ?? 1,
+                'tier' => $context->character->difficulty_tier ?? 0,
+                'multiplier' => $context->difficulty['reward'] ?? 1,
             ],
         ];
     }

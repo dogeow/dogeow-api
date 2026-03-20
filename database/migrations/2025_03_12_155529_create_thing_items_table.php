@@ -12,20 +12,20 @@ return new class extends Migration
 {
     /**
      * 运行迁移
-     * 创建items表，包含以下字段：
+     * 创建 items 表，包含以下字段：
      * - id: 主键
      * - name: 物品名称
      * - description: 物品描述
-     * - user_id: 所属用户ID
-     * - quantity: 数量，默认1
-     * - status: 状态，可选值：active(活跃)、inactive(不活跃)、expired(已过期)，默认active
+     * - user_id: 所属用户 ID
+     * - quantity: 数量，默认 1
+     * - status: 状态，可选值：active(活跃)、inactive(不活跃)、expired(已过期)，默认 active
      * - expiry_date: 过期时间
      * - purchase_date: 购买时间
      * - purchase_price: 购买价格
-     * - category_id: 分类ID
-     * - area_id: 区域ID
-     * - room_id: 房间ID
-     * - spot_id: 地点ID
+     * - category_id: 分类 ID
+     * - area_id: 区域 ID
+     * - room_id: 房间 ID
+     * - spot_id: 地点 ID
      * - is_public: 是否公开
      */
     public function up(): void
@@ -51,7 +51,7 @@ return new class extends Migration
 
     /**
      * 回滚迁移
-     * 删除items表
+     * 删除 items 表
      */
     public function down(): void
     {

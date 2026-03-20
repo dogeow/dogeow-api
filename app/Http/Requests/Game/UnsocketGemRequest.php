@@ -22,8 +22,8 @@ class UnsocketGemRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'item_id.required' => '装备ID不能为空',
-            'item_id.min' => '装备ID必须大于0',
+            'item_id.required' => '装备 ID 不能为空',
+            'item_id.min' => '装备 ID 必须大于 0',
             'item_id.exists' => '装备不存在',
             'socket_index.required' => '插槽索引不能为空',
             'socket_index.min' => '插槽索引无效',

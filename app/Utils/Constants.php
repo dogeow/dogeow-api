@@ -71,7 +71,7 @@ class Constants
     }
 
     /**
-     * 获取API配置
+     * 获取 API 配置
      */
     public static function api(?string $key = null): mixed
     {

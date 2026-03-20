@@ -13,7 +13,7 @@ class CheckInController extends Controller
 {
     /**
      * 打卡
-     * 优先使用前端传来的 local_date（用户本地日期），避免服务端 UTC 导致跨日显示错误
+     * 优先使用前端传来的 local_date(用户本地日期)，避免服务端 UTC 导致跨日显示错误
      */
     public function checkIn(\Illuminate\Http\Request $request): JsonResponse
     {
@@ -42,7 +42,7 @@ class CheckInController extends Controller
             ]);
         }
 
-        // 统计该日期学习数据（按服务端时区统计 created_at/last_review_at，仅作参考）
+        // 统计该日期学习数据(按服务端时区统计 created_at/last_review_at，仅作参考)
         $newWordsCount = UserWord::where('user_id', $user->id)
             ->whereBetween('created_at', [$todayStart, $todayEnd])
             ->where('status', '!=', 0)
@@ -106,7 +106,7 @@ class CheckInController extends Controller
     }
 
     /**
-     * 获取最近 365 天的打卡日历（包含今天）
+     * 获取最近 365 天的打卡日历(包含今天)
      */
     public function getCalendarLast365(): JsonResponse
     {
@@ -171,7 +171,7 @@ class CheckInController extends Controller
             ->distinct('word_id')
             ->count('word_id');
 
-        // 总单词数（当前学习的单词书）
+        // 总单词数(当前学习的单词书)
         $setting = \App\Models\Word\UserSetting::where('user_id', $user->id)->first();
         $totalWords = 0;
         $progressPercentage = 0;
