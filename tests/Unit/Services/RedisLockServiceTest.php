@@ -96,7 +96,7 @@ class RedisLockServiceTest extends TestCase
         $this->assertFalse($released);
     }
 
-    public function test_isLocked_returns_true_when_locked(): void
+    public function test_is_locked_returns_true_when_locked(): void
     {
         $token = $this->lockService->lock('check-locked');
 
@@ -104,7 +104,7 @@ class RedisLockServiceTest extends TestCase
         $this->assertTrue($this->lockService->isLocked('check-locked'));
     }
 
-    public function test_isLocked_returns_false_when_not_locked(): void
+    public function test_is_locked_returns_false_when_not_locked(): void
     {
         $this->assertFalse($this->lockService->isLocked('not-locked-key'));
     }
@@ -182,7 +182,7 @@ class RedisLockServiceTest extends TestCase
 
         // Wait a tiny bit then manually lock
         $acquired = false;
-        for ($i = 0; $i < 10 && !$acquired; $i++) {
+        for ($i = 0; $i < 10 && ! $acquired; $i++) {
             usleep(50000); // 50ms
             $acquired = $this->lockService->lock('retry-key') !== false;
         }
