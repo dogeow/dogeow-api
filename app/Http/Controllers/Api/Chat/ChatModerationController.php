@@ -10,15 +10,11 @@ use App\Events\Chat\UserUnmuted;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Chat\BanChatUserRequest;
 use App\Http\Requests\Chat\ChatModerationReasonRequest;
-use App\Http\Requests\Chat\GetModerationActionsRequest;
 use App\Http\Requests\Chat\MuteChatUserRequest;
 use App\Models\Chat\ChatMessage;
 use App\Models\Chat\ChatModerationAction;
-use App\Models\Chat\ChatRoom;
-use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
