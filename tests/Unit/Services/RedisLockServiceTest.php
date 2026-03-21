@@ -19,16 +19,21 @@ class RedisLockServiceTest extends TestCase
 
     protected function tearDown(): void
     {
-        // Clean up any test locks from Redis
-        $redis = Redis::connection();
-        $keys = $redis->keys('*lock*');
-        if (! empty($keys)) {
-            // Strip Laravel's Redis prefix before deleting
-            $prefix = config('database.redis.options.prefix', 'laravel_database_');
-            $keysToDelete = array_map(fn ($key) => Str::replaceFirst($prefix, '', $key), $keys);
-            $redis->del($keysToDelete);
+        try {
+            // Clean up any test locks from Redis
+            $redis = Redis::connection();
+            $keys = $redis->keys('*lock*');
+            if (! empty($keys)) {
+                // Strip Laravel's Redis prefix before deleting
+                $prefix = config('database.redis.options.prefix', 'laravel_database_');
+                $keysToDelete = array_map(fn ($key) => Str::replaceFirst($prefix, '', $key), $keys);
+                $redis->del($keysToDelete);
+            }
+        } catch (\Throwable $e) {
+            // Ignore cleanup errors to avoid masking test failures
+        } finally {
+            parent::tearDown();
         }
-        parent::tearDown();
     }
 
     public function test_lock_acquires_lock_successfully(): void

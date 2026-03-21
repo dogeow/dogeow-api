@@ -21,16 +21,21 @@ class IdempotencyMiddlewareTest extends TestCase
 
     protected function tearDown(): void
     {
-        // Clean up any test keys from Redis
-        $redis = Redis::connection();
-        $keys = $redis->keys('*idempotency*');
-        if (! empty($keys)) {
-            // Strip Laravel's Redis prefix before deleting
-            $prefix = config('database.redis.options.prefix', 'laravel_database_');
-            $keysToDelete = array_map(fn ($key) => Str::replaceFirst($prefix, '', $key), $keys);
-            $redis->del($keysToDelete);
+        try {
+            // Clean up any test keys from Redis
+            $redis = Redis::connection();
+            $keys = $redis->keys('*idempotency*');
+            if (! empty($keys)) {
+                // Strip Laravel's Redis prefix before deleting
+                $prefix = config('database.redis.options.prefix', 'laravel_database_');
+                $keysToDelete = array_map(fn ($key) => Str::replaceFirst($prefix, '', $key), $keys);
+                $redis->del($keysToDelete);
+            }
+        } catch (\Throwable $e) {
+            // Ignore cleanup errors to avoid masking test failures
+        } finally {
+            parent::tearDown();
         }
-        parent::tearDown();
     }
 
     public function test_passes_through_get_requests_without_idempotency_key(): void
