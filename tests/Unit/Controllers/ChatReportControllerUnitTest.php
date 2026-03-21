@@ -326,12 +326,12 @@ class ChatReportControllerUnitTest extends TestCase
         $this->assertDatabaseMissing('chat_messages', ['id' => $message->id]);
         $this->assertDatabaseHas('chat_moderation_actions', [
             'room_id' => $room->id,
-            'moderator_id' => 1,
+            'moderator_id' => null,
             'target_user_id' => $target->id,
             'message_id' => $message->id,
             'action_type' => ChatModerationAction::ACTION_DELETE_MESSAGE,
         ]);
 
-        $this->assertSame(3, ChatMessageReport::where('status', ChatMessageReport::STATUS_RESOLVED)->where('reviewed_by', 1)->count());
+        $this->assertSame(3, ChatMessageReport::where('status', ChatMessageReport::STATUS_RESOLVED)->where('reviewed_by', null)->count());
     }
 }
