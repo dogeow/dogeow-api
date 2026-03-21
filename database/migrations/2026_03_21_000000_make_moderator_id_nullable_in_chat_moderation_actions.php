@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('chat_messages', function (Blueprint $table) {
-            $table->softDeletes();
+        Schema::table('chat_moderation_actions', function (Blueprint $table) {
+            $table->unsignedBigInteger('moderator_id')->nullable()->change();
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('chat_messages', function (Blueprint $table) {
-            $table->dropSoftDeletes();
+        Schema::table('chat_moderation_actions', function (Blueprint $table) {
+            $table->unsignedBigInteger('moderator_id')->change();
         });
     }
 };

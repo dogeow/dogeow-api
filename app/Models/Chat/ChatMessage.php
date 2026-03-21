@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * @property mixed $id
@@ -14,10 +15,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property mixed $message
  * @property mixed $message_type
  * @property \App\Models\User $user
+ * @property \Carbon\Carbon|null $deleted_at
  */
 class ChatMessage extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'room_id',

@@ -341,4 +341,41 @@ class ChatReportControllerTest extends TestCase
         $this->assertArrayHasKey('user_agent', $report->metadata);
         $this->assertArrayHasKey('message_content', $report->metadata);
     }
+
+    public function test_auto_moderation_sets_null_moderator_id_for_automated_actions()
+    {
+        // Create 3 reports for the same message to trigger auto-moderation (threshold is 3)
+        $reporters = User::factory()->count(3)->create();
+
+        foreach ($reporters as $index => $reporter) {
+            Sanctum::actingAs($reporter);
+
+            $reportData = [
+                'report_type' => ChatMessageReport::TYPE_SPAM,
+                'reason' => "Report $index",
+            ];
+
+            $this->postJson("/api/chat/reports/rooms/{$this->room->id}/messages/{$this->message->id}", $reportData);
+        }
+
+        // Refresh the message to see if it was deleted
+        $this->message->refresh();
+
+        // The message should be deleted due to auto-moderation
+        $this->assertSoftDeleted('chat_messages', ['id' => $this->message->id]);
+
+        // Check that the moderation action has null moderator_id (automated action)
+        $moderationAction = \App\Models\Chat\ChatModerationAction::where('message_id', $this->message->id)->first();
+        $this->assertNotNull($moderationAction);
+        $this->assertNull($moderationAction->moderator_id); // Automated action - no human moderator
+        $this->assertEquals('Automatic deletion due to multiple reports', $moderationAction->reason);
+        $this->assertTrue($moderationAction->metadata['auto_action'] ?? false);
+
+        // Check that the reports were auto-resolved with null reviewed_by
+        $reports = ChatMessageReport::where('message_id', $this->message->id)->get();
+        foreach ($reports as $report) {
+            $this->assertEquals(ChatMessageReport::STATUS_RESOLVED, $report->status);
+            $this->assertNull($report->reviewed_by); // Automated action - no human reviewer
+        }
+    }
 }

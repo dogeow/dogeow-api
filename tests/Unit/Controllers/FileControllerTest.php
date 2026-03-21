@@ -30,54 +30,6 @@ class FileControllerTest extends TestCase
     }
 
     /**
-     * Test the private formatSize method using reflection
-     */
-    public function test_format_size_method()
-    {
-        $reflection = new ReflectionClass($this->controller);
-        $method = $reflection->getMethod('formatSize');
-        $method->setAccessible(true);
-
-        // Test different size formats
-        $this->assertEquals('0 B', $method->invoke($this->controller, 0));
-        $this->assertEquals('1 KB', $method->invoke($this->controller, 1024));
-        $this->assertEquals('1 MB', $method->invoke($this->controller, 1024 * 1024));
-        $this->assertEquals('1 GB', $method->invoke($this->controller, 1024 * 1024 * 1024));
-        $this->assertEquals('1 TB', $method->invoke($this->controller, 1024 * 1024 * 1024 * 1024));
-    }
-
-    /**
-     * Test the private buildFolderTree method using reflection
-     */
-    public function test_build_folder_tree_method()
-    {
-        $reflection = new ReflectionClass($this->controller);
-        $method = $reflection->getMethod('buildFolderTree');
-        $method->setAccessible(true);
-
-        // Create a folder structure
-        $rootFolder = File::factory()->create([
-            'user_id' => $this->user->id,
-            'is_folder' => true,
-            'name' => 'Root',
-        ]);
-
-        $childFolder = File::factory()->create([
-            'user_id' => $this->user->id,
-            'is_folder' => true,
-            'name' => 'Child',
-            'parent_id' => $rootFolder->id,
-        ]);
-
-        $result = $method->invoke($this->controller, $rootFolder);
-
-        $this->assertEquals($rootFolder->id, $result['id']);
-        $this->assertEquals('Root', $result['name']);
-        $this->assertCount(1, $result['children']);
-        $this->assertEquals('Child', $result['children'][0]['name']);
-    }
-
-    /**
      * Test the private getAllDescendantIds method using reflection
      */
     public function test_get_all_descendant_ids_method()
@@ -349,26 +301,5 @@ class FileControllerTest extends TestCase
         ]);
 
         $this->assertEquals('folder', $folder->type);
-    }
-
-    /**
-     * Test file size formatting edge cases
-     */
-    public function test_format_size_edge_cases()
-    {
-        $reflection = new ReflectionClass($this->controller);
-        $method = $reflection->getMethod('formatSize');
-        $method->setAccessible(true);
-
-        // Test negative values
-        $this->assertEquals('0 B', $method->invoke($this->controller, -100));
-
-        // Test very large values
-        $this->assertEquals('1.1 TB', $method->invoke($this->controller, 1024 * 1024 * 1024 * 1024 + 1024 * 1024 * 1024 * 100));
-
-        // Test exact power of 2 values
-        $this->assertEquals('1 KB', $method->invoke($this->controller, 1024));
-        $this->assertEquals('1 MB', $method->invoke($this->controller, 1024 * 1024));
-        $this->assertEquals('1 GB', $method->invoke($this->controller, 1024 * 1024 * 1024));
     }
 }

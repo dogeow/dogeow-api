@@ -15,44 +15,17 @@ use App\Services\Chat\ContentFilterService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ChatReportController extends Controller
 {
+    use ChatControllerHelpers;
+
     public function __construct(protected ContentFilterService $contentFilterService) {}
 
     /**
-     * 获取活跃房间
-     */
-    private function findActiveRoom(int $roomId): ChatRoom
-    {
-        return ChatRoom::active()->findOrFail($roomId);
-    }
-
-    /**
-     * 获取当前用户
-     */
-    private function getUser(): User
-    {
-        return Auth::user();
-    }
-
-    /**
-     * 检查是否有房间管理权限
-     */
-    private function ensureCanModerate(User $user, ChatRoom $room, string $message): ?JsonResponse
-    {
-        if (! $user->canModerate($room)) {
-            return $this->error($message, [], 403);
-        }
-
-        return null;
-    }
-
-    /**
-     * 检查是否是管理员
+     * Check if user is an admin
      */
     private function ensureAdmin(User $user, string $message): ?JsonResponse
     {
@@ -70,7 +43,7 @@ class ChatReportController extends Controller
     {
         $this->findActiveRoom($roomId);
         $message = ChatMessage::where('room_id', $roomId)->findOrFail($messageId);
-        $reporter = $this->getUser();
+        $reporter = $this->getModerator();
 
         if ($message->user_id === $reporter->id) {
             return $this->error('You cannot report your own message');
@@ -130,7 +103,7 @@ class ChatReportController extends Controller
     public function getRoomReports(Request $request, int $roomId): JsonResponse
     {
         $room = $this->findActiveRoom($roomId);
-        $user = $this->getUser();
+        $user = $this->getModerator();
 
         $guard = $this->ensureCanModerate($user, $room, 'You are not authorized to view reports for this room');
         if ($guard) {
@@ -170,7 +143,7 @@ class ChatReportController extends Controller
      */
     public function getAllReports(Request $request): JsonResponse
     {
-        $user = $this->getUser();
+        $user = $this->getModerator();
 
         $guard = $this->ensureAdmin($user, 'You are not authorized to view all reports');
         if ($guard) {
@@ -216,7 +189,7 @@ class ChatReportController extends Controller
     public function reviewReport(ReviewReportRequest $request, int $reportId): JsonResponse
     {
         $report = ChatMessageReport::with(['room', 'message'])->findOrFail($reportId);
-        $reviewer = $this->getUser();
+        $reviewer = $this->getModerator();
 
         $room = $report->room;
         if (! $room instanceof ChatRoom) {
@@ -229,50 +202,49 @@ class ChatReportController extends Controller
         }
 
         try {
-            DB::beginTransaction();
+            $result = DB::transaction(function () use ($request, $report, $reviewer) {
+                $action = $request->action;
+                $notes = $request->notes;
 
-            $action = $request->action;
-            $notes = $request->notes;
+                match ((string) $action) {
+                    'resolve' => $report->markAsResolved($reviewer->id, $notes),
+                    'dismiss' => $report->markAsDismissed($reviewer->id, $notes),
+                    'escalate' => $report->markAsReviewed($reviewer->id, $notes),
+                    default => null,
+                };
 
-            match ((string) $action) {
-                'resolve' => $report->markAsResolved($reviewer->id, $notes),
-                'dismiss' => $report->markAsDismissed($reviewer->id, $notes),
-                'escalate' => $report->markAsReviewed($reviewer->id, $notes),
-                default => null,
-            };
+                $actionsPerformed = [];
 
-            $actionsPerformed = [];
-
-            if ($request->delete_message && $report->message) {
-                $report->message->delete();
-                $actionsPerformed[] = 'message_deleted';
-            }
-
-            if ($request->mute_user && $report->message) {
-                $roomUser = ChatRoomUser::where('room_id', $report->room_id)
-                    ->where('user_id', $report->message->user_id)
-                    ->first();
-
-                if ($roomUser) {
-                    $muteDuration = $request->mute_duration ?? 60;
-                    $roomUser->update([
-                        'is_muted' => true,
-                        'muted_until' => now()->addMinutes($muteDuration),
-                        'muted_by' => $reviewer->id,
-                    ]);
-                    $actionsPerformed[] = 'user_muted';
+                if ($request->delete_message && $report->message) {
+                    $report->message->delete();
+                    $actionsPerformed[] = 'message_deleted';
                 }
-            }
 
-            DB::commit();
+                if ($request->mute_user && $report->message) {
+                    $roomUser = ChatRoomUser::where('room_id', $report->room_id)
+                        ->where('user_id', $report->message->user_id)
+                        ->first();
 
-            return $this->success([
-                'report' => $report->fresh(['reporter:id,name,email', 'reviewer:id,name,email']),
-                'action' => $action,
-                'actions_performed' => $actionsPerformed,
-            ], 'Report reviewed successfully');
+                    if ($roomUser) {
+                        $muteDuration = $request->mute_duration ?? 60;
+                        $roomUser->update([
+                            'is_muted' => true,
+                            'muted_until' => now()->addMinutes($muteDuration),
+                            'muted_by' => $reviewer->id,
+                        ]);
+                        $actionsPerformed[] = 'user_muted';
+                    }
+                }
+
+                return [
+                    'report' => $report->fresh(['reporter:id,name,email', 'reviewer:id,name,email']),
+                    'action' => $action,
+                    'actions_performed' => $actionsPerformed,
+                ];
+            });
+
+            return $this->success($result, 'Report reviewed successfully');
         } catch (\Exception $e) {
-            DB::rollBack();
 
             Log::error('Failed to review report', [
                 'report_id' => $reportId,
@@ -288,7 +260,7 @@ class ChatReportController extends Controller
      */
     public function getReportStats(Request $request): JsonResponse
     {
-        $user = $this->getUser();
+        $user = $this->getModerator();
         $roomId = $request->input('room_id');
         $days = (int) $request->input('days', 7);
 
@@ -406,7 +378,7 @@ class ChatReportController extends Controller
 
         ChatModerationAction::create([
             'room_id' => $roomId,
-            'moderator_id' => null,
+            'moderator_id' => null, // Automated action - no human moderator
             'target_user_id' => $message->user_id,
             'message_id' => $messageId,
             'action_type' => ChatModerationAction::ACTION_DELETE_MESSAGE,
@@ -414,6 +386,7 @@ class ChatReportController extends Controller
             'metadata' => [
                 'report_count' => $reportCount,
                 'auto_action' => true,
+                'auto_action_reason' => 'Message received 3+ reports',
                 'original_message' => $message->message,
             ],
         ]);
@@ -423,7 +396,7 @@ class ChatReportController extends Controller
             ->where('status', ChatMessageReport::STATUS_PENDING)
             ->update([
                 'status' => ChatMessageReport::STATUS_RESOLVED,
-                'reviewed_by' => null,
+                'reviewed_by' => null, // Automated action - no human reviewer
                 'reviewed_at' => now(),
                 'review_notes' => 'Auto-resolved due to message deletion from multiple reports',
             ]);

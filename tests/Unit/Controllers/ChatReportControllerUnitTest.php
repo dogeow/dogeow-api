@@ -123,22 +123,6 @@ class ChatReportControllerUnitTest extends TestCase
         $method->invoke($controller, $inactiveRoom->id);
     }
 
-    public function test_log_and_error_returns_custom_status_code(): void
-    {
-        $filterService = $this->createMock(ContentFilterService::class);
-        $controller = new ChatReportController($filterService);
-
-        $user = User::factory()->create();
-        $this->actingAs($user);
-
-        $reflection = new ReflectionClass($controller);
-        $method = $reflection->getMethod('getUser');
-        $method->setAccessible(true);
-
-        $result = $method->invoke($controller);
-        $this->assertSame($user->id, $result->id);
-    }
-
     public function test_parse_moderation_filters_extracts_parameters(): void
     {
         $filterService = $this->createMock(ContentFilterService::class);
@@ -339,7 +323,7 @@ class ChatReportControllerUnitTest extends TestCase
 
         $method->invoke($controller, $message->id, $room->id);
 
-        $this->assertDatabaseMissing('chat_messages', ['id' => $message->id]);
+        $this->assertSoftDeleted('chat_messages', ['id' => $message->id]);
         $this->assertDatabaseHas('chat_moderation_actions', [
             'room_id' => $room->id,
             'moderator_id' => null,
