@@ -213,7 +213,7 @@ class ChatMessageTest extends TestCase
         $messageId = $message->id;
         $message->delete();
 
-        $this->assertDatabaseMissing('chat_messages', ['id' => $messageId]);
+        $this->assertSoftDeleted('chat_messages', ['id' => $messageId]);
     }
 
     public function test_chat_message_has_correct_timestamps()

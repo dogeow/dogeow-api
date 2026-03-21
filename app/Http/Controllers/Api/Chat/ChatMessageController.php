@@ -13,6 +13,7 @@ use App\Models\Chat\ChatRoomUser;
 use App\Services\Chat\ChatCacheService;
 use App\Services\Chat\ChatService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -149,7 +150,10 @@ class ChatMessageController extends Controller
             $room = $this->findActiveRoom($resolvedRoomId);
             $message = ChatMessage::where('room_id', $resolvedRoomId)->findOrFail($messageId);
 
-            $canDelete = $message->user_id === $userId || $room->created_by === $userId;
+            // Authorization: message owner, room creator, or admin can delete
+            $user = Auth::user();
+            $isAdmin = $user && $user->hasRole('admin');
+            $canDelete = $message->user_id === $userId || $room->created_by === $userId || $isAdmin;
             if (! $canDelete) {
                 return $this->error('You are not authorized to delete this message', [], 403);
             }
