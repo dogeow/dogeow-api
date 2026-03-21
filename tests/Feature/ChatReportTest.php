@@ -244,10 +244,9 @@ class ChatReportTest extends TestCase
 
         Sanctum::actingAs($this->admin);
 
-        DB::shouldReceive('beginTransaction')
+        DB::shouldReceive('transaction')
             ->once()
-            ->andThrow(new \Exception('review begin tx failed'));
-        DB::shouldReceive('rollBack')->once();
+            ->andThrow(new \Exception('review transaction failed'));
 
         $response = $this->postJson("/api/chat/reports/{$report->id}/review", [
             'action' => 'resolve',
