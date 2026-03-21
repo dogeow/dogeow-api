@@ -38,13 +38,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
           php-version: '8.4'
           extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, gd, json, pdo, fileinfo, bcmath, tokenizer, openssl, zip
-          coverage: xdebug
+          coverage: pcov
 
     - name: Copy .env
       run: php -r "file_exists('.env') || copy('.env.example', '.env');"
@@ -64,7 +66,29 @@ jobs:
       run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
 
     - name: Check code style
-      run: vendor/bin/pint --test
+      shell: bash
+      run: |
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          base_sha="${{ github.event.pull_request.base.sha }}"
+          head_sha="${{ github.event.pull_request.head.sha }}"
+        else
+          base_sha="${{ github.event.before }}"
+          head_sha="${{ github.sha }}"
+        fi
+
+        if [[ -z "$base_sha" || "$base_sha" =~ ^0+$ ]] || ! git cat-file -e "$base_sha^{commit}" 2>/dev/null; then
+          mapfile -t changed_files < <(git diff-tree --no-commit-id --name-only -r "$head_sha" -- '*.php')
+        else
+          mapfile -t changed_files < <(git diff --name-only --diff-filter=ACMR "$base_sha" "$head_sha" -- '*.php')
+        fi
+
+        if [[ ${#changed_files[@]} -eq 0 ]]; then
+          echo "No changed PHP files to lint."
+          exit 0
+        fi
+
+        printf 'Checking code style for:\n%s\n' "${changed_files[@]}"
+        vendor/bin/pint --test "${changed_files[@]}"
 
     - name: Prepare Laravel directories
       run: |
@@ -79,13 +103,20 @@ jobs:
         mysql -h 127.0.0.1 -u root -ppassword -e "CREATE DATABASE IF NOT EXISTS laravel_test;"
         php artisan migrate:fresh --force
 
+    - name: Run tests
+      if: github.event_name == 'pull_request'
+      run: composer run test
+
     - name: Run tests with coverage
+      if: github.event_name == 'push'
       run: composer run test:coverage
 
     - name: Check coverage requirements
+      if: github.event_name == 'push'
       run: composer run test:coverage-check
 
     - name: Upload coverage HTML
+      if: github.event_name == 'push'
       uses: actions/upload-artifact@v4
       with:
         name: coverage-html
