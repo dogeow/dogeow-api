@@ -63,7 +63,7 @@ class MusicControllerTest extends TestCase
             $mock->shouldReceive('listDirectory')->once()->with('/music')->andReturn([
                 'success' => true,
                 'files' => [
-                    ['name' => 'test file 你好 .mp3', 'type' => 'audio/mp3', 'length' => 1234],
+                    ['name' => 'test file 你好.mp3', 'type' => 'audio/mp3', 'length' => 1234],
                 ],
             ]);
             $mock->shouldReceive('buildPublicUrl')->once()->with('/music/test%20file%20%E4%BD%A0%E5%A5%BD.mp3')->andReturn(
@@ -107,7 +107,7 @@ class MusicControllerTest extends TestCase
             $mock->shouldReceive('isConfigured')->once()->andReturn(true);
             $mock->shouldReceive('readFile')
                 ->once()
-                ->with('/music/test file 你好 .lrc')
+                ->with('/music/test file 你好.lrc')
                 ->andReturn([
                     'success' => true,
                     'body' => "[00:01.00]第一句歌词\n[00:02.00]第二句歌词",
