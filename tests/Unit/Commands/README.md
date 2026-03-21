@@ -87,6 +87,7 @@ php artisan test tests/Unit/Commands/ManageChatModerationsTest.php --coverage
 ## 维护
 
 当 `ManageChatModerations` 命令发生变化时，请确保：
+
 1. 更新相应的测试用例
 2. 添加新功能的测试
 3. 确保所有测试仍然通过

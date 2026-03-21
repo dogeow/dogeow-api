@@ -455,7 +455,7 @@ class ChatControllerTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonFragment(['message' => 'Message deleted successfully']);
 
-        $this->assertDatabaseMissing('chat_messages', ['id' => $message->id]);
+        $this->assertSoftDeleted('chat_messages', ['id' => $message->id]);
         Event::assertDispatched(MessageDeleted::class);
     }
 
@@ -489,6 +489,32 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(403);
         $response->assertJsonFragment(['message' => 'You are not authorized to delete this message']);
+    }
+
+    public function test_delete_message_by_admin()
+    {
+        Event::fake();
+
+        // Create an admin user
+        $admin = User::factory()->create(['is_admin' => true]);
+        Sanctum::actingAs($admin);
+
+        // Create a message by a different user in a room the admin doesn't own
+        $otherUser = User::factory()->create();
+        $otherRoom = ChatRoom::factory()->create(['created_by' => $otherUser->id]);
+        $message = ChatMessage::factory()->create([
+            'room_id' => $otherRoom->id,
+            'user_id' => $otherUser->id,
+        ]);
+
+        // Admin should be able to delete any message
+        $response = $this->deleteJson("/api/chat/rooms/{$otherRoom->id}/messages/{$message->id}");
+
+        $response->assertStatus(200);
+        $response->assertJsonFragment(['message' => 'Message deleted successfully']);
+
+        $this->assertSoftDeleted('chat_messages', ['id' => $message->id]);
+        Event::assertDispatched(MessageDeleted::class);
     }
 
     public function test_get_online_users_requires_room_membership()

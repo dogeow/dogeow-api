@@ -244,10 +244,9 @@ class ChatReportTest extends TestCase
 
         Sanctum::actingAs($this->admin);
 
-        DB::shouldReceive('beginTransaction')
+        DB::shouldReceive('transaction')
             ->once()
-            ->andThrow(new \Exception('review begin tx failed'));
-        DB::shouldReceive('rollBack')->once();
+            ->andThrow(new \Exception('review transaction failed'));
 
         $response = $this->postJson("/api/chat/reports/{$report->id}/review", [
             'action' => 'resolve',
@@ -397,7 +396,7 @@ class ChatReportTest extends TestCase
             'status' => ChatMessageReport::STATUS_DISMISSED,
             'reviewed_by' => $this->admin->id,
         ]);
-        $this->assertDatabaseMissing('chat_messages', [
+        $this->assertSoftDeleted('chat_messages', [
             'id' => $this->message->id,
         ]);
         $this->assertDatabaseHas('chat_room_users', [
@@ -564,7 +563,7 @@ class ChatReportTest extends TestCase
         $response->assertStatus(201);
 
         // Check that the message was deleted
-        $this->assertDatabaseMissing('chat_messages', [
+        $this->assertSoftDeleted('chat_messages', [
             'id' => $this->message->id,
         ]);
 
@@ -575,7 +574,7 @@ class ChatReportTest extends TestCase
 
         $this->assertDatabaseHas('chat_moderation_actions', [
             'room_id' => $this->room->id,
-            'moderator_id' => 1,
+            'moderator_id' => null,
             'target_user_id' => $this->admin->id,
             'action_type' => ChatModerationAction::ACTION_DELETE_MESSAGE,
             'reason' => 'Automatic deletion due to multiple reports',

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Game\UpdatePotionSettingsRequest;
 use App\Http\Requests\Game\UsePotionRequest;
 use App\Jobs\Game\AutoCombatRoundJob;
+use App\Services\Cache\RedisLockService;
 use App\Services\Game\GameCombatService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ class CombatController extends Controller
 
     public function __construct(
         private readonly GameCombatService $combatService,
+        private readonly RedisLockService $redisLockService,
     ) {}
 
     /**
@@ -84,19 +86,31 @@ class CombatController extends Controller
                 return $this->success(['message' => '角色已满血复活并传送到新手村，请手动开始战斗']);
             }
 
-            // 检查是否已经有自动战斗在运行
-            $key = AutoCombatRoundJob::redisKey($character->id);
-            if (Redis::get($key) !== null) {
+            // 使用 Redis 分布式锁确保原子性，防止竞态条件
+            $lockKey = 'combat_start:' . $character->id;
+            $lock = $this->redisLockService->lock($lockKey, 5);
+
+            if ($lock === false) {
                 return $this->error('自动战斗已在运行中，请先停止当前战斗');
             }
 
-            $skillIds = null;
-            if ($request->exists('skill_ids')) {
-                $rawSkillIds = $request->input('skill_ids');
-                $skillIds = is_array($rawSkillIds) ? array_map('intval', array_values($rawSkillIds)) : [];
-            }
+            try {
+                // Double-check after acquiring lock
+                $key = AutoCombatRoundJob::redisKey($character->id);
+                if (Redis::get($key) !== null) {
+                    return $this->error('自动战斗已在运行中，请先停止当前战斗');
+                }
 
-            Redis::setex($key, AutoCombatRoundJob::ttl(), json_encode(['skill_ids' => $skillIds]));
+                $skillIds = null;
+                if ($request->exists('skill_ids')) {
+                    $rawSkillIds = $request->input('skill_ids');
+                    $skillIds = is_array($rawSkillIds) ? array_map('intval', array_values($rawSkillIds)) : [];
+                }
+
+                Redis::setex($key, AutoCombatRoundJob::ttl(), json_encode(['skill_ids' => $skillIds]));
+            } finally {
+                $this->redisLockService->release($lockKey, $lock);
+            }
 
             AutoCombatRoundJob::dispatch($character->id, $skillIds);
 

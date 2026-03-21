@@ -189,7 +189,7 @@ class FetchWordFromIcibaCommand extends Command
                 $this->newLine();
                 $this->info("✓ {$word->content} [{$source}]");
                 if ($phonetic) {
-                    $this->line("  音标: /{$phonetic}/");
+                    $this->line("  音标：/{$phonetic}/");
                 }
                 $this->line('  释义: ' . ($zhMeaning ?: '(无)'));
                 if (! empty($newExamples) && $this->hasChineseExamples($newExamples)) {
@@ -234,12 +234,12 @@ class FetchWordFromIcibaCommand extends Command
             $fetcher = $this->getFetcher();
             $html = $fetcher->fetchYoudaoResultHtml($word);
             if ($html === null) {
-                $this->line('  诊断: 有道网页请求失败或超时');
+                $this->line('  诊断：有道网页请求失败或超时');
 
                 return;
             }
             if (stripos($html, $word) === false && stripos($html, 'word=' . urlencode($word)) === false) {
-                $this->line('  诊断: 网页已返回，但内容中未包含该词');
+                $this->line('  诊断：网页已返回，但内容中未包含该词');
 
                 return;
             }
@@ -250,7 +250,7 @@ class FetchWordFromIcibaCommand extends Command
             $senEngCount = $crawler->filter('.sen-eng')->count();
             $this->line("  诊断: 网页已获取，页面内 .phonetic={$phoneticCount} .per-phone={$perPhoneCount} .sen-eng={$senEngCount}(若均为 0 可能页面结构已变化)");
         } catch (\Throwable $e) {
-            $this->line('  诊断: 检查时异常 - ' . $e->getMessage());
+            $this->line('  诊断：检查时异常 - ' . $e->getMessage());
         }
     }
 
@@ -274,12 +274,12 @@ class FetchWordFromIcibaCommand extends Command
             if ($levelIds) {
                 $word->educationLevels()->sync($levelIds);
                 $levelNames = EducationLevel::whereIn('id', $levelIds)->pluck('name')->all();
-                $this->line('  教育级别: ' . implode(', ', $levelNames));
+                $this->line('  教育级别：' . implode(', ', $levelNames));
             } else {
                 $this->line('  教育级别: 无(小学或未匹配)');
             }
         } catch (\Throwable $e) {
-            $this->warn("  警告: 关联教育级别失败: {$e->getMessage()}");
+            $this->warn("  警告：关联教育级别失败: {$e->getMessage()}");
             Log::warning("关联教育级别失败: {$word->content}", ['error' => $e->getMessage()]);
         }
     }

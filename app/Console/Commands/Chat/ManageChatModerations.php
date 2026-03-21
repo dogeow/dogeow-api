@@ -57,7 +57,7 @@ class ManageChatModerations extends Command
      */
     private function listModerations(): int
     {
-        $this->info('当前聊天室管控列表:');
+        $this->info('当前聊天室管控列表：');
         $this->newLine();
 
         // 获取被静音的用户
@@ -67,7 +67,7 @@ class ManageChatModerations extends Command
             ->get();
 
         if ($mutedUsers->isNotEmpty()) {
-            $this->info('🔇 已被静音的用户:');
+            $this->info('🔇 已被静音的用户：');
             $muteData = [];
             /** @var ChatRoomUser $roomUser */
             foreach ($mutedUsers as $roomUser) {
@@ -96,7 +96,7 @@ class ManageChatModerations extends Command
 
         if ($bannedUsers->isNotEmpty()) {
             $this->newLine();
-            $this->info('🚫 已被封禁的用户:');
+            $this->info('🚫 已被封禁的用户：');
             $banData = [];
             /** @var ChatRoomUser $roomUser */
             foreach ($bannedUsers as $roomUser) {

@@ -36,9 +36,9 @@ composer run test:coverage-full
 
 运行测试后，覆盖率报告会生成在以下位置：
 
-- **HTML 报告**: `coverage/html/` - 可在浏览器中查看详细的覆盖率信息
-- **Clover XML**: `coverage/clover.xml` - 用于 CI/CD 和代码质量工具
-- **文本报告**: `coverage/coverage.txt` - 简单的文本格式报告
+- **HTML报告**：`coverage/html/` - 可在浏览器中查看详细的覆盖率信息
+- **Clover XML**：`coverage/clover.xml` - 用于CI/CD和代码质量工具
+- **文本报告**：`coverage/coverage.txt` - 简单的文本格式报告
 
 ## 查看覆盖率报告
 
@@ -103,47 +103,47 @@ vendor/bin/phpunit --testsuite=Feature
 系统性地提升了测试覆盖率，重点关注 Controllers 和 Services 层。
 
 #### Round 16: InventoryController
-- **文件**: `app/Http/Controllers/Api/Game/InventoryController.php`
-- **改进**: 96.1% (73/76) → **100%** (76/76)
-- **新增测试**: 3 个测试方法
+- **文件**：`app/Http/Controllers/Api/Game/InventoryController.php`
+- **改进**：96.1% (73/76) → **100%** (76/76)
+- **新增测试**：3个测试方法
   - `test_get_quality_name_returns_magic_for_magic`
   - `test_get_quality_name_returns_legendary_for_legendary`
   - `test_get_quality_name_returns_mythic_for_mythic`
-- **覆盖内容**: `getQualityName()` 私有方法中的品质翻译 match 语句
-- **测试文件**: `tests/Unit/Controllers/Game/InventoryControllerUnitTest.php`
+- **覆盖内容**：`getQualityName()` 私有方法中的品质翻译 match 语句
+- **测试文件**：`tests/Unit/Controllers/Game/InventoryControllerUnitTest.php`
 
 #### Round 17: ImageUploadService
-- **文件**: `app/Services/File/ImageUploadService.php`
-- **改进**: 96.1% (73/76) → **98.7%** (75/76)
-- **新增测试**: 2 个测试方法
+- **文件**：`app/Services/File/ImageUploadService.php`
+- **改进**：96.1% (73/76) → **98.7%** (75/76)
+- **新增测试**：2个测试方法
   - `test_process_uploaded_images_creates_directory_if_not_exists`
   - `test_process_image_paths_creates_directory_if_not_exists`
-- **覆盖内容**: 目录不存在时的 mkdir() 调用场景
-- **测试文件**: `tests/Unit/Services/ImageUploadServiceTest.php`
-- **未覆盖**: 1 行（Line 117: rename() 失败时的 Log::error）
+- **覆盖内容**：目录不存在时的 mkdir() 调用场景
+- **测试文件**：`tests/Unit/Services/ImageUploadServiceTest.php`
+- **未覆盖**：1行（Line 117: rename() 失败时的 Log::error）
 
 #### Round 18: GameInventoryService
-- **文件**: `app/Services/Game/GameInventoryService.php`
-- **改进**: 96.5% (303/314) → **96.8%** (304/314)
-- **新增测试**: 1 个测试方法
+- **文件**：`app/Services/Game/GameInventoryService.php`
+- **改进**：96.5% (303/314) → **96.8%** (304/314)
+- **新增测试**：1个测试方法
   - `test_equip_item_creates_equipment_slot_if_not_exists`
-- **覆盖内容**: 首次创建装备槽位的场景（`getOrCreateEquipmentSlot`）
-- **测试文件**: `tests/Unit/Services/Game/GameInventoryServiceTest.php`
-- **未覆盖**: 10 行（类型转换、防御性检查、数据库异常）
+- **覆盖内容**：首次创建装备槽位的场景（`getOrCreateEquipmentSlot`）
+- **测试文件**：`tests/Unit/Services/Game/GameInventoryServiceTest.php`
+- **未覆盖**：10行（类型转换、防御性检查、数据库异常）
 
 #### Round 19: ItemSearchService
-- **文件**: `app/Services/Thing/ItemSearchService.php`
-- **改进**: 94.8% (55/58) → **98.3%** (57/58)
-- **新增测试**: 1 个测试方法
+- **文件**：`app/Services/Thing/ItemSearchService.php`
+- **改进**：94.8% (55/58) → **98.3%** (57/58)
+- **新增测试**：1个测试方法
   - `test_record_search_history_logs_error_on_database_failure`
-- **覆盖内容**: 数据库插入失败时的异常处理和日志记录
-- **测试文件**: `tests/Unit/Services/Thing/ItemSearchServiceTest.php`
-- **未覆盖**: 1 行（Line 77: 低频分支条件）
+- **覆盖内容**：数据库插入失败时的异常处理和日志记录
+- **测试文件**：`tests/Unit/Services/Thing/ItemSearchServiceTest.php`
+- **未覆盖**：1行（Line 77: 低频分支条件）
 
 #### Round 20: 覆盖率分析总结
-- **总测试数**: 3,201 passing
-- **总断言数**: 8,768 assertions
-- **100% 覆盖文件**: 多个 Controllers（AuthController, ClientInfoController, GithubController, LogController）
+- **总测试数**：3,201 passing
+- **总断言数**：8,768 assertions
+- **100% 覆盖文件**：多个 Controllers（AuthController, ClientInfoController, GithubController, LogController）
 
 ### 剩余低覆盖率文件分析
 

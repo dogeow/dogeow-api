@@ -77,7 +77,7 @@ class ChatModerationControllerTest extends TestCase
             ->assertJsonPath('data.reason', 'Inappropriate content');
 
         // Check if message was actually deleted
-        $this->assertDatabaseMissing('chat_messages', ['id' => $this->message->id]);
+        $this->assertSoftDeleted('chat_messages', ['id' => $this->message->id]);
 
         Event::assertDispatched(MessageDeleted::class);
     }

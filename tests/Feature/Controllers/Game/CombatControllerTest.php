@@ -42,9 +42,20 @@ class CombatControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $character = $this->createCharacter($user);
+
+        // Mock Redis comprehensively for this test
+        $redisConnection = \Mockery::mock('stdClass');
+        $redisConnection->shouldReceive('get')
+            ->andReturn(null);
+        $redisConnection->shouldReceive('setnx')
+            ->andReturn(true);
+        $redisConnection->shouldReceive('expire')
+            ->andReturn(true);
+        $redisConnection->shouldReceive('del')
+            ->andReturn(1);
+        Redis::shouldReceive('connection')
+            ->andReturn($redisConnection);
         Redis::shouldReceive('get')
-            ->once()
-            ->with(AutoCombatRoundJob::redisKey($character->id))
             ->andReturn(null);
 
         $response = $this->actingAs($user)
@@ -56,8 +67,17 @@ class CombatControllerTest extends TestCase
     public function test_can_start_combat(): void
     {
         Bus::fake();
-        Redis::shouldReceive('get')->once()->andReturn(null);
-        Redis::shouldReceive('setex')->once()->andReturn(true);
+
+        // Mock Redis facade comprehensively - both direct calls and connection->method calls
+        $redisConnection = \Mockery::mock('stdClass');
+        $redisConnection->shouldReceive('get')->andReturn(null);
+        $redisConnection->shouldReceive('setnx')->andReturn(true);
+        $redisConnection->shouldReceive('expire')->andReturn(true);
+        $redisConnection->shouldReceive('setex')->andReturn(true);
+        $redisConnection->shouldReceive('del')->andReturn(1);
+        Redis::shouldReceive('connection')->andReturn($redisConnection);
+        Redis::shouldReceive('get')->andReturn(null);
+        Redis::shouldReceive('setex')->andReturn(true);
 
         $user = User::factory()->create();
         $character = $this->createCharacter($user, ['current_map_id' => 1, 'is_fighting' => false]);
@@ -74,8 +94,16 @@ class CombatControllerTest extends TestCase
         $user = User::factory()->create();
         $character = $this->createCharacter($user, ['is_fighting' => true]);
 
+        // Mock Redis::connection() and also direct Redis facade calls
+        $redisConnection = \Mockery::mock('stdClass');
+        $redisConnection->shouldReceive('get')
+            ->with(AutoCombatRoundJob::redisKey($character->id))
+            ->andReturn('token');
+        $redisConnection->shouldReceive('del')
+            ->with(AutoCombatRoundJob::redisKey($character->id))
+            ->andReturn(1);
+        Redis::shouldReceive('connection')->andReturn($redisConnection);
         Redis::shouldReceive('del')
-            ->once()
             ->with(AutoCombatRoundJob::redisKey($character->id))
             ->andReturn(1);
 
