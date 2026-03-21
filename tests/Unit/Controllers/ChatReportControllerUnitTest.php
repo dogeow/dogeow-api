@@ -344,7 +344,7 @@ class ChatReportControllerUnitTest extends TestCase
             'room_id' => $room->id,
             'moderator_id' => null,
             'target_user_id' => $target->id,
-            'message_id' => null,
+            'message_id' => $message->id,
             'action_type' => ChatModerationAction::ACTION_DELETE_MESSAGE,
         ]);
 
