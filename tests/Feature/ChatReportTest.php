@@ -397,7 +397,7 @@ class ChatReportTest extends TestCase
             'status' => ChatMessageReport::STATUS_DISMISSED,
             'reviewed_by' => $this->admin->id,
         ]);
-        $this->assertDatabaseMissing('chat_messages', [
+        $this->assertSoftDeleted('chat_messages', [
             'id' => $this->message->id,
         ]);
         $this->assertDatabaseHas('chat_room_users', [
@@ -564,7 +564,7 @@ class ChatReportTest extends TestCase
         $response->assertStatus(201);
 
         // Check that the message was deleted
-        $this->assertDatabaseMissing('chat_messages', [
+        $this->assertSoftDeleted('chat_messages', [
             'id' => $this->message->id,
         ]);
 

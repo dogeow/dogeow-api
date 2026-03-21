@@ -75,7 +75,7 @@ class ChatModerationControllerTest extends TestCase
         $response->assertJsonPath('message', 'Message deleted successfully');
         $response->assertJsonPath('data.action', 'delete_message');
 
-        $this->assertDatabaseMissing('chat_messages', ['id' => $this->message->id]);
+        $this->assertSoftDeleted('chat_messages', ['id' => $this->message->id]);
         $this->assertDatabaseHas('chat_moderation_actions', [
             'room_id' => $this->room->id,
             'moderator_id' => $this->moderator->id,

@@ -455,7 +455,7 @@ class ChatControllerTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonFragment(['message' => 'Message deleted successfully']);
 
-        $this->assertDatabaseMissing('chat_messages', ['id' => $message->id]);
+        $this->assertSoftDeleted('chat_messages', ['id' => $message->id]);
         Event::assertDispatched(MessageDeleted::class);
     }
 
@@ -513,7 +513,7 @@ class ChatControllerTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonFragment(['message' => 'Message deleted successfully']);
 
-        $this->assertDatabaseMissing('chat_messages', ['id' => $message->id]);
+        $this->assertSoftDeleted('chat_messages', ['id' => $message->id]);
         Event::assertDispatched(MessageDeleted::class);
     }
 
