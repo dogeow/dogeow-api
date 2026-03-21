@@ -575,7 +575,7 @@ class ChatReportTest extends TestCase
 
         $this->assertDatabaseHas('chat_moderation_actions', [
             'room_id' => $this->room->id,
-            'moderator_id' => 1,
+            'moderator_id' => null,
             'target_user_id' => $this->admin->id,
             'action_type' => ChatModerationAction::ACTION_DELETE_MESSAGE,
             'reason' => 'Automatic deletion due to multiple reports',
