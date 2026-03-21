@@ -1,0 +1,40 @@
+<?php
+
+namespace Tests\Unit\Models\Repo;
+
+use App\Models\Repo\WatchedPackage;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
+
+class WatchedPackageTest extends TestCase
+{
+    #[Test]
+    public function belongs_to_user(): void
+    {
+        // TODO: Implement test
+        $this->markTestSkipped('TODO: Implement test');
+    }
+
+    #[Test]
+    public function metadata_is_cast_to_array(): void
+    {
+        // TODO: Implement test
+        $this->markTestSkipped('TODO: Implement test');
+    }
+
+    #[Test]
+    public function last_checked_at_is_cast_to_datetime(): void
+    {
+        // TODO: Implement test
+        $this->markTestSkipped('TODO: Implement test');
+    }
+
+    #[Test]
+    public function fillable_contains_expected_fields(): void
+    {
+        // TODO: Implement test
+        $this->markTestSkipped('TODO: Implement test');
+    }
+}
