@@ -11,7 +11,7 @@ class ClientInfoService
     private const LOCATION_ERROR_MESSAGE = '地理位置信息获取失败';
 
     /**
-     * 获取客户端基本信息（IP和User-Agent）
+     * 获取客户端基本信息(IP 和 User-Agent)
      */
     public function getBasicInfo(Request $request): array
     {

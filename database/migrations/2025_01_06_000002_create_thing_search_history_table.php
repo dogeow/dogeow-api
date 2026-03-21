@@ -12,23 +12,23 @@ return new class extends Migration
 {
     /**
      * 运行迁移
-     * 创建search_history表，包含以下字段：
+     * 创建 search_history 表，包含以下字段：
      * - id: 主键
-     * - user_id: 用户ID
+     * - user_id: 用户 ID
      * - search_term: 搜索关键词
      * - results_count: 结果数量
-     * - filters: 使用的过滤器（JSON格式）
+     * - filters: 使用的过滤器(JSON 格式)
      * - created_at, updated_at: 时间戳
      */
     public function up(): void
     {
         Schema::create('thing_search_history', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id')->nullable()->comment('用户ID（未登录用户为null）');
+            $table->unsignedBigInteger('user_id')->nullable()->comment('用户 ID(未登录用户为 null)');
             $table->string('search_term')->comment('搜索关键词');
             $table->integer('results_count')->default(0)->comment('结果数量');
             $table->json('filters')->nullable()->comment('使用的过滤器');
-            $table->string('ip_address', 45)->nullable()->comment('IP地址');
+            $table->string('ip_address', 45)->nullable()->comment('IP 地址');
             $table->timestamps();
 
             // 索引
@@ -40,7 +40,7 @@ return new class extends Migration
 
     /**
      * 回滚迁移
-     * 删除search_history表
+     * 删除 search_history 表
      */
     public function down(): void
     {

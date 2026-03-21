@@ -24,7 +24,7 @@ class UploadController extends Controller
     }
 
     /**
-     * 批量上传图片（支持多张图片同时上传）
+     * 批量上传图片(支持多张图片同时上传)
      */
     public function uploadBatchImages(UploadBatchImagesRequest $request)
     {
@@ -93,7 +93,7 @@ class UploadController extends Controller
                         throw new \Exception($processResult['message'] ?? 'Image processing failed');
                     }
 
-                    // 获取公共URL
+                    // 获取公共 URL
                     $urls = $this->fileStorageService->getPublicUrls($userId, $fileInfo);
 
                     // 添加到上传图片列表

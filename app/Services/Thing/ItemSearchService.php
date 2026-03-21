@@ -63,7 +63,7 @@ class ItemSearchService
     }
 
     /**
-     * 记录搜索历史（指定用户）
+     * 记录搜索历史(指定用户)
      */
     public function recordSearchHistoryWithUser(int $userId, string $searchTerm, int $resultsCount, Request $request): void
     {

@@ -16,7 +16,7 @@ class VisionUploadController extends Controller
     ) {}
 
     /**
-     * 上传图片到又拍云（用于AI视觉理解），与 /api/upload/images 一致传二进制
+     * 上传图片到又拍云(用于 AI 视觉理解)，与 /api/upload/images 一致传二进制
      */
     public function upload(Request $request): JsonResponse
     {

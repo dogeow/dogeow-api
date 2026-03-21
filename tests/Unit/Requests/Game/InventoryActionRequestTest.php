@@ -20,8 +20,8 @@ class InventoryActionRequestTest extends TestCase
         $this->assertSame([
             'item_id' => 'required|integer|min:1|exists:game_items,id',
         ], $request->rules());
-        $this->assertSame('物品ID不能为空', $request->messages()['item_id.required']);
-        $this->assertSame('物品ID必须大于0', $request->messages()['item_id.min']);
+        $this->assertSame('物品 ID 不能为空', $request->messages()['item_id.required']);
+        $this->assertSame('物品 ID 必须大于 0', $request->messages()['item_id.min']);
         $this->assertSame('物品不存在', $request->messages()['item_id.exists']);
     }
 
@@ -35,8 +35,8 @@ class InventoryActionRequestTest extends TestCase
             'to_storage' => 'required|boolean',
             'slot_index' => 'sometimes|integer|min:0',
         ], $request->rules());
-        $this->assertSame('物品ID不能为空', $request->messages()['item_id.required']);
-        $this->assertSame('物品ID必须大于0', $request->messages()['item_id.min']);
+        $this->assertSame('物品 ID 不能为空', $request->messages()['item_id.required']);
+        $this->assertSame('物品 ID 必须大于 0', $request->messages()['item_id.min']);
         $this->assertSame('物品不存在', $request->messages()['item_id.exists']);
         $this->assertSame('目标位置不能为空', $request->messages()['to_storage.required']);
     }
@@ -50,10 +50,10 @@ class InventoryActionRequestTest extends TestCase
             'item_id' => 'required|integer|min:1|exists:game_items,id',
             'quantity' => 'sometimes|integer|min:1',
         ], $request->rules());
-        $this->assertSame('物品ID不能为空', $request->messages()['item_id.required']);
-        $this->assertSame('物品ID必须大于0', $request->messages()['item_id.min']);
+        $this->assertSame('物品 ID 不能为空', $request->messages()['item_id.required']);
+        $this->assertSame('物品 ID 必须大于 0', $request->messages()['item_id.min']);
         $this->assertSame('物品不存在', $request->messages()['item_id.exists']);
-        $this->assertSame('数量不能小于1', $request->messages()['quantity.min']);
+        $this->assertSame('数量不能小于 1', $request->messages()['quantity.min']);
     }
 
     public function test_socket_gem_request_contract(): void
@@ -66,11 +66,11 @@ class InventoryActionRequestTest extends TestCase
             'gem_item_id' => 'required|integer|min:1|exists:game_items,id',
             'socket_index' => 'required|integer|min:0',
         ], $request->rules());
-        $this->assertSame('装备ID不能为空', $request->messages()['item_id.required']);
-        $this->assertSame('装备ID必须大于0', $request->messages()['item_id.min']);
+        $this->assertSame('装备 ID 不能为空', $request->messages()['item_id.required']);
+        $this->assertSame('装备 ID 必须大于 0', $request->messages()['item_id.min']);
         $this->assertSame('装备不存在', $request->messages()['item_id.exists']);
-        $this->assertSame('宝石ID不能为空', $request->messages()['gem_item_id.required']);
-        $this->assertSame('宝石ID必须大于0', $request->messages()['gem_item_id.min']);
+        $this->assertSame('宝石 ID 不能为空', $request->messages()['gem_item_id.required']);
+        $this->assertSame('宝石 ID 必须大于 0', $request->messages()['gem_item_id.min']);
         $this->assertSame('宝石不存在', $request->messages()['gem_item_id.exists']);
         $this->assertSame('插槽索引不能为空', $request->messages()['socket_index.required']);
         $this->assertSame('插槽索引无效', $request->messages()['socket_index.min']);
@@ -97,8 +97,8 @@ class InventoryActionRequestTest extends TestCase
             'item_id' => 'required|integer|min:1|exists:game_items,id',
             'socket_index' => 'required|integer|min:0',
         ], $request->rules());
-        $this->assertSame('装备ID不能为空', $request->messages()['item_id.required']);
-        $this->assertSame('装备ID必须大于0', $request->messages()['item_id.min']);
+        $this->assertSame('装备 ID 不能为空', $request->messages()['item_id.required']);
+        $this->assertSame('装备 ID 必须大于 0', $request->messages()['item_id.min']);
         $this->assertSame('装备不存在', $request->messages()['item_id.exists']);
         $this->assertSame('插槽索引不能为空', $request->messages()['socket_index.required']);
         $this->assertSame('插槽索引无效', $request->messages()['socket_index.min']);

@@ -54,8 +54,8 @@ return new class extends Migration
         DB::table('game_skill_definitions')->where('name', '致命瞄准')->update(['branch' => 'passive', 'tier' => 2]);
 
         // ====== 通用被动技能 ======
-        DB::table('game_skill_definitions')->where('name', 'HP强化')->update(['branch' => 'passive', 'tier' => 1]);
-        DB::table('game_skill_definitions')->where('name', 'MP强化')->update(['branch' => 'passive', 'tier' => 1]);
+        DB::table('game_skill_definitions')->where('name', 'HP 强化')->update(['branch' => 'passive', 'tier' => 1]);
+        DB::table('game_skill_definitions')->where('name', 'MP 强化')->update(['branch' => 'passive', 'tier' => 1]);
 
         // ====== 添加闪电系技能 ======
         $lightningSkills = [

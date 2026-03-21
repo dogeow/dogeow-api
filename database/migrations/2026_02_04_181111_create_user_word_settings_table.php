@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('user_word_settings', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id')->comment('用户ID');
+            $table->unsignedBigInteger('user_id')->comment('用户 ID');
             $table->integer('daily_new_words')->default(10)->comment('每日新学单词数');
             $table->integer('review_multiplier')->default(2)->comment('复习倍数 1/2/3');
-            $table->unsignedBigInteger('current_book_id')->nullable()->comment('当前学习的单词书ID');
+            $table->unsignedBigInteger('current_book_id')->nullable()->comment('当前学习的单词书 ID');
             $table->boolean('is_auto_pronounce')->default(true)->comment('是否自动发音');
             $table->timestamps();
 

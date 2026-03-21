@@ -22,7 +22,7 @@ return [
         'cooldown' => 0,
         'skill_points_cost' => 1,
         'effects' => [],
-        'description' => '发射冰箭造成100%魔法伤害',
+        'description' => '发射冰箭造成 100%魔法伤害',
     ],
     [
         'name' => '烈焰风暴',

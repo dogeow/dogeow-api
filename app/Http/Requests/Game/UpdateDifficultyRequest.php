@@ -22,10 +22,10 @@ class UpdateDifficultyRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'character_id.min' => '角色ID必须大于0',
+            'character_id.min' => '角色 ID 必须大于 0',
             'difficulty_tier.required' => '难度等级不能为空',
-            'difficulty_tier.min' => '难度等级不能小于0',
-            'difficulty_tier.max' => '难度等级不能大于9',
+            'difficulty_tier.min' => '难度等级不能小于 0',
+            'difficulty_tier.max' => '难度等级不能大于 9',
         ];
     }
 }

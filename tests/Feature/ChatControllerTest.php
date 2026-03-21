@@ -80,7 +80,7 @@ class ChatControllerTest extends TestCase
     public function test_create_room_with_name_too_short()
     {
         $response = $this->postJson('/api/chat/rooms', [
-            'name' => 'a', // 1个字符，少于最小长度2
+            'name' => 'a', // 1 个字符，少于最小长度 2
         ]);
 
         $response->assertStatus(422);
@@ -91,7 +91,7 @@ class ChatControllerTest extends TestCase
     public function test_create_room_with_name_too_long()
     {
         $response = $this->postJson('/api/chat/rooms', [
-            'name' => '中文字符测试用例超长名称', // 11个中文字符 = 22个字符长度，超过最大长度20
+            'name' => '中文字符测试用例超长名称', // 11 个中文字符 = 22 个字符长度，超过最大长度 20
         ]);
 
         $response->assertStatus(422);

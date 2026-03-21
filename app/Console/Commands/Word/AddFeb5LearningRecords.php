@@ -18,15 +18,15 @@ class AddFeb5LearningRecords extends Command
      * @var string
      */
     protected $signature = 'word:add-feb5-records 
-                            {--user-id= : 指定用户ID，不指定则使用第一个用户}
-                            {--count=10 : 要添加的学习记录数量，默认10个}';
+                            {--user-id= : 指定用户 ID，不指定则使用第一个用户}
+                            {--count=10 : 要添加的学习记录数量，默认 10 个}';
 
     /**
      * 命令描述
      *
      * @var string
      */
-    protected $description = '添加2月5日学习过的单词记录，设置下次复习时间为今天（6号）';
+    protected $description = '添加 2 月 5 日学习过的单词记录，设置下次复习时间为今天(6 号)';
 
     /**
      * 执行控制台命令
@@ -93,9 +93,9 @@ class AddFeb5LearningRecords extends Command
 
         if ($availableWords->isEmpty()) {
             $this->warn("单词书 '{$book->name}' 中没有可用的新单词了");
-            $this->info('尝试使用已学习的单词...');
+            $this->info('尝试使用已学习的单词 ...');
 
-            // 使用已学习的单词，但更新为5号学习记录
+            // 使用已学习的单词，但更新为 5 号学习记录
             $existingWords = UserWord::where('user_id', $user->id)
                 ->where('word_book_id', $book->id)
                 ->with('word')
@@ -108,7 +108,7 @@ class AddFeb5LearningRecords extends Command
                 return Command::FAILURE;
             }
 
-            $this->info("找到 {$existingWords->count()} 个已学习的单词，将更新为5号学习记录");
+            $this->info("找到 {$existingWords->count()} 个已学习的单词，将更新为 5 号学习记录");
 
             DB::beginTransaction();
             try {
@@ -121,8 +121,8 @@ class AddFeb5LearningRecords extends Command
                         'review_count' => 1,
                         'correct_count' => 1,
                         'wrong_count' => 0,
-                        'last_review_at' => Carbon::parse('2026-02-05 10:00:00'), // 5号学习
-                        'next_review_at' => Carbon::parse('2026-02-06 00:00:00'), // 6号需要复习
+                        'last_review_at' => Carbon::parse('2026-02-05 10:00:00'), // 5 号学习
+                        'next_review_at' => Carbon::parse('2026-02-06 00:00:00'), // 6 号需要复习
                     ]);
                     $this->line("  ✓ 更新单词: {$userWord->word->content}");
                 }
@@ -138,9 +138,9 @@ class AddFeb5LearningRecords extends Command
             }
         }
 
-        $this->info("找到 {$availableWords->count()} 个新单词，开始创建学习记录...");
+        $this->info("找到 {$availableWords->count()} 个新单词，开始创建学习记录 ...");
 
-        // 设置时间：5号学习，6号需要复习
+        // 设置时间：5 号学习，6 号需要复习
         $lastReviewAt = Carbon::parse('2026-02-05 10:00:00');
         $nextReviewAt = Carbon::parse('2026-02-06 00:00:00');
 
@@ -153,10 +153,10 @@ class AddFeb5LearningRecords extends Command
                     'word_id' => $word->id,
                     'word_book_id' => $book->id,
                     'status' => 1, // 学习中
-                    'stage' => 0, // 第一阶段（根据艾宾浩斯算法，1天后复习）
+                    'stage' => 0, // 第一阶段(根据艾宾浩斯算法，1 天后复习)
                     'ease_factor' => 2.50, // 默认难度因子
-                    'review_count' => 1, // 已复习1次
-                    'correct_count' => 1, // 正确1次
+                    'review_count' => 1, // 已复习 1 次
+                    'correct_count' => 1, // 正确 1 次
                     'wrong_count' => 0,
                     'is_favorite' => false,
                     'last_review_at' => $lastReviewAt,
@@ -167,7 +167,7 @@ class AddFeb5LearningRecords extends Command
 
             DB::commit();
             $this->info("成功创建 {$availableWords->count()} 条学习记录！");
-            $this->info('这些单词将在今天（6号）出现在复习列表中');
+            $this->info('这些单词将在今天(6 号)出现在复习列表中');
 
             return Command::SUCCESS;
 

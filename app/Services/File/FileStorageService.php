@@ -42,7 +42,7 @@ class FileStorageService extends BaseService
             // 生成文件信息
             $fileInfo = $this->generateFileInfo($file);
 
-            // 移动文件到目标目录（优先使用 Storage，兼容测试环境）
+            // 移动文件到目标目录(优先使用 Storage，兼容测试环境)
             $originPath = $directory . '/' . $fileInfo['origin_filename'];
             $publicRoot = storage_path('app/public');
             $relativePath = $directory;
@@ -91,7 +91,7 @@ class FileStorageService extends BaseService
     }
 
     /**
-     * 获取公共访问URL
+     * 获取公共访问 URL
      */
     public function getPublicUrls(string $userId, array $filenames): array
     {
@@ -171,7 +171,7 @@ class FileStorageService extends BaseService
             $errors[] = 'File size exceeds maximum allowed size of ' . ($maxSize / 1024 / 1024) . 'MB';
         }
 
-        // 检查文件扩展名（允许无扩展名，使用默认扩展名）
+        // 检查文件扩展名(允许无扩展名，使用默认扩展名)
         $originalExtension = strtolower($file->getClientOriginalExtension());
         $extension = $originalExtension;
         $allowedExtensions = $this->getAllowedExtensions();

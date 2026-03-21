@@ -38,7 +38,7 @@ class ClearChatCache extends Command
      */
     public function handle(): int
     {
-        $this->info('正在清理聊天室缓存...');
+        $this->info('正在清理聊天室缓存 ...');
 
         try {
             $this->cacheService->clearAllCache();

@@ -15,11 +15,11 @@ use Throwable;
 class ApiExceptionHandler
 {
     /**
-     * 处理API异常
+     * 处理 API 异常
      */
     public static function handle(Throwable $exception, Request $request): ?JsonResponse
     {
-        // 只处理API请求
+        // 只处理 API 请求
         if (! $request->is('api/*') && ! $request->expectsJson()) {
             return null;
         }
@@ -69,7 +69,7 @@ class ApiExceptionHandler
     }
 
     /**
-     * 处理404异常
+     * 处理 404 异常
      */
     private static function handleNotFoundHttpException(): JsonResponse
     {
@@ -91,7 +91,7 @@ class ApiExceptionHandler
     }
 
     /**
-     * 处理HTTP异常
+     * 处理 HTTP 异常
      */
     private static function handleHttpException(HttpException $exception): JsonResponse
     {

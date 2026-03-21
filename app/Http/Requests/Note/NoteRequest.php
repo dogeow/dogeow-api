@@ -42,7 +42,7 @@ class NoteRequest extends FormRequest
         return [
             'title' => '笔记标题',
             'content' => '笔记内容',
-            'content_markdown' => '笔记Markdown内容',
+            'content_markdown' => '笔记 Markdown 内容',
             'is_draft' => '草稿状态',
         ];
     }

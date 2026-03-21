@@ -65,7 +65,7 @@ class ImageUploadService
     /**
      * 处理来自'uploads'目录的图片路径，将它们移动到物品目录并创建缩略图
      *
-     * @param  array  $imagePaths  图片路径数组（例如：'uploads/tempfile.jpg'）
+     * @param  array  $imagePaths  图片路径数组(例如：'uploads/tempfile.jpg')
      * @param  Item  $item  关联的物品
      */
     public function processImagePaths(array $imagePaths, Item $item): void
@@ -114,7 +114,7 @@ class ImageUploadService
                 GenerateThumbnailForItemImageJob::dispatch($itemImage);
 
             } else {
-                Log::error('从uploads移动图片文件失败', ['origin_path' => $originPath, 'destination' => $absItemPath]);
+                Log::error('从 uploads 移动图片文件失败', ['origin_path' => $originPath, 'destination' => $absItemPath]);
             }
         }
     }
@@ -122,7 +122,7 @@ class ImageUploadService
     /**
      * 更新物品图片的排序
      *
-     * @param  array  $imageOrder  排序数组，键为排序顺序（从0开始），值为图片ID
+     * @param  array  $imageOrder  排序数组，键为排序顺序(从 0 开始)，值为图片 ID
      * @param  Item  $item  要重新排序的物品
      */
     public function updateImageOrder(array $imageOrder, Item $item): void
@@ -137,7 +137,7 @@ class ImageUploadService
     /**
      * 设置物品的主图
      *
-     * @param  int  $primaryImageId  要设置为主图的图片ID
+     * @param  int  $primaryImageId  要设置为主图的图片 ID
      * @param  Item  $item  要设置主图的物品
      */
     public function setPrimaryImage(int $primaryImageId, Item $item): void
@@ -151,9 +151,9 @@ class ImageUploadService
     }
 
     /**
-     * 删除指定ID的图片及其文件
+     * 删除指定 ID 的图片及其文件
      *
-     * @param  array  $imageIdsToDelete  要删除的图片ID数组
+     * @param  array  $imageIdsToDelete  要删除的图片 ID 数组
      * @param  Item  $item  要删除图片的物品
      */
     public function deleteImagesByIds(array $imageIdsToDelete, Item $item): void
@@ -169,7 +169,7 @@ class ImageUploadService
     }
 
     /**
-     * 删除与物品关联的所有图片（文件和记录）
+     * 删除与物品关联的所有图片(文件和记录)
      * 通常在删除物品本身时使用
      *
      * @param  Item  $item  要删除图片的物品

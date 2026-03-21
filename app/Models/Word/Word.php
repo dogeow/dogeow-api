@@ -40,7 +40,7 @@ class Word extends Model
     }
 
     /**
-     * 单词所属的单词书（多对多）
+     * 单词所属的单词书(多对多)
      */
     public function books(): BelongsToMany
     {
@@ -55,7 +55,7 @@ class Word extends Model
     }
 
     /**
-     * 单词所属的教育级别（多对多）
+     * 单词所属的教育级别(多对多)
      */
     public function educationLevels(): BelongsToMany
     {

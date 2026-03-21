@@ -30,7 +30,7 @@ class GameCombatUpdate implements ShouldBroadcastNow
 
     /**
      * Get the channels the event should broadcast on.
-     * 使用公共频道（与聊天室 chat.room.{id} 一致），无需订阅鉴权即可收事件。
+     * 使用公共频道(与聊天室 chat.room.{id} 一致)，无需订阅鉴权即可收事件。
      */
     public function broadcastOn(): array
     {
@@ -55,12 +55,12 @@ class GameCombatUpdate implements ShouldBroadcastNow
         // 确保包含 current_hp 和 current_mana
         $data = $this->combatResult;
 
-        // 处理 character 对象（可能是 GameCharacter 实例或数组）
+        // 处理 character 对象(可能是 GameCharacter 实例或数组)
         if (isset($data['character'])) {
             $character = $data['character'];
 
             if ($character instanceof \App\Models\Game\GameCharacter) {
-                // 如果是模型实例，使用 current_hp/current_mana 属性（如果存在）或调用方法获取
+                // 如果是模型实例，使用 current_hp/current_mana 属性(如果存在)或调用方法获取
                 $data['current_hp'] = $character->getAttribute('current_hp') ?? $character->getCurrentHp();
                 $data['current_mana'] = $character->getAttribute('current_mana') ?? $character->getCurrentMana();
             } elseif (is_array($character)) {

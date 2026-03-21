@@ -21,7 +21,7 @@ Route::get('/auth/github', [GithubController::class, 'redirect']);
 Route::get('/auth/github/callback', [GithubController::class, 'callback']);
 Route::post('/github/webhooks/repo-watch', [GithubWebhookController::class, 'repoWatch']);
 
-// Web Push：VAPID 公钥（公开，供前端订阅使用）
+// Web Push：VAPID 公钥(公开，供前端订阅使用)
 Route::get('/webpush/vapid', [WebPushController::class, 'vapidKey']);
 
 // Client info

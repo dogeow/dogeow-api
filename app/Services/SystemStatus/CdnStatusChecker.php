@@ -8,7 +8,7 @@ use Throwable;
 class CdnStatusChecker
 {
     /**
-     * 检查 CDN 服务状态（又拍云）
+     * 检查 CDN 服务状态(又拍云)
      *
      * @return array{status: string, details: string, response_time?: float}
      */
@@ -24,7 +24,7 @@ class CdnStatusChecker
         }
 
         try {
-            // 检查一个已知存在的资源（背景图片）
+            // 检查一个已知存在的资源(背景图片)
             $testUrl = rtrim($cdnUrl, '/') . '/bg/tesla-vector-roadster.png';
             $start = microtime(true);
 

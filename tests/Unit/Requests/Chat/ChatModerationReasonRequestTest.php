@@ -35,6 +35,6 @@ class ChatModerationReasonRequestTest extends TestCase
         $messages = $this->request->messages();
 
         $this->assertSame('原因必须是字符串', $messages['reason.string']);
-        $this->assertSame('原因不能超过500个字符', $messages['reason.max']);
+        $this->assertSame('原因不能超过 500 个字符', $messages['reason.max']);
     }
 }

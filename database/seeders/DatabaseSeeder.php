@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 调用AdminSeeder创建管理员账户
+        // 调用 AdminSeeder 创建管理员账户
         $this->call([
             AdminSeeder::class,
         ]);

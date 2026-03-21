@@ -108,7 +108,7 @@ class Note extends Model
     }
 
     /**
-     * 获取所有相关的链接（作为源或目标）
+     * 获取所有相关的链接(作为源或目标)
      */
     public function links()
     {

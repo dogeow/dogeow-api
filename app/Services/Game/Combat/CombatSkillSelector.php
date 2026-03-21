@@ -11,7 +11,7 @@ use App\Models\Game\GameCharacterSkill;
 class CombatSkillSelector
 {
     /**
-     * 解析本回合使用的技能（蓝量、冷却、单体/群体）
+     * 解析本回合使用的技能(蓝量、冷却、单体/群体)
      * 智能选择：根据怪物血量和数量、技能伤害和消耗来决定使用最佳技能
      *
      * @return array{mana: int, is_aoe: bool, skill_damage: int, skills_used_this_round: array, new_cooldowns: array}
@@ -129,7 +129,7 @@ class CombatSkillSelector
 
         $baseAttackDamage = (int) ($charAttack * 0.5);
 
-        // 策略1: 怪物数量 >= 3 且有多只低血量怪物，优先使用群体技能
+        // 策略 1: 怪物数量 >= 3 且有多只低血量怪物，优先使用群体技能
         if ($aliveMonsterCount >= 3 && $lowHpMonsterCount >= 2) {
             $aoeSkills = array_filter($availableSkills, fn ($s) => $s['is_aoe']);
             if (! empty($aoeSkills)) {
@@ -139,7 +139,7 @@ class CombatSkillSelector
             }
         }
 
-        // 策略2: 怪物总血量很低，优先使用低消耗技能
+        // 策略 2: 怪物总血量很低，优先使用低消耗技能
         if ($totalMonsterHp <= $charAttack * 2) {
             usort($availableSkills, function (array $firstSkill, array $secondSkill) {
                 if ($firstSkill['mana_cost'] === 0 && $secondSkill['mana_cost'] > 0) {
@@ -157,7 +157,7 @@ class CombatSkillSelector
             return $availableSkills[0];
         }
 
-        // 策略3: 正常战斗，选择伤害最高的技能
+        // 策略 3: 正常战斗，选择伤害最高的技能
         $skillsWithDamage = array_filter($availableSkills, fn ($s) => $s['damage'] > 0);
         if (! empty($skillsWithDamage)) {
             usort($skillsWithDamage, fn (array $a, array $b) => $this->compareSkillsByEfficiency($a, $b));

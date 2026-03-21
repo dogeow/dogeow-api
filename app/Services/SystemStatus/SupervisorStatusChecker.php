@@ -9,8 +9,8 @@ use Symfony\Component\Process\Process;
  * 按 program 名进行进程探针状态检查。
  *
  * 通过 `pgrep -f` 检查进程是否存在：
- * - 命中（exit code 0）-> online / RUNNING
- * - 未命中（exit code 1）-> offline / STOPPED
+ * - 命中(exit code 0)-> online / RUNNING
+ * - 未命中(exit code 1)-> offline / STOPPED
  * - 其他错误 -> error / UNKNOWN
  */
 class SupervisorStatusChecker
@@ -93,7 +93,7 @@ class SupervisorStatusChecker
     }
 
     /**
-     * 执行 fallback 进程探针命令（pgrep -f）。
+     * 执行 fallback 进程探针命令(pgrep -f)。
      * 可被重写以用于测试。
      *
      * @return array{output: string, error: string, exitCode: int}

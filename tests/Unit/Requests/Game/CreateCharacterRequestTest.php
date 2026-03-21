@@ -27,7 +27,7 @@ class CreateCharacterRequestTest extends TestCase
 
         $messages = $request->messages();
         $this->assertSame('请输入角色名称', $messages['name.required']);
-        $this->assertSame('角色名称不能超过32个字符', $messages['name.max']);
+        $this->assertSame('角色名称不能超过 32 个字符', $messages['name.max']);
         $this->assertSame('角色名称只能包含字母和数字', $messages['name.alpha_num']);
         $this->assertSame('请选择职业', $messages['class.required']);
         $this->assertSame('职业选择无效', $messages['class.in']);

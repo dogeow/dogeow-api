@@ -75,7 +75,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // 删除迁移的 wiki 节点（is_wiki = true 且 user_id 为 null）
+        // 删除迁移的 wiki 节点(is_wiki = true 且 user_id 为 null)
         Note::where('is_wiki', true)
             ->whereNull('user_id')
             ->delete();

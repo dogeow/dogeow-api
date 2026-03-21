@@ -35,7 +35,7 @@ class LocationTreeService extends BaseService
             ->orderBy('id')
             ->get();
 
-        // 获取物品数量统计（使用 Eloquent 聚合）
+        // 获取物品数量统计(使用 Eloquent 聚合)
         $itemCounts = $this->getItemCounts($userId);
 
         // 构建树形结构

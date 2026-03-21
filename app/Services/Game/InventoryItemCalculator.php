@@ -60,7 +60,7 @@ class InventoryItemCalculator
         $qualityMultiplierConfig = config('game.shop.quality_price_multiplier', []);
         $qualityMultiplier = is_array($qualityMultiplierConfig) ? (isset($qualityMultiplierConfig[$quality]) && is_numeric($qualityMultiplierConfig[$quality]) ? (float) $qualityMultiplierConfig[$quality] : 1.0) : 1.0;
 
-        // 基础价格（按类型）
+        // 基础价格(按类型)
         $typeBasePriceConfig = config('game.shop.type_base_price', []);
         $typeBasePrice = 20;
         if (is_array($typeBasePriceConfig)) {

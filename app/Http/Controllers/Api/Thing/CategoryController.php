@@ -23,7 +23,7 @@ class CategoryController extends Controller
             ->orderBy('name', 'asc')
             ->get();
 
-        // 计算父分类的总物品数量（包括子分类的物品）
+        // 计算父分类的总物品数量(包括子分类的物品)
         $categories->each(function ($category) {
             if ($category->isParent()) {
                 // 计算所有子分类的物品数量总和
@@ -51,7 +51,7 @@ class CategoryController extends Controller
                 return response()->json(['message' => '指定的父分类不存在或无权访问'], 400);
             }
 
-            // 防止创建三级分类（子分类不能再有子分类）
+            // 防止创建三级分类(子分类不能再有子分类)
             if ($parentCategory->parent_id !== null) {
                 return response()->json(['message' => '不能在子分类下创建分类'], 400);
             }

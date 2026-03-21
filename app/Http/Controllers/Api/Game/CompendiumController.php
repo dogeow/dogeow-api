@@ -99,16 +99,16 @@ class CompendiumController extends Controller
             ->limit(20)
             ->get();
 
-        // 计算每个物品的权重（基于物品等级和品质）
-        // 权重公式：基础权重 + 等级加成 - 品质惩罚（越好的物品权重越低）
+        // 计算每个物品的权重(基于物品等级和品质)
+        // 权重公式：基础权重 + 等级加成 - 品质惩罚(越好的物品权重越低)
         $itemsArray = $items->toArray();
         $totalWeight = 0;
         $itemsWithRates = array_map(function ($item) use (&$totalWeight, $monster) {
             // 基础权重
             $baseWeight = 10;
-            // 等级加成（等级越高权重越高一点）
+            // 等级加成(等级越高权重越高一点)
             $levelBonus = $item['required_level'];
-            // 品质权重（ mythic < legendary < rare < magic < common）
+            // 品质权重( mythic < legendary < rare < magic < common)
             $qualityWeights = [
                 'mythic' => 1,
                 'legendary' => 3,
@@ -121,7 +121,7 @@ class CompendiumController extends Controller
             $qualityWeight = $qualityWeights[$quality] ?? 15;
 
             $weight = $baseWeight + $levelBonus - $qualityWeight;
-            $weight = max(1, $weight); // 最小权重为1
+            $weight = max(1, $weight); // 最小权重为 1
 
             $item['weight'] = $weight;
             $item['quality'] = $quality;
@@ -130,7 +130,7 @@ class CompendiumController extends Controller
             return $item;
         }, $itemsArray);
 
-        // 计算每个物品的掉落概率（基于权重）
+        // 计算每个物品的掉落概率(基于权重)
         $itemsWithRates = array_map(function ($item) use ($dropChance, $totalWeight) {
             $itemDropRate = $totalWeight > 0 ? ($item['weight'] / $totalWeight) * ($dropChance * 100) : 0;
             $item['drop_rate'] = round($itemDropRate, 2);
@@ -151,7 +151,7 @@ class CompendiumController extends Controller
     }
 
     /**
-     * 为物品生成品质（模拟实际掉落时的品质）
+     * 为物品生成品质(模拟实际掉落时的品质)
      */
     private function generateQualityForItem(array $item, int $monsterLevel): string
     {

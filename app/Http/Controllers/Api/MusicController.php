@@ -91,7 +91,7 @@ class MusicController extends Controller
     }
 
     /**
-     * 下载音乐文件，确保正确的MIME类型和响应头
+     * 下载音乐文件，确保正确的 MIME 类型和响应头
      */
     public function download(string $filename): Response|\Illuminate\Http\JsonResponse
     {
@@ -113,7 +113,7 @@ class MusicController extends Controller
             'Content-Disposition' => 'inline; filename="' . addslashes($filename) . '"',
         ];
 
-        // 支持范围请求（用于音频流式播放）
+        // 支持范围请求(用于音频流式播放)
         $rangeHeader = request()->header('Range');
         if ($rangeHeader) {
             if (preg_match('/bytes=(\d*)-(\d*)/', $rangeHeader, $matches)) {
@@ -154,7 +154,7 @@ class MusicController extends Controller
     }
 
     /**
-     * 获取文件的MIME类型，确保返回正确的音频类型
+     * 获取文件的 MIME 类型，确保返回正确的音频类型
      */
     private function getMimeType(string $path): string
     {

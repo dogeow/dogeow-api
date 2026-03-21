@@ -21,7 +21,7 @@ class CategoryControllerTest extends TestCase
     }
 
     /**
-     * 测试获取所有导航分类（默认行为）
+     * 测试获取所有导航分类(默认行为)
      */
     public function test_index_returns_visible_categories_with_items()
     {
@@ -43,7 +43,7 @@ class CategoryControllerTest extends TestCase
     }
 
     /**
-     * 测试获取所有导航分类（管理员视图）
+     * 测试获取所有导航分类(管理员视图)
      */
     public function test_index_with_show_all_returns_all_categories()
     {
@@ -111,7 +111,7 @@ class CategoryControllerTest extends TestCase
     }
 
     /**
-     * 测试获取所有分类（管理员）
+     * 测试获取所有分类(管理员)
      */
     public function test_all_returns_all_categories_with_item_count()
     {
@@ -193,7 +193,7 @@ class CategoryControllerTest extends TestCase
         $this->actingAs($this->user);
 
         $data = [
-            'name' => str_repeat('a', 51), // 超过50字符限制
+            'name' => str_repeat('a', 51), // 超过 50 字符限制
             'icon' => 'test-icon',
         ];
 
@@ -402,7 +402,7 @@ class CategoryControllerTest extends TestCase
 
         $data = [
             'name' => 'Test Category',
-            'icon' => str_repeat('a', 101), // 超过100字符限制
+            'icon' => str_repeat('a', 101), // 超过 100 字符限制
         ];
 
         $response = $this->postJson('/api/nav/categories', $data);
@@ -830,7 +830,7 @@ class CategoryControllerTest extends TestCase
         // 验证软删除
         $this->assertSoftDeleted('nav_categories', ['id' => $category->id]);
 
-        // 验证数据库中仍然存在记录（软删除）
+        // 验证数据库中仍然存在记录(软删除)
         $this->assertDatabaseHas('nav_categories', [
             'id' => $category->id,
         ]);

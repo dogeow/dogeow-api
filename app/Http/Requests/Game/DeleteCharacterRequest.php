@@ -21,8 +21,8 @@ class DeleteCharacterRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'character_id.required' => '角色ID不能为空',
-            'character_id.min' => '角色ID必须大于0',
+            'character_id.required' => '角色 ID 不能为空',
+            'character_id.min' => '角色 ID 必须大于 0',
             'character_id.exists' => '角色不存在',
         ];
     }

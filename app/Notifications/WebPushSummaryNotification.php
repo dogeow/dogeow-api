@@ -9,7 +9,7 @@ use NotificationChannels\WebPush\WebPushChannel;
 use NotificationChannels\WebPush\WebPushMessage;
 
 /**
- * 仅 Web Push 的汇总通知（不写 database），用于「打开浏览器时补发一条」。
+ * 仅 Web Push 的汇总通知(不写 database)，用于「打开浏览器时补发一条」。
  */
 class WebPushSummaryNotification extends Notification implements ShouldQueue
 {

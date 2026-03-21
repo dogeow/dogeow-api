@@ -34,10 +34,10 @@ class BanChatUserRequest extends FormRequest
     {
         return [
             'duration.integer' => '封禁时长必须为整数分钟',
-            'duration.min' => '封禁时长至少为1分钟',
-            'duration.max' => '封禁时长不能超过525600分钟',
+            'duration.min' => '封禁时长至少为 1 分钟',
+            'duration.max' => '封禁时长不能超过 525600 分钟',
             'reason.string' => '封禁原因必须是字符串',
-            'reason.max' => '封禁原因不能超过500个字符',
+            'reason.max' => '封禁原因不能超过 500 个字符',
         ];
     }
 }

@@ -20,7 +20,7 @@ class SyncRpgAssetNamesCommand extends Command
         $dryRun = (bool) $this->option('dry-run');
 
         $this->components->info($dryRun
-            ? '预览 RPG 资源英文名同步变更（dry-run）'
+            ? '预览 RPG 资源英文名同步变更(dry-run)'
             : '开始同步 RPG 资源英文名到数据库');
 
         $itemSummary = $this->syncItemDefinitions($dryRun);

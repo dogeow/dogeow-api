@@ -49,7 +49,7 @@ class NoteContentService
     }
 
     /**
-     * 从 content 生成 markdown（优先解析编辑器 JSON）
+     * 从 content 生成 markdown(优先解析编辑器 JSON)
      */
     public function deriveMarkdownFromContent(?string $content): string
     {

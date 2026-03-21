@@ -184,7 +184,7 @@ class ItemRequestTest extends TestCase
     {
         $messages = $this->request->messages();
 
-        $this->assertEquals('物品名称不能超过255个字符', $messages['name.max']);
+        $this->assertEquals('物品名称不能超过 255 个字符', $messages['name.max']);
     }
 
     public function test_quantity_required_message()
@@ -205,7 +205,7 @@ class ItemRequestTest extends TestCase
     {
         $messages = $this->request->messages();
 
-        $this->assertEquals('物品数量必须大于0', $messages['quantity.min']);
+        $this->assertEquals('物品数量必须大于 0', $messages['quantity.min']);
     }
 
     public function test_purchase_price_numeric_message()
@@ -247,14 +247,14 @@ class ItemRequestTest extends TestCase
     {
         $messages = $this->request->messages();
 
-        $this->assertEquals('图片格式必须为jpeg,png,jpg,gif', $messages['images.*.mimes']);
+        $this->assertEquals('图片格式必须为 jpeg,png,jpg,gif', $messages['images.*.mimes']);
     }
 
     public function test_images_max_message()
     {
         $messages = $this->request->messages();
 
-        $this->assertEquals('图片大小不能超过2MB', $messages['images.*.max']);
+        $this->assertEquals('图片大小不能超过 2MB', $messages['images.*.max']);
     }
 
     public function test_tags_string_message()
@@ -268,6 +268,6 @@ class ItemRequestTest extends TestCase
     {
         $messages = $this->request->messages();
 
-        $this->assertEquals('标签长度不能超过255个字符', $messages['tags.*.max']);
+        $this->assertEquals('标签长度不能超过 255 个字符', $messages['tags.*.max']);
     }
 }

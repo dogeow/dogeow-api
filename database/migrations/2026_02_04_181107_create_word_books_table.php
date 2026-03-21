@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('word_books', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('word_category_id')->comment('单词分类ID');
+            $table->unsignedBigInteger('word_category_id')->comment('单词分类 ID');
             $table->string('name')->comment('单词书名称');
             $table->text('description')->nullable()->comment('单词书描述');
             $table->integer('difficulty')->default(1)->comment('难度等级 1-5');

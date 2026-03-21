@@ -35,7 +35,7 @@ class ItemImage extends Model
     }
 
     /**
-     * 获取图片完整URL
+     * 获取图片完整 URL
      */
     public function getUrlAttribute()
     {
@@ -47,7 +47,7 @@ class ItemImage extends Model
     }
 
     /**
-     * 获取缩略图完整URL
+     * 获取缩略图完整 URL
      */
     public function getThumbnailUrlAttribute()
     {

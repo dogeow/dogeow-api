@@ -13,13 +13,13 @@ use Illuminate\Support\Facades\Schema;
 class FetchWordFromIcibaCommand extends Command
 {
     protected $signature = 'word:fetch-iciba
-                            {--word= : 指定单词（多个用逗号分隔，如 circuit,bike）}
-                            {--book= : 指定单词书ID（仅处理该书中的单词）}
+                            {--word= : 指定单词(多个用逗号分隔，如 circuit,bike)}
+                            {--book= : 指定单词书 ID(仅处理该书中的单词)}
                             {--limit=50 : 每次处理的单词数量}
                             {--sleep=800 : 每个请求之间的间隔(毫秒)}
                             {--force : 强制更新已有数据的单词}';
 
-    protected $description = '从词典API获取单词的音标、中文释义和例句';
+    protected $description = '从词典 API 获取单词的音标、中文释义和例句';
 
     private int $successCount = 0;
 
@@ -71,7 +71,7 @@ class FetchWordFromIcibaCommand extends Command
         }
 
         $words = $query->with('books')->limit($limit)->get();
-        $this->info("开始处理 {$words->count()} 个单词...");
+        $this->info("开始处理 {$words->count()} 个单词 ...");
         $this->newLine();
 
         foreach ($words as $index => $word) {
@@ -91,7 +91,7 @@ class FetchWordFromIcibaCommand extends Command
     private function handleSpecifiedWords(array $contents, int $sleep): int
     {
         if (empty($contents)) {
-            $this->warn('未提供有效单词，请使用 --word=单词1,单词2');
+            $this->warn('未提供有效单词，请使用 --word=单词 1,单词 2');
 
             return Command::FAILURE;
         }
@@ -114,7 +114,7 @@ class FetchWordFromIcibaCommand extends Command
             return Command::SUCCESS;
         }
 
-        $this->info('指定单词 ' . $words->count() . ' 个，开始处理...');
+        $this->info('指定单词 ' . $words->count() . ' 个，开始处理 ...');
         $this->newLine();
 
         foreach ($words as $index => $word) {
@@ -191,25 +191,25 @@ class FetchWordFromIcibaCommand extends Command
                 if ($phonetic) {
                     $this->line("  音标：/{$phonetic}/");
                 }
-                $this->line('  释义：' . ($zhMeaning ?: '（无）'));
+                $this->line('  释义: ' . ($zhMeaning ?: '(无)'));
                 if (! empty($newExamples) && $this->hasChineseExamples($newExamples)) {
-                    $this->line('  例句：' . count($newExamples) . ' 条（含中文）');
+                    $this->line('  例句: ' . count($newExamples) . ' 条(含中文)');
                 }
                 $this->successCount++;
             } else {
                 $this->newLine();
                 $this->warn("✗ {$word->content} - 未找到数据");
-                $this->line('  已尝试：有道 API、有道（网页）');
-                $this->line('  已获取音标：（无）');
-                $this->line('  已获取释义：（无）');
+                $this->line('  已尝试: 有道 API、有道(网页)');
+                $this->line('  已获取音标: (无)');
+                $this->line('  已获取释义: (无)');
                 if (! empty($examples)) {
                     $hasZh = $this->hasChineseExamples($examples);
-                    $this->line('  已获取例句：' . count($examples) . ' 条（' . ($hasZh ? '含中文，但因释义/音标未获取未写入' : '无中文未采用') . '）');
+                    $this->line('  已获取例句: ' . count($examples) . ' 条(' . ($hasZh ? '含中文，但因释义/音标未获取未写入' : '无中文未采用') . ')');
                     foreach (array_slice($examples, 0, 5) as $i => $ex) {
                         $en = $ex['en'] ?? '';
                         $zh = $ex['zh'] ?? '';
                         $enShort = mb_strlen($en) > 60 ? mb_substr($en, 0, 60) . '…' : $en;
-                        $zhShort = $zh !== '' ? (mb_strlen($zh) > 40 ? mb_substr($zh, 0, 40) . '…' : $zh) : '（空）';
+                        $zhShort = $zh !== '' ? (mb_strlen($zh) > 40 ? mb_substr($zh, 0, 40) . '…' : $zh) : '(空)';
                         $this->line('    ' . ($i + 1) . '. en: ' . $enShort);
                         $this->line('       zh: ' . $zhShort);
                     }
@@ -248,7 +248,7 @@ class FetchWordFromIcibaCommand extends Command
             $phoneticCount = $crawler->filter('.phonetic')->count();
             $perPhoneCount = $crawler->filter('.per-phone')->count();
             $senEngCount = $crawler->filter('.sen-eng')->count();
-            $this->line("  诊断：网页已获取，页面内 .phonetic={$phoneticCount} .per-phone={$perPhoneCount} .sen-eng={$senEngCount}（若均为 0 可能页面结构已变化）");
+            $this->line("  诊断: 网页已获取，页面内 .phonetic={$phoneticCount} .per-phone={$perPhoneCount} .sen-eng={$senEngCount}(若均为 0 可能页面结构已变化)");
         } catch (\Throwable $e) {
             $this->line('  诊断：检查时异常 - ' . $e->getMessage());
         }
@@ -276,7 +276,7 @@ class FetchWordFromIcibaCommand extends Command
                 $levelNames = EducationLevel::whereIn('id', $levelIds)->pluck('name')->all();
                 $this->line('  教育级别：' . implode(', ', $levelNames));
             } else {
-                $this->line('  教育级别：无（小学或未匹配）');
+                $this->line('  教育级别: 无(小学或未匹配)');
             }
         } catch (\Throwable $e) {
             $this->warn("  警告：关联教育级别失败: {$e->getMessage()}");

@@ -33,7 +33,7 @@ return new class extends Migration
             $table->unsignedInteger('base_attack_damage')->nullable()->after('monster_copper')->comment('基础/技能伤害');
             $table->unsignedInteger('skill_damage')->nullable()->after('base_attack_damage')->comment('技能额外伤害');
             $table->unsignedInteger('crit_damage')->nullable()->after('skill_damage')->comment('暴击额外伤害');
-            $table->unsignedInteger('aoe_damage')->nullable()->after('crit_damage')->comment('AOE伤害减免');
+            $table->unsignedInteger('aoe_damage')->nullable()->after('crit_damage')->comment('AOE 伤害减免');
             $table->unsignedInteger('total_damage_to_monsters')->nullable()->after('aoe_damage')->comment('本回合总伤害');
             $table->decimal('monster_defense_reduction', 5, 2)->nullable()->after('total_damage_to_monsters')->comment('怪物防御减伤(%)');
             $table->unsignedInteger('monster_counter_damage')->nullable()->after('monster_defense_reduction')->comment('怪物反击伤害');

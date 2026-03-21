@@ -8,10 +8,10 @@ use Illuminate\Console\Command;
 class UpyunUploadCommand extends Command
 {
     protected $signature = 'upyun:upload
-                            {path : 本地文件路径（如 Ollama 生成图片的路径）}
+                            {path : 本地文件路径(如 Ollama 生成图片的路径)}
                             {--remote= : 又拍云上的路径，如 images/ollama/xxx.png；不填则用 images/ollama/ 加文件名}';
 
-    protected $description = '将本地文件上传到又拍云（可用于 Ollama 生成图片后上传）';
+    protected $description = '将本地文件上传到又拍云(可用于 Ollama 生成图片后上传)';
 
     /**
      * 默认 Ollama 上传目录常量
@@ -54,8 +54,8 @@ class UpyunUploadCommand extends Command
         if (! empty($result['url'])) {
             $this->line('URL: ' . $result['url']);
         } else {
-            $this->line('路径：' . $result['path']);
-            $this->comment('若需公开 URL，请在 .env 中设置 UPYUN_DOMAIN（CDN 域名）');
+            $this->line('路径: ' . $result['path']);
+            $this->comment('若需公开 URL，请在 .env 中设置 UPYUN_DOMAIN(CDN 域名)');
         }
 
         return self::SUCCESS;

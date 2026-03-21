@@ -46,6 +46,6 @@ class LearnSkillRequestTest extends TestCase
     {
         $messages = $this->request->messages();
 
-        $this->assertStringContainsString('技能ID', $messages['skill_id.required']);
+        $this->assertStringContainsString('技能 ID', $messages['skill_id.required']);
     }
 }

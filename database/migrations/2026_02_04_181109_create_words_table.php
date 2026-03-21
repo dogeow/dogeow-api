@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('words', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('word_book_id')->comment('单词书ID');
+            $table->unsignedBigInteger('word_book_id')->comment('单词书 ID');
             $table->string('content')->comment('单词内容');
             $table->string('phonetic_uk')->nullable()->comment('英式音标');
             $table->string('phonetic_us')->nullable()->comment('美式音标');

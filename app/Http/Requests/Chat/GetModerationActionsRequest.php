@@ -66,8 +66,8 @@ class GetModerationActionsRequest extends FormRequest
     {
         return [
             'per_page.integer' => '每页数量必须为整数',
-            'per_page.min' => '每页数量至少为1',
-            'per_page.max' => '每页数量不能超过100',
+            'per_page.min' => '每页数量至少为 1',
+            'per_page.max' => '每页数量不能超过 100',
             'action_type.string' => '操作类型格式不正确',
             'target_user_id.integer' => '目标用户 ID 必须为整数',
         ];

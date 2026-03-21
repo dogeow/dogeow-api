@@ -60,7 +60,7 @@ class ChatRoomService
                 $errors[] = '房间名称至少需要' . self::MIN_ROOM_NAME_LENGTH . '个字符';
             }
             if (CharLength::exceedsMax($name, self::MAX_ROOM_NAME_LENGTH)) {
-                $errors[] = '房间名称不能超过' . self::MAX_ROOM_NAME_LENGTH . '个字符（中文/emoji算2个字符，数字/字母算1个字符）';
+                $errors[] = '房间名称不能超过' . self::MAX_ROOM_NAME_LENGTH . '个字符(中文/emoji 算 2 个字符，数字/字母算 1 个字符)';
             }
 
             // Check for duplicate room names

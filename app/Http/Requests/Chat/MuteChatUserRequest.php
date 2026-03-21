@@ -34,10 +34,10 @@ class MuteChatUserRequest extends FormRequest
     {
         return [
             'duration.integer' => '禁言时长必须为整数分钟',
-            'duration.min' => '禁言时长至少为1分钟',
-            'duration.max' => '禁言时长不能超过10080分钟',
+            'duration.min' => '禁言时长至少为 1 分钟',
+            'duration.max' => '禁言时长不能超过 10080 分钟',
             'reason.string' => '禁言原因必须是字符串',
-            'reason.max' => '禁言原因不能超过500个字符',
+            'reason.max' => '禁言原因不能超过 500 个字符',
         ];
     }
 }

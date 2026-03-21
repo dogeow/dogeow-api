@@ -12,7 +12,7 @@ class CET46WordSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->command->info('开始导入单词数据...');
+        $this->command->info('开始导入单词数据 ...');
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
         // 创建分类和单词书
@@ -70,7 +70,7 @@ class CET46WordSeeder extends Seeder
                 continue;
             }
 
-            // 查找或创建单词（全局唯一）
+            // 查找或创建单词(全局唯一)
             $word = Word::firstOrCreate(
                 ['content' => $content],
                 [

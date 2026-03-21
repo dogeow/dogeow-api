@@ -20,7 +20,7 @@ return new class extends Migration
             $table->softDeletes();
         });
 
-        // 给笔记表添加分类ID字段
+        // 给笔记表添加分类 ID 字段
         Schema::table('notes', function (Blueprint $table) {
             $table->unsignedBigInteger('note_category_id')->nullable()->after('user_id')->index();
         });

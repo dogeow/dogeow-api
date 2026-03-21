@@ -294,6 +294,7 @@ class GameCombatServiceTest extends TestCase
             potionService: $potionService,
             lootService: $lootService,
             combatLogService: $combatLogService,
+            inventoryService: $inventoryService,
         );
 
         $result = $service->executeRound($character);
@@ -432,6 +433,7 @@ class GameCombatServiceTest extends TestCase
             potionService: $potionService,
             lootService: $lootService,
             combatLogService: $combatLogService,
+            inventoryService: $inventoryService,
         );
 
         $result = $service->executeRound($character);
@@ -472,7 +474,8 @@ class GameCombatServiceTest extends TestCase
         ?GameMonsterService $monsterService = null,
         ?GamePotionService $potionService = null,
         ?GameCombatLootService $lootService = null,
-        ?GameCombatLogService $combatLogService = null
+        ?GameCombatLogService $combatLogService = null,
+        ?GameInventoryService $inventoryService = null
     ): GameCombatService {
         return new GameCombatService(
             $roundProcessor ?? Mockery::mock(CombatRoundProcessor::class),
@@ -480,6 +483,7 @@ class GameCombatServiceTest extends TestCase
             $potionService ?? Mockery::mock(GamePotionService::class),
             $lootService ?? Mockery::mock(GameCombatLootService::class),
             $combatLogService ?? Mockery::mock(GameCombatLogService::class),
+            $inventoryService ?? Mockery::mock(GameInventoryService::class),
         );
     }
 

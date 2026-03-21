@@ -18,7 +18,7 @@ class TitleController extends Controller
     {
         $url = $request->query('url');
         if (! $url) {
-            return response()->json(['error' => '缺少url参数'], 400);
+            return response()->json(['error' => '缺少 url 参数'], 400);
         }
 
         // 先检查缓存
@@ -32,7 +32,7 @@ class TitleController extends Controller
                 return response()->json($cachedData, $statusCode);
             }
 
-            // 如果缓存存在成功数据，直接返回原始缓存内容（测试期望无额外message）
+            // 如果缓存存在成功数据，直接返回原始缓存内容(测试期望无额外 message)
             return response()->json($cachedData);
         }
 

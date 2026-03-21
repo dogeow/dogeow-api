@@ -8,7 +8,7 @@ use Carbon\Carbon;
 class EbbinghausService
 {
     /**
-     * 复习间隔天数（8个阶段）
+     * 复习间隔天数(8 个阶段)
      */
     private const INTERVALS = [1, 2, 4, 7, 15, 30, 60, 180];
 
@@ -27,7 +27,7 @@ class EbbinghausService
             // 记住：进入下一阶段
             $newStage = min($currentStage + 1, count(self::INTERVALS) - 1);
         } else {
-            // 忘记：回到上一阶段（至少为0）
+            // 忘记：回到上一阶段(至少为 0)
             $newStage = max($currentStage - 1, 0);
         }
 
@@ -41,7 +41,7 @@ class EbbinghausService
     }
 
     /**
-     * 更新难度因子（SM-2算法简化版）
+     * 更新难度因子(SM-2 算法简化版)
      *
      * @param  UserWord  $userWord  用户单词记录
      * @param  bool  $remembered  是否记住
@@ -52,10 +52,10 @@ class EbbinghausService
         $currentEase = $userWord->ease_factor ?? 2.50;
 
         if ($remembered) {
-            // 记住：增加难度因子（最高3.0）
+            // 记住：增加难度因子(最高 3.0)
             $newEase = min($currentEase + 0.15, 3.0);
         } else {
-            // 忘记：减少难度因子（最低1.3）
+            // 忘记：减少难度因子(最低 1.3)
             $newEase = max($currentEase - 0.2, 1.3);
         }
 

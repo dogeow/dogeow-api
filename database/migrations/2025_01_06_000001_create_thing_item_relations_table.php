@@ -6,17 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * 创建物品关联表迁移
- * 用于建立物品之间的关联关系（例如：配件、替换品、相关物品等）
+ * 用于建立物品之间的关联关系(例如：配件、替换品、相关物品等)
  */
 return new class extends Migration
 {
     /**
      * 运行迁移
-     * 创建item_relations表，包含以下字段：
+     * 创建 item_relations 表，包含以下字段：
      * - id: 主键
-     * - item_id: 物品ID
-     * - related_item_id: 关联物品ID
-     * - relation_type: 关联类型（accessory配件、replacement替换品、related相关、bundle套装、parent父物品、child子物品）
+     * - item_id: 物品 ID
+     * - related_item_id: 关联物品 ID
+     * - relation_type: 关联类型(accessory 配件、replacement 替换品、related 相关、bundle 套装、parent 父物品、child 子物品)
      * - description: 关联描述
      * - created_at, updated_at: 时间戳
      */
@@ -24,8 +24,8 @@ return new class extends Migration
     {
         Schema::create('thing_item_relations', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('item_id')->comment('物品ID');
-            $table->unsignedBigInteger('related_item_id')->comment('关联物品ID');
+            $table->unsignedBigInteger('item_id')->comment('物品 ID');
+            $table->unsignedBigInteger('related_item_id')->comment('关联物品 ID');
             $table->enum('relation_type', ['accessory', 'replacement', 'related', 'bundle', 'parent', 'child'])
                 ->default('related')
                 ->comment('关联类型：配件、替换品、相关、套装、父物品、子物品');
@@ -44,7 +44,7 @@ return new class extends Migration
 
     /**
      * 回滚迁移
-     * 删除item_relations表
+     * 删除 item_relations 表
      */
     public function down(): void
     {

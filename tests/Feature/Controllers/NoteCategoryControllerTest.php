@@ -87,7 +87,7 @@ class NoteCategoryControllerTest extends TestCase
     public function test_store_validation_fails_with_long_name()
     {
         $data = [
-            'name' => str_repeat('a', 51), // 超过50字符限制
+            'name' => str_repeat('a', 51), // 超过 50 字符限制
         ];
 
         $response = $this->postJson('/api/notes/categories', $data);
@@ -100,7 +100,7 @@ class NoteCategoryControllerTest extends TestCase
     {
         $data = [
             'name' => 'Test Category',
-            'description' => str_repeat('a', 201), // 超过200字符限制
+            'description' => str_repeat('a', 201), // 超过 200 字符限制
         ];
 
         $response = $this->postJson('/api/notes/categories', $data);
@@ -212,7 +212,7 @@ class NoteCategoryControllerTest extends TestCase
         $category = NoteCategory::factory()->create(['user_id' => $this->user->id]);
 
         $data = [
-            'name' => str_repeat('a', 51), // 超过50字符限制
+            'name' => str_repeat('a', 51), // 超过 50 字符限制
         ];
 
         $response = $this->putJson("/api/notes/categories/{$category->id}", $data);
@@ -227,7 +227,7 @@ class NoteCategoryControllerTest extends TestCase
 
         $data = [
             'name' => 'Test Category',
-            'description' => str_repeat('a', 201), // 超过200字符限制
+            'description' => str_repeat('a', 201), // 超过 200 字符限制
         ];
 
         $response = $this->putJson("/api/notes/categories/{$category->id}", $data);

@@ -12,11 +12,11 @@ return new class extends Migration
 {
     /**
      * 运行迁移
-     * 创建rooms表，包含以下字段：
+     * 创建 rooms 表，包含以下字段：
      * - id: 主键
      * - name: 房间名称
-     * - area_id: 所属区域ID
-     * - user_id: 所属用户ID
+     * - area_id: 所属区域 ID
+     * - user_id: 所属用户 ID
      */
     public function up(): void
     {
@@ -31,7 +31,7 @@ return new class extends Migration
 
     /**
      * 回滚迁移
-     * 删除rooms表
+     * 删除 rooms 表
      */
     public function down(): void
     {

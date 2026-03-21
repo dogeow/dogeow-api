@@ -72,7 +72,7 @@ class GameItem extends GameItemDefinition
     ];
 
     /**
-     * 属性价格系数（每1点属性对应的基础价格）
+     * 属性价格系数(每 1 点属性对应的基础价格)
      * 根据属性在战斗中的价值设定
      */
     public const STAT_PRICES = [
@@ -80,8 +80,8 @@ class GameItem extends GameItemDefinition
         'defense' => 2,       // 防御力：每点 2 铜
         'max_hp' => 0.5,      // 生命值：每点 0.5 铜
         'max_mana' => 0.3,    // 法力值：每点 0.3 铜
-        'crit_rate' => 500,   // 暴击率：每 1%（0.01）500 铜
-        'crit_damage' => 200, // 暴击伤害：每 10%（0.1）200 铜
+        'crit_rate' => 500,   // 暴击率：每 1%(0.01)500 铜
+        'crit_damage' => 200, // 暴击伤害：每 10%(0.1)200 铜
     ];
 
     /**
@@ -125,9 +125,9 @@ class GameItem extends GameItemDefinition
     }
 
     /**
-     * 使用 bcmath 将数值规范为指定小数位，避免浮点精度问题（如暴击率 0.020000000000000004）
+     * 使用 bcmath 将数值规范为指定小数位，避免浮点精度问题(如暴击率 0.020000000000000004)
      *
-     * @param  array<string, mixed>  $arr  键值对（如 stats、affixes）
+     * @param  array<string, mixed>  $arr  键值对(如 stats、affixes)
      * @param  int  $scale  小数位数，率类属性用 4
      * @return array<string, mixed>
      */
@@ -147,7 +147,7 @@ class GameItem extends GameItemDefinition
     }
 
     /**
-     * 获取完整属性（基础 + 随机词缀 + 宝石）
+     * 获取完整属性(基础 + 随机词缀 + 宝石)
      */
     public function getTotalStats(): array
     {
@@ -207,7 +207,7 @@ class GameItem extends GameItemDefinition
     }
 
     /**
-     * 获取物品名称（带品质前缀）
+     * 获取物品名称(带品质前缀)
      */
     public function getDisplayName(): string
     {
@@ -249,9 +249,9 @@ class GameItem extends GameItemDefinition
     }
 
     /**
-     * 计算物品卖出价格（基于属性的公式）
+     * 计算物品卖出价格(基于属性的公式)
      *
-     * @return int 卖出价格（铜币）
+     * @return int 卖出价格(铜币)
      */
     public function calculateSellPrice(): int
     {
@@ -308,7 +308,7 @@ class GameItem extends GameItemDefinition
     private function calculateEquipmentPrice(): int
     {
         $totalStats = $this->getTotalStats();
-        // 若物品自身 stats 为空（如旧数据），用 definition 的 base_stats 参与计价
+        // 若物品自身 stats 为空(如旧数据)，用 definition 的 base_stats 参与计价
         if (empty($totalStats) && $this->definition) {
             $totalStats = $this->definition->base_stats ?? [];
         }
@@ -327,15 +327,15 @@ class GameItem extends GameItemDefinition
         $type = $this->definition->type ?? 'weapon';
         $typeMultiplier = self::TYPE_PRICE_MULTIPLIERS[$type] ?? 1.0;
 
-        // 4. 应用需求等级加成（高等级装备更值钱）
+        // 4. 应用需求等级加成(高等级装备更值钱)
         $requiredLevel = $this->definition->required_level ?? 1;
-        $levelMultiplier = 1 + ($requiredLevel / 50); // 每50级价格翻倍
+        $levelMultiplier = 1 + ($requiredLevel / 50); // 每 50 级价格翻倍
 
         // 5. 插槽加成
         $socketCount = $this->sockets ?? 0;
         $socketBonus = $socketCount * 10; // 每个插槽额外 10 铜
 
-        // 6. 计算最终价格（卖出价格为估算价值的 50%）
+        // 6. 计算最终价格(卖出价格为估算价值的 50%)
         $finalPrice = (int) (($basePrice * $qualityMultiplier * $typeMultiplier * $levelMultiplier) + $socketBonus) * 0.5;
 
         return max(1, (int) $finalPrice);

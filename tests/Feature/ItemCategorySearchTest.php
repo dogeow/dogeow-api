@@ -53,7 +53,7 @@ class ItemCategorySearchTest extends TestCase
             'is_public' => true,
         ]);
 
-        // 创建物品：属于子分类1
+        // 创建物品：属于子分类 1
         $childItem1 = Item::create([
             'name' => 'iPhone',
             'description' => '苹果手机',
@@ -62,7 +62,7 @@ class ItemCategorySearchTest extends TestCase
             'is_public' => true,
         ]);
 
-        // 创建物品：属于子分类2
+        // 创建物品：属于子分类 2
         $childItem2 = Item::create([
             'name' => 'MacBook',
             'description' => '苹果电脑',
@@ -91,13 +91,13 @@ class ItemCategorySearchTest extends TestCase
         $response->assertStatus(200);
 
         $items = $response->json('data');
-        $this->assertCount(3, $items, '搜索父分类应该返回3个物品（1个父分类物品 + 2个子分类物品）');
+        $this->assertCount(3, $items, '搜索父分类应该返回 3 个物品(1 个父分类物品 + 2 个子分类物品)');
 
-        // 验证返回的物品ID
+        // 验证返回的物品 ID
         $itemIds = collect($items)->pluck('id')->toArray();
         $this->assertContains($parentItem->id, $itemIds, '应该包含父分类的物品');
-        $this->assertContains($childItem1->id, $itemIds, '应该包含子分类1的物品');
-        $this->assertContains($childItem2->id, $itemIds, '应该包含子分类2的物品');
+        $this->assertContains($childItem1->id, $itemIds, '应该包含子分类 1 的物品');
+        $this->assertContains($childItem2->id, $itemIds, '应该包含子分类 2 的物品');
         $this->assertNotContains($otherItem->id, $itemIds, '不应该包含其他分类的物品');
     }
 
@@ -140,9 +140,9 @@ class ItemCategorySearchTest extends TestCase
         $response->assertStatus(200);
 
         $items = $response->json('data');
-        $this->assertCount(1, $items, '搜索子分类应该只返回1个物品');
+        $this->assertCount(1, $items, '搜索子分类应该只返回 1 个物品');
 
-        // 验证返回的物品ID
+        // 验证返回的物品 ID
         $itemIds = collect($items)->pluck('id')->toArray();
         $this->assertContains($childItem->id, $itemIds, '应该包含子分类的物品');
         $this->assertNotContains($parentItem->id, $itemIds, '不应该包含父分类的物品');
@@ -150,7 +150,7 @@ class ItemCategorySearchTest extends TestCase
 
     public function test_nonexistent_category_returns_empty_result()
     {
-        // 测试：搜索不存在的分类ID
+        // 测试：搜索不存在的分类 ID
         $response = $this->getJson('/api/things/items?filter[category_id]=99999');
 
         $response->assertStatus(200);
@@ -191,9 +191,9 @@ class ItemCategorySearchTest extends TestCase
         $response->assertStatus(200);
 
         $items = $response->json('data');
-        $this->assertCount(1, $items, '搜索未分类应该返回1个物品');
+        $this->assertCount(1, $items, '搜索未分类应该返回 1 个物品');
 
-        // 验证返回的物品ID
+        // 验证返回的物品 ID
         $itemIds = collect($items)->pluck('id')->toArray();
         $this->assertContains($uncategorizedItem->id, $itemIds, '应该包含未分类的物品');
         $this->assertNotContains($categorizedItem->id, $itemIds, '不应该包含有分类的物品');

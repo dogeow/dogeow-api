@@ -17,7 +17,7 @@ class CategoryController extends Controller
     {
         $query = Category::query();
 
-        // 如果请求显示所有分类（用于管理界面选择分类）
+        // 如果请求显示所有分类(用于管理界面选择分类)
         if ($request->has('show_all')) {
             $categories = $query->withCount('items')
                 ->orderBy('sort_order')
@@ -48,7 +48,7 @@ class CategoryController extends Controller
     }
 
     /**
-     * 获取所有导航分类（管理员）
+     * 获取所有导航分类(管理员)
      */
     public function all(): JsonResponse
     {

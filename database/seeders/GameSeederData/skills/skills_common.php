@@ -94,7 +94,7 @@ return [
         'description' => '被动回复法力值',
     ],
     [
-        'name' => 'HP强化',
+        'name' => 'HP 强化',
         'effect_key' => 'hp-boost',
         'type' => 'passive',
         'class_restriction' => 'all',
@@ -107,7 +107,7 @@ return [
         'description' => '被动提升最大生命值',
     ],
     [
-        'name' => 'MP强化',
+        'name' => 'MP 强化',
         'effect_key' => 'mp-boost',
         'type' => 'passive',
         'class_restriction' => 'all',

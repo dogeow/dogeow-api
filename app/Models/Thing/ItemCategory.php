@@ -47,7 +47,7 @@ class ItemCategory extends Model
     }
 
     /**
-     * 判断是否为主分类（没有父分类）
+     * 判断是否为主分类(没有父分类)
      */
     public function isParent()
     {
@@ -55,7 +55,7 @@ class ItemCategory extends Model
     }
 
     /**
-     * 判断是否为子分类（有父分类）
+     * 判断是否为子分类(有父分类)
      */
     public function isChild()
     {

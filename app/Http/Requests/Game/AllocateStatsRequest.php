@@ -25,7 +25,7 @@ class AllocateStatsRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'character_id.required' => '角色ID不能为空',
+            'character_id.required' => '角色 ID 不能为空',
             'character_id.exists' => '角色不存在',
             'strength.min' => '力量不能为负数',
             'dexterity.min' => '敏捷不能为负数',

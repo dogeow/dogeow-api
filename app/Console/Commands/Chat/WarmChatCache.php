@@ -34,7 +34,7 @@ class WarmChatCache extends Command
      */
     public function handle(): int
     {
-        $this->info('正在预热聊天缓存...');
+        $this->info('正在预热聊天缓存 ...');
 
         try {
             $this->cacheService->warmUpCache();

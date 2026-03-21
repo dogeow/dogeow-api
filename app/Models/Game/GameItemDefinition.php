@@ -72,7 +72,7 @@ class GameItemDefinition extends Model
     ];
 
     /**
-     * 获取槽位映射（物品类型 -> 装备槽位）
+     * 获取槽位映射(物品类型 -> 装备槽位)
      */
     public function getEquipmentSlot(): ?string
     {

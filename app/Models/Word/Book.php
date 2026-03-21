@@ -37,7 +37,7 @@ class Book extends Model
     }
 
     /**
-     * 单词书包含的单词（多对多）
+     * 单词书包含的单词(多对多)
      */
     public function words(): BelongsToMany
     {
@@ -47,7 +47,7 @@ class Book extends Model
     }
 
     /**
-     * 单词书所属的教育级别（多对多）
+     * 单词书所属的教育级别(多对多)
      */
     public function educationLevels(): BelongsToMany
     {

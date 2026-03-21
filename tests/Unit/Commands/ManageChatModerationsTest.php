@@ -526,7 +526,7 @@ class ManageChatModerationsTest extends TestCase
         ]);
 
         $this->artisan('chat:moderation', ['action' => 'cleanup'])
-            ->expectsOutput('清理了 3 条已过期的管控（静音：2，封禁：1）')
+            ->expectsOutput('清理了 3 条已过期的管控(静音：2，封禁：1)')
             ->assertExitCode(0);
 
         // Check that expired moderations were cleaned up

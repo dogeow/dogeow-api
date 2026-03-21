@@ -28,7 +28,7 @@ class WordFetcher
             $data = $response->json();
             $input = isset($data['input']) ? $data['input'] : '';
             if (strtolower($input) !== strtolower($word)) {
-                Log::warning("有道API单词不匹配: 请求 {$word}, 返回 {$input}");
+                Log::warning("有道 API 单词不匹配: 请求 {$word}, 返回 {$input}");
 
                 return null;
             }
@@ -40,7 +40,7 @@ class WordFetcher
 
             $returnPhrase = strtolower($wordData['return-phrase']['l']['i'] ?? '');
             if ($returnPhrase && $returnPhrase !== strtolower($word)) {
-                Log::warning("有道API单词不匹配(二次): 请求 {$word}, 返回 {$returnPhrase}");
+                Log::warning("有道 API 单词不匹配(二次): 请求 {$word}, 返回 {$returnPhrase}");
 
                 return null;
             }

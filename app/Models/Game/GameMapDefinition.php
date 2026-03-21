@@ -66,7 +66,7 @@ class GameMapDefinition extends Model
     }
 
     /**
-     * 检查角色等级是否可以进入（无等级限制）
+     * 检查角色等级是否可以进入(无等级限制)
      */
     public function canEnter(int $level): bool
     {
@@ -74,7 +74,7 @@ class GameMapDefinition extends Model
     }
 
     /**
-     * 获取推荐等级描述（无等级限制）
+     * 获取推荐等级描述(无等级限制)
      */
     public function getLevelRangeText(): string
     {

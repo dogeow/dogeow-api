@@ -12,9 +12,9 @@ return new class extends Migration
 {
     /**
      * 运行迁移
-     * 创建item_images表，包含以下字段：
+     * 创建 item_images 表，包含以下字段：
      * - id: 主键
-     * - item_id: 物品ID
+     * - item_id: 物品 ID
      * - path: 图片路径
      * - is_primary: 是否为主图
      * - sort_order: 排序顺序
@@ -33,7 +33,7 @@ return new class extends Migration
 
     /**
      * 回滚迁移
-     * 删除item_images表
+     * 删除 item_images 表
      */
     public function down(): void
     {

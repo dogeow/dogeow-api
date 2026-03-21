@@ -43,7 +43,7 @@ class GithubController extends Controller
             ]
         );
 
-        // 如果用户没有 github_id（旧用户），更新它
+        // 如果用户没有 github_id(旧用户)，更新它
         if (! $user->github_id) {
             $user->update(['github_id' => $githubUser->id]);
         }

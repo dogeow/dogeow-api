@@ -32,7 +32,7 @@ class TitleControllerUnitTest extends TestCase
 
         $this->assertEquals(400, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
-        $this->assertEquals('缺少url参数', $data['error']);
+        $this->assertEquals('缺少 url 参数', $data['error']);
     }
 
     public function test_fetch_returns_cached_data(): void

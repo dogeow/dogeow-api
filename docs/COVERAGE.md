@@ -5,7 +5,7 @@
 ## 确保已安装 Xdebug 扩展
 
 ```bash
-# 检查Xdebug是否已安装
+# 检查 Xdebug 是否已安装
 php -m | grep xdebug
 ```
 
@@ -18,7 +18,7 @@ php -m | grep xdebug
 composer run test:coverage
 ```
 
-### 2. 检查覆盖率是否达到100%
+### 2. 检查覆盖率是否达到 100%
 
 ```bash
 # 检查覆盖率要求
@@ -43,17 +43,17 @@ composer run test:coverage-full
 ## 查看覆盖率报告
 
 ```bash
-# 在浏览器中打开HTML报告
+# 在浏览器中打开 HTML 报告
 open coverage/html/index.html
 ```
 
 ## CI/CD 集成
 
-项目已配置GitHub Actions来自动检查覆盖率：
+项目已配置 GitHub Actions 来自动检查覆盖率：
 
 - 每次推送到 `main` 或 `develop` 分支时会自动运行
-- 每次创建Pull Request时会自动运行
-- 如果覆盖率低于100%，CI会失败
+- 每次创建 Pull Request 时会自动运行
+- 如果覆盖率低于 100%，CI 会失败
 
 ## 覆盖率检查脚本
 
@@ -64,7 +64,7 @@ open coverage/html/index.html
 3. 计算总体覆盖率
 4. 显示详细的覆盖率信息
 5. 列出未完全覆盖的文件
-6. 如果覆盖率低于100%，脚本会失败
+6. 如果覆盖率低于 100%，脚本会失败
 
 ## 排除的文件
 
@@ -77,7 +77,7 @@ open coverage/html/index.html
 
 ## 提高覆盖率
 
-如果覆盖率未达到100%：
+如果覆盖率未达到 100%：
 
 1. 查看覆盖率报告，找出未覆盖的代码
 2. 为未覆盖的代码编写测试
@@ -98,7 +98,7 @@ vendor/bin/phpunit --testsuite=Feature
 
 ## 覆盖率改进历史
 
-### 2026年3月 - Rounds 16-20
+### 2026 年 3 月 - Rounds 16-20
 
 系统性地提升了测试覆盖率，重点关注 Controllers 和 Services 层。
 
@@ -150,23 +150,23 @@ vendor/bin/phpunit --testsuite=Feature
 以下文件覆盖率 <97%，主要包含难以测试的代码：
 
 1. **FileStorageService** (93.8%)
-   - 6行未覆盖：异常处理中的 catch 块
+   - 6 行未覆盖：异常处理中的 catch 块
    - 原因：需要实际文件系统故障才能触发
 
 2. **ChatPaginationService** (94.7%)
-   - 7行未覆盖：数据库异常 + 低频分支
+   - 7 行未覆盖：数据库异常 + 低频分支
    - 原因：需要特殊数据库状态
 
 3. **ContentFilterService** (94.9%)
-   - 14行未覆盖：复杂的违规检测逻辑
+   - 14 行未覆盖：复杂的违规检测逻辑
    - 部分改进已完成（Round 15）
 
 4. **CombatRoundProcessor** (95.2%)
-   - 19行未覆盖：复杂的 AOE 计算和技能选择算法
+   - 19 行未覆盖：复杂的 AOE 计算和技能选择算法
    - 原因：需要极端的游戏状态组合
 
 5. **GameCombatLootService** (96.2%)
-   - 8行未覆盖：装备品质系统的边界情况
+   - 8 行未覆盖：装备品质系统的边界情况
 
 ### 测试最佳实践
 

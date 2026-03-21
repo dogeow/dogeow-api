@@ -53,7 +53,7 @@ class Item extends Model
     ];
 
     /**
-     * 获取缩略图URL
+     * 获取缩略图 URL
      */
     public function getThumbnailUrlAttribute(): ?string
     {
@@ -165,7 +165,7 @@ class Item extends Model
     }
 
     /**
-     * 获取关联到此物品的所有物品（反向关系）
+     * 获取关联到此物品的所有物品(反向关系)
      */
     public function relatingItems(): BelongsToMany
     {
@@ -180,7 +180,7 @@ class Item extends Model
     }
 
     /**
-     * 获取所有关联（包括正向和反向）
+     * 获取所有关联(包括正向和反向)
      */
     public function allRelations(): Collection
     {
@@ -208,7 +208,7 @@ class Item extends Model
     /**
      * 添加物品关联
      *
-     * @param  int  $relatedItemId  关联物品ID
+     * @param  int  $relatedItemId  关联物品 ID
      * @param  string  $type  关联类型
      * @param  string|null  $description  关联描述
      */
@@ -223,7 +223,7 @@ class Item extends Model
     /**
      * 移除物品关联
      *
-     * @param  int  $relatedItemId  关联物品ID
+     * @param  int  $relatedItemId  关联物品 ID
      */
     public function removeRelation(int $relatedItemId): void
     {

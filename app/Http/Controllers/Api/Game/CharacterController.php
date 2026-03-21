@@ -147,7 +147,7 @@ class CharacterController extends Controller
     }
 
     /**
-     * 更新最后在线时间（玩家选择角色时调用）
+     * 更新最后在线时间(玩家选择角色时调用)
      */
     public function online(Request $request): JsonResponse
     {

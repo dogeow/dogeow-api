@@ -54,6 +54,6 @@ class BatchAddItemRelationsRequestTest extends TestCase
         $this->assertSame('关联列表不能为空', $messages['relations.required']);
         $this->assertSame('至少需要提供一个关联', $messages['relations.min']);
         $this->assertSame('关联物品不存在', $messages['relations.*.related_item_id.exists']);
-        $this->assertSame('关联描述不能超过500个字符', $messages['relations.*.description.max']);
+        $this->assertSame('关联描述不能超过 500 个字符', $messages['relations.*.description.max']);
     }
 }

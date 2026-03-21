@@ -84,7 +84,7 @@ class FileTreeController extends Controller
     }
 
     /**
-     * 递归构建文件夹树（已优化，使用预加载减少查询）
+     * 递归构建文件夹树(已优化，使用预加载减少查询)
      */
     private function buildFolderTree($folder): array
     {

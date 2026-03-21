@@ -39,7 +39,7 @@ Broadcast::channel('user.{userId}', function ($user, $userId) {
     return (int) $user->id === (int) $userId;
 });
 
-// 用户通知私有频道（如：user.1.notifications）
+// 用户通知私有频道(如：user.1.notifications)
 Broadcast::channel('user.{userId}.notifications', function ($user, $userId) {
     return (int) $user->id === (int) $userId;
 });

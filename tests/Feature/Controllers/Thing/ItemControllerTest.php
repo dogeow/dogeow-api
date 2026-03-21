@@ -63,7 +63,7 @@ class ItemControllerTest extends TestCase
         Item::factory()->create(['is_public' => true]);
         Item::factory()->create(['is_public' => false, 'user_id' => $this->user->id]);
 
-        // 以访客身份访问（API 需要认证，访客会得到 401）
+        // 以访客身份访问(API 需要认证，访客会得到 401)
         Auth::forgetGuards();
         $response = $this->getJson('/api/things/items');
 

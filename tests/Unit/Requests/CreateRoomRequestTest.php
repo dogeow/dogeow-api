@@ -56,7 +56,7 @@ class CreateRoomRequestTest extends TestCase
         if (isset($messages['name.max'])) {
             $this->assertIsString($messages['name.max']);
         }
-        $this->assertEquals('描述不能超过1000个字符', $messages['description.max']);
+        $this->assertEquals('描述不能超过 1000 个字符', $messages['description.max']);
     }
 
     public function test_validation_passes_with_valid_data()

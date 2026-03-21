@@ -92,7 +92,7 @@ class LocationService extends BaseService
     }
 
     /**
-     * 获取每个区域的物品数量（使用 Eloquent 聚合）
+     * 获取每个区域的物品数量(使用 Eloquent 聚合)
      *
      * @return array<int, int>
      */
@@ -107,7 +107,7 @@ class LocationService extends BaseService
     }
 
     /**
-     * 获取每个房间的物品数量（使用 Eloquent 聚合）
+     * 获取每个房间的物品数量(使用 Eloquent 聚合)
      *
      * @return array<int, int>
      */

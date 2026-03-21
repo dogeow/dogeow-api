@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Auth;
 class LocationRoomController extends Controller
 {
     /**
-     * 授权检查辅助方法，返回 JsonResponse 或 null（授权成功时）
+     * 授权检查辅助方法，返回 JsonResponse 或 null(授权成功时)
      */
     private function authorizeOrFail(string $ability, mixed $model, ?string $errorMessage = null): ?JsonResponse
     {
@@ -37,7 +37,7 @@ class LocationRoomController extends Controller
             ->with('area')
             ->withCount('spots');
 
-        // 如果指定了区域ID，则只获取该区域下的房间
+        // 如果指定了区域 ID，则只获取该区域下的房间
         if ($request->filled('area_id')) {
             $query->where('area_id', $request->area_id);
         }

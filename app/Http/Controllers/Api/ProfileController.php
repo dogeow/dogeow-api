@@ -50,7 +50,7 @@ class ProfileController extends Controller
         $user = $request->user();
 
         DB::transaction(function () use ($user) {
-            // 删除相关的Item及其图片
+            // 删除相关的 Item 及其图片
             $user->items()->each(function ($item) {
                 $item->images()->delete();
                 $item->delete();

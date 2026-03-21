@@ -36,7 +36,7 @@ return new class extends Migration
             $table->dropColumn('explanation');
         });
 
-        // 4. 重命名临时字段为 explanation（使用原生 SQL）
+        // 4. 重命名临时字段为 explanation(使用原生 SQL)
         DB::statement('ALTER TABLE words CHANGE explanation_temp explanation TEXT NULL COMMENT \'中文释义\'');
     }
 
@@ -66,7 +66,7 @@ return new class extends Migration
             $table->dropColumn('explanation');
         });
 
-        // 4. 重命名临时字段为 explanation（使用原生 SQL）
+        // 4. 重命名临时字段为 explanation(使用原生 SQL)
         DB::statement("ALTER TABLE words CHANGE explanation_temp explanation JSON NULL COMMENT '释义 JSON: {en: \"\", zh: \"\"}'");
     }
 };

@@ -70,14 +70,14 @@ class CategoryRequestTest extends TestCase
     {
         $messages = $this->request->messages();
 
-        $this->assertEquals('分类名称不能超过255个字符', $messages['name.max']);
+        $this->assertEquals('分类名称不能超过 255 个字符', $messages['name.max']);
     }
 
     public function test_parent_id_integer_message()
     {
         $messages = $this->request->messages();
 
-        $this->assertEquals('父分类ID必须为整数', $messages['parent_id.integer']);
+        $this->assertEquals('父分类 ID 必须为整数', $messages['parent_id.integer']);
     }
 
     public function test_parent_id_exists_message()

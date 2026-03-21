@@ -31,7 +31,7 @@ class CacheService extends BaseService
     }
 
     /**
-     * 设置成功缓存（长期）
+     * 设置成功缓存(长期)
      */
     public function putSuccess(string $key, mixed $data, string $prefix = ''): void
     {
@@ -39,7 +39,7 @@ class CacheService extends BaseService
     }
 
     /**
-     * 设置错误缓存（短期）
+     * 设置错误缓存(短期)
      */
     public function putError(string $key, mixed $data, string $prefix = ''): void
     {
@@ -55,7 +55,7 @@ class CacheService extends BaseService
     }
 
     /**
-     * 批量删除缓存（通过前缀）
+     * 批量删除缓存(通过前缀)
      */
     public function forgetByPrefix(string $prefix): void
     {
@@ -70,7 +70,7 @@ class CacheService extends BaseService
     }
 
     /**
-     * 记住缓存（如果不存在则执行回调并缓存结果）
+     * 记住缓存(如果不存在则执行回调并缓存结果)
      */
     public function remember(string $key, callable $callback, int $ttl = self::DEFAULT_TTL, string $prefix = ''): mixed
     {
@@ -92,7 +92,7 @@ class CacheService extends BaseService
     }
 
     /**
-     * 获取标题和图标缓存（保持向后兼容）
+     * 获取标题和图标缓存(保持向后兼容)
      */
     public function getTitleFavicon(string $url): ?array
     {

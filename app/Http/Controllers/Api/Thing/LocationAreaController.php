@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Auth;
 class LocationAreaController extends Controller
 {
     /**
-     * 授权检查辅助方法，返回 JsonResponse 或 null（授权成功时）
+     * 授权检查辅助方法，返回 JsonResponse 或 null(授权成功时)
      */
     private function authorizeOrFail(string $ability, mixed $model, ?string $errorMessage = null): ?JsonResponse
     {

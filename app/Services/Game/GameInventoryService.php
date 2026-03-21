@@ -85,7 +85,7 @@ class GameInventoryService
     }
 
     /**
-     * 获取背包数据（用于 WebSocket 广播）
+     * 获取背包数据(用于 WebSocket 广播)
      *
      * @return array{inventory: array<int, array<int|string,mixed>>, storage: array<int, array<int|string,mixed>>, equipment: array<string, array<int|string,mixed>|null>, inventory_size: int, storage_size: int}
      */

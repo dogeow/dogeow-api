@@ -16,9 +16,9 @@ class ManageChatModerations extends Command
      * @var string
      */
     protected $signature = 'chat:moderation 
-                            {action : 要执行的操作（list, unmute, unban, cleanup）}
-                            {--user= : 用户ID或邮箱}
-                            {--room= : 房间ID或名称}
+                            {action : 要执行的操作(list, unmute, unban, cleanup)}
+                            {--user= : 用户 ID 或邮箱}
+                            {--room= : 房间 ID 或名称}
                             {--all : 作用于所有用户/房间}';
 
     /**
@@ -26,7 +26,7 @@ class ManageChatModerations extends Command
      *
      * @var string
      */
-    protected $description = '管理聊天室管控操作（静音/封禁/解封/取消静音）';
+    protected $description = '管理聊天室管控操作(静音/封禁/解封/取消静音)';
 
     /**
      * 执行控制台命令
@@ -278,13 +278,13 @@ class ManageChatModerations extends Command
         }
 
         $totalCleaned = $expiredMutes->count() + $expiredBans->count();
-        $this->info("清理了 {$totalCleaned} 条已过期的管控（静音：{$expiredMutes->count()}，封禁：{$expiredBans->count()}）");
+        $this->info("清理了 {$totalCleaned} 条已过期的管控(静音：{$expiredMutes->count()}，封禁：{$expiredBans->count()})");
 
         return Command::SUCCESS;
     }
 
     /**
-     * 通过ID或邮箱查找用户
+     * 通过 ID 或邮箱查找用户
      */
     private function findUser(string $identifier): ?User
     {
@@ -306,7 +306,7 @@ class ManageChatModerations extends Command
     }
 
     /**
-     * 通过ID或名称查找房间
+     * 通过 ID 或名称查找房间
      */
     private function findRoom(string $identifier): ?ChatRoom
     {
