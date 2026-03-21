@@ -4,9 +4,9 @@
 
 ## 项目概述
 
-- **类型**: Laravel 12 API 后端项目
-- **用途**: 为 dogeow (Next.js) 前端提供 RESTful API 服务
-- **语言**: 中文回答与注释
+- **类型**：Laravel 12 API 后端项目
+- **用途**：为 dogeow (Next.js) 前端提供 RESTful API 服务
+- **语言**：中文回答与注释
 
 ## 技术栈
 
@@ -86,17 +86,17 @@ routes/api/
 
 ## 主要业务模块
 
-- **系统本身（App）**: Web Push
-- **聊天 (Chat)**: 房间、消息、WebSocket、Web Push
-- **游戏 (Game)**: 角色、战斗、背包、商店、技能
-- **笔记 (Note)**: 分类、标签
-- **地点/物品 (Thing)**: Location、Item、Category、Tag
-- **单词 (Word)**: 书本、学习、艾宾浩斯复习、打卡
-- **待办 (Todo)**: 任务管理
+- **系统本身（App）**：Web Push
+- **聊天 (Chat)**：房间、消息、WebSocket、Web Push
+- **游戏 (Game)**：角色、战斗、背包、商店、技能
+- **笔记 (Note)**：分类、标签
+- **地点/物品 (Thing)**：Location、Item、Category、Tag
+- **单词 (Word)**：书本、学习、艾宾浩斯复习、打卡
+- **待办 (Todo)**：任务管理
 
 ## 注意事项
 
-1. **数据库**: 无外键，关系在模型与 Service 中维护
-2. **认证**: 所有需登录接口使用 `auth:sanctum` 中间件
-3. **响应**: 使用 `ApiResponse` 或 Eloquent Resource 统一格式
-4. **验证**: 使用 Form Request 类，不在控制器内做校验
+1. **数据库**：无外键，关系在模型与 Service 中维护
+2. **认证**：所有需登录接口使用 `auth:sanctum` 中间件
+3. **响应**：使用 `ApiResponse` 或 Eloquent Resource 统一格式
+4. **验证**：使用 Form Request 类，不在控制器内做校验

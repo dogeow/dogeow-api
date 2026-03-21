@@ -92,7 +92,7 @@ class ManageChatModerationsTest extends TestCase
     public function it_can_list_moderations_when_no_moderations_exist()
     {
         $this->artisan('chat:moderation', ['action' => 'list'])
-            ->expectsOutput('当前聊天室管控列表:')
+            ->expectsOutput('当前聊天室管控列表：')
             ->expectsOutput('没有发现活跃的管控。')
             ->assertExitCode(0);
     }
@@ -114,8 +114,8 @@ class ManageChatModerationsTest extends TestCase
         ]);
 
         $this->artisan('chat:moderation', ['action' => 'list'])
-            ->expectsOutput('当前聊天室管控列表:')
-            ->expectsOutput('🔇 已被静音的用户:')
+            ->expectsOutput('当前聊天室管控列表：')
+            ->expectsOutput('🔇 已被静音的用户：')
             ->assertExitCode(0);
     }
 
@@ -136,8 +136,8 @@ class ManageChatModerationsTest extends TestCase
         ]);
 
         $this->artisan('chat:moderation', ['action' => 'list'])
-            ->expectsOutput('当前聊天室管控列表:')
-            ->expectsOutput('🚫 已被封禁的用户:')
+            ->expectsOutput('当前聊天室管控列表：')
+            ->expectsOutput('🚫 已被封禁的用户：')
             ->assertExitCode(0);
     }
 
@@ -169,9 +169,9 @@ class ManageChatModerationsTest extends TestCase
         ]);
 
         $this->artisan('chat:moderation', ['action' => 'list'])
-            ->expectsOutput('当前聊天室管控列表:')
-            ->expectsOutput('🔇 已被静音的用户:')
-            ->expectsOutput('🚫 已被封禁的用户:')
+            ->expectsOutput('当前聊天室管控列表：')
+            ->expectsOutput('🔇 已被静音的用户：')
+            ->expectsOutput('🚫 已被封禁的用户：')
             ->assertExitCode(0);
     }
 
@@ -672,9 +672,9 @@ class ManageChatModerationsTest extends TestCase
         ]);
 
         $this->artisan('chat:moderation', ['action' => 'list'])
-            ->expectsOutput('当前聊天室管控列表:')
-            ->expectsOutput('🔇 已被静音的用户:')
-            ->expectsOutput('🚫 已被封禁的用户:')
+            ->expectsOutput('当前聊天室管控列表：')
+            ->expectsOutput('🔇 已被静音的用户：')
+            ->expectsOutput('🚫 已被封禁的用户：')
             ->assertExitCode(0);
     }
 
@@ -706,9 +706,9 @@ class ManageChatModerationsTest extends TestCase
         ]);
 
         $this->artisan('chat:moderation', ['action' => 'list'])
-            ->expectsOutput('当前聊天室管控列表:')
-            ->expectsOutput('🔇 已被静音的用户:')
-            ->expectsOutput('🚫 已被封禁的用户:')
+            ->expectsOutput('当前聊天室管控列表：')
+            ->expectsOutput('🔇 已被静音的用户：')
+            ->expectsOutput('🚫 已被封禁的用户：')
             ->assertExitCode(0);
     }
 }
