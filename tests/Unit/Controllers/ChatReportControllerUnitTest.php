@@ -323,7 +323,7 @@ class ChatReportControllerUnitTest extends TestCase
 
         $method->invoke($controller, $message->id, $room->id);
 
-        $this->assertDatabaseMissing('chat_messages', ['id' => $message->id]);
+        $this->assertSoftDeleted('chat_messages', ['id' => $message->id]);
         $this->assertDatabaseHas('chat_moderation_actions', [
             'room_id' => $room->id,
             'moderator_id' => null,
