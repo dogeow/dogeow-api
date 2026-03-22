@@ -43,7 +43,15 @@ class ShopControllerTest extends TestCase
         $response = $this->actingAs($user)
             ->getJson('/api/rpg/shop?character_id=' . $character->id);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data',
+            ]);
     }
 
     public function test_can_refresh_shop(): void
@@ -54,7 +62,16 @@ class ShopControllerTest extends TestCase
         $response = $this->actingAs($user)
             ->postJson('/api/rpg/shop/refresh?character_id=' . $character->id);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => '刷新成功',
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data',
+            ]);
     }
 
     public function test_requires_authentication(): void

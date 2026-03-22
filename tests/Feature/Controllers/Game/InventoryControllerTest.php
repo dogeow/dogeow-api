@@ -62,7 +62,18 @@ class InventoryControllerTest extends TestCase
         $response = $this->actingAs($user)
             ->getJson('/api/rpg/inventory?character_id=' . $character->id);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'inventory',
+                    'stats',
+                ],
+            ]);
     }
 
     public function test_can_sort_inventory(): void
@@ -75,7 +86,15 @@ class InventoryControllerTest extends TestCase
                 'sort_by' => 'default',
             ]);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data',
+            ]);
     }
 
     public function test_can_sell_by_quality(): void
@@ -88,7 +107,10 @@ class InventoryControllerTest extends TestCase
                 'quality' => 'common',
             ]);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ]);
     }
 
     public function test_requires_authentication(): void
