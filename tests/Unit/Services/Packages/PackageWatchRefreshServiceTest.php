@@ -2,7 +2,6 @@
 
 namespace Tests\Unit\Services\Packages;
 
-use App\Models\Repo\WatchedPackage;
 use App\Services\Packages\PackageRegistryService;
 use App\Services\Packages\PackageWatchRefreshService;
 use PHPUnit\Framework\Attributes\Test;

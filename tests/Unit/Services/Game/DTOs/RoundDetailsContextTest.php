@@ -2,8 +2,6 @@
 
 namespace Tests\Unit\Services\Game\DTOs;
 
-use App\Models\Game\GameCharacter;
-use App\Services\Game\DTOs\RoundDetailsContext;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 

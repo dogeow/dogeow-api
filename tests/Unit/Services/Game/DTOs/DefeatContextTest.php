@@ -2,8 +2,6 @@
 
 namespace Tests\Unit\Services\Game\DTOs;
 
-use App\Models\Game\GameMonsterDefinition;
-use App\Services\Game\DTOs\DefeatContext;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 

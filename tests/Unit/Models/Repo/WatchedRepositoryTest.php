@@ -2,10 +2,6 @@
 
 namespace Tests\Unit\Models\Repo;
 
-use App\Models\Repo\WatchedRepository;
-use App\Models\User;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 

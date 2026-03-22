@@ -3,18 +3,16 @@
 namespace Tests\Unit\Controllers\Concerns;
 
 use App\Http\Controllers\Concerns\CharacterConcern;
-use App\Models\Game\GameCharacter;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
-use Mockery;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class CharacterConcernTest extends TestCase
 {
-    use RefreshDatabase;
     use CharacterConcern;
+    use RefreshDatabase;
 
     private User $user;
 

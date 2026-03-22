@@ -2,9 +2,6 @@
 
 namespace Tests\Unit\Models\Repo;
 
-use App\Models\Repo\RepositoryUpdate;
-use App\Models\Repo\WatchedRepository;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 

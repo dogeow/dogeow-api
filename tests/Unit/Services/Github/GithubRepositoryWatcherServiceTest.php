@@ -2,7 +2,6 @@
 
 namespace Tests\Unit\Services\Github;
 
-use App\Models\User;
 use App\Services\Github\GithubRepositoryWatcherService;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
