@@ -41,7 +41,7 @@ class CombatRewardCalculatorTest extends TestCase
         $monstersUpdated = [
             ['id' => 1, 'hp' => 0, 'experience' => 100],
         ];
-        $hpAtRoundStart = [1 => 50];
+        $hpAtRoundStart = [0 => 50]; // keyed by array index, not monster ID
         $difficulty = ['reward' => 2.0];
 
         // Act
@@ -59,7 +59,7 @@ class CombatRewardCalculatorTest extends TestCase
             ['id' => 1, 'hp' => 0, 'experience' => 100],
             ['id' => 2, 'hp' => 0, 'experience' => 200],
         ];
-        $hpAtRoundStart = [1 => 50, 2 => 50];
+        $hpAtRoundStart = [0 => 50, 1 => 50]; // keyed by array index, not monster ID
         $difficulty = ['reward' => 1.0];
 
         // Act
