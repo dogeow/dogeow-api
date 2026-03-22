@@ -61,7 +61,19 @@ class CombatControllerTest extends TestCase
         $response = $this->actingAs($user)
             ->getJson('/api/rpg/combat/status?character_id=' . $character->id);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'is_fighting',
+                    'current_hp',
+                    'current_mana',
+                ],
+            ]);
     }
 
     public function test_can_start_combat(): void
@@ -85,7 +97,11 @@ class CombatControllerTest extends TestCase
         $response = $this->actingAs($user)
             ->postJson('/api/rpg/combat/start?character_id=' . $character->id);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ]);
+
         Bus::assertDispatched(AutoCombatRoundJob::class);
     }
 
@@ -110,7 +126,10 @@ class CombatControllerTest extends TestCase
         $response = $this->actingAs($user)
             ->postJson('/api/rpg/combat/stop?character_id=' . $character->id);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ]);
     }
 
     public function test_can_get_combat_logs(): void
@@ -121,7 +140,15 @@ class CombatControllerTest extends TestCase
         $response = $this->actingAs($user)
             ->getJson('/api/rpg/combat/logs?character_id=' . $character->id);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data',
+            ]);
     }
 
     public function test_can_get_combat_stats(): void
@@ -132,7 +159,15 @@ class CombatControllerTest extends TestCase
         $response = $this->actingAs($user)
             ->getJson('/api/rpg/combat/stats?character_id=' . $character->id);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data',
+            ]);
     }
 
     public function test_can_update_potion_settings(): void
@@ -148,7 +183,10 @@ class CombatControllerTest extends TestCase
                 'mp_potion_threshold' => 30,
             ]);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ]);
     }
 
     public function test_requires_authentication(): void

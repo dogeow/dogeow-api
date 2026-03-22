@@ -38,12 +38,29 @@ class CharacterControllerTest extends TestCase
     public function test_can_get_character_list(): void
     {
         $user = User::factory()->create();
-        $this->createCharacter($user);
+        $character = $this->createCharacter($user);
 
         $response = $this->actingAs($user)
             ->getJson('/api/rpg/characters');
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'characters' => [
+                        '*' => [
+                            'id',
+                            'name',
+                            'class',
+                            'level',
+                        ],
+                    ],
+                ],
+            ]);
     }
 
     public function test_can_get_character_detail(): void
@@ -54,7 +71,28 @@ class CharacterControllerTest extends TestCase
         $response = $this->actingAs($user)
             ->getJson('/api/rpg/character?character_id=' . $character->id);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'character' => [
+                        'id',
+                        'name',
+                        'class',
+                        'level',
+                    ],
+                    'experience_table',
+                    'combat_stats',
+                    'stats_breakdown',
+                    'equipped_items',
+                    'current_hp',
+                    'current_mana',
+                ],
+            ]);
     }
 
     public function test_can_create_character(): void
@@ -68,7 +106,32 @@ class CharacterControllerTest extends TestCase
                 'gender' => 'male',
             ]);
 
-        $response->assertStatus(201);
+        $response->assertStatus(201)
+            ->assertJson([
+                'success' => true,
+                'message' => '角色创建成功',
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'character' => [
+                        'id',
+                        'name',
+                        'class',
+                    ],
+                    'combat_stats',
+                    'stats_breakdown',
+                    'current_hp',
+                    'current_mana',
+                ],
+            ]);
+
+        $this->assertDatabaseHas('game_characters', [
+            'user_id' => $user->id,
+            'name' => 'NewHero',
+            'class' => 'warrior',
+        ]);
     }
 
     public function test_validates_character_creation_data(): void
@@ -81,7 +144,11 @@ class CharacterControllerTest extends TestCase
                 'class' => 'warrior',
             ]);
 
-        $response->assertStatus(422);
+        $response->assertStatus(422)
+            ->assertJsonStructure([
+                'message',
+                'errors',
+            ]);
     }
 
     public function test_can_delete_character(): void
@@ -94,24 +161,42 @@ class CharacterControllerTest extends TestCase
                 'character_id' => $character->id,
             ]);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => '角色已删除',
+            ]);
+
+        $this->assertDatabaseMissing('game_characters', [
+            'id' => $character->id,
+        ]);
     }
 
     public function test_can_allocate_stats(): void
     {
         $user = User::factory()->create();
         $character = $this->createCharacter($user, [
-            'available_stat_points' => 5,
+            'stat_points' => 5,
             'strength' => 10,
         ]);
 
         $response = $this->actingAs($user)
-            ->putJson('/api/rpg/character/stats?character_id=' . $character->id, [
+            ->putJson('/api/rpg/character/stats', [
+                'character_id' => $character->id,
                 'strength' => 2,
             ]);
 
-        // May return 200, 400 or 422 depending on validation or game logic
-        $this->assertContains($response->status(), [200, 400, 422]);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'character',
+                ],
+            ]);
     }
 
     public function test_can_update_difficulty(): void
@@ -125,7 +210,23 @@ class CharacterControllerTest extends TestCase
                 'difficulty_tier' => 2,
             ]);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => '难度已更新',
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'character' => [
+                        'id',
+                        'difficulty_tier',
+                    ],
+                ],
+            ]);
+
+        $this->assertEquals(2, $character->fresh()->difficulty_tier);
     }
 
     public function test_can_get_character_full_detail(): void
@@ -136,7 +237,15 @@ class CharacterControllerTest extends TestCase
         $response = $this->actingAs($user)
             ->getJson('/api/rpg/character/detail?character_id=' . $character->id);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data',
+            ]);
     }
 
     public function test_can_update_online_status(): void
@@ -147,7 +256,17 @@ class CharacterControllerTest extends TestCase
         $response = $this->actingAs($user)
             ->postJson('/api/rpg/character/online?character_id=' . $character->id);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'last_online',
+                ],
+            ]);
     }
 
     public function test_requires_authentication(): void
