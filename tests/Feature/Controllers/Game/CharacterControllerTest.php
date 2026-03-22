@@ -51,11 +51,13 @@ class CharacterControllerTest extends TestCase
                 'success',
                 'message',
                 'data' => [
-                    '*' => [
-                        'id',
-                        'name',
-                        'class',
-                        'level',
+                    'characters' => [
+                        '*' => [
+                            'id',
+                            'name',
+                            'class',
+                            'level',
+                        ],
                     ],
                 ],
             ]);
@@ -143,8 +145,9 @@ class CharacterControllerTest extends TestCase
             ]);
 
         $response->assertStatus(422)
-            ->assertJson([
-                'success' => false,
+            ->assertJsonStructure([
+                'message',
+                'errors',
             ]);
     }
 
@@ -173,12 +176,13 @@ class CharacterControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $character = $this->createCharacter($user, [
-            'available_stat_points' => 5,
+            'stat_points' => 5,
             'strength' => 10,
         ]);
 
         $response = $this->actingAs($user)
-            ->putJson('/api/rpg/character/stats?character_id=' . $character->id, [
+            ->putJson('/api/rpg/character/stats', [
+                'character_id' => $character->id,
                 'strength' => 2,
             ]);
 

@@ -71,7 +71,8 @@ class InventoryControllerTest extends TestCase
                 'message',
                 'data' => [
                     'inventory',
-                    'stats',
+                    'equipment',
+                    'storage',
                 ],
             ]);
     }
