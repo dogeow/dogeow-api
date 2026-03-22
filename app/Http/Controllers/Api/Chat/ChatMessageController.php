@@ -12,6 +12,7 @@ use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Services\Chat\ChatCacheService;
 use App\Services\Chat\ChatService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -149,8 +150,9 @@ class ChatMessageController extends Controller
             $room = $this->findActiveRoom($resolvedRoomId);
             $message = ChatMessage::where('room_id', $resolvedRoomId)->findOrFail($messageId);
 
-            $canDelete = $message->user_id === $userId || $room->created_by === $userId;
-            if (! $canDelete) {
+            try {
+                $this->authorize('delete', $message);
+            } catch (AuthorizationException $e) {
                 return $this->error('You are not authorized to delete this message', [], 403);
             }
 
@@ -169,6 +171,10 @@ class ChatMessageController extends Controller
             ]);
 
             return $this->success([], 'Message deleted successfully');
+        } catch (AuthorizationException $e) {
+            DB::rollBack();
+
+            return $this->error('You are not authorized to delete this message', [], 403);
         } catch (\Throwable $e) {
             DB::rollBack();
 
