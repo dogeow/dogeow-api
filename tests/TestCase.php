@@ -6,7 +6,8 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
-    use \Illuminate\Foundation\Testing\RefreshDatabase;
+    // Use LazilyRefreshDatabase to avoid PHP 8.4 + SQLite nested transaction issue
+    use \Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 
     protected function setUp(): void
     {
