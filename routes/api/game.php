@@ -25,21 +25,25 @@ Route::prefix('rpg')->group(function () {
     // Route::get('/character/offline-rewards', [CharacterController::class, 'checkOfflineRewards']);
     // Route::post('/character/offline-rewards', [CharacterController::class, 'claimOfflineRewards']);
 
-    // 背包相关
-    Route::get('/inventory', [InventoryController::class, 'index']);
-    Route::post('/inventory/equip', [InventoryController::class, 'equip']);
-    Route::post('/inventory/unequip', [InventoryController::class, 'unequip']);
-    Route::post('/inventory/sell', [InventoryController::class, 'sell']);
-    Route::post('/inventory/sell-by-quality', [InventoryController::class, 'sellByQuality']);
-    Route::post('/inventory/move', [InventoryController::class, 'move']);
-    Route::post('/inventory/sort', [InventoryController::class, 'sort']);
-    Route::post('/inventory/use-potion', [InventoryController::class, 'usePotion']);
+    // 背包相关 - 使用幂等性中间件防止重复提交
+    Route::middleware('idempotency')->group(function () {
+        Route::get('/inventory', [InventoryController::class, 'index']);
+        Route::post('/inventory/equip', [InventoryController::class, 'equip']);
+        Route::post('/inventory/unequip', [InventoryController::class, 'unequip']);
+        Route::post('/inventory/sell', [InventoryController::class, 'sell']);
+        Route::post('/inventory/sell-by-quality', [InventoryController::class, 'sellByQuality']);
+        Route::post('/inventory/move', [InventoryController::class, 'move']);
+        Route::post('/inventory/sort', [InventoryController::class, 'sort']);
+        Route::post('/inventory/use-potion', [InventoryController::class, 'usePotion']);
+    });
 
-    // 商店相关
-    Route::get('/shop', [ShopController::class, 'index']);
-    Route::post('/shop/refresh', [ShopController::class, 'refresh']);
-    Route::post('/shop/buy', [ShopController::class, 'buy']);
-    Route::post('/shop/sell', [ShopController::class, 'sell']);
+    // 商店相关 - 使用幂等性中间件防止重复提交
+    Route::middleware('idempotency')->group(function () {
+        Route::get('/shop', [ShopController::class, 'index']);
+        Route::post('/shop/refresh', [ShopController::class, 'refresh']);
+        Route::post('/shop/buy', [ShopController::class, 'buy']);
+        Route::post('/shop/sell', [ShopController::class, 'sell']);
+    });
 
     // 技能相关
     Route::get('/skills', [SkillController::class, 'index']);

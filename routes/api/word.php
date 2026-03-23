@@ -27,8 +27,8 @@ Route::prefix('word')->name('word.')->group(function () {
     // 单词管理
     Route::patch('{id}', [LearningController::class, 'updateWord']);
 
-    // 打卡
-    Route::post('check-in', [CheckInController::class, 'checkIn']);
+    // 打卡 - 使用幂等性中间件防止重复提交
+    Route::post('check-in', [CheckInController::class, 'checkIn'])->middleware('idempotency');
     // 整年日历
     Route::get('calendar/year/{year}', [CheckInController::class, 'getCalendarYear']);
     // 最近 365 天
