@@ -11,7 +11,6 @@ use App\Models\User;
 use App\Services\Chat\ChatCacheService;
 use App\Services\Chat\ChatService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
