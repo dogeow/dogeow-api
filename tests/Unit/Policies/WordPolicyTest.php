@@ -17,10 +17,11 @@ class WordPolicyTest extends TestCase
         $this->policy = new WordPolicy;
     }
 
-    private function createUser(int $id): User
+    private function createUser(int $id, bool $isAdmin = false): User
     {
         $user = new User;
         $user->id = $id;
+        $user->is_admin = $isAdmin;
 
         return $user;
     }
@@ -115,5 +116,37 @@ class WordPolicyTest extends TestCase
         $word = $this->createWord(999);
 
         $this->assertFalse($this->policy->markLearned($user, $word));
+    }
+
+    public function test_update_returns_true_for_admin(): void
+    {
+        $admin = $this->createUser(1, true);
+        $word = $this->createWord(999);
+
+        $this->assertTrue($this->policy->update($admin, $word));
+    }
+
+    public function test_delete_returns_true_for_admin(): void
+    {
+        $admin = $this->createUser(1, true);
+        $word = $this->createWord(999);
+
+        $this->assertTrue($this->policy->delete($admin, $word));
+    }
+
+    public function test_review_returns_true_for_admin(): void
+    {
+        $admin = $this->createUser(1, true);
+        $word = $this->createWord(999);
+
+        $this->assertTrue($this->policy->review($admin, $word));
+    }
+
+    public function test_mark_learned_returns_true_for_admin(): void
+    {
+        $admin = $this->createUser(1, true);
+        $word = $this->createWord(999);
+
+        $this->assertTrue($this->policy->markLearned($admin, $word));
     }
 }

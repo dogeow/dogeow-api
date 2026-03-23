@@ -39,7 +39,7 @@ class ItemCategoryPolicy
      */
     public function update(User $user, ItemCategory $category): bool
     {
-        return $user->id === $category->user_id;
+        return $user->id === $category->user_id || $user->hasRole('admin');
     }
 
     /**
@@ -47,6 +47,6 @@ class ItemCategoryPolicy
      */
     public function delete(User $user, ItemCategory $category): bool
     {
-        return $user->id === $category->user_id;
+        return $user->id === $category->user_id || $user->hasRole('admin');
     }
 }

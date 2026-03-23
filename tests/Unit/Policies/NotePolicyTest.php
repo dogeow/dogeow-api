@@ -17,10 +17,11 @@ class NotePolicyTest extends TestCase
         $this->policy = new NotePolicy;
     }
 
-    private function createUser(int $id): User
+    private function createUser(int $id, bool $isAdmin = false): User
     {
         $user = new User;
         $user->id = $id;
+        $user->is_admin = $isAdmin;
 
         return $user;
     }
@@ -132,5 +133,37 @@ class NotePolicyTest extends TestCase
         $note = $this->createNote(999);
 
         $this->assertFalse($this->policy->publish($user, $note));
+    }
+
+    public function test_update_returns_true_for_admin(): void
+    {
+        $admin = $this->createUser(1, true);
+        $note = $this->createNote(999);
+
+        $this->assertTrue($this->policy->update($admin, $note));
+    }
+
+    public function test_delete_returns_true_for_admin(): void
+    {
+        $admin = $this->createUser(1, true);
+        $note = $this->createNote(999);
+
+        $this->assertTrue($this->policy->delete($admin, $note));
+    }
+
+    public function test_share_returns_true_for_admin(): void
+    {
+        $admin = $this->createUser(1, true);
+        $note = $this->createNote(999);
+
+        $this->assertTrue($this->policy->share($admin, $note));
+    }
+
+    public function test_publish_returns_true_for_admin(): void
+    {
+        $admin = $this->createUser(1, true);
+        $note = $this->createNote(999);
+
+        $this->assertTrue($this->policy->publish($admin, $note));
     }
 }

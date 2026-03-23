@@ -17,10 +17,11 @@ class ThingItemPolicyTest extends TestCase
         $this->policy = new ThingItemPolicy;
     }
 
-    private function createUser(int $id): User
+    private function createUser(int $id, bool $isAdmin = false): User
     {
         $user = new User;
         $user->id = $id;
+        $user->is_admin = $isAdmin;
 
         return $user;
     }
@@ -132,5 +133,37 @@ class ThingItemPolicyTest extends TestCase
         $item = $this->createItem(999);
 
         $this->assertFalse($this->policy->archive($user, $item));
+    }
+
+    public function test_update_returns_true_for_admin(): void
+    {
+        $admin = $this->createUser(1, true);
+        $item = $this->createItem(999);
+
+        $this->assertTrue($this->policy->update($admin, $item));
+    }
+
+    public function test_delete_returns_true_for_admin(): void
+    {
+        $admin = $this->createUser(1, true);
+        $item = $this->createItem(999);
+
+        $this->assertTrue($this->policy->delete($admin, $item));
+    }
+
+    public function test_share_returns_true_for_admin(): void
+    {
+        $admin = $this->createUser(1, true);
+        $item = $this->createItem(999);
+
+        $this->assertTrue($this->policy->share($admin, $item));
+    }
+
+    public function test_archive_returns_true_for_admin(): void
+    {
+        $admin = $this->createUser(1, true);
+        $item = $this->createItem(999);
+
+        $this->assertTrue($this->policy->archive($admin, $item));
     }
 }
