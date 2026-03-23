@@ -3,28 +3,29 @@
 namespace App\Services\Game;
 
 use App\Models\Game\GameCharacter;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
- * 角色服务类
+ * GameCharacterService - Main service for character management
  *
- * 负责角色相关的业务逻辑，包括创建、删除、属性分配、离线奖励等
+ * Delegates offline rewards to OfflineRewardCalculator and validation to CharacterValidator
  */
 class GameCharacterService
 {
-    /** 缓存键前缀 */
+    /** Cache key prefix */
     private const CACHE_PREFIX = 'game_character:';
 
-    /** 缓存有效期(秒) */
+    /** Cache TTL (seconds) */
     private const CACHE_TTL = 300;
 
+    public function __construct(
+        private readonly OfflineRewardCalculator $offlineRewardCalculator = new OfflineRewardCalculator,
+        private readonly CharacterValidator $characterValidator = new CharacterValidator
+    ) {}
+
     /**
-     * 获取用户角色列表
-     *
-     * @param  int  $userId  用户 ID
-     * @return array 角色列表和经验表
+     * Get user character list
      */
     public function getCharacterList(int $userId): array
     {
@@ -35,7 +36,6 @@ class GameCharacterService
                 ->where('user_id', $userId)
                 ->get();
 
-            // 批量处理等级同步
             $characters->each(fn ($character) => $character->reconcileLevelFromExperience());
 
             return [
@@ -48,11 +48,7 @@ class GameCharacterService
     }
 
     /**
-     * 获取角色详情
-     *
-     * @param  int  $userId  用户 ID
-     * @param  int|null  $characterId  角色 ID(可选)
-     * @return array|null 角色详情数组
+     * Get character detail
      */
     public function getCharacterDetail(int $userId, ?int $characterId = null): ?array
     {
@@ -88,31 +84,16 @@ class GameCharacterService
     }
 
     /**
-     * 创建新角色
-     *
-     * @param  int  $userId  用户 ID
-     * @param  string  $name  角色名称
-     * @param  string  $class  职业类型
-     * @param  string  $gender  性别 male 或 female
-     * @return GameCharacter 创建的角色
-     *
-     * @throws \InvalidArgumentException 角色名已存在
+     * Create new character
      */
     public function createCharacter(int $userId, string $name, string $class, string $gender = 'male'): GameCharacter
     {
-        // 验证角色名
-        $this->validateCharacterName($name);
+        $this->characterValidator->validateName($name);
+        $this->characterValidator->validateNameNotTaken($name);
 
-        // 检查角色名是否已存在
-        if ($this->isCharacterNameTaken($name)) {
-            throw new \InvalidArgumentException('角色名已被使用');
-        }
-
-        // 获取职业配置
-        $classStats = $this->getClassBaseStats($class);
+        $classStats = $this->characterValidator->getClassBaseStats($class);
 
         return DB::transaction(function () use ($userId, $name, $class, $gender, $classStats) {
-            // 创建角色
             $character = GameCharacter::create([
                 'user_id' => $userId,
                 'name' => $name,
@@ -120,7 +101,7 @@ class GameCharacterService
                 'gender' => $gender,
                 'level' => 1,
                 'experience' => 0,
-                'copper' => $this->getStartingCopper($class),
+                'copper' => $this->characterValidator->getStartingCopper($class),
                 'strength' => $classStats['strength'],
                 'dexterity' => $classStats['dexterity'],
                 'vitality' => $classStats['vitality'],
@@ -129,10 +110,7 @@ class GameCharacterService
                 'stat_points' => 0,
             ]);
 
-            // 初始化装备槽位
             $this->initializeEquipmentSlots($character);
-
-            // 清除缓存
             $this->clearCharacterCache($userId);
 
             return $character;
@@ -140,12 +118,7 @@ class GameCharacterService
     }
 
     /**
-     * 删除角色
-     *
-     * @param  int  $userId  用户 ID
-     * @param  int  $characterId  角色 ID
-     *
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException 角色不存在
+     * Delete character
      */
     public function deleteCharacter(int $userId, int $characterId): void
     {
@@ -155,20 +128,11 @@ class GameCharacterService
             ->firstOrFail();
 
         $character->delete();
-
-        // 清除缓存
         $this->clearCharacterCache($userId);
     }
 
     /**
-     * 分配属性点
-     *
-     * @param  int  $userId  用户 ID
-     * @param  int  $characterId  角色 ID
-     * @param  array  $stats  要分配的属性 ['strength' => 1, 'dexterity' => 2, ...]
-     * @return array 更新后的角色数据
-     *
-     * @throws \InvalidArgumentException 属性点不足
+     * Allocate stat points
      */
     public function allocateStats(int $userId, int $characterId, array $stats): array
     {
@@ -184,15 +148,12 @@ class GameCharacterService
             'energy' => max(0, (int) ($stats['energy'] ?? 0)),
         ];
 
-        // 验证并计算总分配点数
-        $totalPoints = $this->calculateTotalStatPoints($sanitizedStats);
+        $totalPoints = array_sum(array_map(fn ($v) => max(0, (int) $v), $sanitizedStats));
 
-        // 验证是否有足够的属性点
         if ($totalPoints > $character->stat_points) {
             throw new \InvalidArgumentException('属性点不足');
         }
 
-        // 更新属性
         $character->fill([
             'strength' => $character->strength + $sanitizedStats['strength'],
             'dexterity' => $character->dexterity + $sanitizedStats['dexterity'],
@@ -212,12 +173,7 @@ class GameCharacterService
     }
 
     /**
-     * 更新难度设置
-     *
-     * @param  int  $userId  用户 ID
-     * @param  int  $difficultyTier  难度等级 (1-4)
-     * @param  int|null  $characterId  角色 ID(可选)
-     * @return GameCharacter 更新后的角色
+     * Update difficulty setting
      */
     public function updateDifficulty(int $userId, int $difficultyTier, ?int $characterId = null): GameCharacter
     {
@@ -235,11 +191,7 @@ class GameCharacterService
     }
 
     /**
-     * 获取角色完整详情(包含背包、技能等)
-     *
-     * @param  int  $userId  用户 ID
-     * @param  int|null  $characterId  角色 ID(可选)
-     * @return array 完整角色数据
+     * Get character full detail
      */
     public function getCharacterFullDetail(int $userId, ?int $characterId = null): array
     {
@@ -251,7 +203,6 @@ class GameCharacterService
 
         $character = $query->firstOrFail();
 
-        // 使用 eager loading 优化查询
         $inventory = $character->items()
             ->where('is_in_storage', false)
             ->with('definition')
@@ -285,162 +236,23 @@ class GameCharacterService
     }
 
     /**
-     * 检查离线奖励信息
-     *
-     * @param  GameCharacter  $character  角色实例
-     * @return array 离线奖励信息
+     * Check offline rewards information
      */
     public function checkOfflineRewards(GameCharacter $character): array
     {
-        /** @var Carbon|null $lastOnline */
-        $lastOnline = $character->last_online;
-        /** @var Carbon|null $lastClaimedAt */
-        $lastClaimedAt = $character->claimed_offline_at;
-        $rewardStartTime = $lastClaimedAt && (! $lastOnline || $lastClaimedAt->greaterThan($lastOnline))
-            ? $lastClaimedAt
-            : $lastOnline;
-
-        if (! $rewardStartTime) {
-            return $this->formatOfflineRewards(0, false);
-        }
-
-        /** @var Carbon $rewardStartTime */
-        $now = now();
-        $offlineSeconds = $rewardStartTime->diffInSeconds($now);
-
-        // 最小 60 秒才发放离线奖励
-        if ($offlineSeconds < 60) {
-            return $this->formatOfflineRewards((int) $offlineSeconds, false);
-        }
-
-        // 最多 24 小时(从配置读取)
-        $maxSeconds = config('game.offline_rewards.max_seconds', 86400);
-        $offlineSeconds = min($offlineSeconds, $maxSeconds);
-
-        // 计算奖励(从配置读取系数)
-        $level = $character->level;
-        $expPerLevel = config('game.offline_rewards.experience_per_level', 1);
-        $copperPerLevel = config('game.offline_rewards.copper_per_level', 0.5);
-        $experience = (int) ($level * $offlineSeconds * $expPerLevel);
-        $copper = (int) ($level * $offlineSeconds * $copperPerLevel);
-
-        // 检查是否升级
-        $currentExp = $character->experience;
-        $expNeeded = $character->getExperienceToNextLevel();
-        $newExp = $currentExp + $experience;
-        $levelUp = $newExp >= $expNeeded;
-
-        return $this->formatOfflineRewards((int) $offlineSeconds, true, $experience, $copper, $levelUp);
+        return $this->offlineRewardCalculator->check($character);
     }
 
     /**
-     * 领取离线奖励
-     *
-     * @param  GameCharacter  $character  角色实例
-     * @return array 领取结果
+     * Claim offline rewards
      */
     public function claimOfflineRewards(GameCharacter $character): array
     {
-        $rewardInfo = $this->checkOfflineRewards($character);
-
-        if (! $rewardInfo['available']) {
-            return [
-                'experience' => 0,
-                'copper' => 0,
-                'level_up' => false,
-                'new_level' => $character->level,
-            ];
-        }
-
-        $originalLevel = $character->level;
-
-        // 更新经验
-        $character->experience += $rewardInfo['experience'];
-        $character->reconcileLevelFromExperience();
-
-        // 更新铜币
-        $character->copper += $rewardInfo['copper'];
-
-        // 更新最后领取时间
-        $character->claimed_offline_at = now();
-        $character->save();
-
-        return [
-            'experience' => $rewardInfo['experience'],
-            'copper' => $rewardInfo['copper'],
-            'level_up' => $character->level > $originalLevel,
-            'new_level' => $character->level,
-        ];
-    }
-
-    // ==================== 私有辅助方法 ====================
-
-    /**
-     * 验证角色名称
-     *
-     * @param  string  $name  角色名称
-     *
-     * @throws \InvalidArgumentException 名称不符合要求
-     */
-    private function validateCharacterName(string $name): void
-    {
-        $length = mb_strlen($name);
-
-        if ($length < 2) {
-            throw new \InvalidArgumentException('角色名至少需要 2 个字符');
-        }
-
-        if ($length > 12) {
-            throw new \InvalidArgumentException('角色名最多 12 个字符');
-        }
-
-        if (! preg_match('/^[\x{4e00}-\x{9fa5}a-zA-Z0-9]+$/u', $name)) {
-            throw new \InvalidArgumentException('角色名只能包含中文、英文和数字');
-        }
+        return $this->offlineRewardCalculator->claim($character);
     }
 
     /**
-     * 检查角色名是否已被使用
-     *
-     * @param  string  $name  角色名称
-     * @return bool 是否已被使用
-     */
-    private function isCharacterNameTaken(string $name): bool
-    {
-        return GameCharacter::query()->where('name', $name)->exists();
-    }
-
-    /**
-     * 获取职业基础属性
-     *
-     * @param  string  $class  职业类型
-     * @return array 基础属性数组
-     */
-    private function getClassBaseStats(string $class): array
-    {
-        return config("game.class_base_stats.{$class}", [
-            'strength' => 2,
-            'dexterity' => 3,
-            'vitality' => 2,
-            'energy' => 2,
-        ]);
-    }
-
-    /**
-     * 获取初始铜币
-     *
-     * @param  string  $class  职业类型
-     * @return int 初始铜币数量
-     */
-    private function getStartingCopper(string $class): int
-    {
-        return config("game.starting_copper.{$class}", 0);
-    }
-
-    /**
-     * 初始化装备槽位
-     *
-     * @param  GameCharacter  $character  角色实例
+     * Initialize equipment slots
      */
     private function initializeEquipmentSlots(GameCharacter $character): void
     {
@@ -450,21 +262,7 @@ class GameCharacterService
     }
 
     /**
-     * 计算总属性点数
-     *
-     * @param  array  $stats  属性数组
-     * @return int 总点数
-     */
-    private function calculateTotalStatPoints(array $stats): int
-    {
-        return array_sum(array_map(fn ($v) => max(0, (int) $v), $stats));
-    }
-
-    /**
-     * 获取可用技能列表
-     *
-     * @param  GameCharacter  $character  角色实例
-     * @return \Illuminate\Database\Eloquent\Collection 可用技能集合
+     * Get available skills for character
      */
     private function getAvailableSkills(GameCharacter $character)
     {
@@ -478,35 +276,7 @@ class GameCharacterService
     }
 
     /**
-     * 格式化离线奖励返回数据
-     *
-     * @param  int  $offlineSeconds  离线秒数
-     * @param  bool  $available  是否可领取
-     * @param  int  $experience  经验(可选)
-     * @param  int  $copper  铜币(可选)
-     * @param  bool  $levelUp  是否升级(可选)
-     * @return array 格式化后的数据
-     */
-    private function formatOfflineRewards(
-        int $offlineSeconds,
-        bool $available,
-        int $experience = 0,
-        int $copper = 0,
-        bool $levelUp = false
-    ): array {
-        return [
-            'available' => $available,
-            'offline_seconds' => $offlineSeconds,
-            'experience' => $experience,
-            'copper' => $copper,
-            'level_up' => $levelUp,
-        ];
-    }
-
-    /**
-     * 清除角色相关缓存
-     *
-     * @param  int  $userId  用户 ID
+     * Clear character cache
      */
     private function clearCharacterCache(int $userId): void
     {

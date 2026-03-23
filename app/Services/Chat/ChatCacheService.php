@@ -10,6 +10,11 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Redis;
 
+/**
+ * ChatCacheService - Handles chat caching operations
+ *
+ * Delegates room activity tracking to RoomActivityTracker
+ */
 class ChatCacheService
 {
     // Cache TTL constants (in seconds)
@@ -38,10 +43,12 @@ class ChatCacheService
 
     private const PREFIX_CACHE_KEYS = 'chat:cache:keys';
 
+    public function __construct(
+        private readonly RoomActivityTracker $activityTracker = new RoomActivityTracker
+    ) {}
+
     /**
-     * Get room list directly from database (no cache for real-time online count).
-     * When $userId is set: only public rooms or rooms the user is a member of.
-     * When $userId is null: all active rooms (backward compatibility).
+     * Get room list directly from database
      */
     public function getRoomList(?int $userId = null): Collection
     {
@@ -66,12 +73,11 @@ class ChatCacheService
     }
 
     /**
-     * Invalidate room list cache (no longer needed as we removed caching)
+     * Invalidate room list cache
      */
     public function invalidateRoomList(): void
     {
-        // No longer needed since we removed room list caching for real-time updates
-        // This method is kept for backward compatibility
+        // No longer needed since we removed room list caching
     }
 
     /**
@@ -266,7 +272,6 @@ class ChatCacheService
             ];
 
         } catch (\Throwable $e) {
-            // Fallback to allowing request if the rate limiter backend fails
             return [
                 'allowed' => true,
                 'attempts' => 1,
@@ -282,39 +287,7 @@ class ChatCacheService
      */
     public function trackRoomActivity(int $roomId, string $activityType, ?int $userId = null): void
     {
-        $cacheKey = self::PREFIX_ROOM_ACTIVITY . "{$roomId}:" . date('Y-m-d-H');
-
-        try {
-            $activityData = [
-                'type' => $activityType,
-                'user_id' => $userId,
-                'timestamp' => now()->timestamp,
-            ];
-
-            if (config('cache.default') === 'redis') {
-                $redis = Redis::connection();
-                // Store as a list with expiration
-                $redis->lpush($cacheKey, json_encode($activityData));
-                $redis->expire($cacheKey, 86400); // 24 hours
-
-                // Keep only last 1000 activities per hour
-                $redis->ltrim($cacheKey, 0, 999);
-            } else {
-                $activities = Cache::get($cacheKey, []);
-                array_unshift($activities, $activityData);
-                $activities = array_slice($activities, 0, 1000);
-                Cache::put($cacheKey, $activities, 86400);
-                $this->registerCacheKey($cacheKey);
-            }
-
-        } catch (\Exception $e) {
-            // Silently fail for activity tracking
-            \Log::warning('Failed to track room activity', [
-                'room_id' => $roomId,
-                'activity_type' => $activityType,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        $this->activityTracker->track($roomId, $activityType, $userId);
     }
 
     /**
@@ -322,53 +295,7 @@ class ChatCacheService
      */
     public function getRoomActivity(int $roomId, int $hours = 24): array
     {
-        try {
-            $activities = [];
-
-            // Get activities for the last N hours
-            for ($i = 0; $i < $hours; $i++) {
-                $hour = now()->subHours($i)->format('Y-m-d-H');
-                $cacheKey = self::PREFIX_ROOM_ACTIVITY . "{$roomId}:{$hour}";
-
-                if (config('cache.default') === 'redis') {
-                    $redis = Redis::connection();
-                    $hourlyActivities = $redis->lrange($cacheKey, 0, -1);
-                    foreach ($hourlyActivities as $activity) {
-                        $activities[] = json_decode($activity, true);
-                    }
-                } else {
-                    $hourlyActivities = Cache::get($cacheKey, []);
-                    foreach ($hourlyActivities as $activity) {
-                        $activities[] = $activity;
-                    }
-                }
-            }
-
-            // Sort by timestamp descending
-            usort($activities, function ($a, $b) {
-                return $b['timestamp'] - $a['timestamp'];
-            });
-
-            $activities = array_slice($activities, 0, 500);
-            $activityTypes = [];
-            foreach ($activities as $activity) {
-                $type = $activity['type'] ?? 'unknown';
-                $activityTypes[$type] = ($activityTypes[$type] ?? 0) + 1;
-            }
-
-            return [
-                'activities' => $activities,
-                'total_activities' => count($activities),
-                'activity_types' => $activityTypes,
-            ];
-
-        } catch (\Exception $e) {
-            return [
-                'activities' => [],
-                'total_activities' => 0,
-                'activity_types' => [],
-            ];
-        }
+        return $this->activityTracker->getActivity($roomId, $hours);
     }
 
     /**
@@ -376,10 +303,8 @@ class ChatCacheService
      */
     public function warmUpCache(): void
     {
-        // Warm up room list
         $this->getRoomList();
 
-        // Warm up stats for active rooms
         $activeRooms = ChatRoom::where('is_active', true)->pluck('id');
         foreach ($activeRooms as $roomId) {
             $this->getRoomStats($roomId);
