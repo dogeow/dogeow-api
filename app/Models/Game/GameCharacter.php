@@ -4,6 +4,7 @@ namespace App\Models\Game;
 
 use App\Models\Game\Concerns\CharacterCombatStats;
 use App\Models\User;
+use App\Services\Game\GameInventoryService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -336,5 +337,47 @@ class GameCharacter extends Model
         $discovered = $this->discovered_monsters ?? [];
 
         return in_array($monsterDefinitionId, $discovered);
+    }
+
+    /**
+     * 获取背包物品数量（不在仓库且未装备）
+     */
+    public function getInventoryCount(): int
+    {
+        return $this->items()
+            ->where('is_in_storage', false)
+            ->where(function ($query) {
+                $query->where('is_equipped', false)->orWhereNull('is_equipped');
+            })
+            ->count();
+    }
+
+    /**
+     * 检查背包是否已满
+     */
+    public function isInventoryFull(): bool
+    {
+        return $this->getInventoryCount() >= GameInventoryService::INVENTORY_SIZE;
+    }
+
+    /**
+     * 获取仓库物品数量（未装备）
+     */
+    public function getStorageCount(): int
+    {
+        return $this->items()
+            ->where('is_in_storage', true)
+            ->where(function ($query) {
+                $query->where('is_equipped', false)->orWhereNull('is_equipped');
+            })
+            ->count();
+    }
+
+    /**
+     * 检查仓库是否已满
+     */
+    public function isStorageFull(): bool
+    {
+        return $this->getStorageCount() >= GameInventoryService::STORAGE_SIZE;
     }
 }

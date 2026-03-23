@@ -8,6 +8,7 @@ use App\Http\Requests\Game\UsePotionRequest;
 use App\Jobs\Game\AutoCombatRoundJob;
 use App\Services\Cache\RedisLockService;
 use App\Services\Game\GameCombatService;
+use App\Services\Game\GameInventoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redis;
@@ -20,6 +21,7 @@ class CombatController extends Controller
     public function __construct(
         private readonly GameCombatService $combatService,
         private readonly RedisLockService $redisLockService,
+        private readonly GameInventoryService $inventoryService,
     ) {}
 
     /**
@@ -227,8 +229,7 @@ class CombatController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
-            $inventoryService = new \App\Services\Game\GameInventoryService;
-            $result = $inventoryService->usePotion($character, $request->input('item_id'));
+            $result = $this->inventoryService->usePotion($character, $request->input('item_id'));
 
             return $this->success([
                 'current_hp' => $character->getCurrentHp(),

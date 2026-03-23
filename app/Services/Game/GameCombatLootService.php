@@ -9,6 +9,39 @@ use App\Models\Game\GameMonsterDefinition;
 
 class GameCombatLootService
 {
+    private ?GameInventoryService $inventoryService = null;
+
+    /**
+     * Get inventory service instance (lazy initialization)
+     */
+    private function getInventoryService(): GameInventoryService
+    {
+        return $this->inventoryService ??= new GameInventoryService;
+    }
+
+    /**
+     * Create a GameItem with common attributes and save to database
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function createGameItem(GameCharacter $character, array $attributes): GameItem
+    {
+        $item = new GameItem(array_merge([
+            'character_id' => $character->id,
+            'quality' => 'common',
+            'stats' => [],
+            'affixes' => [],
+            'is_in_storage' => false,
+            'quantity' => 1,
+            'sockets' => 0,
+        ], $attributes));
+
+        $item->sell_price = $item->calculateSellPrice();
+        $item->save();
+
+        return $item;
+    }
+
     /**
      * Process death loot from monsters
      */
@@ -92,11 +125,11 @@ class GameCombatLootService
             return null;
         }
 
-        $inventoryService = new GameInventoryService;
-        if ($character->items()->where('is_in_storage', false)->count() >= $inventoryService::INVENTORY_SIZE) {
+        if ($character->isInventoryFull()) {
             return null;
         }
 
+        $inventoryService = $this->getInventoryService();
         $quality = $itemData['quality'];
         $qualityMultiplier = GameItem::QUALITY_MULTIPLIERS[$quality] ?? 1.0;
         $stats = [];
@@ -142,26 +175,14 @@ class GameCombatLootService
             }
         }
 
-        $basePrice = $baseStatsArr['price'] ?? 10;
-        $sellRatio = config('game.shop.sell_ratio', 0.3);
-        $sellPrice = (int) ($basePrice * $qualityMultiplier * $sellRatio);
-
-        $item = GameItem::create([
-            'character_id' => $character->id,
+        $item = $this->createGameItem($character, [
             'definition_id' => $definition->id,
             'quality' => $quality,
             'stats' => $stats,
             'affixes' => $affixes,
-            'is_in_storage' => false,
-            'quantity' => 1,
             'slot_index' => $inventoryService->findEmptySlot($character, false),
             'sockets' => $sockets,
-            'sell_price' => 0, // Temporarily set to 0, will recalculate later
         ]);
-
-        // Calculate sell price based on attributes
-        $item->sell_price = $item->calculateSellPrice();
-        $item->save();
 
         // 发现物品
         $character->discoverItem($definition->id);
@@ -210,11 +231,11 @@ class GameCombatLootService
             return $existingPotion;
         }
 
-        $inventoryService = new GameInventoryService;
-        if ($character->items()->where('is_in_storage', false)->count() >= $inventoryService::INVENTORY_SIZE) {
+        if ($character->isInventoryFull()) {
             return null;
         }
 
+        $inventoryService = $this->getInventoryService();
         $definition = GameItemDefinition::query()
             ->where('type', 'potion')
             ->where('sub_type', $type)
@@ -236,22 +257,11 @@ class GameCombatLootService
             ]);
         }
 
-        /** @var GameItem $potion */
-        $potion = GameItem::create([
-            'character_id' => $character->id,
+        $potion = $this->createGameItem($character, [
             'definition_id' => $definition->id,
-            'quality' => 'common',
             'stats' => $definition->base_stats ?? [],
-            'affixes' => [],
-            'is_in_storage' => false,
-            'quantity' => 1,
             'slot_index' => $inventoryService->findEmptySlot($character, false),
-            'sockets' => 0,
-            'sell_price' => 0,
         ]);
-
-        $potion->sell_price = $potion->calculateSellPrice();
-        $potion->save();
 
         $character->discoverItem($definition->id);
         $potion->load('definition');
@@ -277,10 +287,11 @@ class GameCombatLootService
         $gemStats = $selectedGem;
         unset($gemStats['name']);
 
-        $inventoryService = new GameInventoryService;
-        if ($character->items()->where('is_in_storage', false)->count() >= $inventoryService::INVENTORY_SIZE) {
+        if ($character->isInventoryFull()) {
             return null;
         }
+
+        $inventoryService = $this->getInventoryService();
 
         // 根据宝石属性计算价格
         $gemValue = 0;
@@ -302,16 +313,9 @@ class GameCombatLootService
             'buy_price' => max(10, $gemValue), // 最低 10 金币
         ]);
 
-        $gem = GameItem::create([
-            'character_id' => $character->id,
+        $gem = $this->createGameItem($character, [
             'definition_id' => $definition->id,
-            'quality' => 'common',
-            'stats' => [],
-            'affixes' => [],
-            'is_in_storage' => false,
-            'quantity' => 1,
             'slot_index' => $inventoryService->findEmptySlot($character, false),
-            'sockets' => 0,
         ]);
 
         // 发现物品

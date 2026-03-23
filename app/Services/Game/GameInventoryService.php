@@ -471,13 +471,11 @@ class GameInventoryService
     private function checkStorageSpace(GameCharacter $character, bool $toStorage): void
     {
         if ($toStorage) {
-            $count = $character->items()->where('is_in_storage', true)->count();
-            if ($count >= self::STORAGE_SIZE) {
+            if ($character->isStorageFull()) {
                 throw new \InvalidArgumentException('仓库已满');
             }
         } else {
-            $count = $character->items()->where('is_in_storage', false)->count();
-            if ($count >= self::INVENTORY_SIZE) {
+            if ($character->isInventoryFull()) {
                 throw new \InvalidArgumentException('背包已满');
             }
         }
