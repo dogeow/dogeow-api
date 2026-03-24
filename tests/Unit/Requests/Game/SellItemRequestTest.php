@@ -21,6 +21,7 @@ class SellItemRequestTest extends TestCase
         $this->assertSame([
             'item_id' => 'required|integer|min:1|exists:game_items,id',
             'quantity' => 'sometimes|integer|min:1',
+            'idempotency_key' => 'sometimes|string|max:255',
         ], $request->rules());
     }
 

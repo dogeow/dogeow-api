@@ -12,6 +12,7 @@ use App\Models\Game\GameCharacter;
 use App\Models\Game\GameItem;
 use App\Models\Game\GameItemDefinition;
 use App\Models\User;
+use App\Services\Cache\RedisLockService;
 use App\Services\Game\GameInventoryService;
 use Illuminate\Broadcasting\PendingBroadcast;
 use Illuminate\Contracts\Broadcasting\Factory as BroadcastFactory;
@@ -25,6 +26,8 @@ class InventoryControllerUnitTest extends TestCase
 {
     private GameInventoryService $inventoryService;
 
+    private RedisLockService $redisLockService;
+
     private InventoryController $controller;
 
     protected function setUp(): void
@@ -32,7 +35,8 @@ class InventoryControllerUnitTest extends TestCase
         parent::setUp();
 
         $this->inventoryService = Mockery::mock(GameInventoryService::class);
-        $this->controller = new InventoryController($this->inventoryService);
+        $this->redisLockService = Mockery::mock(RedisLockService::class);
+        $this->controller = new InventoryController($this->inventoryService, $this->redisLockService);
 
         $dispatcher = Mockery::mock(Dispatcher::class);
         $dispatcher->shouldReceive('dispatch')->andReturnNull()->byDefault();

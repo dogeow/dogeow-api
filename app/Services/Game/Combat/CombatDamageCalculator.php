@@ -2,6 +2,7 @@
 
 namespace App\Services\Game\Combat;
 
+use App\Services\Game\DTOs\DamageContext;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -12,19 +13,28 @@ class CombatDamageCalculator
     /**
      * 对目标怪物施加角色伤害，返回更新后的怪物列表与总伤害
      *
-     * @param  array<int, array<string, mixed>>  $monsters
-     * @param  array<int, array<string, mixed>>  $targetMonsters
+     * @param  DamageContext|array  $context  DamageContext object or backwards-compatible array
      * @return array{0: array<int, array<string, mixed>>, 1: int}
      */
-    public function applyCharacterDamageToMonsters(
-        array $monsters,
-        array $targetMonsters,
-        int $charAttack,
-        int $skillDamage,
-        bool $isCrit,
-        float $charCritDamage,
-        bool $useAoe
-    ): array {
+    public function applyCharacterDamageToMonsters(DamageContext|array $context): array
+    {
+        if ($context instanceof DamageContext) {
+            $monsters = $context->monsters;
+            $targetMonsters = $context->targetMonsters;
+            $charAttack = $context->charAttack;
+            $skillDamage = $context->skillDamage;
+            $isCrit = $context->isCrit;
+            $charCritDamage = $context->charCritDamage;
+            $useAoe = $context->useAoe;
+        } else {
+            $monsters = $context['monsters'] ?? $context[0] ?? [];
+            $targetMonsters = $context['targetMonsters'] ?? $context[1] ?? [];
+            $charAttack = $context['charAttack'] ?? $context[2] ?? 0;
+            $skillDamage = $context['skillDamage'] ?? $context[3] ?? 0;
+            $isCrit = $context['isCrit'] ?? $context[4] ?? false;
+            $charCritDamage = $context['charCritDamage'] ?? $context[5] ?? 1.5;
+            $useAoe = $context['useAoe'] ?? $context[6] ?? false;
+        }
         $totalDamageDealt = 0;
         $monstersUpdated = [];
 

@@ -6,6 +6,7 @@ use App\Models\Game\GameCharacter;
 use App\Services\Game\Combat\CombatDamageCalculator;
 use App\Services\Game\Combat\CombatRewardCalculator;
 use App\Services\Game\Combat\CombatSkillSelector;
+use App\Services\Game\DTOs\DamageContext;
 use App\Services\Game\DTOs\RoundDetailsContext;
 
 /**
@@ -99,13 +100,15 @@ class CombatRoundProcessor
 
         // 使用伤害计算器处理伤害
         [$monstersUpdated, $totalDamageDealt] = $this->damageCalculator->applyCharacterDamageToMonsters(
-            $monsters,
-            $targetMonsters,
-            $charAttack,
-            $skillDamage,
-            $isCrit,
-            $charCritDamage,
-            $useAoe
+            DamageContext::fromParams(
+                monsters: $monsters,
+                targetMonsters: $targetMonsters,
+                charAttack: $charAttack,
+                skillDamage: $skillDamage,
+                isCrit: $isCrit,
+                charCritDamage: $charCritDamage,
+                useAoe: $useAoe,
+            )
         );
 
         // 统计本回合杀死的怪物数量

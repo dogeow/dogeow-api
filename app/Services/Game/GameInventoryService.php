@@ -5,6 +5,7 @@ namespace App\Services\Game;
 use App\Models\Game\GameCharacter;
 use App\Models\Game\GameEquipment;
 use App\Models\Game\GameItem;
+use App\Services\Game\Traits\UsesDistributedLock;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\DB;
  */
 class GameInventoryService
 {
+    use UsesDistributedLock;
+
     /** 背包默认大小 */
     public const INVENTORY_SIZE = 100;
 
@@ -137,54 +140,56 @@ class GameInventoryService
         // 确定装备槽位
         $slot = $this->equipmentHelper->determineEquipmentSlot($character, $item);
 
-        // 使用分布式锁防止并发装备同一角色
-        $lockKey = 'game:inventory:equip:' . $character->id;
-        $lock = Cache::lock($lockKey, self::EQUIP_LOCK_TIMEOUT);
+        return $this->executeWithDistributedLock(
+            lockKey: 'game:inventory:equip:' . $character->id,
+            callback: fn () => $this->performEquip($character, $item, $slot),
+            timeoutSeconds: self::EQUIP_LOCK_TIMEOUT,
+        );
+    }
 
-        if (! $lock->get()) {
-            throw new \RuntimeException('装备操作正在进行中，请稍后重试');
-        }
+    /**
+     * 执行装备逻辑
+     *
+     * @return array{equipped_item: GameItem, equipped_slot: string, unequipped_item: GameItem|null, combat_stats: array<string,mixed>, stats_breakdown: array<string,mixed>}
+     */
+    private function performEquip(GameCharacter $character, GameItem $item, string $slot): array
+    {
+        return DB::transaction(function () use ($character, $item, $slot) {
+            $equipmentSlot = $this->equipmentHelper->getOrCreateEquipmentSlot($character, $slot);
+            $oldItem = $this->equipmentHelper->handleUnequipIfNeeded($character, $equipmentSlot);
 
-        try {
-            return DB::transaction(function () use ($character, $item, $slot) {
-                $equipmentSlot = $this->equipmentHelper->getOrCreateEquipmentSlot($character, $slot);
-                $oldItem = $this->equipmentHelper->handleUnequipIfNeeded($character, $equipmentSlot);
+            // 装备新物品
+            $equipmentSlot->item_id = $item->id;
+            $equipmentSlot->save();
 
-                // 装备新物品
-                $equipmentSlot->item_id = $item->id;
-                $equipmentSlot->save();
+            // 标记为已装备
+            $item->is_equipped = true;
+            $item->slot_index = null;
+            $item->save();
 
-                // 标记为已装备
-                $item->is_equipped = true;
-                $item->slot_index = null;
-                $item->save();
+            $character->refresh();
+            $this->clearInventoryCache($character->id);
 
-                $character->refresh();
-                $this->clearInventoryCache($character->id);
+            $unequipped = null;
+            if ($oldItem instanceof GameItem) {
+                $unequipped = $oldItem->load('definition');
+            }
 
-                $unequipped = null;
-                if ($oldItem instanceof GameItem) {
-                    $unequipped = $oldItem->load('definition');
-                }
+            $equippedItem = $item->fresh();
+            if (! ($equippedItem instanceof GameItem)) {
+                $equippedItem = $item->load('definition');
+            } else {
+                $equippedItem->load('definition');
+            }
 
-                $equippedItem = $item->fresh();
-                if (! ($equippedItem instanceof GameItem)) {
-                    $equippedItem = $item->load('definition');
-                } else {
-                    $equippedItem->load('definition');
-                }
-
-                return [
-                    'equipped_item' => $equippedItem,
-                    'equipped_slot' => $slot,
-                    'unequipped_item' => $unequipped,
-                    'combat_stats' => $character->getCombatStats(),
-                    'stats_breakdown' => $character->getCombatStatsBreakdown(),
-                ];
-            });
-        } finally {
-            $lock->release();
-        }
+            return [
+                'equipped_item' => $equippedItem,
+                'equipped_slot' => $slot,
+                'unequipped_item' => $unequipped,
+                'combat_stats' => $character->getCombatStats(),
+                'stats_breakdown' => $character->getCombatStatsBreakdown(),
+            ];
+        });
     }
 
     /**
@@ -207,40 +212,42 @@ class GameInventoryService
             throw new \InvalidArgumentException('背包已满');
         }
 
-        // 使用分布式锁防止并发操作同一角色
-        $lockKey = 'game:inventory:equip:' . $character->id;
-        $lock = Cache::lock($lockKey, self::EQUIP_LOCK_TIMEOUT);
+        return $this->executeWithDistributedLock(
+            lockKey: 'game:inventory:equip:' . $character->id,
+            callback: fn () => $this->performUnequip($character, $equipmentSlot, $emptySlot),
+            timeoutSeconds: self::EQUIP_LOCK_TIMEOUT,
+        );
+    }
 
-        if (! $lock->get()) {
-            throw new \RuntimeException('装备操作正在进行中，请稍后重试');
-        }
+    /**
+     * 执行卸下装备逻辑
+     *
+     * @return array{item: GameItem|null, combat_stats: array<string,mixed>, stats_breakdown: array<string,mixed>}
+     */
+    private function performUnequip(GameCharacter $character, GameEquipment $equipmentSlot, int $emptySlot): array
+    {
+        return DB::transaction(function () use ($character, $equipmentSlot, $emptySlot) {
+            $itemId = $equipmentSlot->item_id;
+            $item = $itemId ? GameItem::with('definition')->find($itemId) : null;
 
-        try {
-            return DB::transaction(function () use ($character, $equipmentSlot, $emptySlot) {
-                $itemId = $equipmentSlot->item_id;
-                $item = $itemId ? GameItem::with('definition')->find($itemId) : null;
+            if ($item instanceof GameItem) {
+                $item->is_equipped = false;
+                $item->slot_index = $emptySlot;
+                $item->save();
+            }
 
-                if ($item instanceof GameItem) {
-                    $item->is_equipped = false;
-                    $item->slot_index = $emptySlot;
-                    $item->save();
-                }
+            $equipmentSlot->item_id = null;
+            $equipmentSlot->save();
 
-                $equipmentSlot->item_id = null;
-                $equipmentSlot->save();
+            $character->refresh();
+            $this->clearInventoryCache($character->id);
 
-                $character->refresh();
-                $this->clearInventoryCache($character->id);
-
-                return [
-                    'item' => $item,
-                    'combat_stats' => $character->getCombatStats(),
-                    'stats_breakdown' => $character->getCombatStatsBreakdown(),
-                ];
-            });
-        } finally {
-            $lock->release();
-        }
+            return [
+                'item' => $item,
+                'combat_stats' => $character->getCombatStats(),
+                'stats_breakdown' => $character->getCombatStatsBreakdown(),
+            ];
+        });
     }
 
     /**
@@ -252,48 +259,50 @@ class GameInventoryService
      */
     public function sellItem(GameCharacter $character, int $itemId, int $quantity = 1): array
     {
-        // 使用分布式锁防止并发出售同一物品
-        $lockKey = 'game:inventory:item:' . $character->id . ':' . $itemId;
-        $lock = Cache::lock($lockKey, self::ITEM_LOCK_TIMEOUT);
+        return $this->executeWithDistributedLock(
+            lockKey: 'game:inventory:item:' . $character->id . ':' . $itemId,
+            callback: fn () => $this->performSell($character, $itemId, $quantity),
+            timeoutSeconds: self::ITEM_LOCK_TIMEOUT,
+        );
+    }
 
-        if (! $lock->get()) {
-            throw new \RuntimeException('物品操作正在进行中，请稍后重试');
+    /**
+     * 执行出售逻辑
+     *
+     * @return array{copper:int, sell_price:int}
+     */
+    private function performSell(GameCharacter $character, int $itemId, int $quantity): array
+    {
+        $item = $this->findItem($character, $itemId);
+
+        if ($this->equipmentHelper->isItemEquipped($character, $itemId)) {
+            throw new \InvalidArgumentException('请先卸下装备');
         }
 
-        try {
-            $item = $this->findItem($character, $itemId);
-
-            if ($this->equipmentHelper->isItemEquipped($character, $itemId)) {
-                throw new \InvalidArgumentException('请先卸下装备');
-            }
-
-            if ($item->quantity < $quantity) {
-                throw new \InvalidArgumentException('物品数量不足');
-            }
-
-            $sellPrice = $item->calculateSellPrice() * $quantity;
-
-            return DB::transaction(function () use ($character, $item, $quantity, $sellPrice) {
-                $character->copper += $sellPrice;
-                $character->save();
-
-                if ($item->quantity > $quantity) {
-                    $item->quantity -= $quantity;
-                    $item->save();
-                } else {
-                    $item->delete();
-                }
-
-                $this->clearInventoryCache($character->id);
-
-                return [
-                    'copper' => $character->copper,
-                    'sell_price' => $sellPrice,
-                ];
-            });
-        } finally {
-            $lock->release();
+        if ($item->quantity < $quantity) {
+            throw new \InvalidArgumentException('物品数量不足');
         }
+
+        $sellPrice = $item->calculateSellPrice() * $quantity;
+
+        return DB::transaction(function () use ($character, $item, $quantity, $sellPrice) {
+            $character->copper += $sellPrice;
+            $character->save();
+
+            if ($item->quantity > $quantity) {
+                $item->quantity -= $quantity;
+                $item->save();
+            } else {
+                $item->delete();
+            }
+
+            $this->clearInventoryCache($character->id);
+
+            return [
+                'copper' => $character->copper,
+                'sell_price' => $sellPrice,
+            ];
+        });
     }
 
     /**

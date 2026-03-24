@@ -49,6 +49,7 @@ class InventoryActionRequestTest extends TestCase
         $this->assertSame([
             'item_id' => 'required|integer|min:1|exists:game_items,id',
             'quantity' => 'sometimes|integer|min:1',
+            'idempotency_key' => 'sometimes|string|max:255',
         ], $request->rules());
         $this->assertSame('物品 ID 不能为空', $request->messages()['item_id.required']);
         $this->assertSame('物品 ID 必须大于 0', $request->messages()['item_id.min']);
