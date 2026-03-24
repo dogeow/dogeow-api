@@ -43,7 +43,7 @@ class NotePolicy
      */
     public function update(User $user, Note $note): bool
     {
-        return $note->user_id === $user->id;
+        return $note->user_id === $user->id || $user->hasRole('admin');
     }
 
     /**
@@ -51,7 +51,7 @@ class NotePolicy
      */
     public function delete(User $user, Note $note): bool
     {
-        return $note->user_id === $user->id;
+        return $note->user_id === $user->id || $user->hasRole('admin');
     }
 
     /**
@@ -59,7 +59,7 @@ class NotePolicy
      */
     public function share(User $user, Note $note): bool
     {
-        return $note->user_id === $user->id;
+        return $note->user_id === $user->id || $user->hasRole('admin');
     }
 
     /**
@@ -67,6 +67,6 @@ class NotePolicy
      */
     public function publish(User $user, Note $note): bool
     {
-        return $note->user_id === $user->id;
+        return $note->user_id === $user->id || $user->hasRole('admin');
     }
 }

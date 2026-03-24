@@ -43,7 +43,7 @@ class ThingItemPolicy
      */
     public function update(User $user, Item $item): bool
     {
-        return $item->user_id === $user->id;
+        return $item->user_id === $user->id || $user->hasRole('admin');
     }
 
     /**
@@ -51,7 +51,7 @@ class ThingItemPolicy
      */
     public function delete(User $user, Item $item): bool
     {
-        return $item->user_id === $user->id;
+        return $item->user_id === $user->id || $user->hasRole('admin');
     }
 
     /**
@@ -59,7 +59,7 @@ class ThingItemPolicy
      */
     public function share(User $user, Item $item): bool
     {
-        return $item->user_id === $user->id;
+        return $item->user_id === $user->id || $user->hasRole('admin');
     }
 
     /**
@@ -67,6 +67,6 @@ class ThingItemPolicy
      */
     public function archive(User $user, Item $item): bool
     {
-        return $item->user_id === $user->id;
+        return $item->user_id === $user->id || $user->hasRole('admin');
     }
 }

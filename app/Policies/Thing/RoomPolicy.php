@@ -40,7 +40,7 @@ class RoomPolicy
      */
     public function update(User $user, Room $room): bool
     {
-        return $user->id === $room->user_id;
+        return $user->id === $room->user_id || $user->hasRole('admin');
     }
 
     /**
@@ -48,7 +48,7 @@ class RoomPolicy
      */
     public function delete(User $user, Room $room): bool
     {
-        return $user->id === $room->user_id;
+        return $user->id === $room->user_id || $user->hasRole('admin');
     }
 
     /**
@@ -56,7 +56,7 @@ class RoomPolicy
      */
     public function createForArea(User $user, Area $area): bool
     {
-        return $user->id === $area->user_id;
+        return $user->id === $area->user_id || $user->hasRole('admin');
     }
 
     /**
@@ -64,6 +64,6 @@ class RoomPolicy
      */
     public function moveToArea(User $user, Room $room, Area $area): bool
     {
-        return $user->id === $room->user_id && $user->id === $area->user_id;
+        return ($user->id === $room->user_id && $user->id === $area->user_id) || $user->hasRole('admin');
     }
 }

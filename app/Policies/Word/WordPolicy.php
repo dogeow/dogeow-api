@@ -39,7 +39,7 @@ class WordPolicy
      */
     public function update(User $user, Word $word): bool
     {
-        return $word->user_id === $user->id;
+        return $word->user_id === $user->id || $user->hasRole('admin');
     }
 
     /**
@@ -47,7 +47,7 @@ class WordPolicy
      */
     public function delete(User $user, Word $word): bool
     {
-        return $word->user_id === $user->id;
+        return $word->user_id === $user->id || $user->hasRole('admin');
     }
 
     /**
@@ -55,7 +55,7 @@ class WordPolicy
      */
     public function review(User $user, Word $word): bool
     {
-        return $word->user_id === $user->id;
+        return $word->user_id === $user->id || $user->hasRole('admin');
     }
 
     /**
@@ -63,6 +63,6 @@ class WordPolicy
      */
     public function markLearned(User $user, Word $word): bool
     {
-        return $word->user_id === $user->id;
+        return $word->user_id === $user->id || $user->hasRole('admin');
     }
 }
