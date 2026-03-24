@@ -240,6 +240,25 @@ class ChatControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_allows_admin_to_delete_any_message()
+    {
+        $owner = User::factory()->create();
+        $admin = User::factory()->create(['is_admin' => true]);
+        $room = ChatRoom::factory()->create();
+        $message = ChatMessage::factory()->create([
+            'room_id' => $room->id,
+            'user_id' => $owner->id,
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->delete("/api/chat/rooms/{$room->id}/messages/{$message->id}");
+
+        $response->assertStatus(200);
+        $data = $response->json();
+        $this->assertEquals('Message deleted successfully', $data['message']);
+    }
+
+    #[Test]
     public function it_can_get_online_users()
     {
         $user = User::factory()->create();

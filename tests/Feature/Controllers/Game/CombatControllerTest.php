@@ -42,66 +42,54 @@ class CombatControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $character = $this->createCharacter($user);
-
-        // Mock Redis comprehensively for this test
-        $redisConnection = \Mockery::mock('stdClass');
-        $redisConnection->shouldReceive('get')
-            ->andReturn(null);
-        $redisConnection->shouldReceive('setnx')
-            ->andReturn(true);
-        $redisConnection->shouldReceive('expire')
-            ->andReturn(true);
-        $redisConnection->shouldReceive('del')
-            ->andReturn(1);
-        Redis::shouldReceive('connection')
-            ->andReturn($redisConnection);
         Redis::shouldReceive('get')
+            ->once()
+            ->with(AutoCombatRoundJob::redisKey($character->id))
             ->andReturn(null);
 
         $response = $this->actingAs($user)
             ->getJson('/api/rpg/combat/status?character_id=' . $character->id);
 
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-            ])
-            ->assertJsonStructure([
-                'success',
-                'message',
-                'data' => [
-                    'is_fighting',
-                    'current_hp',
-                    'current_mana',
-                ],
-            ]);
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'data' => [
+                'is_fighting',
+                'current_map',
+                'combat_stats',
+                'current_hp',
+                'current_mana',
+                'skill_cooldowns',
+            ],
+        ]);
+        $response->assertJsonPath('data.is_fighting', false);
     }
 
     public function test_can_start_combat(): void
     {
         Bus::fake();
 
-        // Mock Redis facade comprehensively - both direct calls and connection->method calls
-        $redisConnection = \Mockery::mock('stdClass');
-        $redisConnection->shouldReceive('get')->andReturn(null);
-        $redisConnection->shouldReceive('setnx')->andReturn(true);
-        $redisConnection->shouldReceive('expire')->andReturn(true);
-        $redisConnection->shouldReceive('setex')->andReturn(true);
-        $redisConnection->shouldReceive('del')->andReturn(1);
-        Redis::shouldReceive('connection')->andReturn($redisConnection);
-        Redis::shouldReceive('get')->andReturn(null);
-        Redis::shouldReceive('setex')->andReturn(true);
-
         $user = User::factory()->create();
         $character = $this->createCharacter($user, ['current_map_id' => 1, 'is_fighting' => false]);
+
+        Redis::shouldReceive('set')
+            ->once()
+            ->withArgs(function ($key, $value, $ex, $ttl, $nx) use ($character) {
+                return str_ends_with($key, (string) $character->id)
+                    && $ex === 'EX'
+                    && is_int($ttl)
+                    && $nx === 'NX';
+            })
+            ->andReturn(true);
 
         $response = $this->actingAs($user)
             ->postJson('/api/rpg/combat/start?character_id=' . $character->id);
 
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-            ]);
-
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'data' => [
+                'message',
+            ],
+        ]);
         Bus::assertDispatched(AutoCombatRoundJob::class);
     }
 
@@ -110,26 +98,21 @@ class CombatControllerTest extends TestCase
         $user = User::factory()->create();
         $character = $this->createCharacter($user, ['is_fighting' => true]);
 
-        // Mock Redis::connection() and also direct Redis facade calls
-        $redisConnection = \Mockery::mock('stdClass');
-        $redisConnection->shouldReceive('get')
-            ->with(AutoCombatRoundJob::redisKey($character->id))
-            ->andReturn('token');
-        $redisConnection->shouldReceive('del')
-            ->with(AutoCombatRoundJob::redisKey($character->id))
-            ->andReturn(1);
-        Redis::shouldReceive('connection')->andReturn($redisConnection);
         Redis::shouldReceive('del')
+            ->once()
             ->with(AutoCombatRoundJob::redisKey($character->id))
             ->andReturn(1);
 
         $response = $this->actingAs($user)
             ->postJson('/api/rpg/combat/stop?character_id=' . $character->id);
 
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-            ]);
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'data' => [
+                'message',
+            ],
+        ]);
+        $response->assertJsonPath('data.message', '自动战斗已停止');
     }
 
     public function test_can_get_combat_logs(): void
@@ -140,15 +123,13 @@ class CombatControllerTest extends TestCase
         $response = $this->actingAs($user)
             ->getJson('/api/rpg/combat/logs?character_id=' . $character->id);
 
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-            ])
-            ->assertJsonStructure([
-                'success',
-                'message',
-                'data',
-            ]);
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'data' => [
+                'logs',
+            ],
+        ]);
+        $this->assertIsArray($response->json('data.logs'));
     }
 
     public function test_can_get_combat_stats(): void
@@ -159,15 +140,21 @@ class CombatControllerTest extends TestCase
         $response = $this->actingAs($user)
             ->getJson('/api/rpg/combat/stats?character_id=' . $character->id);
 
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-            ])
-            ->assertJsonStructure([
-                'success',
-                'message',
-                'data',
-            ]);
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'data' => [
+                'stats' => [
+                    'total_battles',
+                    'total_victories',
+                    'total_defeats',
+                    'total_damage_dealt',
+                    'total_damage_taken',
+                    'total_experience_gained',
+                    'total_copper_gained',
+                    'total_items_looted',
+                ],
+            ],
+        ]);
     }
 
     public function test_can_update_potion_settings(): void
@@ -183,10 +170,16 @@ class CombatControllerTest extends TestCase
                 'mp_potion_threshold' => 30,
             ]);
 
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-            ]);
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'data' => [
+                'character',
+            ],
+        ]);
+        $response->assertJsonPath('data.character.auto_use_hp_potion', true);
+        $response->assertJsonPath('data.character.auto_use_mp_potion', true);
+        $response->assertJsonPath('data.character.hp_potion_threshold', 30);
+        $response->assertJsonPath('data.character.mp_potion_threshold', 30);
     }
 
     public function test_requires_authentication(): void

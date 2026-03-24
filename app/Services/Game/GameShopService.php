@@ -8,66 +8,31 @@ use App\Models\Game\GameItemDefinition;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 
 class GameShopService
 {
-    /** 商店装备列表缓存时间(秒) */
+    /** 商店装备列表缓存时间（秒） */
     private const SHOP_CACHE_TTL_SECONDS = 1800; // 30 分钟
 
-    /** 强制刷新商店费用(铜币)，1 银 = 100 铜 */
+    /** 强制刷新商店费用（铜币），1 银 = 100 铜 */
     public const REFRESH_COST_COPPER = 100;
+
+    /** 幂等性缓存时间（秒），24 小时 */
+    private const IDEMPOTENCY_CACHE_TTL_SECONDS = 86400;
 
     private const SHOP_CACHE_KEY_PREFIX = 'game_shop_';
 
     private const PURCHASED_CACHE_KEY_PREFIX = 'game_shop_purchased_';
 
-    /** @var array<string, class-string> */
-    private const EQUIPMENT_TYPES = [
-        'weapon', 'helmet', 'armor', 'gloves', 'boots', 'belt', 'ring', 'amulet',
-    ];
+    private const IDEMPOTENCY_KEY_PREFIX = 'shop:idem:';
+
+    /** 商店操作分布式锁超时时间（秒） */
+    private const SHOP_LOCK_TIMEOUT_SECONDS = 10;
 
     public function __construct(
-        private InventoryItemCalculator $itemCalculator = new InventoryItemCalculator,
-        private ?GameInventoryService $inventoryService = null
+        private InventoryItemCalculator $itemCalculator = new InventoryItemCalculator
     ) {}
-
-    /**
-     * Get inventory service instance (lazy initialization)
-     */
-    private function getInventoryService(): GameInventoryService
-    {
-        return $this->inventoryService ??= new GameInventoryService;
-    }
-
-    /**
-     * Map a definition to shop item array with common fields
-     *
-     * @param  array<string,mixed>  $randomStats
-     */
-    private function mapDefinitionToShopItem(GameItemDefinition $definition, array $randomStats, ?string $quality = null): array
-    {
-        $buyPrice = $this->itemCalculator->calculateBuyPrice($definition, $randomStats, $quality ?? 'common');
-
-        $itemData = [
-            'id' => $definition->id,
-            'name' => $definition->name,
-            'type' => $definition->type,
-            'sub_type' => $definition->sub_type,
-            'base_stats' => GameItem::normalizeStatsPrecision($randomStats),
-            'required_level' => $definition->required_level,
-            'icon' => $definition->icon,
-            'description' => $definition->description,
-            'buy_price' => $buyPrice,
-        ];
-
-        if ($quality !== null) {
-            $itemData['quality'] = $quality;
-        } else {
-            $itemData['sell_price'] = (int) floor($buyPrice * (float) config('game.shop.sell_ratio', 0.3));
-        }
-
-        return $itemData;
-    }
 
     /**
      * 清除当前角色的商店装备缓存
@@ -115,7 +80,7 @@ class GameShopService
         }
         $equipment = collect($equipmentArray);
 
-        // 获取已购买的装备 ID 列表
+        // 获取已购买的装备ID列表
         $purchasedItemIds = $this->getPurchasedItemIds($character);
 
         if (is_array($cached) && isset($cached['equipment'], $cached['refreshed_at'])) {
@@ -155,7 +120,7 @@ class GameShopService
     }
 
     /**
-     * 获取已购买的物品 ID 列表
+     * 获取已购买的物品ID列表
      *
      * @return int[]
      */
@@ -186,7 +151,7 @@ class GameShopService
     }
 
     /**
-     * 记录已购买的物品 ID
+     * 记录已购买的物品ID
      */
     public function recordPurchasedItem(GameCharacter $character, int $definitionId): void
     {
@@ -231,8 +196,20 @@ class GameShopService
         /** @var Collection<int, array{id:int,name:string,type:string,sub_type:string|null,base_stats:array<string,mixed>,required_level:int,icon:string|null,description:string|null,buy_price:int,sell_price:int}> $result */
         $result = $fixedPotions->map(function ($definition) {
             $randomStats = $this->itemCalculator->generateRandomStats($definition);
+            $buyPrice = $this->itemCalculator->calculateBuyPrice($definition, $randomStats);
 
-            return $this->mapDefinitionToShopItem($definition, $randomStats);
+            return [
+                'id' => $definition->id,
+                'name' => $definition->name,
+                'type' => $definition->type,
+                'sub_type' => $definition->sub_type,
+                'base_stats' => GameItem::normalizeStatsPrecision($randomStats),
+                'required_level' => $definition->required_level,
+                'icon' => $definition->icon,
+                'description' => $definition->description,
+                'buy_price' => $buyPrice,
+                'sell_price' => (int) floor($buyPrice * (float) config('game.shop.sell_ratio', 0.3)),
+            ];
         });
 
         return $result;
@@ -264,7 +241,18 @@ class GameShopService
             $randomStats = $this->itemCalculator->generateRandomStats($definition);
             $quality = $this->itemCalculator->generateRandomQuality($definition->required_level);
 
-            return $this->mapDefinitionToShopItem($definition, $randomStats, $quality);
+            return [
+                'id' => $definition->id,
+                'name' => $definition->name,
+                'type' => $definition->type,
+                'sub_type' => $definition->sub_type,
+                'base_stats' => GameItem::normalizeStatsPrecision($randomStats),
+                'quality' => $quality,
+                'required_level' => $definition->required_level,
+                'icon' => $definition->icon,
+                'description' => $definition->description,
+                'buy_price' => $this->itemCalculator->calculateBuyPrice($definition, $randomStats, $quality),
+            ];
         });
 
         return $result;
@@ -275,46 +263,118 @@ class GameShopService
      *
      * @return array{copper:int,total_price:int,quantity:int,item_name:string}
      */
-    public function buyItem(GameCharacter $character, int $itemId, int $quantity = 1): array
+    public function buyItem(GameCharacter $character, int $itemId, int $quantity = 1, ?string $idempotencyKey = null): array
     {
-        $definition = GameItemDefinition::find($itemId);
+        // 如果提供了幂等性密钥，使用 Redis SET NX 原子操作检查是否已有处理中的请求
+        $isIdempotentRequest = $idempotencyKey !== null && $idempotencyKey !== '';
+        $idempotencyCacheKey = $isIdempotentRequest
+            ? $this->getIdempotencyCacheKey($character->id, $idempotencyKey, 'buy')
+            : null;
 
-        if (! $definition || ! $definition->is_active) {
-            throw new \InvalidArgumentException('物品不存在或不可购买');
+        if ($isIdempotentRequest && $idempotencyCacheKey) {
+            // 使用 SET NX 原子操作：如果 key 不存在则设置并返回 true（获取到锁），已存在则返回 false
+            $acquired = Redis::set($idempotencyCacheKey, 'processing', 'EX', self::IDEMPOTENCY_CACHE_TTL_SECONDS, 'NX');
+            if (! $acquired) {
+                // 检查是否是已完成的请求（结果而非 processing 标记）
+                $cachedResult = $this->getIdempotencyResult($character->id, $idempotencyKey, 'buy');
+                if ($cachedResult !== null) {
+                    return $cachedResult;
+                }
+
+                // 请求正在处理中，返回冲突错误
+                throw new \RuntimeException('请求正在处理中，请稍后重试');
+            }
         }
 
-        if ($character->level < $definition->required_level) {
-            throw new \InvalidArgumentException("需要等级 {$definition->required_level}");
+        // 使用 Redis 分布式锁防止并发购买
+        $lockKey = 'shop:lock:buy:' . $character->id . ':' . $itemId;
+        $lock = Cache::lock($lockKey, self::SHOP_LOCK_TIMEOUT_SECONDS);
+
+        if (! $lock->get()) {
+            // 清理幂等性标记
+            if ($isIdempotentRequest && $idempotencyCacheKey) {
+                Redis::del($idempotencyCacheKey);
+            }
+            throw new \RuntimeException('购买操作正在进行中，请稍后重试');
         }
 
-        // 生成随机属性
-        $randomStats = $this->itemCalculator->generateRandomStats($definition);
+        try {
+            // 再次检查幂等性缓存（双重检查）
+            if ($isIdempotentRequest) {
+                $cachedResult = $this->getIdempotencyResult($character->id, $idempotencyKey, 'buy');
+                if ($cachedResult !== null) {
+                    return $cachedResult;
+                }
+            }
 
-        // 计算总价
-        $totalPrice = $this->itemCalculator->calculateBuyPrice($definition, $randomStats) * $quantity;
+            $definition = GameItemDefinition::find($itemId);
 
-        if ($character->copper < $totalPrice) {
-            throw new \InvalidArgumentException('货币不足');
-        }
+            if (! $definition || ! $definition->is_active) {
+                throw new \InvalidArgumentException('物品不存在或不可购买');
+            }
 
-        return DB::transaction(function () use ($character, $definition, $randomStats, $totalPrice, $quantity, $itemId) {
-            $inventoryService = $this->getInventoryService();
+            if ($character->level < $definition->required_level) {
+                throw new \InvalidArgumentException("需要等级 {$definition->required_level}");
+            }
 
-            // 药品处理
-            if ($definition->type === 'potion') {
-                /** @var GameItem|null $existingItem */
-                $existingItem = $character->items()
-                    ->where('definition_id', $definition->id)
-                    ->where('is_in_storage', false)
-                    ->where('quality', 'common')
-                    ->first();
+            // 生成随机属性
+            $randomStats = $this->itemCalculator->generateRandomStats($definition);
 
-                if ($existingItem) {
-                    $existingItem->quantity += $quantity;
-                    $existingItem->save();
+            // 计算总价
+            $totalPrice = $this->itemCalculator->calculateBuyPrice($definition, $randomStats) * $quantity;
+
+            if ($character->copper < $totalPrice) {
+                throw new \InvalidArgumentException('货币不足');
+            }
+
+            $result = DB::transaction(function () use ($character, $definition, $randomStats, $totalPrice, $quantity, $itemId) {
+                $inventoryCount = $character->items()->where('is_in_storage', false)->count();
+                $inventorySize = GameInventoryService::INVENTORY_SIZE;
+
+                // 药品处理
+                if ($definition->type === 'potion') {
+                    /** @var GameItem|null $existingItem */
+                    $existingItem = $character->items()
+                        ->where('definition_id', $definition->id)
+                        ->where('is_in_storage', false)
+                        ->where('quality', 'common')
+                        ->first();
+
+                    if ($existingItem) {
+                        $existingItem->quantity += $quantity;
+                        $existingItem->save();
+                    } else {
+                        if ($inventoryCount >= $inventorySize) {
+                            throw new \InvalidArgumentException('背包已满');
+                        }
+
+                        $tempItem = new GameItem([
+                            'character_id' => $character->id,
+                            'definition_id' => $definition->id,
+                            'quality' => 'common',
+                            'stats' => $randomStats,
+                            'affixes' => [],
+                            'is_in_storage' => false,
+                            'quantity' => $quantity,
+                        ]);
+                        $sellPrice = $this->itemCalculator->calculateSellPrice($tempItem);
+
+                        GameItem::create([
+                            'character_id' => $character->id,
+                            'definition_id' => $definition->id,
+                            'quality' => 'common',
+                            'stats' => $randomStats,
+                            'affixes' => [],
+                            'is_in_storage' => false,
+                            'quantity' => $quantity,
+                            'slot_index' => (new GameInventoryService)->findEmptySlot($character, false),
+                            'sell_price' => $sellPrice,
+                        ]);
+                    }
                 } else {
-                    if ($character->isInventoryFull()) {
-                        throw new \InvalidArgumentException('背包已满');
+                    // 装备类物品
+                    if ($inventoryCount + $quantity > $inventorySize) {
+                        throw new \InvalidArgumentException('背包空间不足');
                     }
 
                     $tempItem = new GameItem([
@@ -324,70 +384,54 @@ class GameShopService
                         'stats' => $randomStats,
                         'affixes' => [],
                         'is_in_storage' => false,
-                        'quantity' => $quantity,
+                        'quantity' => 1,
                     ]);
                     $sellPrice = $this->itemCalculator->calculateSellPrice($tempItem);
 
-                    GameItem::create([
-                        'character_id' => $character->id,
-                        'definition_id' => $definition->id,
-                        'quality' => 'common',
-                        'stats' => $randomStats,
-                        'affixes' => [],
-                        'is_in_storage' => false,
-                        'quantity' => $quantity,
-                        'slot_index' => $inventoryService->findEmptySlot($character, false),
-                        'sell_price' => $sellPrice,
-                    ]);
-                }
-            } else {
-                // 装备类物品 - each takes one inventory slot
-                $inventoryCount = $character->getInventoryCount();
-                $inventorySize = GameInventoryService::INVENTORY_SIZE;
-                if ($inventoryCount + $quantity > $inventorySize) {
-                    throw new \InvalidArgumentException('背包空间不足');
-                }
+                    $inventoryService = new GameInventoryService;
+                    for ($i = 0; $i < $quantity; $i++) {
+                        GameItem::create([
+                            'character_id' => $character->id,
+                            'definition_id' => $definition->id,
+                            'quality' => 'common',
+                            'stats' => $randomStats,
+                            'affixes' => [],
+                            'is_in_storage' => false,
+                            'quantity' => 1,
+                            'slot_index' => $inventoryService->findEmptySlot($character, false),
+                            'sell_price' => $sellPrice,
+                        ]);
+                    }
 
-                $tempItem = new GameItem([
-                    'character_id' => $character->id,
-                    'definition_id' => $definition->id,
-                    'quality' => 'common',
-                    'stats' => $randomStats,
-                    'affixes' => [],
-                    'is_in_storage' => false,
-                    'quantity' => 1,
-                ]);
-                $sellPrice = $this->itemCalculator->calculateSellPrice($tempItem);
-
-                for ($i = 0; $i < $quantity; $i++) {
-                    GameItem::create([
-                        'character_id' => $character->id,
-                        'definition_id' => $definition->id,
-                        'quality' => 'common',
-                        'stats' => $randomStats,
-                        'affixes' => [],
-                        'is_in_storage' => false,
-                        'quantity' => 1,
-                        'slot_index' => $inventoryService->findEmptySlot($character, false),
-                        'sell_price' => $sellPrice,
-                    ]);
+                    // 记录已购买的装备
+                    $this->recordPurchasedItem($character, $itemId);
                 }
 
-                // 记录已购买的装备
-                $this->recordPurchasedItem($character, $itemId);
+                // 扣除铜币
+                $character->copper -= $totalPrice;
+                $character->save();
+
+                return [
+                    'copper' => $character->copper,
+                    'total_price' => $totalPrice,
+                    'quantity' => $quantity,
+                    'item_name' => $definition->name,
+                ];
+            });
+
+            // 缓存结果用于幂等性
+            if ($isIdempotentRequest) {
+                $this->setIdempotencyResult($character->id, $idempotencyKey, 'buy', $result);
             }
 
-            // 扣除铜币
-            $character->copper -= $totalPrice;
-            $character->save();
-
-            return [
-                'copper' => $character->copper,
-                'total_price' => $totalPrice,
-                'quantity' => $quantity,
-                'item_name' => $definition->name,
-            ];
-        });
+            return $result;
+        } finally {
+            $lock->release();
+            // 清理幂等性 processing 标记（如果存在）
+            if ($isIdempotentRequest && $idempotencyCacheKey) {
+                Redis::del($idempotencyCacheKey);
+            }
+        }
     }
 
     /**
@@ -395,53 +439,109 @@ class GameShopService
      *
      * @return array{copper:int,sell_price:int,quantity:int,item_name:string}
      */
-    public function sellItem(GameCharacter $character, int $itemId, int $quantity = 1): array
+    public function sellItem(GameCharacter $character, int $itemId, int $quantity = 1, ?string $idempotencyKey = null): array
     {
-        $item = GameItem::query()
-            ->where('id', $itemId)
-            ->where('character_id', $character->id)
-            ->with('definition')
-            ->first();
+        // 如果提供了幂等性密钥，使用 Redis SET NX 原子操作检查是否已有处理中的请求
+        $isIdempotentRequest = $idempotencyKey !== null && $idempotencyKey !== '';
+        $idempotencyCacheKey = $isIdempotentRequest
+            ? $this->getIdempotencyCacheKey($character->id, $idempotencyKey, 'sell')
+            : null;
 
-        /** @var GameItem|null $item */
-        if (! $item) {
-            throw new \InvalidArgumentException('物品不存在或不属于你');
+        if ($isIdempotentRequest && $idempotencyCacheKey) {
+            // 使用 SET NX 原子操作：如果 key 不存在则设置并返回 true（获取到锁），已存在则返回 false
+            $acquired = Redis::set($idempotencyCacheKey, 'processing', 'EX', self::IDEMPOTENCY_CACHE_TTL_SECONDS, 'NX');
+            if (! $acquired) {
+                // 检查是否是已完成的请求（结果而非 processing 标记）
+                $cachedResult = $this->getIdempotencyResult($character->id, $idempotencyKey, 'sell');
+                if ($cachedResult !== null) {
+                    return $cachedResult;
+                }
+
+                // 请求正在处理中，返回冲突错误
+                throw new \RuntimeException('请求正在处理中，请稍后重试');
+            }
         }
 
-        if ($item->is_in_storage) {
-            throw new \InvalidArgumentException('请先将物品从仓库移到背包');
+        // 使用 Redis 分布式锁防止并发出售
+        $lockKey = 'shop:lock:sell:' . $character->id . ':' . $itemId;
+        $lock = Cache::lock($lockKey, self::SHOP_LOCK_TIMEOUT_SECONDS);
+
+        if (! $lock->get()) {
+            // 清理幂等性标记
+            if ($isIdempotentRequest && $idempotencyCacheKey) {
+                Redis::del($idempotencyCacheKey);
+            }
+            throw new \RuntimeException('出售操作正在进行中，请稍后重试');
         }
 
-        $equipped = $character->equipment()->where('item_id', $item->id)->exists();
-        if ($equipped) {
-            throw new \InvalidArgumentException('请先卸下装备');
-        }
-
-        if ($item->quantity < $quantity) {
-            throw new \InvalidArgumentException('物品数量不足');
-        }
-
-        // 计算售价
-        $sellPrice = $this->itemCalculator->calculateSellPrice($item) * $quantity;
-
-        return DB::transaction(function () use ($character, $item, $quantity, $sellPrice) {
-            $character->copper += $sellPrice;
-            $character->save();
-
-            if ($item->quantity > $quantity) {
-                $item->quantity -= $quantity;
-                $item->save();
-            } else {
-                $item->delete();
+        try {
+            // 再次检查幂等性缓存（双重检查）
+            if ($isIdempotentRequest) {
+                $cachedResult = $this->getIdempotencyResult($character->id, $idempotencyKey, 'sell');
+                if ($cachedResult !== null) {
+                    return $cachedResult;
+                }
             }
 
-            return [
-                'copper' => $character->copper,
-                'sell_price' => $sellPrice,
-                'quantity' => $quantity,
-                'item_name' => $item->definition->name,
-            ];
-        });
+            $item = GameItem::query()
+                ->where('id', $itemId)
+                ->where('character_id', $character->id)
+                ->with('definition')
+                ->first();
+
+            /** @var GameItem|null $item */
+            if (! $item) {
+                throw new \InvalidArgumentException('物品不存在或不属于你');
+            }
+
+            if ($item->is_in_storage) {
+                throw new \InvalidArgumentException('请先将物品从仓库移到背包');
+            }
+
+            $equipped = $character->equipment()->where('item_id', $item->id)->exists();
+            if ($equipped) {
+                throw new \InvalidArgumentException('请先卸下装备');
+            }
+
+            if ($item->quantity < $quantity) {
+                throw new \InvalidArgumentException('物品数量不足');
+            }
+
+            // 计算售价
+            $sellPrice = $this->itemCalculator->calculateSellPrice($item) * $quantity;
+
+            $result = DB::transaction(function () use ($character, $item, $quantity, $sellPrice) {
+                $character->copper += $sellPrice;
+                $character->save();
+
+                if ($item->quantity > $quantity) {
+                    $item->quantity -= $quantity;
+                    $item->save();
+                } else {
+                    $item->delete();
+                }
+
+                return [
+                    'copper' => $character->copper,
+                    'sell_price' => $sellPrice,
+                    'quantity' => $quantity,
+                    'item_name' => $item->definition->name,
+                ];
+            });
+
+            // 缓存结果用于幂等性
+            if ($isIdempotentRequest) {
+                $this->setIdempotencyResult($character->id, $idempotencyKey, 'sell', $result);
+            }
+
+            return $result;
+        } finally {
+            $lock->release();
+            // 清理幂等性 processing 标记（如果存在）
+            if ($isIdempotentRequest && $idempotencyCacheKey) {
+                Redis::del($idempotencyCacheKey);
+            }
+        }
     }
 
     private function getShopCacheKey(GameCharacter $character): string
@@ -452,5 +552,38 @@ class GameShopService
     private function getPurchasedCacheKey(GameCharacter $character): string
     {
         return self::PURCHASED_CACHE_KEY_PREFIX . $character->id;
+    }
+
+    /**
+     * 获取幂等性缓存的结果
+     *
+     * @return array{copper:int,total_price:int,quantity:int,item_name:string}|array{copper:int,sell_price:int,quantity:int,item_name:string}|null
+     */
+    private function getIdempotencyResult(int $characterId, string $idempotencyKey, string $action): ?array
+    {
+        $cacheKey = $this->getIdempotencyCacheKey($characterId, $idempotencyKey, $action);
+        $cached = Cache::get($cacheKey);
+
+        if (! is_array($cached)) {
+            return null;
+        }
+
+        return $cached;
+    }
+
+    /**
+     * 设置幂等性缓存结果
+     *
+     * @param  array{copper:int,total_price:int,quantity:int,item_name:string}|array{copper:int,sell_price:int,quantity:int,item_name:string}  $result
+     */
+    private function setIdempotencyResult(int $characterId, string $idempotencyKey, string $action, array $result): void
+    {
+        $cacheKey = $this->getIdempotencyCacheKey($characterId, $idempotencyKey, $action);
+        Cache::put($cacheKey, $result, self::IDEMPOTENCY_CACHE_TTL_SECONDS);
+    }
+
+    private function getIdempotencyCacheKey(int $characterId, string $idempotencyKey, string $action): string
+    {
+        return self::IDEMPOTENCY_KEY_PREFIX . $characterId . ':' . $action . ':' . $idempotencyKey;
     }
 }

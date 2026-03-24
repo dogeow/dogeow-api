@@ -6,7 +6,6 @@ use App\Events\Game\GameInventoryUpdate;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Game\BuyItemRequest;
 use App\Http\Requests\Game\SellItemRequest;
-use App\Services\Cache\RedisLockService;
 use App\Services\Game\GameInventoryService;
 use App\Services\Game\GameShopService;
 use Illuminate\Http\JsonResponse;
@@ -20,7 +19,6 @@ class ShopController extends Controller
     public function __construct(
         private readonly GameShopService $shopService,
         private readonly GameInventoryService $inventoryService,
-        private readonly RedisLockService $redisLockService,
     ) {}
 
     /**
@@ -45,20 +43,7 @@ class ShopController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
-
-            // 使用 Redis 分布式锁防止并发刷新
-            $lockKey = 'shop_refresh:' . $character->id;
-            $lock = $this->redisLockService->lock($lockKey, 5);
-
-            if ($lock === false) {
-                return $this->error('商店刷新操作正在进行中，请稍后再试');
-            }
-
-            try {
-                $result = $this->shopService->refreshShop($character);
-            } finally {
-                $this->redisLockService->release($lockKey, $lock);
-            }
+            $result = $this->shopService->refreshShop($character);
 
             return $this->success($result, '刷新成功');
         } catch (Throwable $e) {
@@ -73,25 +58,12 @@ class ShopController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
-
-            // 使用 Redis 分布式锁防止并发购买
-            $lockKey = 'shop_buy:' . $character->id;
-            $lock = $this->redisLockService->lock($lockKey, 10);
-
-            if ($lock === false) {
-                return $this->error('购买操作正在进行中，请稍后再试');
-            }
-
-            try {
-                $result = $this->shopService->buyItem(
-                    $character,
-                    $request->input('item_id'),
-                    $request->input('quantity', 1)
-                );
-            } finally {
-                $this->redisLockService->release($lockKey, $lock);
-            }
-
+            $result = $this->shopService->buyItem(
+                $character,
+                $request->input('item_id'),
+                $request->input('quantity', 1),
+                $request->input('idempotency_key')
+            );
             broadcast(new GameInventoryUpdate($character->id, $this->inventoryService->getInventoryForBroadcast($character)));
 
             return $this->success($result, '购买成功');
@@ -107,25 +79,12 @@ class ShopController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
-
-            // 使用 Redis 分布式锁防止并发出售
-            $lockKey = 'shop_sell:' . $character->id;
-            $lock = $this->redisLockService->lock($lockKey, 10);
-
-            if ($lock === false) {
-                return $this->error('出售操作正在进行中，请稍后再试');
-            }
-
-            try {
-                $result = $this->shopService->sellItem(
-                    $character,
-                    $request->input('item_id'),
-                    $request->input('quantity', 1)
-                );
-            } finally {
-                $this->redisLockService->release($lockKey, $lock);
-            }
-
+            $result = $this->shopService->sellItem(
+                $character,
+                $request->input('item_id'),
+                $request->input('quantity', 1),
+                $request->input('idempotency_key')
+            );
             broadcast(new GameInventoryUpdate($character->id, $this->inventoryService->getInventoryForBroadcast($character)));
 
             return $this->success($result, '出售成功');
