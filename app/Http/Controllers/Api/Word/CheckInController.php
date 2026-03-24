@@ -12,10 +12,8 @@ use Illuminate\Support\Facades\Auth;
 
 class CheckInController extends Controller
 {
-    private const LOCK_TTL_SECONDS = 10;
-
     public function __construct(
-        private readonly RedisLockService $lockService
+        private readonly RedisLockService $redisLockService,
     ) {}
 
     /**
@@ -37,18 +35,18 @@ class CheckInController extends Controller
             $todayEnd = now()->endOfDay();
         }
 
-        // Use Redis lock to prevent race conditions on concurrent check-in attempts
-        $lockKey = "checkin:{$user->id}:{$today}";
-        $token = $this->lockService->lock($lockKey, self::LOCK_TTL_SECONDS);
+        // 使用 Redis 分布式锁防止并发打卡导致重复记录
+        $lockKey = 'checkin:' . $user->id . ':' . $today;
+        $lock = $this->redisLockService->lock($lockKey, 5);
 
-        if ($token === false) {
+        if ($lock === false) {
             return response()->json([
-                'message' => '正在处理打卡请求，请稍后重试',
+                'message' => '打卡操作正在进行中，请稍后再试',
             ], 429);
         }
 
         try {
-            // Check if already checked in today (now protected by lock)
+            // 检查该日期是否已打卡
             $checkIn = CheckIn::where('user_id', $user->id)
                 ->whereDate('check_in_date', $today)
                 ->first();
@@ -60,7 +58,7 @@ class CheckInController extends Controller
                 ]);
             }
 
-            // Calculate study stats within transaction
+            // 统计该日期学习数据(按服务端时区统计 created_at/last_review_at，仅作参考)
             $newWordsCount = UserWord::where('user_id', $user->id)
                 ->whereBetween('created_at', [$todayStart, $todayEnd])
                 ->where('status', '!=', 0)
@@ -71,13 +69,13 @@ class CheckInController extends Controller
                 ->where('status', '!=', 0)
                 ->count();
 
-            // Create check-in record within a transaction for consistency
+            // 创建打卡记录
             $checkIn = CheckIn::create([
                 'user_id' => $user->id,
                 'check_in_date' => $today,
                 'new_words_count' => $newWordsCount,
                 'review_words_count' => $reviewWordsCount,
-                'study_duration' => 0,
+                'study_duration' => 0, // 前端可以传入学习时长
             ]);
 
             return response()->json([
@@ -85,7 +83,7 @@ class CheckInController extends Controller
                 'check_in' => $checkIn,
             ]);
         } finally {
-            $this->lockService->release($lockKey, $token);
+            $this->redisLockService->release($lockKey, $lock);
         }
     }
 
