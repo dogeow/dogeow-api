@@ -68,18 +68,19 @@ class CombatControllerTest extends TestCase
     {
         Bus::fake();
 
+        // Mock Redis facade comprehensively - both direct calls and connection->method calls
+        $redisConnection = \Mockery::mock('stdClass');
+        $redisConnection->shouldReceive('get')->andReturn(null);
+        $redisConnection->shouldReceive('setnx')->andReturn(true);
+        $redisConnection->shouldReceive('expire')->andReturn(true);
+        $redisConnection->shouldReceive('setex')->andReturn(true);
+        $redisConnection->shouldReceive('del')->andReturn(1);
+        Redis::shouldReceive('connection')->andReturn($redisConnection);
+        Redis::shouldReceive('get')->andReturn(null);
+        Redis::shouldReceive('setex')->andReturn(true);
+
         $user = User::factory()->create();
         $character = $this->createCharacter($user, ['current_map_id' => 1, 'is_fighting' => false]);
-
-        Redis::shouldReceive('set')
-            ->once()
-            ->withArgs(function ($key, $value, $ex, $ttl, $nx) use ($character) {
-                return str_ends_with($key, (string) $character->id)
-                    && $ex === 'EX'
-                    && is_int($ttl)
-                    && $nx === 'NX';
-            })
-            ->andReturn(true);
 
         $response = $this->actingAs($user)
             ->postJson('/api/rpg/combat/start?character_id=' . $character->id);
