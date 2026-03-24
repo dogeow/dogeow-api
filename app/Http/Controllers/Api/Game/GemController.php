@@ -15,6 +15,15 @@ class GemController extends Controller
 {
     use \App\Http\Controllers\Concerns\CharacterConcern;
 
+    /** @var array<int, string> */
+    private const EQUIPMENT_SLOT_TYPES = [
+        'weapon', 'helmet', 'armor', 'gloves', 'boots', 'belt', 'ring', 'amulet',
+    ];
+
+    public function __construct(
+        private readonly GameInventoryService $inventoryService,
+    ) {}
+
     /**
      * 镶嵌宝石到装备
      */
@@ -42,8 +51,7 @@ class GemController extends Controller
         }
 
         // 验证装备类型
-        $equipmentTypes = ['weapon', 'helmet', 'armor', 'gloves', 'boots', 'belt', 'ring', 'amulet'];
-        if (! in_array($equipment->definition->type, $equipmentTypes)) {
+        if (! in_array($equipment->definition->type, self::EQUIPMENT_SLOT_TYPES)) {
             return $this->error('只能向装备镶嵌宝石');
         }
 
@@ -113,14 +121,12 @@ class GemController extends Controller
         $gemDefinition = $gem->gemDefinition;
 
         // 检查背包空间
-        $inventoryService = new GameInventoryService;
-        $inventoryCount = $character->items()->where('is_in_storage', false)->count();
-        if ($inventoryCount >= $inventoryService::INVENTORY_SIZE) {
+        if ($character->isInventoryFull()) {
             return $this->error('背包已满，无法卸下宝石');
         }
 
         // 找到空位
-        $slotIndex = $inventoryService->findEmptySlot($character, false);
+        $slotIndex = $this->inventoryService->findEmptySlot($character, false);
 
         // 创建宝石物品
         GameItem::create([

@@ -21,9 +21,53 @@ class GameShopService
 
     private const PURCHASED_CACHE_KEY_PREFIX = 'game_shop_purchased_';
 
+    /** @var array<string, class-string> */
+    private const EQUIPMENT_TYPES = [
+        'weapon', 'helmet', 'armor', 'gloves', 'boots', 'belt', 'ring', 'amulet',
+    ];
+
     public function __construct(
-        private InventoryItemCalculator $itemCalculator = new InventoryItemCalculator
+        private InventoryItemCalculator $itemCalculator = new InventoryItemCalculator,
+        private ?GameInventoryService $inventoryService = null
     ) {}
+
+    /**
+     * Get inventory service instance (lazy initialization)
+     */
+    private function getInventoryService(): GameInventoryService
+    {
+        return $this->inventoryService ??= new GameInventoryService;
+    }
+
+    /**
+     * Map a definition to shop item array with common fields
+     *
+     * @param  array<string,mixed>  $randomStats
+     */
+    private function mapDefinitionToShopItem(GameItemDefinition $definition, array $randomStats, ?string $quality = null): array
+    {
+        $buyPrice = $this->itemCalculator->calculateBuyPrice($definition, $randomStats, $quality ?? 'common');
+
+        $itemData = [
+            'id' => $definition->id,
+            'name' => $definition->name,
+            'type' => $definition->type,
+            'sub_type' => $definition->sub_type,
+            'base_stats' => GameItem::normalizeStatsPrecision($randomStats),
+            'required_level' => $definition->required_level,
+            'icon' => $definition->icon,
+            'description' => $definition->description,
+            'buy_price' => $buyPrice,
+        ];
+
+        if ($quality !== null) {
+            $itemData['quality'] = $quality;
+        } else {
+            $itemData['sell_price'] = (int) floor($buyPrice * (float) config('game.shop.sell_ratio', 0.3));
+        }
+
+        return $itemData;
+    }
 
     /**
      * 清除当前角色的商店装备缓存
@@ -187,20 +231,8 @@ class GameShopService
         /** @var Collection<int, array{id:int,name:string,type:string,sub_type:string|null,base_stats:array<string,mixed>,required_level:int,icon:string|null,description:string|null,buy_price:int,sell_price:int}> $result */
         $result = $fixedPotions->map(function ($definition) {
             $randomStats = $this->itemCalculator->generateRandomStats($definition);
-            $buyPrice = $this->itemCalculator->calculateBuyPrice($definition, $randomStats);
 
-            return [
-                'id' => $definition->id,
-                'name' => $definition->name,
-                'type' => $definition->type,
-                'sub_type' => $definition->sub_type,
-                'base_stats' => GameItem::normalizeStatsPrecision($randomStats),
-                'required_level' => $definition->required_level,
-                'icon' => $definition->icon,
-                'description' => $definition->description,
-                'buy_price' => $buyPrice,
-                'sell_price' => (int) floor($buyPrice * (float) config('game.shop.sell_ratio', 0.3)),
-            ];
+            return $this->mapDefinitionToShopItem($definition, $randomStats);
         });
 
         return $result;
@@ -232,18 +264,7 @@ class GameShopService
             $randomStats = $this->itemCalculator->generateRandomStats($definition);
             $quality = $this->itemCalculator->generateRandomQuality($definition->required_level);
 
-            return [
-                'id' => $definition->id,
-                'name' => $definition->name,
-                'type' => $definition->type,
-                'sub_type' => $definition->sub_type,
-                'base_stats' => GameItem::normalizeStatsPrecision($randomStats),
-                'quality' => $quality,
-                'required_level' => $definition->required_level,
-                'icon' => $definition->icon,
-                'description' => $definition->description,
-                'buy_price' => $this->itemCalculator->calculateBuyPrice($definition, $randomStats, $quality),
-            ];
+            return $this->mapDefinitionToShopItem($definition, $randomStats, $quality);
         });
 
         return $result;
@@ -277,8 +298,7 @@ class GameShopService
         }
 
         return DB::transaction(function () use ($character, $definition, $randomStats, $totalPrice, $quantity, $itemId) {
-            $inventoryCount = $character->items()->where('is_in_storage', false)->count();
-            $inventorySize = GameInventoryService::INVENTORY_SIZE;
+            $inventoryService = $this->getInventoryService();
 
             // 药品处理
             if ($definition->type === 'potion') {
@@ -293,7 +313,7 @@ class GameShopService
                     $existingItem->quantity += $quantity;
                     $existingItem->save();
                 } else {
-                    if ($inventoryCount >= $inventorySize) {
+                    if ($character->isInventoryFull()) {
                         throw new \InvalidArgumentException('背包已满');
                     }
 
@@ -316,12 +336,14 @@ class GameShopService
                         'affixes' => [],
                         'is_in_storage' => false,
                         'quantity' => $quantity,
-                        'slot_index' => (new GameInventoryService)->findEmptySlot($character, false),
+                        'slot_index' => $inventoryService->findEmptySlot($character, false),
                         'sell_price' => $sellPrice,
                     ]);
                 }
             } else {
-                // 装备类物品
+                // 装备类物品 - each takes one inventory slot
+                $inventoryCount = $character->getInventoryCount();
+                $inventorySize = GameInventoryService::INVENTORY_SIZE;
                 if ($inventoryCount + $quantity > $inventorySize) {
                     throw new \InvalidArgumentException('背包空间不足');
                 }
@@ -337,7 +359,6 @@ class GameShopService
                 ]);
                 $sellPrice = $this->itemCalculator->calculateSellPrice($tempItem);
 
-                $inventoryService = new GameInventoryService;
                 for ($i = 0; $i < $quantity; $i++) {
                     GameItem::create([
                         'character_id' => $character->id,
