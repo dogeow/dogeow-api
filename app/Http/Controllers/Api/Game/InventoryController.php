@@ -10,6 +10,7 @@ use App\Http\Requests\Game\SellItemRequest;
 use App\Http\Requests\Game\UnequipItemRequest;
 use App\Http\Requests\Game\UsePotionRequest;
 use App\Models\Game\GameCharacter;
+use App\Services\Cache\RedisLockService;
 use App\Services\Game\GameInventoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class InventoryController extends Controller
 
     public function __construct(
         private readonly GameInventoryService $inventoryService,
+        private readonly RedisLockService $redisLockService,
     ) {}
 
     /**
@@ -49,7 +51,21 @@ class InventoryController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
-            $result = $this->inventoryService->equipItem($character, $request->input('item_id'));
+
+            // 使用 Redis 分布式锁防止并发装备操作
+            $lockKey = 'inventory_equip:' . $character->id;
+            $lock = $this->redisLockService->lock($lockKey, 10);
+
+            if ($lock === false) {
+                return $this->error('装备操作正在进行中，请稍后再试');
+            }
+
+            try {
+                $result = $this->inventoryService->equipItem($character, $request->input('item_id'));
+            } finally {
+                $this->redisLockService->release($lockKey, $lock);
+            }
+
             $this->broadcastInventoryUpdate($character);
 
             return $this->success($result, '装备成功');
@@ -65,7 +81,21 @@ class InventoryController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
-            $result = $this->inventoryService->unequipItem($character, $request->input('slot'));
+
+            // 使用 Redis 分布式锁防止并发卸下装备操作
+            $lockKey = 'inventory_unequip:' . $character->id;
+            $lock = $this->redisLockService->lock($lockKey, 10);
+
+            if ($lock === false) {
+                return $this->error('卸下装备操作正在进行中，请稍后再试');
+            }
+
+            try {
+                $result = $this->inventoryService->unequipItem($character, $request->input('slot'));
+            } finally {
+                $this->redisLockService->release($lockKey, $lock);
+            }
+
             $this->broadcastInventoryUpdate($character);
 
             return $this->success($result, '卸下装备成功');
@@ -81,11 +111,25 @@ class InventoryController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
-            $result = $this->inventoryService->sellItem(
-                $character,
-                $request->input('item_id'),
-                $request->input('quantity', 1)
-            );
+
+            // 使用 Redis 分布式锁防止并发出售
+            $lockKey = 'inventory_sell:' . $character->id;
+            $lock = $this->redisLockService->lock($lockKey, 10);
+
+            if ($lock === false) {
+                return $this->error('出售操作正在进行中，请稍后再试');
+            }
+
+            try {
+                $result = $this->inventoryService->sellItem(
+                    $character,
+                    $request->input('item_id'),
+                    $request->input('quantity', 1)
+                );
+            } finally {
+                $this->redisLockService->release($lockKey, $lock);
+            }
+
             $this->broadcastInventoryUpdate($character);
 
             return $this->success($result, '出售成功');
@@ -101,12 +145,26 @@ class InventoryController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
-            $result = $this->inventoryService->moveItem(
-                $character,
-                $request->input('item_id'),
-                $request->input('to_storage'),
-                $request->input('slot_index')
-            );
+
+            // 使用 Redis 分布式锁防止并发移动物品
+            $lockKey = 'inventory_move:' . $character->id;
+            $lock = $this->redisLockService->lock($lockKey, 10);
+
+            if ($lock === false) {
+                return $this->error('移动物品操作正在进行中，请稍后再试');
+            }
+
+            try {
+                $result = $this->inventoryService->moveItem(
+                    $character,
+                    $request->input('item_id'),
+                    $request->input('to_storage'),
+                    $request->input('slot_index')
+                );
+            } finally {
+                $this->redisLockService->release($lockKey, $lock);
+            }
+
             $this->broadcastInventoryUpdate($character);
 
             return $this->success($result, '移动成功');
@@ -122,7 +180,21 @@ class InventoryController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
-            $result = $this->inventoryService->usePotion($character, $request->input('item_id'));
+
+            // 使用 Redis 分布式锁防止重复使用药品
+            $lockKey = 'inventory_potion:' . $character->id;
+            $lock = $this->redisLockService->lock($lockKey, 5);
+
+            if ($lock === false) {
+                return $this->error('使用药品操作正在进行中，请稍后再试');
+            }
+
+            try {
+                $result = $this->inventoryService->usePotion($character, $request->input('item_id'));
+            } finally {
+                $this->redisLockService->release($lockKey, $lock);
+            }
+
             $this->broadcastInventoryUpdate($character);
 
             return $this->success($result, '使用药品成功');
@@ -170,7 +242,21 @@ class InventoryController extends Controller
 
             $character = $this->getCharacter($request);
             $quality = $request->input('quality');
-            $result = $this->inventoryService->sellItemsByQuality($character, $quality);
+
+            // 使用 Redis 分布式锁防止并发批量出售
+            $lockKey = 'inventory_sell_quality:' . $character->id;
+            $lock = $this->redisLockService->lock($lockKey, 10);
+
+            if ($lock === false) {
+                return $this->error('批量出售操作正在进行中，请稍后再试');
+            }
+
+            try {
+                $result = $this->inventoryService->sellItemsByQuality($character, $quality);
+            } finally {
+                $this->redisLockService->release($lockKey, $lock);
+            }
+
             $this->broadcastInventoryUpdate($character);
 
             return $this->success($result, "已出售 {$result['count']} 件{$this->getQualityName($quality)}物品，获得 {$result['total_price']} 铜");
