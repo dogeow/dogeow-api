@@ -38,12 +38,20 @@ class CharacterControllerTest extends TestCase
     public function test_can_get_character_list(): void
     {
         $user = User::factory()->create();
-        $this->createCharacter($user);
+        $character = $this->createCharacter($user);
 
         $response = $this->actingAs($user)
             ->getJson('/api/rpg/characters');
 
         $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'data' => [
+                'characters',
+                'experience_table',
+            ],
+        ]);
+        $this->assertCount(1, $response->json('data.characters'));
+        $this->assertEquals($character->id, $response->json('data.characters')[0]['id']);
     }
 
     public function test_can_get_character_detail(): void
@@ -55,6 +63,18 @@ class CharacterControllerTest extends TestCase
             ->getJson('/api/rpg/character?character_id=' . $character->id);
 
         $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'data' => [
+                'character',
+                'experience_table',
+                'combat_stats',
+                'stats_breakdown',
+                'equipped_items',
+                'current_hp',
+                'current_mana',
+            ],
+        ]);
+        $this->assertNotNull($response->json('data.character'));
     }
 
     public function test_can_create_character(): void
@@ -69,6 +89,17 @@ class CharacterControllerTest extends TestCase
             ]);
 
         $response->assertStatus(201);
+        $response->assertJsonStructure([
+            'data' => [
+                'character',
+                'combat_stats',
+                'stats_breakdown',
+                'current_hp',
+                'current_mana',
+            ],
+        ]);
+        $response->assertJsonPath('data.character.name', 'NewHero');
+        $response->assertJsonPath('data.character.class', 'warrior');
     }
 
     public function test_validates_character_creation_data(): void
@@ -95,6 +126,7 @@ class CharacterControllerTest extends TestCase
             ]);
 
         $response->assertStatus(200);
+        $response->assertJsonPath('message', '角色已删除');
     }
 
     public function test_can_allocate_stats(): void
@@ -126,6 +158,12 @@ class CharacterControllerTest extends TestCase
             ]);
 
         $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'data' => [
+                'character',
+            ],
+        ]);
+        $response->assertJsonPath('message', '难度已更新');
     }
 
     public function test_can_get_character_full_detail(): void
@@ -137,6 +175,10 @@ class CharacterControllerTest extends TestCase
             ->getJson('/api/rpg/character/detail?character_id=' . $character->id);
 
         $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'data',
+        ]);
+        $this->assertIsArray($response->json('data'));
     }
 
     public function test_can_update_online_status(): void
@@ -148,6 +190,12 @@ class CharacterControllerTest extends TestCase
             ->postJson('/api/rpg/character/online?character_id=' . $character->id);
 
         $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'data' => [
+                'last_online',
+            ],
+        ]);
+        $this->assertNotNull($response->json('data.last_online'));
     }
 
     public function test_requires_authentication(): void
