@@ -5,20 +5,19 @@ namespace App\Http\Controllers\Api\Word;
 use App\Http\Controllers\Controller;
 use App\Models\Word\CheckIn;
 use App\Models\Word\UserWord;
-use App\Services\Cache\RedisLockService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Redis;
 
 class CheckInController extends Controller
 {
-    public function __construct(
-        private readonly RedisLockService $redisLockService,
-    ) {}
+    /** 打卡分布式锁超时时间（秒） */
+    private const CHECK_IN_LOCK_TIMEOUT = 10;
 
     /**
      * 打卡
-     * 优先使用前端传来的 local_date(用户本地日期)，避免服务端 UTC 导致跨日显示错误
+     * 优先使用前端传来的 local_date（用户本地日期），避免服务端 UTC 导致跨日显示错误
      */
     public function checkIn(\Illuminate\Http\Request $request): JsonResponse
     {
@@ -35,18 +34,18 @@ class CheckInController extends Controller
             $todayEnd = now()->endOfDay();
         }
 
-        // 使用 Redis 分布式锁防止并发打卡导致重复记录
-        $lockKey = 'checkin:' . $user->id . ':' . $today;
-        $lock = $this->redisLockService->lock($lockKey, 5);
+        // 使用 Redis SET NX 原子操作获取分布式锁
+        $lockKey = 'word:check_in:lock:' . $user->id . ':' . $today;
+        $acquired = Redis::set($lockKey, '1', 'EX', self::CHECK_IN_LOCK_TIMEOUT, 'NX');
 
-        if ($lock === false) {
+        if (! $acquired) {
             return response()->json([
-                'message' => '打卡操作正在进行中，请稍后再试',
+                'message' => '请求正在处理中，请稍后重试',
             ], 429);
         }
 
         try {
-            // 检查该日期是否已打卡
+            // 检查该日期是否已打卡（双重检查，加锁后再次确认）
             $checkIn = CheckIn::where('user_id', $user->id)
                 ->whereDate('check_in_date', $today)
                 ->first();
@@ -58,7 +57,7 @@ class CheckInController extends Controller
                 ]);
             }
 
-            // 统计该日期学习数据(按服务端时区统计 created_at/last_review_at，仅作参考)
+            // 统计该日期学习数据（按服务端时区统计 created_at/last_review_at，仅作参考）
             $newWordsCount = UserWord::where('user_id', $user->id)
                 ->whereBetween('created_at', [$todayStart, $todayEnd])
                 ->where('status', '!=', 0)
@@ -83,7 +82,8 @@ class CheckInController extends Controller
                 'check_in' => $checkIn,
             ]);
         } finally {
-            $this->redisLockService->release($lockKey, $lock);
+            // 释放锁
+            Redis::del($lockKey);
         }
     }
 
@@ -125,7 +125,7 @@ class CheckInController extends Controller
     }
 
     /**
-     * 获取最近 365 天的打卡日历(包含今天)
+     * 获取最近 365 天的打卡日历（包含今天）
      */
     public function getCalendarLast365(): JsonResponse
     {
@@ -190,7 +190,7 @@ class CheckInController extends Controller
             ->distinct('word_id')
             ->count('word_id');
 
-        // 总单词数(当前学习的单词书)
+        // 总单词数（当前学习的单词书）
         $setting = \App\Models\Word\UserSetting::where('user_id', $user->id)->first();
         $totalWords = 0;
         $progressPercentage = 0;

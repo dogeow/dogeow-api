@@ -171,6 +171,10 @@ class ChatMessageController extends Controller
             ]);
 
             return $this->success([], 'Message deleted successfully');
+        } catch (AuthorizationException $e) {
+            DB::rollBack();
+
+            return $this->error('You are not authorized to delete this message', [], 403);
         } catch (\Throwable $e) {
             DB::rollBack();
 
