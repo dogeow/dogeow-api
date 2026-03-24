@@ -61,7 +61,8 @@ class ShopController extends Controller
             $result = $this->shopService->buyItem(
                 $character,
                 $request->input('item_id'),
-                $request->input('quantity', 1)
+                $request->input('quantity', 1),
+                $request->input('idempotency_key')
             );
             broadcast(new GameInventoryUpdate($character->id, $this->inventoryService->getInventoryForBroadcast($character)));
 
@@ -81,7 +82,8 @@ class ShopController extends Controller
             $result = $this->shopService->sellItem(
                 $character,
                 $request->input('item_id'),
-                $request->input('quantity', 1)
+                $request->input('quantity', 1),
+                $request->input('idempotency_key')
             );
             broadcast(new GameInventoryUpdate($character->id, $this->inventoryService->getInventoryForBroadcast($character)));
 
