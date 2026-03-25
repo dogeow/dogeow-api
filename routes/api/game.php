@@ -10,8 +10,8 @@ use App\Http\Controllers\Api\Game\ShopController;
 use App\Http\Controllers\Api\Game\SkillController;
 use Illuminate\Support\Facades\Route;
 
-// RPG 游戏路由
-Route::prefix('rpg')->group(function () {
+// RPG 游戏路由 — 需要认证
+Route::prefix('rpg')->middleware('auth:sanctum')->group(function () {
     // 角色相关
     Route::get('/characters', [CharacterController::class, 'index']);
     Route::get('/character', [CharacterController::class, 'show']);

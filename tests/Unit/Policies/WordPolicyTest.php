@@ -26,12 +26,10 @@ class WordPolicyTest extends TestCase
         return $user;
     }
 
-    private function createWord(int $userId): Word
+    private function createWord(): Word
     {
-        $word = new Word;
-        $word->user_id = $userId;
-
-        return $word;
+        // Words are shared dictionary entries without an owner
+        return new Word;
     }
 
     public function test_view_any_returns_true(): void
@@ -43,7 +41,7 @@ class WordPolicyTest extends TestCase
     public function test_view_returns_true(): void
     {
         $user = $this->createUser(1);
-        $word = $this->createWord(999);
+        $word = $this->createWord();
 
         $this->assertTrue($this->policy->view($user, $word));
     }
@@ -54,99 +52,55 @@ class WordPolicyTest extends TestCase
         $this->assertTrue($this->policy->create($user));
     }
 
-    public function test_update_returns_true_for_owner(): void
+    public function test_update_returns_false_for_regular_user(): void
     {
         $user = $this->createUser(1);
-        $word = $this->createWord(1);
+        $word = $this->createWord();
 
-        $this->assertTrue($this->policy->update($user, $word));
-    }
-
-    public function test_update_returns_false_for_non_owner(): void
-    {
-        $user = $this->createUser(1);
-        $word = $this->createWord(999);
-
+        // Only admins can update shared dictionary words
         $this->assertFalse($this->policy->update($user, $word));
-    }
-
-    public function test_delete_returns_true_for_owner(): void
-    {
-        $user = $this->createUser(1);
-        $word = $this->createWord(1);
-
-        $this->assertTrue($this->policy->delete($user, $word));
-    }
-
-    public function test_delete_returns_false_for_non_owner(): void
-    {
-        $user = $this->createUser(1);
-        $word = $this->createWord(999);
-
-        $this->assertFalse($this->policy->delete($user, $word));
-    }
-
-    public function test_review_returns_true_for_owner(): void
-    {
-        $user = $this->createUser(1);
-        $word = $this->createWord(1);
-
-        $this->assertTrue($this->policy->review($user, $word));
-    }
-
-    public function test_review_returns_false_for_non_owner(): void
-    {
-        $user = $this->createUser(1);
-        $word = $this->createWord(999);
-
-        $this->assertFalse($this->policy->review($user, $word));
-    }
-
-    public function test_mark_learned_returns_true_for_owner(): void
-    {
-        $user = $this->createUser(1);
-        $word = $this->createWord(1);
-
-        $this->assertTrue($this->policy->markLearned($user, $word));
-    }
-
-    public function test_mark_learned_returns_false_for_non_owner(): void
-    {
-        $user = $this->createUser(1);
-        $word = $this->createWord(999);
-
-        $this->assertFalse($this->policy->markLearned($user, $word));
     }
 
     public function test_update_returns_true_for_admin(): void
     {
         $admin = $this->createUser(1, true);
-        $word = $this->createWord(999);
+        $word = $this->createWord();
 
         $this->assertTrue($this->policy->update($admin, $word));
+    }
+
+    public function test_delete_returns_false_for_regular_user(): void
+    {
+        $user = $this->createUser(1);
+        $word = $this->createWord();
+
+        // Only admins can delete shared dictionary words
+        $this->assertFalse($this->policy->delete($user, $word));
     }
 
     public function test_delete_returns_true_for_admin(): void
     {
         $admin = $this->createUser(1, true);
-        $word = $this->createWord(999);
+        $word = $this->createWord();
 
         $this->assertTrue($this->policy->delete($admin, $word));
     }
 
-    public function test_review_returns_true_for_admin(): void
+    public function test_review_returns_true_for_any_authenticated_user(): void
     {
-        $admin = $this->createUser(1, true);
-        $word = $this->createWord(999);
+        $user = $this->createUser(1);
+        $word = $this->createWord();
 
-        $this->assertTrue($this->policy->review($admin, $word));
+        // All authenticated users can review words
+        $this->assertTrue($this->policy->review($user, $word));
     }
 
-    public function test_mark_learned_returns_true_for_admin(): void
+    public function test_mark_learned_returns_true_for_any_authenticated_user(): void
     {
-        $admin = $this->createUser(1, true);
-        $word = $this->createWord(999);
+        $user = $this->createUser(1);
+        $word = $this->createWord();
 
-        $this->assertTrue($this->policy->markLearned($admin, $word));
+        // All authenticated users can mark words as learned for themselves
+        $this->assertTrue($this->policy->markLearned($user, $word));
     }
 }

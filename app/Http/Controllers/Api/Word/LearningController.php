@@ -245,6 +245,12 @@ class LearningController extends Controller
     {
         $word = Word::findOrFail($id);
 
+        try {
+            $this->authorize('update', $word);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            return $this->error('Only admins can update shared dictionary words', [], 403);
+        }
+
         $rules = [
             'example_sentences' => 'sometimes|array',
             'example_sentences.*.en' => 'required_with:example_sentences|string',

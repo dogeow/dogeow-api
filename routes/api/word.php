@@ -6,7 +6,8 @@ use App\Http\Controllers\Api\Word\LearningController;
 use App\Http\Controllers\Api\Word\SettingController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('word')->name('word.')->group(function () {
+// 单词学习路由 — 需要认证（所有路由都访问用户数据）
+Route::prefix('word')->name('word.')->middleware('auth:sanctum')->group(function () {
     // 单词书
     Route::get('books', [BookController::class, 'index']);
     Route::get('books/{id}', [BookController::class, 'show']);

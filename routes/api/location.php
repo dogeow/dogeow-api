@@ -6,8 +6,8 @@ use App\Http\Controllers\Api\Thing\LocationSpotController;
 use App\Http\Controllers\Api\Thing\LocationTreeController;
 use Illuminate\Support\Facades\Route;
 
-// 树形结构的位置数据（公开，只返回用户自己的数据）
-Route::get('locations/tree', [LocationTreeController::class, 'tree']);
+// 树形结构的位置数据（需要认证）
+Route::middleware('auth:sanctum')->get('locations/tree', [LocationTreeController::class, 'tree']);
 
 // 区域（需要认证）
 Route::middleware('auth:sanctum')->group(function () {

@@ -3,7 +3,8 @@
 use App\Http\Controllers\Api\RepositoryWatchController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('repo-watch')->group(function () {
+// 仓库关注路由 — 需要认证
+Route::prefix('repo-watch')->middleware('auth:sanctum')->group(function () {
     Route::post('/preview', [RepositoryWatchController::class, 'preview']);
     Route::get('/packages', [RepositoryWatchController::class, 'index']);
     Route::post('/packages', [RepositoryWatchController::class, 'store']);
