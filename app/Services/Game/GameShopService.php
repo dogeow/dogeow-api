@@ -9,7 +9,6 @@ use App\Services\Game\Traits\UsesDistributedLock;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redis;
 
 class GameShopService
 {

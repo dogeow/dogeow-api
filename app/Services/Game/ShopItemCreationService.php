@@ -20,8 +20,6 @@ class ShopItemCreationService
 
     /**
      * Create a potion item for purchase
-     *
-     * @return GameItem
      */
     public function createPotionItem(GameCharacter $character, GameItemDefinition $definition, int $quantity, array $randomStats): GameItem
     {
