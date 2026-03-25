@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Game\GameItemDefinition;
 use App\Models\Game\GameMapDefinition;
 use App\Models\Game\GameMonsterDefinition;
+use App\Models\Game\GameSkillDefinition;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -113,7 +114,7 @@ class GameSeeder extends Seeder
 
             $branchData = $branchMap[$skill['name']] ?? ['branch' => null, 'tier' => 1];
 
-            \App\Models\Game\GameSkillDefinition::updateOrCreate(
+            GameSkillDefinition::updateOrCreate(
                 ['name' => $skill['name']],
                 array_merge($skill, [
                     'type' => $skill['type'],
@@ -140,6 +141,8 @@ class GameSeeder extends Seeder
 
     private function seedMonsterDefinitions(): void
     {
+        DB::table('game_monster_definitions')->truncate();
+
         $monsters = require __DIR__ . '/GameSeederData/monsters.php';
 
         foreach ($monsters as $monster) {

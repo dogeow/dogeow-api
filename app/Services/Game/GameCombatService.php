@@ -2,8 +2,6 @@
 
 namespace App\Services\Game;
 
-use App\Events\Game\GameCombatUpdate;
-use App\Events\Game\GameInventoryUpdate;
 use App\Models\Game\GameCharacter;
 use App\Models\Game\GameMapDefinition;
 use App\Models\Game\GameMonsterDefinition;
@@ -62,7 +60,7 @@ class GameCombatService
                 'current_mana' => $character->getCurrentMana(),
             ],
         ];
-        broadcast(new \App\Events\Game\GameCombatUpdate($character->id, $monstersAppear));
+        $this->broadcaster()->broadcastCombatUpdate($character->id, $monstersAppear);
     }
 
     /**
@@ -320,12 +318,12 @@ class GameCombatService
         ];
 
         // 广播战斗更新
-        broadcast(new GameCombatUpdate($character->id, $result));
+        $this->broadcaster()->broadcastCombatUpdate($character->id, $result);
         $character->refresh();
 
         // 广播背包更新
         $inventoryPayload = $this->inventoryService->getInventoryForBroadcast($character);
-        broadcast(new GameInventoryUpdate($character->id, $inventoryPayload));
+        $this->broadcaster()->broadcastInventoryUpdate($character->id, $inventoryPayload);
 
         return $result;
     }
@@ -423,14 +421,19 @@ class GameCombatService
         ];
 
         // 广播战斗更新
-        broadcast(new GameCombatUpdate($character->id, $result));
+        $this->broadcaster()->broadcastCombatUpdate($character->id, $result);
         $character->refresh();
 
         // 广播背包更新
         $inventoryPayload = $this->inventoryService->getInventoryForBroadcast($character);
-        broadcast(new GameInventoryUpdate($character->id, $inventoryPayload));
+        $this->broadcaster()->broadcastInventoryUpdate($character->id, $inventoryPayload);
 
         return $result;
+    }
+
+    private function broadcaster(): GameCombatBroadcaster
+    {
+        return app(GameCombatBroadcaster::class);
     }
 
     /**

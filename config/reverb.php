@@ -1,5 +1,12 @@
 <?php
 
+$reverbScheme = env('REVERB_SCHEME', 'https');
+$defaultReverbPort = (int) env('REVERB_SERVER_PORT', $reverbScheme === 'https' ? 443 : 80);
+$reverbPortRaw = env('REVERB_PORT');
+$reverbPort = is_numeric($reverbPortRaw) && (int) $reverbPortRaw > 0
+    ? (int) $reverbPortRaw
+    : $defaultReverbPort;
+
 return [
 
     /*
@@ -78,9 +85,9 @@ return [
                 'app_id' => env('REVERB_APP_ID'),
                 'options' => [
                     'host' => env('REVERB_HOST'),
-                    'port' => env('REVERB_PORT', 443),
-                    'scheme' => env('REVERB_SCHEME', 'https'),
-                    'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
+                    'port' => $reverbPort,
+                    'scheme' => $reverbScheme,
+                    'useTLS' => $reverbScheme === 'https',
                 ],
                 'allowed_origins' => ['*'],
                 'ping_interval' => env('REVERB_APP_PING_INTERVAL', 60),

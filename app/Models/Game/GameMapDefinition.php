@@ -15,6 +15,7 @@ class GameMapDefinition extends Model
         'act',
         'monster_ids',
         'background',
+        'icon_prompt',
         'description',
         'is_active',
     ];

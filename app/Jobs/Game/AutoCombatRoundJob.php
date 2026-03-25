@@ -2,8 +2,9 @@
 
 namespace App\Jobs\Game;
 
-use App\Events\Game\GameCombatUpdate;
 use App\Models\Game\GameCharacter;
+use App\Models\Game\GameMapDefinition;
+use App\Services\Game\GameCombatBroadcaster;
 use App\Services\Game\GameCombatService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -94,21 +95,21 @@ class AutoCombatRoundJob implements ShouldQueue
             // 先检查是否需要刷新怪物，如果需要则广播怪物出现
             if ($combatService->shouldRefreshMonsters($character)) {
                 $map = $character->currentMap;
-                if ($map instanceof \App\Models\Game\GameMapDefinition) {
+                if ($map instanceof GameMapDefinition) {
                     $combatService->broadcastMonstersAppear($character, $map);
                 }
             }
 
             // 执行回合前再次从 Redis 读取技能列表，确保用户中途取消/启用技能能立即生效
             $freshPayload = Redis::get($key);
-            if ($freshPayload !== null) {
+            if ($freshPayload !== false) {
                 $freshData = json_decode($freshPayload, true);
                 if (is_array($freshData)) {
                     $latestPayloadData = $freshData;
-                    $freshSkillIds = $freshData['skill_ids'] ?? [];
+                    $freshSkillIds = array_key_exists('skill_ids', $freshData) ? $freshData['skill_ids'] : null;
                     if (is_array($freshSkillIds)) {
                         $skillIds = array_values(array_map('intval', $freshSkillIds));
-                    } elseif ($freshSkillIds === null) {
+                    } else {
                         $skillIds = null;
                     }
                 }
@@ -123,7 +124,7 @@ class AutoCombatRoundJob implements ShouldQueue
             }
 
             // 检查 Redis key 是否仍然存在
-            if (Redis::get($key) !== null) {
+            if (Redis::get($key) !== false) {
                 self::writePayload($key, $latestPayloadData);
                 // 等待 3 秒后再调度下一个 job
                 // 这是一个简单但可靠的方法
@@ -133,9 +134,7 @@ class AutoCombatRoundJob implements ShouldQueue
         } catch (RuntimeException|InvalidArgumentException $e) {
             $this->broadcastAutoStoppedAndCleanup($character, $e, $key);
         } finally {
-            if ($lockAcquired) {
-                $lock->release();
-            }
+            $lock->release();
         }
     }
 
@@ -186,7 +185,7 @@ class AutoCombatRoundJob implements ShouldQueue
                 'combat_log_id' => 0,
             ];
 
-            broadcast(new GameCombatUpdate($character->id, $result));
+            $this->broadcaster()->broadcastCombatUpdate($character->id, $result);
         }
     }
 
@@ -206,5 +205,10 @@ class AutoCombatRoundJob implements ShouldQueue
     private static function writePayload(string $key, array $payload): void
     {
         Redis::setex($key, self::AUTO_COMBAT_TTL, json_encode($payload));
+    }
+
+    private function broadcaster(): GameCombatBroadcaster
+    {
+        return app(GameCombatBroadcaster::class);
     }
 }

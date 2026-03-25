@@ -29,6 +29,7 @@ class GameSkillDefinition extends Model
         'cooldown',
         'icon',
         'effect_key',
+        'icon_prompt',
         'effects',
         'target_type',
         'is_active',

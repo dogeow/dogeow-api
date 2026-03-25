@@ -5,6 +5,7 @@ return [
     [
         'name' => '火球术',
         'effect_key' => 'fireball',
+        'icon_prompt' => 'RPG skill icon, fireball spell, burning orb with flames, mage attack, ember particles, orange glow, detailed magic icon, square, dark background',
         'type' => 'active',
         'class_restriction' => 'mage',
         'mana_cost' => 15,
@@ -16,6 +17,7 @@ return [
     [
         'name' => '冰箭',
         'effect_key' => 'ice-arrow',
+        'icon_prompt' => 'RPG skill icon, ice arrow spell, frozen shard projectile, blue glow, sharp crystalline edges, mage attack icon, square, dark background',
         'type' => 'active',
         'class_restriction' => 'mage',
         'mana_cost' => 5,
@@ -27,6 +29,7 @@ return [
     [
         'name' => '烈焰风暴',
         'effect_key' => 'meteor-storm',
+        'icon_prompt' => 'RPG skill icon, meteor storm, multiple flaming meteors raining from sky, explosive embers, catastrophic mage ultimate, square, dark background',
         'prerequisite_effect_key' => 'fireball',
         'type' => 'active',
         'class_restriction' => 'mage',
@@ -46,6 +49,7 @@ return [
     [
         'name' => '冰霜新星',
         'effect_key' => 'frost-nova',
+        'icon_prompt' => 'RPG skill icon, frost nova, ice blast frozen circle, mage AOE, crystalline ice, cold blue glow, frost particles, square frame, dark background',
         'type' => 'active',
         'class_restriction' => 'mage',
         'mana_cost' => 20,
@@ -58,6 +62,7 @@ return [
     [
         'name' => '冰河世纪',
         'effect_key' => 'ice-age',
+        'icon_prompt' => 'RPG skill icon, ice age, glacial eruption, giant frozen wave, blizzard magic ultimate, icy mist, square, dark background',
         'type' => 'active',
         'class_restriction' => 'mage',
         'branch' => 'ice',
@@ -76,6 +81,7 @@ return [
     [
         'name' => '魔力涌动',
         'effect_key' => 'mana-surge',
+        'icon_prompt' => 'RPG skill icon, mana surge, blue magic flow, passive mana, arcane energy streams, glowing runes, detailed spell icon, square, dark background',
         'type' => 'passive',
         'class_restriction' => 'mage',
         'mana_cost' => 0,
@@ -89,6 +95,7 @@ return [
     [
         'name' => '雷击',
         'effect_key' => 'lightning',
+        'icon_prompt' => 'RPG skill icon, lightning bolt, thunder strike, mage nuke, electric crackle, yellow white flash, dynamic lightning, square frame, dark background',
         'type' => 'active',
         'class_restriction' => 'mage',
         'mana_cost' => 25,
@@ -100,6 +107,7 @@ return [
     [
         'name' => '连锁闪电',
         'effect_key' => 'chain-lightning',
+        'icon_prompt' => 'RPG skill icon, chain lightning, electric arcs jumping between enemies, bright sparks, branching thunder, square frame, dark background',
         'type' => 'active',
         'class_restriction' => 'mage',
         'mana_cost' => 20,
@@ -112,6 +120,7 @@ return [
     [
         'name' => '雷霆万钧',
         'effect_key' => 'thunder-wrath',
+        'icon_prompt' => 'RPG skill icon, thunder wrath, massive storm cloud, divine lightning barrage, overwhelming electric power, square, dark background',
         'type' => 'active',
         'class_restriction' => 'mage',
         'mana_cost' => 60,
@@ -124,6 +133,7 @@ return [
     [
         'name' => '魔法护盾',
         'effect_key' => 'shield',
+        'icon_prompt' => 'RPG skill icon, magic shield, arcane barrier, blue translucent barrier, runes, protective glow, mage defense icon, square, dark background',
         'type' => 'active',
         'class_restriction' => 'mage',
         'mana_cost' => 35,
@@ -138,6 +148,7 @@ return [
     [
         'name' => '奥术智慧',
         'effect_key' => 'arcane-wisdom',
+        'icon_prompt' => 'RPG skill icon, arcane wisdom, glowing book or crystal gem, spell power passive, magical aura, detailed fantasy icon, square frame, dark background',
         'type' => 'passive',
         'class_restriction' => 'mage',
         'mana_cost' => 0,
@@ -151,6 +162,7 @@ return [
     [
         'name' => '陨石术',
         'effect_key' => 'meteor',
+        'icon_prompt' => 'RPG skill icon, meteor fall, falling fire rock, mage ultimate, trailing flames, impact glow, dramatic spell icon, square, dark background',
         'type' => 'active',
         'class_restriction' => 'mage',
         'mana_cost' => 60,

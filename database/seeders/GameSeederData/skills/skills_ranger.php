@@ -5,6 +5,7 @@ return [
     [
         'name' => '穿刺射击',
         'effect_key' => 'pierce',
+        'icon_prompt' => 'RPG skill icon, piercing shot, single arrow with trail, crit shot, ranger, speed lines, sharp focus, square, dark background',
         'type' => 'active',
         'class_restriction' => 'ranger',
         'mana_cost' => 12,
@@ -18,6 +19,7 @@ return [
     [
         'name' => '多重射击',
         'effect_key' => 'multi-shot',
+        'icon_prompt' => 'RPG skill icon, multishot, three arrows fanned, volley ranger, dynamic spread, motion blur, detailed game icon, square frame, dark background',
         'type' => 'active',
         'class_restriction' => 'ranger',
         'mana_cost' => 18,
@@ -30,6 +32,7 @@ return [
     [
         'name' => '疾风步',
         'effect_key' => 'gale-step',
+        'icon_prompt' => 'RPG skill icon, gale step, swift dash with green wind trails, agile ranger movement, afterimage blur, square, dark background',
         'type' => 'active',
         'class_restriction' => 'ranger',
         'mana_cost' => 30,
@@ -41,6 +44,7 @@ return [
     [
         'name' => '鹰眼',
         'effect_key' => 'eagle-eye',
+        'icon_prompt' => 'RPG skill icon, eagle eye, sharp eye symbol, crit passive ranger, piercing gaze, focus aura, detailed design, square, dark background',
         'type' => 'passive',
         'class_restriction' => 'ranger',
         'mana_cost' => 0,
@@ -54,6 +58,7 @@ return [
     [
         'name' => '毒箭',
         'effect_key' => 'poison',
+        'icon_prompt' => 'RPG skill icon, poison arrow, green toxic arrow, DoT venom drip, ranger, poison haze, detailed fantasy icon, square frame, dark background',
         'type' => 'active',
         'class_restriction' => 'ranger',
         'mana_cost' => 15,
@@ -68,6 +73,7 @@ return [
     [
         'name' => '闪避',
         'effect_key' => 'dodge',
+        'icon_prompt' => 'RPG skill icon, dodge evade, shadow step, agility blur, afterimage, swift motion, ranger skill icon, square, dark background',
         'type' => 'active',
         'class_restriction' => 'ranger',
         'mana_cost' => 20,
@@ -82,6 +88,7 @@ return [
     [
         'name' => '致命瞄准',
         'effect_key' => 'deadly-aim',
+        'icon_prompt' => 'RPG skill icon, deadly aim, crosshair target, crit damage passive, precision focus, bullseye glow, detailed icon, square frame, dark background',
         'type' => 'passive',
         'class_restriction' => 'ranger',
         'mana_cost' => 0,
@@ -95,6 +102,7 @@ return [
     [
         'name' => '箭雨',
         'effect_key' => 'arrow-rain',
+        'icon_prompt' => 'RPG skill icon, arrow rain, arrows falling from sky, AOE volley, ranger ultimate, raining projectiles, dramatic composition, square, dark background',
         'type' => 'active',
         'class_restriction' => 'ranger',
         'mana_cost' => 45,
@@ -107,6 +115,7 @@ return [
     [
         'name' => '暗影步',
         'effect_key' => 'shadow-step',
+        'icon_prompt' => 'RPG skill icon, shadow step, blink dagger or backstab, dagger with shadow, stealth aura, detailed game icon, square frame, dark background',
         'type' => 'active',
         'class_restriction' => 'ranger',
         'mana_cost' => 25,

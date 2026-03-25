@@ -5,6 +5,7 @@ return [
     [
         'name' => '重击',
         'effect_key' => 'slash',
+        'icon_prompt' => 'RPG skill icon, heavy strike, sword slash motion blur, warrior attack, metallic gleam, impact lines, detailed game UI icon, square, dark background',
         'type' => 'active',
         'class_restriction' => 'warrior',
         'mana_cost' => 10,
@@ -16,6 +17,7 @@ return [
     [
         'name' => '战吼',
         'effect_key' => 'battle-roar',
+        'icon_prompt' => 'RPG skill icon, battle roar, war cry sound waves, warrior buff, radiating energy, fierce aura, detailed fantasy icon, square frame, dark background',
         'type' => 'active',
         'class_restriction' => 'warrior',
         'mana_cost' => 15,
@@ -30,6 +32,7 @@ return [
     [
         'name' => '铁壁',
         'effect_key' => 'iron-wall',
+        'icon_prompt' => 'RPG skill icon, iron wall shield, defense barrier, metallic texture, sturdy design, passive skill, game icon with depth, square, dark background',
         'type' => 'passive',
         'class_restriction' => 'warrior',
         'mana_cost' => 0,
@@ -43,6 +46,7 @@ return [
     [
         'name' => '冲锋',
         'effect_key' => 'charge',
+        'icon_prompt' => 'RPG skill icon, shield bash charge, armored warrior rushing forward, impact sparks, motion streaks, fantasy combat icon, square, dark background',
         'type' => 'active',
         'class_restriction' => 'warrior',
         'mana_cost' => 10,
@@ -55,6 +59,7 @@ return [
     [
         'name' => '旋风斩',
         'effect_key' => 'whirlwind',
+        'icon_prompt' => 'RPG skill icon, whirlwind slash, spinning sword arc, AOE attack, dynamic motion trail, warrior skill, detailed game art, square, dark background',
         'type' => 'active',
         'class_restriction' => 'warrior',
         'mana_cost' => 25,
@@ -67,6 +72,7 @@ return [
     [
         'name' => '狂暴',
         'effect_key' => 'rage',
+        'icon_prompt' => 'RPG skill icon, berserk rage, red fury flames, warrior buff, intense glow, anger aura, dramatic lighting, square frame, dark background',
         'type' => 'active',
         'class_restriction' => 'warrior',
         'mana_cost' => 40,
@@ -81,6 +87,7 @@ return [
     [
         'name' => '钢铁之躯',
         'effect_key' => 'iron-body',
+        'icon_prompt' => 'RPG skill icon, iron body, armored silhouette, tank passive, metallic sheen, defensive aura, detailed icon design, square, dark background',
         'type' => 'passive',
         'class_restriction' => 'warrior',
         'mana_cost' => 0,
@@ -95,6 +102,7 @@ return [
     [
         'name' => '斩杀',
         'effect_key' => 'execute',
+        'icon_prompt' => 'RPG skill icon, execute finish, sword down strike, execute low HP, decisive blow, impact effect, warrior ultimate feel, square frame, dark background',
         'type' => 'active',
         'class_restriction' => 'warrior',
         'mana_cost' => 30,

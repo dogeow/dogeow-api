@@ -29,6 +29,7 @@ class GameItemDefinition extends Model
         'base_stats',
         'required_level',
         'icon',
+        'icon_prompt',
         'description',
         'is_active',
         'sockets',

@@ -20,6 +20,7 @@ class GameMonsterDefinition extends Model
         'experience_base',
         'drop_table',
         'icon',
+        'icon_prompt',
         'is_active',
     ];
 

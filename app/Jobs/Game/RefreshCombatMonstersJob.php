@@ -2,8 +2,9 @@
 
 namespace App\Jobs\Game;
 
-use App\Events\Game\GameCombatUpdate;
 use App\Models\Game\GameCharacter;
+use App\Models\Game\GameMapDefinition;
+use App\Services\Game\GameCombatBroadcaster;
 use App\Services\Game\GameMonsterService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -25,7 +26,7 @@ class RefreshCombatMonstersJob implements ShouldQueue
         foreach ($characters as $character) {
             if ($monsterService->shouldRefreshMonsters($character)) {
                 $map = $character->currentMap;
-                if (! $map instanceof \App\Models\Game\GameMapDefinition) {
+                if (! $map instanceof GameMapDefinition) {
                     continue;
                 }
 
@@ -42,8 +43,13 @@ class RefreshCombatMonstersJob implements ShouldQueue
                         'current_mana' => $character->getCurrentMana(),
                     ],
                 ];
-                broadcast(new GameCombatUpdate($character->id, $monstersAppear));
+                $this->broadcaster()->broadcastCombatUpdate($character->id, $monstersAppear);
             }
         }
+    }
+
+    private function broadcaster(): GameCombatBroadcaster
+    {
+        return app(GameCombatBroadcaster::class);
     }
 }

@@ -5,6 +5,7 @@ return [
     [
         'name' => '治疗术',
         'effect_key' => 'heal',
+        'icon_prompt' => 'RPG skill icon, heal, holy light green plus, heal spell, radiant glow, restorative aura, warm light, square, dark background',
         'type' => 'active',
         'class_restriction' => 'all',
         'mana_cost' => 20,
@@ -18,6 +19,7 @@ return [
     [
         'name' => '力量强化',
         'effect_key' => 'strength-boost',
+        'icon_prompt' => 'RPG skill icon, strength boost, clenched fist or muscle, passive str, power aura, red orange glow, buff icon with depth, square frame, dark background',
         'type' => 'passive',
         'class_restriction' => 'all',
         'mana_cost' => 0,
@@ -31,6 +33,7 @@ return [
     [
         'name' => '敏捷强化',
         'effect_key' => 'agility-boost',
+        'icon_prompt' => 'RPG skill icon, agility boost, boot or wing, passive dex, speed aura, swift motion lines, detailed icon, square, dark background',
         'type' => 'passive',
         'class_restriction' => 'all',
         'mana_cost' => 0,
@@ -44,6 +47,7 @@ return [
     [
         'name' => '体力强化',
         'effect_key' => 'vitality-boost',
+        'icon_prompt' => 'RPG skill icon, vitality boost, glowing heart, passive vit, life force aura, red pink glow, health buff icon, square frame, dark background',
         'type' => 'passive',
         'class_restriction' => 'all',
         'mana_cost' => 0,
@@ -57,6 +61,7 @@ return [
     [
         'name' => '能量强化',
         'effect_key' => 'energy-boost',
+        'icon_prompt' => 'RPG skill icon, energy boost, sparkle or lightning, passive energy, electric glow, power surge, detailed fantasy icon, square, dark background',
         'type' => 'passive',
         'class_restriction' => 'all',
         'mana_cost' => 0,
@@ -70,6 +75,7 @@ return [
     [
         'name' => '吸血',
         'effect_key' => 'life-steal',
+        'icon_prompt' => 'RPG skill icon, life steal, red vampiric aura, lifedrain passive, blood red glow, soul siphon effect, dramatic icon, square frame, dark background',
         'type' => 'passive',
         'class_restriction' => 'all',
         'mana_cost' => 0,
@@ -83,6 +89,7 @@ return [
     [
         'name' => '回蓝',
         'effect_key' => 'mana-regen',
+        'icon_prompt' => 'RPG skill icon, mana regen, blue droplet or pool, mana recovery passive, serene blue glow, flowing magic, detailed spell icon, square, dark background',
         'type' => 'passive',
         'class_restriction' => 'all',
         'mana_cost' => 0,
@@ -96,6 +103,7 @@ return [
     [
         'name' => 'HP 强化',
         'effect_key' => 'hp-boost',
+        'icon_prompt' => 'RPG skill icon, hp boost, radiant heart crest, maximum health passive, warm crimson glow, sturdy fantasy emblem, square, dark background',
         'type' => 'passive',
         'class_restriction' => 'all',
         'mana_cost' => 0,
@@ -109,6 +117,7 @@ return [
     [
         'name' => 'MP 强化',
         'effect_key' => 'mp-boost',
+        'icon_prompt' => 'RPG skill icon, mp boost, glowing mana orb, maximum mana passive, sapphire aura, arcane energy emblem, square, dark background',
         'type' => 'passive',
         'class_restriction' => 'all',
         'mana_cost' => 0,
