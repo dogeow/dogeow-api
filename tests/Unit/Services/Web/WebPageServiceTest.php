@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services\Web;
 
 use App\Services\Web\WebPageService;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class WebPageServiceTest extends TestCase
@@ -17,21 +18,75 @@ class WebPageServiceTest extends TestCase
 
     public function test_fetch_content_returns_title_and_favicon(): void
     {
-        // TODO: Implement test
+        Http::fake([
+            'https://example.com/*' => Http::response('<html><head><title>Test Page</title></head><body></body></html>', 200),
+        ]);
+
+        $result = $this->service->fetchContent('https://example.com/test');
+
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('title', $result);
+        $this->assertArrayHasKey('favicon', $result);
+        $this->assertSame('Test Page', $result['title']);
     }
 
     public function test_fetch_content_normalizes_http_url(): void
     {
-        // TODO: Implement test
+        Http::fake([
+            'https://example.com/*' => Http::response('<html><head><title>Test</title></head><body></body></html>', 200),
+        ]);
+
+        $result = $this->service->fetchContent('http://example.com/test');
+
+        $this->assertIsArray($result);
     }
 
     public function test_fetch_content_throws_exception_on_failed_request(): void
     {
-        // TODO: Implement test
+        Http::fake([
+            '*' => Http::response('Server Error', 500),
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageMatches('/获取网页失败/');
+
+        $this->service->fetchContent('https://example.com/fail');
     }
 
     public function test_fetch_content_handles_https_url(): void
     {
-        // TODO: Implement test
+        Http::fake([
+            'https://secure.example.com/*' => Http::response('<html><head><title>Secure Page</title></head><body></body></html>', 200),
+        ]);
+
+        $result = $this->service->fetchContent('https://secure.example.com/page');
+
+        $this->assertSame('Secure Page', $result['title']);
+    }
+
+    public function test_fetch_content_throws_exception_on_404(): void
+    {
+        Http::fake([
+            '*' => Http::response('Not Found', 404),
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('获取网页失败: 404');
+
+        $this->service->fetchContent('https://example.com/not-found');
+    }
+
+    public function test_fetch_content_throws_exception_on_timeout(): void
+    {
+        Http::fake([
+            '*' => function () {
+                throw new \Illuminate\Http\Client\ConnectionException('Connection timed out');
+            },
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageMatches('/获取网页失败/');
+
+        $this->service->fetchContent('https://example.com/slow');
     }
 }

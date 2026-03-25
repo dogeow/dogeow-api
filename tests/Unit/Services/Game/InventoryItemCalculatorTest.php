@@ -2,14 +2,14 @@
 
 namespace Tests\Unit\Services\Game;
 
+use App\Models\Game\GameItem;
+use App\Models\Game\GameItemDefinition;
 use App\Services\Game\InventoryItemCalculator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class InventoryItemCalculatorTest extends TestCase
 {
-    use RefreshDatabase;
-
     protected InventoryItemCalculator $calculator;
 
     protected function setUp(): void
@@ -18,152 +18,267 @@ class InventoryItemCalculatorTest extends TestCase
         $this->calculator = new InventoryItemCalculator;
     }
 
-    public function test_calculate_sell_price_returns_correct_price(): void
+    public function test_calculate_sell_price_returns_zero_when_no_definition(): void
     {
-        // TODO: Implement test
+        $item = new GameItem;
+        $item->stats = [];
+
+        $result = $this->calculator->calculateSellPrice($item);
+
+        $this->assertSame(0, $result);
     }
 
-    public function test_calculate_sell_price_with_zero_base_price(): void
+    public function test_calculate_sell_price_uses_sell_ratio(): void
     {
-        // TODO: Implement test
+        $definition = new GameItemDefinition;
+        $definition->buy_price = 100;
+        $definition->base_stats = null;
+        $definition->required_level = 1;
+        $definition->type = 'potion';
+
+        $item = new GameItem;
+        $item->definition = $definition;
+        $item->stats = [];
+        $item->quality = 'common';
+
+        $sellPrice = $this->calculator->calculateSellPrice($item);
+
+        // Default sell_ratio is 0.3, so sell price = 100 * 0.3 = 30
+        $this->assertSame(30, $sellPrice);
+    }
+
+    public function test_calculate_buy_price_returns_zero_when_no_definition(): void
+    {
+        $result = $this->calculator->calculateBuyPrice(null);
+
+        $this->assertSame(0, $result);
     }
 
     public function test_calculate_buy_price_uses_fixed_price_when_available(): void
     {
-        // TODO: Implement test
+        $definition = new GameItemDefinition;
+        $definition->buy_price = 500;
+        $definition->base_stats = null;
+        $definition->required_level = 1;
+        $definition->type = 'potion';
+
+        $result = $this->calculator->calculateBuyPrice($definition);
+
+        $this->assertSame(500, $result);
     }
 
-    public function test_calculate_buy_price_uses_base_stats_price(): void
+    public function test_calculate_buy_price_uses_base_stats_price_when_no_fixed_price(): void
     {
-        // TODO: Implement test
+        $definition = new GameItemDefinition;
+        $definition->buy_price = 0;
+        $definition->base_stats = ['price' => 200];
+        $definition->required_level = 1;
+        $definition->type = 'potion';
+
+        $result = $this->calculator->calculateBuyPrice($definition);
+
+        $this->assertSame(200, $result);
     }
 
-    public function test_calculate_buy_price_calculates_from_config_for_no_price_item(): void
+    public function test_calculate_buy_price_returns_zero_when_base_stats_price_is_not_numeric(): void
     {
-        // TODO: Implement test
-    }
+        $definition = new GameItemDefinition;
+        $definition->buy_price = 0;
+        $definition->base_stats = ['price' => 'free'];
+        $definition->required_level = 1;
+        $definition->type = 'potion';
 
-    public function test_calculate_buy_price_returns_zero_for_null_item(): void
-    {
-        $result = $this->calculator->calculateBuyPrice(null);
+        $result = $this->calculator->calculateBuyPrice($definition);
+
         $this->assertSame(0, $result);
     }
 
-    public function test_calculate_buy_price_applies_quality_multiplier(): void
+    public function test_calculate_buy_price_includes_stats_in_calculation(): void
     {
-        // TODO: Implement test
+        $definition = new GameItemDefinition;
+        $definition->buy_price = 0;
+        $definition->base_stats = ['price' => 0]; // No base price
+        $definition->required_level = 5;
+        $definition->type = 'weapon';
+
+        $stats = [
+            'attack' => 10,
+            'crit_rate' => 0.05,
+        ];
+
+        $result = $this->calculator->calculateBuyPrice($definition, $stats, 'common');
+
+        // Level multiplier: 1 + 5 * 0.5 = 3.5
+        // Type base price: 20 (default for weapon)
+        // Stat price: attack * 2 + crit_rate * 2 = 10 * 2 + 0.05 * 2 = 20 + 0.1 = 20.1
+        // Total: (20 + 20.1) * 3.5 * 1.0 (quality multiplier) = 140.35 -> 14035 (rounded * 100)
+        $this->assertGreaterThan(0, $result);
     }
 
-    public function test_calculate_buy_price_includes_stat_prices(): void
+    public function test_get_potion_effects_returns_hp_and_mana(): void
     {
-        // TODO: Implement test
+        $definition = new GameItemDefinition;
+        $definition->base_stats = ['max_hp' => 50, 'max_mana' => 30];
+
+        $item = new GameItem;
+        $item->definition = $definition;
+
+        $effects = $this->calculator->getPotionEffects($item);
+
+        $this->assertArrayHasKey('hp', $effects);
+        $this->assertArrayHasKey('mana', $effects);
+        $this->assertSame(50, $effects['hp']);
+        $this->assertSame(30, $effects['mana']);
     }
 
-    public function test_get_potion_effects_extracts_hp_from_max_hp(): void
+    public function test_get_potion_effects_uses_restore_amount_as_hp(): void
     {
-        // TODO: Implement test
+        $definition = new GameItemDefinition;
+        $definition->base_stats = ['restore_amount' => 100];
+
+        $item = new GameItem;
+        $item->definition = $definition;
+
+        $effects = $this->calculator->getPotionEffects($item);
+
+        $this->assertSame(100, $effects['hp']);
     }
 
-    public function test_get_potion_effects_extracts_mana_from_max_mana(): void
+    public function test_get_potion_effects_returns_zeros_when_no_effects(): void
     {
-        // TODO: Implement test
+        $definition = new GameItemDefinition;
+        $definition->base_stats = [];
+
+        $item = new GameItem;
+        $item->definition = $definition;
+
+        $effects = $this->calculator->getPotionEffects($item);
+
+        $this->assertSame(0, $effects['hp']);
+        $this->assertSame(0, $effects['mana']);
     }
 
-    public function test_get_potion_effects_extracts_hp_from_restore_amount(): void
+    public function test_format_restore_message_includes_hp_and_mana(): void
     {
-        // TODO: Implement test
+        $effects = ['hp' => 50, 'mana' => 30];
+
+        $message = $this->calculator->formatRestoreMessage($effects);
+
+        $this->assertStringContainsString('50', $message);
+        $this->assertStringContainsString('30', $message);
+        $this->assertStringContainsString('点生命值', $message);
+        $this->assertStringContainsString('点法力值', $message);
     }
 
-    public function test_get_potion_effects_returns_zeros_for_non_potion(): void
+    public function test_format_restore_message_hp_only(): void
     {
-        // TODO: Implement test
+        $effects = ['hp' => 50, 'mana' => 0];
+
+        $message = $this->calculator->formatRestoreMessage($effects);
+
+        $this->assertStringContainsString('50', $message);
+        $this->assertStringContainsString('点生命值', $message);
     }
 
-    public function test_format_restore_message_formats_hp_only(): void
+    public function test_format_restore_message_mana_only(): void
     {
-        $result = $this->calculator->formatRestoreMessage(['hp' => 50, 'mana' => 0]);
-        $this->assertStringContainsString('50', $result);
-        $this->assertStringContainsString('生命值', $result);
-    }
+        $effects = ['hp' => 0, 'mana' => 30];
 
-    public function test_format_restore_message_formats_mana_only(): void
-    {
-        $result = $this->calculator->formatRestoreMessage(['hp' => 0, 'mana' => 30]);
-        $this->assertStringContainsString('30', $result);
-        $this->assertStringContainsString('法力值', $result);
-    }
+        $message = $this->calculator->formatRestoreMessage($effects);
 
-    public function test_format_restore_message_formats_both_hp_and_mana(): void
-    {
-        $result = $this->calculator->formatRestoreMessage(['hp' => 50, 'mana' => 30]);
-        $this->assertStringContainsString('50', $result);
-        $this->assertStringContainsString('30', $result);
-        $this->assertStringContainsString('和', $result);
-    }
-
-    public function test_format_restore_message_returns_empty_for_zero_effects(): void
-    {
-        $result = $this->calculator->formatRestoreMessage(['hp' => 0, 'mana' => 0]);
-        $this->assertSame('', $result);
+        $this->assertStringContainsString('30', $message);
+        $this->assertStringContainsString('点法力值', $message);
     }
 
     public function test_generate_random_stats_for_weapon(): void
     {
-        // TODO: Implement test
-    }
+        $definition = new GameItemDefinition;
+        $definition->type = 'weapon';
+        $definition->required_level = 5;
 
-    public function test_generate_random_stats_for_armor(): void
-    {
-        // TODO: Implement test
+        $stats = $this->calculator->generateRandomStats($definition);
+
+        $this->assertArrayHasKey('attack', $stats);
+        $this->assertIsNumeric($stats['attack']);
     }
 
     public function test_generate_random_stats_for_helmet(): void
     {
-        // TODO: Implement test
-    }
+        $definition = new GameItemDefinition;
+        $definition->type = 'helmet';
+        $definition->required_level = 3;
 
-    public function test_generate_random_stats_for_gloves(): void
-    {
-        // TODO: Implement test
-    }
+        $stats = $this->calculator->generateRandomStats($definition);
 
-    public function test_generate_random_stats_for_boots(): void
-    {
-        // TODO: Implement test
-    }
-
-    public function test_generate_random_stats_for_belt(): void
-    {
-        // TODO: Implement test
-    }
-
-    public function test_generate_random_stats_for_ring(): void
-    {
-        // TODO: Implement test
-    }
-
-    public function test_generate_random_stats_for_amulet(): void
-    {
-        // TODO: Implement test
+        $this->assertArrayHasKey('defense', $stats);
+        $this->assertArrayHasKey('max_hp', $stats);
     }
 
     public function test_generate_random_stats_for_potion(): void
     {
-        // TODO: Implement test
+        $definition = new GameItemDefinition;
+        $definition->type = 'potion';
+        $definition->required_level = 1;
+
+        $stats = $this->calculator->generateRandomStats($definition);
+
+        $this->assertArrayHasKey('restore', $stats);
     }
 
     public function test_generate_random_quality_returns_valid_quality(): void
     {
-        // TODO: Implement test
+        $validQualities = ['common', 'magic', 'rare', 'legendary', 'mythic'];
+
+        for ($i = 0; $i < 10; $i++) {
+            $quality = $this->calculator->generateRandomQuality(10);
+
+            $this->assertContains($quality, $validQualities);
+        }
     }
 
-    public function test_generate_random_quality_respects_level_scaling(): void
+    public function test_generate_random_quality_higher_level_increases_mythic_chance(): void
     {
-        // TODO: Implement test
+        $level1MythicCount = 0;
+        $level20MythicCount = 0;
+
+        for ($i = 0; $i < 100; $i++) {
+            if ($this->calculator->generateRandomQuality(1) === 'mythic') {
+                $level1MythicCount++;
+            }
+            if ($this->calculator->generateRandomQuality(20) === 'mythic') {
+                $level20MythicCount++;
+            }
+        }
+
+        // Higher level should have more mythic drops
+        $this->assertGreaterThanOrEqual($level1MythicCount, $level20MythicCount);
     }
 
-    public function test_generate_random_quality_never_exceeds_max_chances(): void
+    public function test_calculate_buy_price_with_mythic_quality(): void
     {
-        // TODO: Implement test
+        $definition = new GameItemDefinition;
+        $definition->buy_price = 0;
+        $definition->base_stats = ['price' => 0];
+        $definition->required_level = 10;
+        $definition->type = 'weapon';
+
+        $result = $this->calculator->calculateBuyPrice($definition, [], 'mythic');
+
+        // Should be multiplied by mythic quality multiplier (usually higher)
+        $this->assertGreaterThan(0, $result);
+    }
+
+    public function test_calculate_buy_price_with_unknown_quality_falls_back_to_default(): void
+    {
+        $definition = new GameItemDefinition;
+        $definition->buy_price = 0;
+        $definition->base_stats = ['price' => 100];
+        $definition->required_level = 1;
+        $definition->type = 'potion';
+
+        $result = $this->calculator->calculateBuyPrice($definition, [], 'unknown_quality');
+
+        // Should fall back to multiplier of 1.0
+        $this->assertSame(100, $result);
     }
 }

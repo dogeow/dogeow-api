@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services\SystemStatus;
 
 use App\Services\SystemStatus\DatabaseStatusChecker;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class DatabaseStatusCheckerTest extends TestCase
@@ -21,15 +22,47 @@ class DatabaseStatusCheckerTest extends TestCase
 
         $this->assertSame('online', $result['status']);
         $this->assertArrayHasKey('response_time', $result);
+        $this->assertIsFloat($result['response_time']);
+        $this->assertGreaterThanOrEqual(0, $result['response_time']);
     }
 
     public function test_check_returns_error_on_connection_failure(): void
     {
-        // TODO: Implement test
+        // Mock a database connection failure by using a bad connection name
+        DB.shouldReceive('connection')
+            ->once()
+            ->andThrow(new \PDOException('Connection refused'));
+
+        $result = $this->checker->check();
+
+        $this->assertSame('error', $result['status']);
+        $this->assertStringContainsString('数据库连接失败', $result['details']);
     }
 
     public function test_check_includes_response_time(): void
     {
-        // TODO: Implement test
+        $result = $this->checker->check();
+
+        $this->assertArrayHasKey('response_time', $result);
+        $this->assertArrayHasKey('details', $result);
+        $this->assertStringContainsString('ms', $result['details']);
+    }
+
+    public function test_check_returns_online_when_pdo_available(): void
+    {
+        $result = $this->checker->check();
+
+        $this->assertSame('online', $result['status']);
+        $this->assertSame('online', $result['status']);
+    }
+
+    public function test_check_response_time_is_reasonable(): void
+    {
+        $result = $this->checker->check();
+
+        // Response time should be a positive number with 2 decimal places
+        $this->assertIsFloat($result['response_time']);
+        $this->assertGreaterThan(0, $result['response_time']);
+        $this->assertLessThan(60000, $result['response_time']); // Should be under 60 seconds
     }
 }
