@@ -48,11 +48,32 @@ class SchedulerStatusCheckerTest extends TestCase
 
     public function test_check_includes_last_run_timestamp(): void
     {
-        // TODO: Implement test
+        $heartbeatTime = Carbon::now()->subSeconds(30)->toDateTimeString();
+        Cache::put('scheduler:heartbeat', $heartbeatTime);
+
+        $result = $this->checker->check();
+
+        $this->assertArrayHasKey('last_run', $result);
+        $this->assertNotNull($result['last_run']);
     }
 
     public function test_check_returns_error_on_exception(): void
     {
-        // TODO: Implement test
+        Cache::put('scheduler:heartbeat', 'invalid-date-format-xyz');
+
+        $result = $this->checker->check();
+
+        $this->assertSame('error', $result['status']);
+        $this->assertStringContainsString('调度器状态检查失败', $result['details']);
+    }
+
+    public function test_check_online_includes_human_readable_details(): void
+    {
+        Cache::put('scheduler:heartbeat', Carbon::now()->subSeconds(5)->toDateTimeString());
+
+        $result = $this->checker->check();
+
+        $this->assertSame('online', $result['status']);
+        $this->assertStringContainsString('上次运行', $result['details']);
     }
 }
