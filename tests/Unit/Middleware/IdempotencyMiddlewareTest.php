@@ -277,4 +277,177 @@ class IdempotencyMiddlewareTest extends TestCase
         $this->assertEquals('/redirected', $response2->headers->get('Location'));
         $this->assertTrue($response2->headers->has('X-Idempotent-Replay'));
     }
+
+    public function test_concurrent_request_returns_409_when_another_is_processing(): void
+    {
+        // Simulate a processing marker left in Redis (e.g., first request is mid-flight)
+        $request1 = new Request;
+        $request1->setMethod('POST');
+        $request1->headers->set('X-Idempotency-Key', 'concurrent-key');
+        $request1->server->set('REQUEST_URI', '/api/test');
+        $request1->server->set('PATH_INFO', '/api/test');
+
+        // Manually set a processing marker (simulating mid-flight state)
+        $redis = Redis::connection();
+        $cacheKey = $this->buildCacheKeyForTest($request1, 'concurrent-key');
+        $redis->setex($cacheKey . ':processing', 60, '1');
+
+        try {
+            $response = $this->middleware->handle($request1, function ($req) {
+                return new Response('should-not-be-seen', 201);
+            });
+
+            // Should return 409 Conflict instead of processing the request
+            $this->assertEquals(409, $response->getStatusCode());
+            $responseData = json_decode($response->getContent(), true);
+            $this->assertStringContainsString('正在处理中', $responseData['message']);
+        } finally {
+            $redis->del($cacheKey . ':processing');
+        }
+    }
+
+    public function test_returns_cached_response_after_first_completes_with_replay_header(): void
+    {
+        $request1 = new Request;
+        $request1->setMethod('POST');
+        $request1->headers->set('X-Idempotency-Key', 'completion-key');
+        $request1->server->set('REQUEST_URI', '/api/test');
+        $request1->server->set('PATH_INFO', '/api/test');
+
+        $response1 = $this->middleware->handle($request1, function ($req) {
+            return new Response('first-response', 201);
+        });
+
+        $this->assertEquals(201, $response1->getStatusCode());
+        $this->assertFalse($response1->headers->has('X-Idempotent-Replay'));
+
+        // Second request should return cached response with X-Idempotent-Replay header
+        $request2 = new Request;
+        $request2->setMethod('POST');
+        $request2->headers->set('X-Idempotency-Key', 'completion-key');
+        $request2->server->set('REQUEST_URI', '/api/test');
+        $request2->server->set('PATH_INFO', '/api/test');
+
+        $response2 = $this->middleware->handle($request2, function ($req) {
+            return new Response('should-not-be-seen', 201);
+        });
+
+        $this->assertEquals(201, $response2->getStatusCode());
+        $this->assertEquals('first-response', $response2->getContent());
+        $this->assertTrue($response2->headers->has('X-Idempotent-Replay'));
+        $this->assertEquals('true', $response2->headers->get('X-Idempotent-Replay'));
+    }
+
+    public function test_processing_marker_is_cleaned_up_after_request_completes(): void
+    {
+        $request = new Request;
+        $request->setMethod('POST');
+        $request->headers->set('X-Idempotency-Key', 'cleanup-key');
+        $request->server->set('REQUEST_URI', '/api/test');
+        $request->server->set('PATH_INFO', '/api/test');
+
+        $redis = Redis::connection();
+        $cacheKey = $this->buildCacheKeyForTest($request, 'cleanup-key');
+        $processingKey = $cacheKey . ':processing';
+
+        $this->middleware->handle($request, function ($req) {
+            return new Response('done', 201);
+        });
+
+        // Processing marker should be cleaned up
+        $this->assertFalse($redis->exists($processingKey) > 0);
+    }
+
+    public function test_processing_marker_is_cleaned_up_when_handler_throws(): void
+    {
+        $request = new Request;
+        $request->setMethod('POST');
+        $request->headers->set('X-Idempotency-Key', 'error-cleanup-key');
+        $request->server->set('REQUEST_URI', '/api/test');
+        $request->server->set('PATH_INFO', '/api/test');
+
+        $redis = Redis::connection();
+        $cacheKey = $this->buildCacheKeyForTest($request, 'error-cleanup-key');
+        $processingKey = $cacheKey . ':processing';
+
+        try {
+            $this->middleware->handle($request, function ($req) {
+                throw new \RuntimeException('Simulated failure');
+            });
+        } catch (\RuntimeException $e) {
+            // Expected
+        }
+
+        // Processing marker should still be cleaned up even after exception
+        $this->assertFalse($redis->exists($processingKey) > 0);
+    }
+
+    public function test_failed_responses_are_not_cached(): void
+    {
+        $request1 = new Request;
+        $request1->setMethod('POST');
+        $request1->headers->set('X-Idempotency-Key', 'fail-nocache-key');
+        $request1->server->set('REQUEST_URI', '/api/test');
+        $request1->server->set('PATH_INFO', '/api/test');
+
+        try {
+            $this->middleware->handle($request1, function ($req) {
+                return new Response('error', 500);
+            });
+        } catch (\Throwable $e) {
+            // May throw – we just want to verify the response wasn't cached
+        }
+
+        // Second request with same key should re-process (not hit cache)
+        $request2 = new Request;
+        $request2->setMethod('POST');
+        $request2->headers->set('X-Idempotency-Key', 'fail-nocache-key');
+        $request2->server->set('REQUEST_URI', '/api/test');
+        $request2->server->set('PATH_INFO', '/api/test');
+
+        $reachedHandler = false;
+        $this->middleware->handle($request2, function ($req) use (&$reachedHandler) {
+            $reachedHandler = true;
+
+            return new Response('retry-success', 200);
+        });
+
+        $this->assertTrue($reachedHandler, 'Failed first request should not cache, second should reach handler');
+    }
+
+    public function test_response_cached_under_correct_response_suffix_key(): void
+    {
+        $request1 = new Request;
+        $request1->setMethod('POST');
+        $request1->headers->set('X-Idempotency-Key', 'suffix-key');
+        $request1->server->set('REQUEST_URI', '/api/test');
+        $request1->server->set('PATH_INFO', '/api/test');
+
+        $this->middleware->handle($request1, function ($req) {
+            return new Response('cached-content', 200);
+        });
+
+        // Verify response is stored under :response suffix key (not just idempotency key)
+        $redis = Redis::connection();
+        $cacheKey = $this->buildCacheKeyForTest($request1, 'suffix-key');
+        $responseKey = $cacheKey . ':response';
+
+        $stored = $redis->get($responseKey);
+        $this->assertNotNull($stored);
+
+        $decoded = json_decode($stored, true);
+        $this->assertEquals(200, $decoded['status']);
+        $this->assertEquals('cached-content', $decoded['content']);
+    }
+
+    /**
+     * Build cache key the same way the middleware does (for test setup).
+     */
+    private function buildCacheKeyForTest(Request $request, string $idempotencyKey): string
+    {
+        $prefix = 'idempotency:';
+        $requestIdentifier = md5($request->path() . ':' . $request->method());
+
+        return $prefix . $requestIdentifier . ':' . $idempotencyKey;
+    }
 }

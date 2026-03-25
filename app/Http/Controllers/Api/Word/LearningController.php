@@ -146,6 +146,8 @@ class LearningController extends Controller
 
     /**
      * 标记为简单词(已会，不再出现在每日新词和复习中)
+     *
+     * 使用事务确保查询/创建用户单词记录和更新状态操作的原子性。
      */
     public function markWordAsSimple(int $id): JsonResponse
     {
@@ -158,22 +160,24 @@ class LearningController extends Controller
             return $this->error('请先选择单词书', [], 422);
         }
 
-        $userWord = UserWord::firstOrCreate(
-            [
-                'user_id' => $user->id,
-                'word_id' => $word->id,
-                'word_book_id' => $bookId,
-            ],
-            [
-                'status' => 4, // 简单词
-                'stage' => 0,
-                'ease_factor' => 2.50,
-            ]
-        );
+        DB::transaction(function () use ($user, $word, $bookId): void {
+            $userWord = UserWord::firstOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'word_id' => $word->id,
+                    'word_book_id' => $bookId,
+                ],
+                [
+                    'status' => 4, // 简单词
+                    'stage' => 0,
+                    'ease_factor' => 2.50,
+                ]
+            );
 
-        $userWord->status = 4;
-        $userWord->next_review_at = null; // 永不进入复习
-        $userWord->save();
+            $userWord->status = 4;
+            $userWord->next_review_at = null; // 永不进入复习
+            $userWord->save();
+        });
 
         return $this->success([], '已设为简单词');
     }
