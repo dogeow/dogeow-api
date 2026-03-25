@@ -67,9 +67,10 @@ trait UsesDistributedLock
         int $idempotencyTtlSeconds = 86400
     ): mixed {
         $idempotencyCacheKey = $this->getIdempotencyCacheKey($characterId, $operation, $idempotencyKey);
+        $processingLockKey = $idempotencyCacheKey . ':processing';
 
-        // Use SET NX atomic operation - if key doesn't exist, set it and return true (got lock)
-        $acquired = Redis::set($idempotencyCacheKey, 'processing', 'EX', $idempotencyTtlSeconds, 'NX');
+        // Use SET NX atomic operation for processing lock - if key doesn't exist, set it and return true (got lock)
+        $acquired = Redis::set($processingLockKey, '1', 'EX', $lockTimeoutSeconds, 'NX');
 
         if (! $acquired) {
             // Check if there's a cached result (completed request)
@@ -91,13 +92,14 @@ trait UsesDistributedLock
 
             $result = $callback();
 
-            // Cache the result for idempotency
+            // Cache the result for idempotency (use a separate key for result to avoid race with processing lock)
             $this->cacheIdempotencyResult($characterId, $operation, $idempotencyKey, $result, $idempotencyTtlSeconds);
 
             return $result;
         } finally {
-            // Clean up processing marker
-            Redis::del($idempotencyCacheKey);
+            // Clean up processing lock only, NOT the result cache key
+            // The result cache has its own TTL and should persist for idempotency
+            Redis::del($processingLockKey);
         }
     }
 

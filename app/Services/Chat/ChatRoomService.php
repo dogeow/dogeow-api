@@ -6,14 +6,20 @@ use App\Models\Chat\ChatMessage;
 use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
+use App\Services\Game\Traits\UsesDistributedLock;
 use Dogeow\PhpHelpers\CharLength;
 use Illuminate\Support\Facades\DB;
 
 class ChatRoomService
 {
+    use UsesDistributedLock;
+
     protected ChatMessageService $messageService;
 
     protected ChatCacheService $cacheService;
+
+    /** 聊天室操作分布式锁超时时间（秒） */
+    private const CHAT_LOCK_TIMEOUT_SECONDS = 10;
 
     public function __construct(
         ChatMessageService $messageService,
@@ -97,6 +103,19 @@ class ChatRoomService
             ];
         }
 
+        // Use distributed lock to prevent race condition on room name
+        return $this->executeWithDistributedLock(
+            lockKey: 'chat:room:create:' . $validation['sanitized_data']['name'],
+            callback: fn () => $this->performCreateRoom($validation, $createdBy),
+            timeoutSeconds: self::CHAT_LOCK_TIMEOUT_SECONDS,
+        );
+    }
+
+    /**
+     * Perform the actual room creation inside lock
+     */
+    private function performCreateRoom(array $validation, int $createdBy): array
+    {
         try {
             $room = DB::transaction(function () use ($validation, $createdBy) {
                 // Check for duplicate room name inside transaction to prevent race conditions
@@ -256,6 +275,29 @@ class ChatRoomService
             return [
                 'success' => false,
                 'errors' => $validation['errors'],
+            ];
+        }
+
+        // Use distributed lock to prevent race condition on room name
+        // Lock on both current name and new name to handle name changes
+        $lockKey = 'chat:room:update:' . ($room ? $room->name : '') . ':' . $validation['sanitized_data']['name'];
+
+        return $this->executeWithDistributedLock(
+            lockKey: $lockKey,
+            callback: fn () => $this->performUpdateRoom($room, $roomId, $validation, $userId),
+            timeoutSeconds: self::CHAT_LOCK_TIMEOUT_SECONDS,
+        );
+    }
+
+    /**
+     * Perform the actual room update inside lock
+     */
+    private function performUpdateRoom(?ChatRoom $room, int $roomId, array $validation, int $userId): array
+    {
+        if (! $room) {
+            return [
+                'success' => false,
+                'errors' => ['Room not found'],
             ];
         }
 

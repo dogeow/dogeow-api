@@ -314,16 +314,32 @@ class GameInventoryService
      */
     public function moveItem(GameCharacter $character, int $itemId, bool $toStorage, ?int $slotIndex = null): array
     {
-        $item = $this->findItem($character, $itemId, false);
-        $this->checkStorageSpace($character, $toStorage);
+        return $this->executeWithDistributedLock(
+            lockKey: 'game:inventory:move:' . $character->id . ':' . $itemId,
+            callback: fn () => $this->performMoveItem($character, $itemId, $toStorage, $slotIndex),
+            timeoutSeconds: self::ITEM_LOCK_TIMEOUT,
+        );
+    }
 
-        $item->is_in_storage = $toStorage;
-        $item->slot_index = $slotIndex ?? $this->findEmptySlot($character, $toStorage);
-        $item->save();
+    /**
+     * 执行移动物品逻辑
+     *
+     * @return array{item: GameItem}
+     */
+    private function performMoveItem(GameCharacter $character, int $itemId, bool $toStorage, ?int $slotIndex): array
+    {
+        return DB::transaction(function () use ($character, $itemId, $toStorage, $slotIndex) {
+            $item = $this->findItem($character, $itemId, false);
+            $this->checkStorageSpace($character, $toStorage);
 
-        $this->clearInventoryCache($character->id);
+            $item->is_in_storage = $toStorage;
+            $item->slot_index = $slotIndex ?? $this->findEmptySlot($character, $toStorage);
+            $item->save();
 
-        return ['item' => $item];
+            $this->clearInventoryCache($character->id);
+
+            return ['item' => $item];
+        });
     }
 
     /**

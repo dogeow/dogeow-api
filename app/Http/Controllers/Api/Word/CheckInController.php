@@ -8,6 +8,7 @@ use App\Models\Word\UserWord;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 
 class CheckInController extends Controller
@@ -45,42 +46,44 @@ class CheckInController extends Controller
         }
 
         try {
-            // 检查该日期是否已打卡（双重检查，加锁后再次确认）
-            $checkIn = CheckIn::where('user_id', $user->id)
-                ->whereDate('check_in_date', $today)
-                ->first();
+            return DB::transaction(function () use ($user, $today, $todayStart, $todayEnd) {
+                // 检查该日期是否已打卡（双重检查，加锁后再次确认）
+                $checkIn = CheckIn::where('user_id', $user->id)
+                    ->whereDate('check_in_date', $today)
+                    ->first();
 
-            if ($checkIn) {
+                if ($checkIn) {
+                    return response()->json([
+                        'message' => '今天已经打卡过了',
+                        'check_in' => $checkIn,
+                    ]);
+                }
+
+                // 统计该日期学习数据（按服务端时区统计 created_at/last_review_at，仅作参考）
+                $newWordsCount = UserWord::where('user_id', $user->id)
+                    ->whereBetween('created_at', [$todayStart, $todayEnd])
+                    ->where('status', '!=', 0)
+                    ->count();
+
+                $reviewWordsCount = UserWord::where('user_id', $user->id)
+                    ->whereBetween('last_review_at', [$todayStart, $todayEnd])
+                    ->where('status', '!=', 0)
+                    ->count();
+
+                // 创建打卡记录
+                $checkIn = CheckIn::create([
+                    'user_id' => $user->id,
+                    'check_in_date' => $today,
+                    'new_words_count' => $newWordsCount,
+                    'review_words_count' => $reviewWordsCount,
+                    'study_duration' => 0, // 前端可以传入学习时长
+                ]);
+
                 return response()->json([
-                    'message' => '今天已经打卡过了',
+                    'message' => '打卡成功',
                     'check_in' => $checkIn,
                 ]);
-            }
-
-            // 统计该日期学习数据（按服务端时区统计 created_at/last_review_at，仅作参考）
-            $newWordsCount = UserWord::where('user_id', $user->id)
-                ->whereBetween('created_at', [$todayStart, $todayEnd])
-                ->where('status', '!=', 0)
-                ->count();
-
-            $reviewWordsCount = UserWord::where('user_id', $user->id)
-                ->whereBetween('last_review_at', [$todayStart, $todayEnd])
-                ->where('status', '!=', 0)
-                ->count();
-
-            // 创建打卡记录
-            $checkIn = CheckIn::create([
-                'user_id' => $user->id,
-                'check_in_date' => $today,
-                'new_words_count' => $newWordsCount,
-                'review_words_count' => $reviewWordsCount,
-                'study_duration' => 0, // 前端可以传入学习时长
-            ]);
-
-            return response()->json([
-                'message' => '打卡成功',
-                'check_in' => $checkIn,
-            ]);
+            });
         } finally {
             // 释放锁
             Redis::del($lockKey);

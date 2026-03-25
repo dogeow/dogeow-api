@@ -50,16 +50,35 @@ class GameShopService
      */
     public function refreshShop(GameCharacter $character): array
     {
-        if ($character->copper < self::REFRESH_COST_COPPER) {
-            throw new \InvalidArgumentException('货币不足，强制刷新需要 1 银币');
-        }
+        return $this->executeWithDistributedLock(
+            lockKey: 'shop:lock:refresh:' . $character->id,
+            callback: fn () => $this->performRefreshShop($character),
+            timeoutSeconds: self::SHOP_LOCK_TIMEOUT_SECONDS,
+        );
+    }
 
-        $character->copper -= self::REFRESH_COST_COPPER;
-        $character->save();
+    /**
+     * 执行刷新商店逻辑
+     *
+     * @return array{items: Collection<int, array<string,mixed>>, player_copper: int, next_refresh_at: int}
+     */
+    private function performRefreshShop(GameCharacter $character): array
+    {
+        return DB::transaction(function () use ($character) {
+            // Reload character to get latest copper balance within transaction
+            $character->refresh();
 
-        $this->clearShopCache($character);
+            if ($character->copper < self::REFRESH_COST_COPPER) {
+                throw new \InvalidArgumentException('货币不足，强制刷新需要 1 银币');
+            }
 
-        return $this->getShopItems($character);
+            $character->copper -= self::REFRESH_COST_COPPER;
+            $character->save();
+
+            $this->clearShopCache($character);
+
+            return $this->getShopItems($character);
+        });
     }
 
     /**
