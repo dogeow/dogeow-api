@@ -96,7 +96,7 @@ class User extends Authenticatable
     {
         return match ($role) {
             'admin' => $this->isAdmin(),
-            'moderator' => $this->isAdmin(), // TODO: implement proper moderator role
+            'moderator' => false, // TODO: implement proper moderator role
             default => false,
         };
     }

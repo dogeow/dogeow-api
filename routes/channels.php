@@ -8,11 +8,15 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 
 // 聊天房间频道，用于实时消息通信
 Broadcast::channel('chat.room.{roomId}', function ($user, $roomId) {
-    return [
+    $inRoom = \App\Models\Chat\ChatRoomUser::where('room_id', $roomId)
+        ->where('user_id', $user->id)
+        ->exists();
+
+    return $inRoom ? [
         'id' => $user->id,
         'name' => $user->name,
         'email' => $user->email,
-    ];
+    ] : false;
 });
 
 // 聊天房间「输入中」私有频道，用于 client event (whisper)
@@ -26,12 +30,16 @@ Broadcast::channel('chat.room.{roomId}.typing', function ($user, $roomId) {
 
 // 聊天房间的 presence 频道，用于实时跟踪在线用户状态
 Broadcast::channel('chat.room.{roomId}.presence', function ($user, $roomId) {
-    return [
+    $inRoom = \App\Models\Chat\ChatRoomUser::where('room_id', $roomId)
+        ->where('user_id', $user->id)
+        ->exists();
+
+    return $inRoom ? [
         'id' => $user->id,
         'name' => $user->name,
         'email' => $user->email,
         'avatar' => $user->avatar ?? null,
-    ];
+    ] : false;
 });
 
 // 用户私有频道，用于发送通知

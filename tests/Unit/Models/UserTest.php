@@ -104,8 +104,8 @@ class UserTest extends TestCase
         $this->assertTrue($adminUser->hasRole('admin'));
         $this->assertFalse($regularUser->hasRole('admin'));
 
-        // Test moderator role (currently same as admin)
-        $this->assertTrue($adminUser->hasRole('moderator'));
+        // Test moderator role (not implemented yet, returns false for all users)
+        $this->assertFalse($adminUser->hasRole('moderator'));
         $this->assertFalse($regularUser->hasRole('moderator'));
 
         // Test unknown role
