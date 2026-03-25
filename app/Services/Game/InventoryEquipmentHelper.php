@@ -68,17 +68,18 @@ class InventoryEquipmentHelper
 
     /**
      * 如果需要则卸下装备
+     *
+     * @param  callable(int): ?int  $findEmptySlotCallback  Callback to find empty slot
      */
-    public function handleUnequipIfNeeded(GameCharacter $character, GameEquipment $equipmentSlot): ?GameItem
+    public function handleUnequipIfNeeded(GameCharacter $character, GameEquipment $equipmentSlot, callable $findEmptySlotCallback): ?GameItem
     {
         $oldItem = null;
 
         if ($equipmentSlot->item_id) {
             $oldItem = GameItem::find($equipmentSlot->item_id);
             if ($oldItem) {
-                $inventoryService = new GameInventoryService;
                 $oldItem->is_equipped = false;
-                $oldItem->slot_index = $inventoryService->findEmptySlot($character, false);
+                $oldItem->slot_index = $findEmptySlotCallback($character->id);
                 $oldItem->save();
             }
         }

@@ -15,13 +15,15 @@ use App\Models\Game\GameItemDefinition;
 class ShopItemCreationService
 {
     public function __construct(
-        private InventoryItemCalculator $itemCalculator = new InventoryItemCalculator
+        private readonly InventoryItemCalculator $itemCalculator
     ) {}
 
     /**
      * Create a potion item for purchase
+     *
+     * @param  callable(int): ?int  $findEmptySlotCallback  Callback to find empty slot
      */
-    public function createPotionItem(GameCharacter $character, GameItemDefinition $definition, int $quantity, array $randomStats): GameItem
+    public function createPotionItem(GameCharacter $character, GameItemDefinition $definition, int $quantity, array $randomStats, callable $findEmptySlotCallback): GameItem
     {
         $tempItem = new GameItem([
             'character_id' => $character->id,
@@ -34,8 +36,6 @@ class ShopItemCreationService
         ]);
         $sellPrice = $this->itemCalculator->calculateSellPrice($tempItem);
 
-        $inventoryService = new GameInventoryService;
-
         return GameItem::create([
             'character_id' => $character->id,
             'definition_id' => $definition->id,
@@ -44,7 +44,7 @@ class ShopItemCreationService
             'affixes' => [],
             'is_in_storage' => false,
             'quantity' => $quantity,
-            'slot_index' => $inventoryService->findEmptySlot($character, false),
+            'slot_index' => $findEmptySlotCallback($character->id),
             'sell_price' => $sellPrice,
         ]);
     }
@@ -52,9 +52,10 @@ class ShopItemCreationService
     /**
      * Create an equipment item for purchase
      *
+     * @param  callable(int): ?int  $findEmptySlotCallback  Callback to find empty slot
      * @return array<int, GameItem>
      */
-    public function createEquipmentItems(GameCharacter $character, GameItemDefinition $definition, int $quantity, array $randomStats): array
+    public function createEquipmentItems(GameCharacter $character, GameItemDefinition $definition, int $quantity, array $randomStats, callable $findEmptySlotCallback): array
     {
         $tempItem = new GameItem([
             'character_id' => $character->id,
@@ -66,8 +67,6 @@ class ShopItemCreationService
             'quantity' => 1,
         ]);
         $sellPrice = $this->itemCalculator->calculateSellPrice($tempItem);
-
-        $inventoryService = new GameInventoryService;
         $createdItems = [];
 
         for ($i = 0; $i < $quantity; $i++) {
@@ -79,7 +78,7 @@ class ShopItemCreationService
                 'affixes' => [],
                 'is_in_storage' => false,
                 'quantity' => 1,
-                'slot_index' => $inventoryService->findEmptySlot($character, false),
+                'slot_index' => $findEmptySlotCallback($character->id),
                 'sell_price' => $sellPrice,
             ]);
         }
@@ -90,9 +89,10 @@ class ShopItemCreationService
     /**
      * Add quantity to existing potion item or create new one
      *
+     * @param  callable(int): ?int  $findEmptySlotCallback  Callback to find empty slot
      * @return array{item: GameItem, is_new: bool}
      */
-    public function addPotionToInventory(GameCharacter $character, GameItemDefinition $definition, int $quantity, array $randomStats): array
+    public function addPotionToInventory(GameCharacter $character, GameItemDefinition $definition, int $quantity, array $randomStats, callable $findEmptySlotCallback): array
     {
         /** @var GameItem|null $existingItem */
         $existingItem = $character->items()
@@ -108,7 +108,7 @@ class ShopItemCreationService
             return ['item' => $existingItem, 'is_new' => false];
         }
 
-        $item = $this->createPotionItem($character, $definition, $quantity, $randomStats);
+        $item = $this->createPotionItem($character, $definition, $quantity, $randomStats, $findEmptySlotCallback);
 
         return ['item' => $item, 'is_new' => true];
     }

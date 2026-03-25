@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\Api\Thing;
 
+use App\Http\Controllers\Concerns\DatabaseExceptionConcern;
+use App\Http\Controllers\Concerns\DispatchesKnowledgeIndexJob;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Thing\AddItemRelationRequest;
 use App\Http\Requests\Thing\BatchAddItemRelationsRequest;
 use App\Http\Requests\Thing\ItemRequest;
-use App\Jobs\TriggerKnowledgeIndexBuildJob;
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemCategory;
 use App\Services\Thing\ItemSearchService;
@@ -23,6 +24,9 @@ use Spatie\QueryBuilder\QueryBuilder;
 
 class ItemController extends Controller
 {
+    use DatabaseExceptionConcern;
+    use DispatchesKnowledgeIndexJob;
+
     private const ITEM_RELATIONS = ['user', 'primaryImage', 'images', 'category', 'spot.room.area', 'tags'];
 
     public function __construct(
@@ -61,37 +65,22 @@ class ItemController extends Controller
     {
         return [
             AllowedFilter::callback('name', fn ($query, $value) => $query->where('name', 'like', "%{$value}%")),
-
             AllowedFilter::callback('description', fn ($query, $value) => $query->where('description', 'like', "%{$value}%")),
-
             AllowedFilter::callback('status', fn ($query, $value) => $value !== 'all' ? $query->where('status', $value) : $query),
-
             AllowedFilter::callback('tags', fn ($query, $value) => $query->whereHas('tags', fn ($q) => $q->whereIn('thing_tags.id', is_array($value) ? $value : explode(',', $value)))),
-
             AllowedFilter::callback('search', fn ($query, $value) => $query->search($value)),
-
             AllowedFilter::callback('purchase_date_from', fn ($query, $value) => $query->whereDate('purchase_date', '>=', $value)),
-
             AllowedFilter::callback('purchase_date_to', fn ($query, $value) => $query->whereDate('purchase_date', '<=', $value)),
-
             AllowedFilter::callback('expiry_date_from', fn ($query, $value) => $query->whereDate('expiry_date', '>=', $value)),
-
             AllowedFilter::callback('expiry_date_to', fn ($query, $value) => $query->whereDate('expiry_date', '<=', $value)),
-
             AllowedFilter::callback('price_from', fn ($query, $value) => $query->where('purchase_price', '>=', $value)),
-
             AllowedFilter::callback('price_to', fn ($query, $value) => $query->where('purchase_price', '<=', $value)),
-
             AllowedFilter::callback('area_id', fn ($query, $value) => $query->where(fn ($q) => $q->where('area_id', $value)
                 ->orWhereHas('spot.room.area', fn ($subQ) => $subQ->where('thing_areas.id', $value)))),
-
             AllowedFilter::callback('room_id', fn ($query, $value) => $query->where(fn ($q) => $q->where('room_id', $value)
                 ->orWhereHas('spot.room', fn ($subQ) => $subQ->where('thing_rooms.id', $value)))),
-
             AllowedFilter::callback('spot_id', fn ($query, $value) => $query->where('spot_id', $value)),
-
             AllowedFilter::callback('category_id', fn ($query, $value) => $this->applyCategoryFilter($query, $value)),
-
             AllowedFilter::callback('own', fn ($query, $value) => $value && Auth::check() ? $query->where('user_id', Auth::id()) : $query),
         ];
     }
@@ -115,7 +104,7 @@ class ItemController extends Controller
             $this->itemService->processItemImages($request, $item);
             $this->itemService->handleTags($request, $item);
 
-            TriggerKnowledgeIndexBuildJob::dispatch();
+            $this->dispatchKnowledgeIndexBuildJob();
 
             return response()->json([
                 'message' => '物品创建成功',
@@ -155,7 +144,7 @@ class ItemController extends Controller
             $this->itemService->processItemImageUpdates($request, $item);
             $this->itemService->handleTags($request, $item);
 
-            TriggerKnowledgeIndexBuildJob::dispatch();
+            $this->dispatchKnowledgeIndexBuildJob();
 
             return response()->json([
                 'message' => '物品更新成功',
@@ -232,7 +221,7 @@ class ItemController extends Controller
                 'relations' => $item->relatedItems()->with(self::ITEM_RELATIONS)->get(),
             ], 201);
         } catch (\Throwable $e) {
-            if ($this->isDuplicateRelationException($e)) {
+            if ($this->isDuplicateEntryException($e)) {
                 return response()->json(['message' => '该关联已存在'], 400);
             }
 
@@ -328,7 +317,7 @@ class ItemController extends Controller
 
                 $errors[] = [
                     'related_item_id' => $relatedItemId,
-                    'error' => $this->isDuplicateRelationException($e) ? '该关联已存在' : '添加关联失败',
+                    'error' => $this->isDuplicateEntryException($e) ? '该关联已存在' : '添加关联失败',
                 ];
             }
         }
@@ -383,13 +372,5 @@ class ItemController extends Controller
         }
 
         return $query->whereIn('category_id', $categoryIds);
-    }
-
-    private function isDuplicateRelationException(\Throwable $exception): bool
-    {
-        $message = $exception->getMessage();
-
-        return str_contains($message, 'Duplicate entry')
-            || str_contains($message, 'UNIQUE constraint failed');
     }
 }

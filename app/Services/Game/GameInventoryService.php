@@ -37,8 +37,8 @@ class GameInventoryService
     private const ITEM_LOCK_TIMEOUT = 10;
 
     public function __construct(
-        private InventoryItemCalculator $itemCalculator = new InventoryItemCalculator,
-        private InventoryEquipmentHelper $equipmentHelper = new InventoryEquipmentHelper
+        private readonly InventoryItemCalculator $itemCalculator,
+        private readonly InventoryEquipmentHelper $equipmentHelper
     ) {}
 
     /**
@@ -156,7 +156,7 @@ class GameInventoryService
     {
         return DB::transaction(function () use ($character, $item, $slot) {
             $equipmentSlot = $this->equipmentHelper->getOrCreateEquipmentSlot($character, $slot);
-            $oldItem = $this->equipmentHelper->handleUnequipIfNeeded($character, $equipmentSlot);
+            $oldItem = $this->equipmentHelper->handleUnequipIfNeeded($character, $equipmentSlot, fn () => $this->findEmptySlot($character, false));
 
             // 装备新物品
             $equipmentSlot->item_id = $item->id;

@@ -12,9 +12,11 @@ use App\Models\Chat\ChatModerationAction;
 use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
+use App\Services\Chat\ChatModerationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Laravel\Sanctum\Sanctum;
+use Mockery;
 use Tests\TestCase;
 
 class ChatModerationControllerTest extends TestCase
@@ -849,13 +851,18 @@ class ChatModerationControllerTest extends TestCase
         $response->assertJsonPath('message', 'User is not banned');
     }
 
-    public function test_delete_message_returns_500_when_transaction_throws_exception()
+    // ==================== SERVICE ERROR HANDLING TESTS ====================
+
+    public function test_delete_message_returns_500_when_service_throws_exception()
     {
         Sanctum::actingAs($this->moderator);
 
-        // Mock DB to throw exception during transaction
-        \Illuminate\Support\Facades\DB::shouldReceive('beginTransaction')->once();
-        \Illuminate\Support\Facades\DB::shouldReceive('rollBack')->once();
+        // Mock the service to throw an exception
+        $mockService = Mockery::mock(ChatModerationService::class);
+        $mockService->shouldReceive('deleteMessage')
+            ->once()
+            ->andThrow(new \Exception('Service error'));
+        $this->app->instance(ChatModerationService::class, $mockService);
 
         $response = $this->deleteJson(
             "/api/chat/moderation/rooms/{$this->room->id}/messages/{$this->message->id}",
@@ -865,7 +872,7 @@ class ChatModerationControllerTest extends TestCase
         $response->assertStatus(500);
     }
 
-    public function test_mute_user_returns_500_when_transaction_throws_exception()
+    public function test_mute_user_returns_500_when_service_throws_exception()
     {
         $room = ChatRoom::factory()->create(['created_by' => $this->moderator->id]);
         ChatRoomUser::create([
@@ -882,9 +889,12 @@ class ChatModerationControllerTest extends TestCase
 
         Sanctum::actingAs($this->moderator);
 
-        // Mock DB to throw exception during transaction
-        \Illuminate\Support\Facades\DB::shouldReceive('beginTransaction')->once();
-        \Illuminate\Support\Facades\DB::shouldReceive('rollBack')->once();
+        // Mock the service to throw an exception
+        $mockService = Mockery::mock(ChatModerationService::class);
+        $mockService->shouldReceive('muteUser')
+            ->once()
+            ->andThrow(new \Exception('Service error'));
+        $this->app->instance(ChatModerationService::class, $mockService);
 
         $response = $this->postJson(
             "/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/mute",
@@ -894,7 +904,7 @@ class ChatModerationControllerTest extends TestCase
         $response->assertStatus(500);
     }
 
-    public function test_unmute_user_returns_500_when_transaction_throws_exception()
+    public function test_unmute_user_returns_500_when_service_throws_exception()
     {
         $room = ChatRoom::factory()->create(['created_by' => $this->moderator->id]);
         ChatRoomUser::create([
@@ -912,10 +922,12 @@ class ChatModerationControllerTest extends TestCase
 
         Sanctum::actingAs($this->moderator);
 
-        \Illuminate\Support\Facades\DB::shouldReceive('beginTransaction')
+        // Mock the service to throw an exception
+        $mockService = Mockery::mock(ChatModerationService::class);
+        $mockService->shouldReceive('unmuteUser')
             ->once()
-            ->andThrow(new \Exception('forced beginTransaction error'));
-        \Illuminate\Support\Facades\DB::shouldReceive('rollBack')->once();
+            ->andThrow(new \Exception('Service error'));
+        $this->app->instance(ChatModerationService::class, $mockService);
 
         $response = $this->postJson(
             "/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/unmute",
@@ -925,7 +937,7 @@ class ChatModerationControllerTest extends TestCase
         $response->assertStatus(500);
     }
 
-    public function test_ban_user_returns_500_when_transaction_throws_exception()
+    public function test_ban_user_returns_500_when_service_throws_exception()
     {
         $room = ChatRoom::factory()->create(['created_by' => $this->moderator->id]);
         ChatRoomUser::create([
@@ -942,9 +954,12 @@ class ChatModerationControllerTest extends TestCase
 
         Sanctum::actingAs($this->moderator);
 
-        // Mock DB to throw exception during transaction
-        \Illuminate\Support\Facades\DB::shouldReceive('beginTransaction')->once();
-        \Illuminate\Support\Facades\DB::shouldReceive('rollBack')->once();
+        // Mock the service to throw an exception
+        $mockService = Mockery::mock(ChatModerationService::class);
+        $mockService->shouldReceive('banUser')
+            ->once()
+            ->andThrow(new \Exception('Service error'));
+        $this->app->instance(ChatModerationService::class, $mockService);
 
         $response = $this->postJson(
             "/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/ban",
@@ -954,7 +969,7 @@ class ChatModerationControllerTest extends TestCase
         $response->assertStatus(500);
     }
 
-    public function test_unban_user_returns_500_when_transaction_throws_exception()
+    public function test_unban_user_returns_500_when_service_throws_exception()
     {
         $room = ChatRoom::factory()->create(['created_by' => $this->moderator->id]);
         ChatRoomUser::create([
@@ -972,10 +987,12 @@ class ChatModerationControllerTest extends TestCase
 
         Sanctum::actingAs($this->moderator);
 
-        \Illuminate\Support\Facades\DB::shouldReceive('beginTransaction')
+        // Mock the service to throw an exception
+        $mockService = Mockery::mock(ChatModerationService::class);
+        $mockService->shouldReceive('unbanUser')
             ->once()
-            ->andThrow(new \Exception('forced beginTransaction error'));
-        \Illuminate\Support\Facades\DB::shouldReceive('rollBack')->once();
+            ->andThrow(new \Exception('Service error'));
+        $this->app->instance(ChatModerationService::class, $mockService);
 
         $response = $this->postJson(
             "/api/chat/moderation/rooms/{$room->id}/users/{$targetUser->id}/unban",

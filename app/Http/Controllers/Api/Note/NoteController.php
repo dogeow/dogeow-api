@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api\Note;
 
+use App\Http\Controllers\Concerns\DispatchesKnowledgeIndexJob;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Note\NoteRequest;
 use App\Http\Requests\Note\UpdateNoteRequest;
-use App\Jobs\TriggerKnowledgeIndexBuildJob;
 use App\Models\Note\NoteLink;
 use App\Services\Note\NoteContentService;
 use Illuminate\Http\JsonResponse;
@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Log;
 
 class NoteController extends Controller
 {
+    use DispatchesKnowledgeIndexJob;
+
     public function __construct(
         private readonly NoteContentService $noteContentService
     ) {}
@@ -118,7 +120,7 @@ class NoteController extends Controller
 
         $note->load('tags');
 
-        TriggerKnowledgeIndexBuildJob::dispatch();
+        $this->dispatchKnowledgeIndexBuildJob();
 
         // return note data directly (tests expect top-level keys)
         return response()->json($note, 201);
@@ -155,7 +157,7 @@ class NoteController extends Controller
 
         $note->load('tags');
 
-        TriggerKnowledgeIndexBuildJob::dispatch();
+        $this->dispatchKnowledgeIndexBuildJob();
 
         // return updated note data directly for tests
         return response()->json($note);
@@ -169,7 +171,7 @@ class NoteController extends Controller
         $note = $this->findUserNote($id);
         $note->delete();
 
-        TriggerKnowledgeIndexBuildJob::dispatch();
+        $this->dispatchKnowledgeIndexBuildJob();
 
         // return no content for successful deletion
         return response()->json([], 204);

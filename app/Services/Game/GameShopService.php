@@ -5,6 +5,8 @@ namespace App\Services\Game;
 use App\Models\Game\GameCharacter;
 use App\Models\Game\GameItem;
 use App\Models\Game\GameItemDefinition;
+use App\Services\Game\DTOs\ShopPurchaseRequest;
+use App\Services\Game\DTOs\ShopSellRequest;
 use App\Services\Game\Traits\UsesDistributedLock;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -31,8 +33,8 @@ class GameShopService
     private const SHOP_LOCK_TIMEOUT_SECONDS = 10;
 
     public function __construct(
-        private InventoryItemCalculator $itemCalculator = new InventoryItemCalculator,
-        private ShopItemCreationService $itemCreationService = new ShopItemCreationService
+        private readonly InventoryItemCalculator $itemCalculator,
+        private readonly ShopItemCreationService $itemCreationService
     ) {}
 
     /**
@@ -264,24 +266,32 @@ class GameShopService
      *
      * @return array{copper:int,total_price:int,quantity:int,item_name:string}
      */
-    public function buyItem(GameCharacter $character, int $itemId, int $quantity = 1, ?string $idempotencyKey = null): array
+    public function buyItem(ShopPurchaseRequest $request): array
     {
-        $isIdempotentRequest = $idempotencyKey !== null && $idempotencyKey !== '';
-
-        if ($isIdempotentRequest) {
+        if ($request->hasIdempotencyKey()) {
             return $this->executeWithIdempotency(
-                characterId: $character->id,
+                characterId: $request->character->id,
                 operation: 'buy',
-                idempotencyKey: $idempotencyKey,
-                callback: fn () => $this->performBuy($character, $itemId, $quantity),
+                idempotencyKey: $request->idempotencyKey,
+                callback: fn () => $this->performBuy($request->character, $request->itemId, $request->quantity),
             );
         }
 
         return $this->executeWithDistributedLock(
-            lockKey: 'shop:lock:buy:' . $character->id . ':' . $itemId,
-            callback: fn () => $this->performBuy($character, $itemId, $quantity),
+            lockKey: 'shop:lock:buy:' . $request->character->id . ':' . $request->itemId,
+            callback: fn () => $this->performBuy($request->character, $request->itemId, $request->quantity),
             timeoutSeconds: self::SHOP_LOCK_TIMEOUT_SECONDS,
         );
+    }
+
+    /**
+     * 购买物品（向后兼容方法）
+     *
+     * @return array{copper:int,total_price:int,quantity:int,item_name:string}
+     */
+    public function buyItemLegacy(GameCharacter $character, int $itemId, int $quantity = 1, ?string $idempotencyKey = null): array
+    {
+        return $this->buyItem(ShopPurchaseRequest::create($character, $itemId, $quantity, $idempotencyKey));
     }
 
     /**
@@ -319,12 +329,15 @@ class GameShopService
                 throw new \InvalidArgumentException($isPotion ? '背包已满' : '背包空间不足');
             }
 
+            // 获取 findEmptySlot 回调
+            $findEmptySlotCallback = fn (int $charId): ?int => $this->findEmptySlotForCharacter($character, false);
+
             // 药品处理
             if ($isPotion) {
-                $this->itemCreationService->addPotionToInventory($character, $definition, $quantity, $randomStats);
+                $this->itemCreationService->addPotionToInventory($character, $definition, $quantity, $randomStats, $findEmptySlotCallback);
             } else {
                 // 装备类物品
-                $this->itemCreationService->createEquipmentItems($character, $definition, $quantity, $randomStats);
+                $this->itemCreationService->createEquipmentItems($character, $definition, $quantity, $randomStats, $findEmptySlotCallback);
 
                 // 记录已购买的装备
                 $this->recordPurchasedItem($character, $itemId);
@@ -344,28 +357,61 @@ class GameShopService
     }
 
     /**
+     * 查找空槽位（供回调使用）
+     */
+    private function findEmptySlotForCharacter(GameCharacter $character, bool $inStorage): ?int
+    {
+        $maxSize = $inStorage ? GameInventoryService::STORAGE_SIZE : GameInventoryService::INVENTORY_SIZE;
+
+        $usedSlots = $character->items()
+            ->where('is_in_storage', $inStorage)
+            ->where(function ($query) {
+                $query->where('is_equipped', false)->orWhereNull('is_equipped');
+            })
+            ->whereNotNull('slot_index')
+            ->pluck('slot_index')
+            ->toArray();
+
+        for ($i = 0; $i < $maxSize; $i++) {
+            if (! in_array($i, $usedSlots)) {
+                return $i;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * 出售物品
      *
      * @return array{copper:int,sell_price:int,quantity:int,item_name:string}
      */
-    public function sellItem(GameCharacter $character, int $itemId, int $quantity = 1, ?string $idempotencyKey = null): array
+    public function sellItem(ShopSellRequest $request): array
     {
-        $isIdempotentRequest = $idempotencyKey !== null && $idempotencyKey !== '';
-
-        if ($isIdempotentRequest) {
+        if ($request->hasIdempotencyKey()) {
             return $this->executeWithIdempotency(
-                characterId: $character->id,
+                characterId: $request->character->id,
                 operation: 'sell',
-                idempotencyKey: $idempotencyKey,
-                callback: fn () => $this->performSell($character, $itemId, $quantity),
+                idempotencyKey: $request->idempotencyKey,
+                callback: fn () => $this->performSell($request->character, $request->itemId, $request->quantity),
             );
         }
 
         return $this->executeWithDistributedLock(
-            lockKey: 'shop:lock:sell:' . $character->id . ':' . $itemId,
-            callback: fn () => $this->performSell($character, $itemId, $quantity),
+            lockKey: 'shop:lock:sell:' . $request->character->id . ':' . $request->itemId,
+            callback: fn () => $this->performSell($request->character, $request->itemId, $request->quantity),
             timeoutSeconds: self::SHOP_LOCK_TIMEOUT_SECONDS,
         );
+    }
+
+    /**
+     * 出售物品（向后兼容方法）
+     *
+     * @return array{copper:int,sell_price:int,quantity:int,item_name:string}
+     */
+    public function sellItemLegacy(GameCharacter $character, int $itemId, int $quantity = 1, ?string $idempotencyKey = null): array
+    {
+        return $this->sellItem(ShopSellRequest::create($character, $itemId, $quantity, $idempotencyKey));
     }
 
     /**
