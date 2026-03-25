@@ -140,7 +140,7 @@ class CombatDamageCalculatorTest extends TestCase
         );
 
         // Assert
-        [$updatedMonsters, ] = $result;
+        [$updatedMonsters] = $result;
         $this->assertArrayNotHasKey('is_new', $updatedMonsters[0]);
     }
 
