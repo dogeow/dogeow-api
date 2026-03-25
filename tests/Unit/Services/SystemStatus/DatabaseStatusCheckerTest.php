@@ -3,7 +3,6 @@
 namespace Tests\Unit\Services\SystemStatus;
 
 use App\Services\SystemStatus\DatabaseStatusChecker;
-use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class DatabaseStatusCheckerTest extends TestCase
@@ -29,7 +28,7 @@ class DatabaseStatusCheckerTest extends TestCase
     public function test_check_returns_error_on_connection_failure(): void
     {
         // Mock a database connection failure by using a bad connection name
-        DB.shouldReceive('connection')
+        DB . shouldReceive('connection')
             ->once()
             ->andThrow(new \PDOException('Connection refused'));
 

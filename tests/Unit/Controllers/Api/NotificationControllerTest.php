@@ -4,8 +4,6 @@ namespace Tests\Unit\Controllers\Api;
 
 use App\Http\Controllers\Api\NotificationController;
 use App\Models\User;
-use App\Notifications\WebPushSummaryNotification;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;

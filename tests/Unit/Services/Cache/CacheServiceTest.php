@@ -4,7 +4,6 @@ namespace Tests\Unit\Services\Cache;
 
 use App\Services\Cache\CacheService;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Redis;
 use Tests\TestCase;
 
 class CacheServiceTest extends TestCase

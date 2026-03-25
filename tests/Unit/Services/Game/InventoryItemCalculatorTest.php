@@ -5,7 +5,6 @@ namespace Tests\Unit\Services\Game;
 use App\Models\Game\GameItem;
 use App\Models\Game\GameItemDefinition;
 use App\Services\Game\InventoryItemCalculator;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class InventoryItemCalculatorTest extends TestCase

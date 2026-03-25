@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\MiniMaxController;
 use App\Http\Requests\MiniMax\RoleplayChatRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class MiniMaxControllerTest extends TestCase
@@ -253,7 +252,7 @@ class MiniMaxControllerTest extends TestCase
         config(['services.minimax.group_id' => 'test_group_id']);
 
         Http::fake([
-            'www.minimaxi.com/*' => Http::response(['package' => ['type' => 'audio'}], 200),
+            'www.minimaxi.com/*' => Http::response(['package' => ['type' => 'audio']], 200),
         ]);
 
         $response = $this->controller->subscriptionDetail();

@@ -3,11 +3,10 @@
 namespace Tests\Unit\Controllers\Api;
 
 use App\Http\Controllers\Api\ProfileController;
-use App\Models\User;
 use App\Models\Thing\Item;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
