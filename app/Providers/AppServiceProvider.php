@@ -6,6 +6,7 @@ use App\Events\Chat\WebSocketDisconnected;
 use App\Listeners\Notifications\BroadcastDatabaseNotification;
 use App\Listeners\WebPush\LogWebPushResult;
 use App\Listeners\WebSocketDisconnectListener;
+use App\Models\DatabaseNotification;
 use Illuminate\Notifications\Events\NotificationSent as LaravelNotificationSent;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -23,6 +24,9 @@ class AppServiceProvider extends ServiceProvider
         if (class_exists(\Laravel\Boost\BoostServiceProvider::class)) {
             $this->app->register(\Laravel\Boost\BoostServiceProvider::class);
         }
+
+        // 使用自定义 DatabaseNotification 模型（支持 UUID 自动生成）
+        $this->app->bind(\Illuminate\Notifications\DatabaseNotification::class, DatabaseNotification::class);
     }
 
     /**
