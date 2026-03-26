@@ -9,6 +9,8 @@ use App\Models\Game\GameCharacter;
 use App\Models\Game\GameItem;
 use App\Models\Game\GameItemDefinition;
 use App\Models\User;
+use App\Services\Game\DTOs\ShopPurchaseRequest;
+use App\Services\Game\DTOs\ShopSellRequest;
 use App\Services\Game\GameInventoryService;
 use App\Services\Game\GameShopService;
 use Illuminate\Broadcasting\PendingBroadcast;
@@ -119,7 +121,7 @@ class ShopControllerUnitTest extends TestCase
         $payload = ['item' => ['id' => 5]];
         $definition = $this->createItemDefinition();
 
-        $this->shopService->shouldReceive('buyItem')->once()->with($this->sameCharacter($character), $definition->id, 2)->andReturn($payload);
+        $this->shopService->shouldReceive('buyItem')->once()->with(Mockery::type(ShopPurchaseRequest::class))->andReturn($payload);
         $this->inventoryService->shouldReceive('getInventoryForBroadcast')->once()->with($this->sameCharacter($character))->andReturn(['items' => []]);
 
         $response = $this->controller->buy($this->makeFormRequest(BuyItemRequest::class, $user, $character, [
@@ -139,7 +141,7 @@ class ShopControllerUnitTest extends TestCase
         $character = $this->createCharacter($user);
         $definition = $this->createItemDefinition();
 
-        $this->shopService->shouldReceive('buyItem')->once()->with($this->sameCharacter($character), $definition->id, 1)->andThrow(new \RuntimeException('购买失败'));
+        $this->shopService->shouldReceive('buyItem')->once()->with(Mockery::type(ShopPurchaseRequest::class))->andThrow(new \RuntimeException('购买失败'));
 
         $response = $this->controller->buy($this->makeFormRequest(BuyItemRequest::class, $user, $character, [
             'item_id' => $definition->id,
@@ -157,7 +159,7 @@ class ShopControllerUnitTest extends TestCase
         $payload = ['sold' => 1];
         $item = $this->createInventoryItem($character);
 
-        $this->shopService->shouldReceive('sellItem')->once()->with($this->sameCharacter($character), $item->id, 3)->andReturn($payload);
+        $this->shopService->shouldReceive('sellItem')->once()->with(Mockery::type(ShopSellRequest::class))->andReturn($payload);
         $this->inventoryService->shouldReceive('getInventoryForBroadcast')->once()->with($this->sameCharacter($character))->andReturn(['items' => []]);
 
         $response = $this->controller->sell($this->makeFormRequest(SellItemRequest::class, $user, $character, [
@@ -177,7 +179,7 @@ class ShopControllerUnitTest extends TestCase
         $character = $this->createCharacter($user);
         $item = $this->createInventoryItem($character);
 
-        $this->shopService->shouldReceive('sellItem')->once()->with($this->sameCharacter($character), $item->id, 1)->andThrow(new \RuntimeException('出售失败'));
+        $this->shopService->shouldReceive('sellItem')->once()->with(Mockery::type(ShopSellRequest::class))->andThrow(new \RuntimeException('出售失败'));
 
         $response = $this->controller->sell($this->makeFormRequest(SellItemRequest::class, $user, $character, [
             'item_id' => $item->id,

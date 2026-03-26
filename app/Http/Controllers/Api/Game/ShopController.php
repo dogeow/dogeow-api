@@ -6,6 +6,8 @@ use App\Events\Game\GameInventoryUpdate;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Game\BuyItemRequest;
 use App\Http\Requests\Game\SellItemRequest;
+use App\Services\Game\DTOs\ShopPurchaseRequest;
+use App\Services\Game\DTOs\ShopSellRequest;
 use App\Services\Game\GameInventoryService;
 use App\Services\Game\GameShopService;
 use Illuminate\Http\JsonResponse;
@@ -58,12 +60,13 @@ class ShopController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
-            $result = $this->shopService->buyItem(
-                $character,
-                $request->input('item_id'),
-                $request->input('quantity', 1),
-                $request->input('idempotency_key')
+            $purchaseRequest = ShopPurchaseRequest::create(
+                character: $character,
+                itemId: $request->input('item_id'),
+                quantity: $request->input('quantity', 1),
+                idempotencyKey: $request->input('idempotency_key')
             );
+            $result = $this->shopService->buyItem($purchaseRequest);
             broadcast(new GameInventoryUpdate($character->id, $this->inventoryService->getInventoryForBroadcast($character)));
 
             return $this->success($result, '购买成功');
@@ -79,12 +82,13 @@ class ShopController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
-            $result = $this->shopService->sellItem(
-                $character,
-                $request->input('item_id'),
-                $request->input('quantity', 1),
-                $request->input('idempotency_key')
+            $sellRequest = ShopSellRequest::create(
+                character: $character,
+                itemId: $request->input('item_id'),
+                quantity: $request->input('quantity', 1),
+                idempotencyKey: $request->input('idempotency_key')
             );
+            $result = $this->shopService->sellItem($sellRequest);
             broadcast(new GameInventoryUpdate($character->id, $this->inventoryService->getInventoryForBroadcast($character)));
 
             return $this->success($result, '出售成功');

@@ -7,11 +7,14 @@ use App\Models\Game\GameEquipment;
 use App\Models\Game\GameItem;
 use App\Models\Game\GameItemDefinition;
 use App\Models\User;
+use App\Services\Game\DTOs\ShopPurchaseRequest;
+use App\Services\Game\DTOs\ShopSellRequest;
 use App\Services\Game\GameInventoryService;
 use App\Services\Game\GameShopService;
 use App\Services\Game\InventoryItemCalculator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Redis;
 use Tests\TestCase;
 
 class GameShopServiceTest extends TestCase
@@ -178,7 +181,7 @@ class GameShopServiceTest extends TestCase
             'sell_price' => 6,
         ]);
 
-        $result = $this->service->buyItem($character, $potionDefinition->id, 3);
+        $result = $this->service->buyItemLegacy($character, $potionDefinition->id, 3);
 
         $this->assertSame(410, $result['copper']);
         $this->assertSame(90, $result['total_price']);
@@ -204,7 +207,7 @@ class GameShopServiceTest extends TestCase
         ]);
         $this->service->getShopItems($character);
 
-        $result = $this->service->buyItem($character, $definition->id, 2);
+        $result = $this->service->buyItemLegacy($character, $definition->id, 2);
 
         $newItems = GameItem::where('character_id', $character->id)
             ->where('definition_id', $definition->id)
@@ -235,21 +238,21 @@ class GameShopServiceTest extends TestCase
         ]);
 
         try {
-            $this->service->buyItem($character, $inactive->id);
+            $this->service->buyItemLegacy($character, $inactive->id);
             $this->fail('Expected inactive item exception');
         } catch (\InvalidArgumentException $e) {
             $this->assertSame('物品不存在或不可购买', $e->getMessage());
         }
 
         try {
-            $this->service->buyItem($character, $highLevel->id);
+            $this->service->buyItemLegacy($character, $highLevel->id);
             $this->fail('Expected level requirement exception');
         } catch (\InvalidArgumentException $e) {
             $this->assertSame('需要等级 5', $e->getMessage());
         }
 
         try {
-            $this->service->buyItem($character, $expensive->id);
+            $this->service->buyItemLegacy($character, $expensive->id);
             $this->fail('Expected currency exception');
         } catch (\InvalidArgumentException $e) {
             $this->assertSame('货币不足', $e->getMessage());
@@ -269,7 +272,7 @@ class GameShopServiceTest extends TestCase
         $this->fillInventory($fullPotionCharacter, $filler, GameInventoryService::INVENTORY_SIZE);
 
         try {
-            $this->service->buyItem($fullPotionCharacter, $potionDefinition->id);
+            $this->service->buyItemLegacy($fullPotionCharacter, $potionDefinition->id);
             $this->fail('Expected full inventory potion exception');
         } catch (\InvalidArgumentException $e) {
             $this->assertSame('背包已满', $e->getMessage());
@@ -286,7 +289,7 @@ class GameShopServiceTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('背包空间不足');
-        $this->service->buyItem($fullEquipmentCharacter, $equipmentDefinition->id, 2);
+        $this->service->buyItemLegacy($fullEquipmentCharacter, $equipmentDefinition->id, 2);
     }
 
     public function test_sell_item_updates_stack_and_copper_or_deletes_item(): void
@@ -305,8 +308,8 @@ class GameShopServiceTest extends TestCase
             'slot_index' => 1,
         ]);
 
-        $first = $this->service->sellItem($character, $stackItem->id, 2);
-        $second = $this->service->sellItem($character->fresh(), $singleItem->id, 1);
+        $first = $this->service->sellItemLegacy($character, $stackItem->id, 2);
+        $second = $this->service->sellItemLegacy($character->fresh(), $singleItem->id, 1);
 
         $this->assertSame(160, $first['copper']);
         $this->assertSame(60, $first['sell_price']);
@@ -336,21 +339,21 @@ class GameShopServiceTest extends TestCase
         ]);
 
         try {
-            $this->service->sellItem($character, 999999);
+            $this->service->sellItemLegacy($character, 999999);
             $this->fail('Expected missing item exception');
         } catch (\InvalidArgumentException $e) {
             $this->assertSame('物品不存在或不属于你', $e->getMessage());
         }
 
         try {
-            $this->service->sellItem($character, $storageItem->id);
+            $this->service->sellItemLegacy($character, $storageItem->id);
             $this->fail('Expected storage restriction exception');
         } catch (\InvalidArgumentException $e) {
             $this->assertSame('请先将物品从仓库移到背包', $e->getMessage());
         }
 
         try {
-            $this->service->sellItem($character, $equippedItem->id);
+            $this->service->sellItemLegacy($character, $equippedItem->id);
             $this->fail('Expected equipped restriction exception');
         } catch (\InvalidArgumentException $e) {
             $this->assertSame('请先卸下装备', $e->getMessage());
@@ -358,7 +361,7 @@ class GameShopServiceTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('物品数量不足');
-        $this->service->sellItem($character, $smallStack->id, 2);
+        $this->service->sellItemLegacy($character, $smallStack->id, 2);
     }
 
     private function createCharacter(array $attributes = []): GameCharacter
@@ -488,7 +491,7 @@ class GameShopServiceTest extends TestCase
             'buy_price' => 10,
         ]);
 
-        $result = $this->service->buyItem($character, $definition->id, 1);
+        $result = $this->service->buyItemLegacy($character, $definition->id, 1);
 
         $this->assertArrayHasKey('copper', $result);
         $this->assertArrayHasKey('total_price', $result);
@@ -507,7 +510,7 @@ class GameShopServiceTest extends TestCase
             'slot_index' => 0,
         ]);
 
-        $result = $this->service->sellItem($character, $item->id, 1);
+        $result = $this->service->sellItemLegacy($character, $item->id, 1);
 
         $this->assertArrayHasKey('copper', $result);
         $this->assertArrayHasKey('sell_price', $result);
@@ -572,7 +575,7 @@ class GameShopServiceTest extends TestCase
             'buy_price' => 100,
         ]);
 
-        $result = $this->service->buyItem($character, $definition->id, 1);
+        $result = $this->service->buyItemLegacy($character, $definition->id, 1);
 
         $this->assertEquals(0, $result['copper']);
         $this->assertEquals(100, $result['total_price']);
@@ -591,7 +594,7 @@ class GameShopServiceTest extends TestCase
             'sell_price' => 60, // 30% of buy price
         ]);
 
-        $result = $this->service->sellItem($character, $item->id, 1);
+        $result = $this->service->sellItemLegacy($character, $item->id, 1);
 
         $this->assertEquals(60, $result['sell_price']);
         $this->assertEquals(60, $result['copper']);
@@ -641,7 +644,7 @@ class GameShopServiceTest extends TestCase
             'buy_price' => 1000,
         ]);
 
-        $result = $this->service->buyItem($character, $definition->id, 1);
+        $result = $this->service->buyItemLegacy($character, $definition->id, 1);
 
         $this->assertEquals(4000, $result['copper']);
         $this->assertArrayHasKey('item_name', $result);
@@ -663,7 +666,7 @@ class GameShopServiceTest extends TestCase
             'sell_price' => 12, // 10 * 12 = 120 for all
         ]);
 
-        $result = $this->service->sellItem($character, $item->id, 5);
+        $result = $this->service->sellItemLegacy($character, $item->id, 5);
 
         $this->assertEquals(110, $result['copper']); // 50 + (5 * 12)
         $this->assertEquals(5, $item->fresh()->quantity);
@@ -938,7 +941,7 @@ class GameShopServiceTest extends TestCase
             'required_level' => 1,
         ]);
 
-        $result = $this->service->buyItem($character, $potion->id, 2);
+        $result = $this->service->buyItemLegacy($character, $potion->id, 2);
 
         $created = GameItem::where('character_id', $character->id)
             ->where('definition_id', $potion->id)
@@ -1048,5 +1051,210 @@ class GameShopServiceTest extends TestCase
         $price = $calculator->calculateBuyPrice($item, [], 'common');
 
         $this->assertSame(7700, $price);
+    }
+
+    public function test_idempotent_buy_with_same_key_returns_cached_result(): void
+    {
+        $character = $this->createCharacter(['copper' => 500]);
+        $definition = $this->createItemDefinition([
+            'name' => '幂等性测试物品',
+            'buy_price' => 100,
+        ]);
+
+        $idemKey = 'test-key-1';
+        $idemCacheKey = 'shop:idem:' . $character->id . ':buy:' . $idemKey;
+
+        // First call - acquires processing lock successfully
+        Redis::shouldReceive('set')
+            ->once()
+            ->with($idemCacheKey, 'processing', 'EX', 30, 'NX')
+            ->andReturn(true);
+        Redis::shouldReceive('del')
+            ->once()
+            ->with($idemCacheKey);
+
+        $first = $this->service->buyItem(
+            ShopPurchaseRequest::create($character, $definition->id, 1, $idemKey)
+        );
+
+        $this->assertSame(400, $first['copper']);
+        $this->assertSame(100, $first['total_price']);
+
+        // Second call - processing lock already exists, should return cached result
+        // Redis::del is called in the early return path for cleanup
+        Redis::shouldReceive('set')
+            ->once()
+            ->with($idemCacheKey, 'processing', 'EX', 30, 'NX')
+            ->andReturn(false);
+        Cache::shouldReceive('get')
+            ->once()
+            ->with($idemCacheKey)
+            ->andReturn($first);
+        Redis::shouldReceive('del')
+            ->once()
+            ->with($idemCacheKey);
+
+        $second = $this->service->buyItem(
+            ShopPurchaseRequest::create($character->fresh(), $definition->id, 1, $idemKey)
+        );
+
+        $this->assertSame(400, $second['copper']);
+        $this->assertSame(100, $second['total_price']);
+    }
+
+    public function test_idempotent_sell_with_same_key_returns_cached_result(): void
+    {
+        $character = $this->createCharacter(['copper' => 100]);
+        $definition = $this->createItemDefinition([
+            'name' => '幂等性出售测试',
+            'buy_price' => 50,
+        ]);
+        $item = $this->createItem($character, $definition, [
+            'quantity' => 5,
+            'slot_index' => 0,
+            'sell_price' => 15,
+        ]);
+
+        $idemKey = 'test-sell-key-1';
+        $idemCacheKey = 'shop:idem:' . $character->id . ':sell:' . $idemKey;
+
+        // First call - acquires processing lock successfully
+        Redis::shouldReceive('set')
+            ->once()
+            ->with($idemCacheKey, 'processing', 'EX', 30, 'NX')
+            ->andReturn(true);
+        Redis::shouldReceive('del')
+            ->once()
+            ->with($idemCacheKey);
+
+        $first = $this->service->sellItem(
+            ShopSellRequest::create($character, $item->id, 2, $idemKey)
+        );
+
+        $this->assertSame(130, $first['copper']);
+        $this->assertSame(30, $first['sell_price']);
+
+        // Second call - processing lock already exists, should return cached result
+        // Redis::del is called in the early return path for cleanup
+        Redis::shouldReceive('set')
+            ->once()
+            ->with($idemCacheKey, 'processing', 'EX', 30, 'NX')
+            ->andReturn(false);
+        Cache::shouldReceive('get')
+            ->once()
+            ->with($idemCacheKey)
+            ->andReturn($first);
+        Redis::shouldReceive('del')
+            ->once()
+            ->with($idemCacheKey);
+
+        $second = $this->service->sellItem(
+            ShopSellRequest::create($character->fresh(), $item->id, 2, $idemKey)
+        );
+
+        $this->assertSame(130, $second['copper']);
+        $this->assertSame(30, $second['sell_price']);
+    }
+
+    public function test_idempotent_buy_different_keys_work_independently(): void
+    {
+        $character = $this->createCharacter(['copper' => 500]);
+        $definition = $this->createItemDefinition([
+            'name' => '不同Key测试物品',
+            'buy_price' => 100,
+        ]);
+
+        // First call with key-a
+        Redis::shouldReceive('set')
+            ->once()
+            ->with('shop:idem:' . $character->id . ':buy:key-a', 'processing', 'EX', 30, 'NX')
+            ->andReturn(true);
+        Redis::shouldReceive('del')
+            ->once()
+            ->with('shop:idem:' . $character->id . ':buy:key-a');
+
+        $first = $this->service->buyItem(
+            ShopPurchaseRequest::create($character, $definition->id, 1, 'key-a')
+        );
+        $this->assertSame(400, $first['copper']);
+
+        // Second call with key-b (different key, should also succeed)
+        Redis::shouldReceive('set')
+            ->once()
+            ->with('shop:idem:' . $character->id . ':buy:key-b', 'processing', 'EX', 30, 'NX')
+            ->andReturn(true);
+        Redis::shouldReceive('del')
+            ->once()
+            ->with('shop:idem:' . $character->id . ':buy:key-b');
+
+        $second = $this->service->buyItem(
+            ShopPurchaseRequest::create($character->fresh(), $definition->id, 1, 'key-b')
+        );
+        $this->assertSame(300, $second['copper']);
+    }
+
+    public function test_buy_without_idempotency_key_skips_idempotency_check(): void
+    {
+        $character = $this->createCharacter(['copper' => 500]);
+        $definition = $this->createItemDefinition([
+            'name' => '无幂等Key测试',
+            'buy_price' => 100,
+        ]);
+
+        // Without idempotency key, Redis should not be used at all
+        // The code goes directly to executeWithDistributedLock which uses Cache::lock()
+
+        $result = $this->service->buyItem(
+            ShopPurchaseRequest::create($character, $definition->id, 1, null)
+        );
+
+        $this->assertSame(400, $result['copper']);
+        $this->assertSame(100, $result['total_price']);
+    }
+
+    public function test_sell_without_idempotency_key_skips_idempotency_check(): void
+    {
+        $character = $this->createCharacter(['copper' => 100]);
+        $definition = $this->createItemDefinition([
+            'name' => '无幂等Key出售测试',
+            'buy_price' => 50,
+        ]);
+        $item = $this->createItem($character, $definition, [
+            'quantity' => 5,
+            'slot_index' => 0,
+            'sell_price' => 15,
+        ]);
+
+        // Without idempotency key, Redis should not be used at all
+        // The code goes directly to executeWithDistributedLock which uses Cache::lock()
+
+        $result = $this->service->sellItem(
+            ShopSellRequest::create($character, $item->id, 2, null)
+        );
+
+        $this->assertSame(130, $result['copper']);
+        $this->assertSame(30, $result['sell_price']);
+    }
+
+    public function test_buy_item_records_purchased_under_distributed_lock(): void
+    {
+        $character = $this->createCharacter(['copper' => 500, 'level' => 10]);
+        $definition = $this->createItemDefinition([
+            'name' => '锁测试装备',
+            'type' => 'weapon',
+            'sub_type' => 'sword',
+            'required_level' => 3,
+            'buy_price' => 100,
+        ]);
+
+        // Test without idempotency key to avoid Redis mocking complexity
+        $result = $this->service->buyItemLegacy($character, $definition->id, 1);
+
+        $this->assertArrayHasKey('copper', $result);
+        $this->assertArrayHasKey('item_name', $result);
+        $this->assertSame('锁测试装备', $result['item_name']);
+
+        // Verify purchased items are recorded
+        $this->assertContains($definition->id, $this->service->getShopItems($character)['purchased']);
     }
 }
