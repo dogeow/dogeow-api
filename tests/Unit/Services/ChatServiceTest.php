@@ -228,21 +228,29 @@ class ChatServiceTest extends TestCase
         $activity = ['unique_users' => 5, 'hourly_activity' => []];
         $presenceStats = ['online_users' => 2, 'active_rooms' => 1];
 
-        $this->activityService->shouldReceive('getUserActivity')
+        $activityService = Mockery::mock(ChatActivityService::class);
+        $activityService->shouldReceive('getUserActivity')
             ->once()
             ->with(15, 48)
             ->andReturn($activity);
-        $this->activityService->shouldReceive('getPresenceStats')
+        $activityService->shouldReceive('getPresenceStats')
             ->once()
             ->withNoArgs()
             ->andReturn($presenceStats);
-        $this->activityService->shouldReceive('trackRoomActivity')
+        $activityService->shouldReceive('trackRoomActivity')
             ->once()
             ->with(15, 'joined', 8);
 
-        $this->assertSame($activity, $this->service->getUserActivity(15, 48));
-        $this->assertSame($presenceStats, $this->service->getPresenceStats());
-        $this->service->trackRoomActivity(15, 'joined', 8);
-        $this->assertTrue(true);
+        $service = new ChatService(
+            $this->messageService,
+            $this->roomService,
+            $this->presenceService,
+            $activityService,
+            Mockery::mock(ChatCacheService::class)
+        );
+
+        $this->assertSame($activity, $service->getUserActivity(15, 48));
+        $this->assertSame($presenceStats, $service->getPresenceStats());
+        $service->trackRoomActivity(15, 'joined', 8);
     }
 }

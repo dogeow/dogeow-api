@@ -187,7 +187,7 @@ class WebSocketDisconnectServiceTest extends TestCase
         $user = User::factory()->create();
         $room = ChatRoom::factory()->create();
 
-        ChatRoomUser::factory()->online()->create([
+        $roomUser = ChatRoomUser::factory()->online()->create([
             'room_id' => $room->id,
             'user_id' => $user->id,
         ]);
@@ -199,8 +199,8 @@ class WebSocketDisconnectServiceTest extends TestCase
         // Call handleDisconnect - it should catch the exception internally
         $this->service->handleDisconnect($user->id);
 
-        // Test passes if no exception is thrown and rollBack was called
-        $this->assertTrue(true);
+        // Verify the user is still marked as online (transaction was rolled back)
+        $this->assertTrue($roomUser->fresh()->is_online);
     }
 
     public function test_cleanup_inactive_connections_handles_exception_and_returns_zero(): void

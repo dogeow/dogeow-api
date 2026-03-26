@@ -111,13 +111,17 @@ class ItemSearchServiceTest extends TestCase
 
     public function test_record_search_history_handles_exception_gracefully(): void
     {
-        // This test verifies the method doesn't throw even if there's an error
         $request = Request::create('/search', 'GET');
         $request->setMethod('GET');
 
-        // Should not throw
+        // Should not throw any exception - method catches exceptions internally
         $this->service->recordSearchHistory('test', 0, $request);
-        $this->assertTrue(true);
+
+        // Verify the record was inserted successfully (normal case)
+        $this->assertDatabaseHas('thing_search_history', [
+            'search_term' => 'test',
+            'results_count' => 0,
+        ]);
     }
 
     public function test_record_search_history_logs_error_on_database_failure(): void
@@ -131,7 +135,8 @@ class ItemSearchServiceTest extends TestCase
         $request = Request::create('/search', 'GET', ['q' => 'test']);
         $request->setMethod('GET');
 
-        // Should not throw even though DB fails
+        // Should not throw even though DB fails - exception is caught internally
+        // Mockery expectation on Log::warning validates the error was logged
         $this->service->recordSearchHistory('test', 5, $request);
     }
 }

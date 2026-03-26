@@ -183,16 +183,17 @@ class ItemImageManagementServiceTest extends TestCase
             ->with('test/image.jpg')
             ->andThrow(new \Exception('Storage error'));
 
-        // Should still delete the database record even if storage deletion fails
+        // The service method throws an exception when storage deletion fails
+        // The exception propagates up, and the database record is NOT deleted
+        // because $image->delete() is never called when Storage::delete throws
         try {
             $this->service->deleteImagesByIds([$image->id], $item);
         } catch (\Exception $e) {
             // Expected exception from storage
         }
 
-        // Note: In actual implementation, storage failure might prevent database deletion
-        // This test verifies the method handles storage exceptions gracefully
-        $this->assertTrue(true);
+        // Verify the database record was NOT deleted due to the exception
+        $this->assertDatabaseHas('thing_item_images', ['id' => $image->id]);
     }
 
     public function test_delete_all_item_images_with_storage_failure()
@@ -214,16 +215,17 @@ class ItemImageManagementServiceTest extends TestCase
         Storage::shouldReceive('delete')
             ->andThrow(new \Exception('Storage error'));
 
-        // Should still delete all database records even if storage deletion fails
+        // The service method throws an exception when storage deletion fails
+        // The exception propagates up, and no database records are deleted
         try {
             $this->service->deleteAllItemImages($item);
         } catch (\Exception $e) {
             // Expected exception from storage
         }
 
-        // Note: In actual implementation, storage failure might prevent database deletion
-        // This test verifies the method handles storage exceptions gracefully
-        $this->assertTrue(true);
+        // Verify the database records were NOT deleted due to the exception
+        $this->assertDatabaseHas('thing_item_images', ['id' => $image1->id]);
+        $this->assertDatabaseHas('thing_item_images', ['id' => $image2->id]);
     }
 
     public function test_delete_images_by_ids_with_mixed_valid_and_invalid_ids()
