@@ -253,7 +253,7 @@ class ChatControllerTest extends TestCase
 
     public function test_send_message_respects_rate_limiting()
     {
-        $this->mock(\App\Services\Chat\ChatCacheService::class, function ($mock) {
+        $this->mock(ChatCacheService::class, function ($mock) {
             $mock->shouldReceive('checkRateLimit')
                 ->once()
                 ->andReturn([
@@ -955,7 +955,7 @@ class ChatControllerTest extends TestCase
     {
         $response = $this->getJson('/api/chat/rooms/999999/messages');
 
-        $response->assertStatus(500)
+        $response->assertStatus(404)
             ->assertJsonPath('message', 'Failed to retrieve messages');
     }
 
@@ -993,7 +993,7 @@ class ChatControllerTest extends TestCase
     {
         $response = $this->deleteJson("/api/chat/rooms/{$this->room->id}/messages/999999");
 
-        $response->assertStatus(500)
+        $response->assertStatus(404)
             ->assertJsonPath('message', 'Failed to delete message');
     }
 
@@ -1001,7 +1001,7 @@ class ChatControllerTest extends TestCase
     {
         $response = $this->getJson('/api/chat/rooms/999999/users');
 
-        $response->assertStatus(500)
+        $response->assertStatus(404)
             ->assertJsonPath('message', 'Failed to retrieve online users');
     }
 
@@ -1009,7 +1009,7 @@ class ChatControllerTest extends TestCase
     {
         $response = $this->postJson('/api/chat/rooms/999999/status');
 
-        $response->assertStatus(500)
+        $response->assertStatus(404)
             ->assertJsonPath('message', 'Failed to update status');
     }
 
@@ -1031,7 +1031,7 @@ class ChatControllerTest extends TestCase
     {
         $response = $this->getJson('/api/chat/rooms/999999/my-status');
 
-        $response->assertStatus(500)
+        $response->assertStatus(404)
             ->assertJsonPath('message', 'Failed to get user presence status');
     }
 

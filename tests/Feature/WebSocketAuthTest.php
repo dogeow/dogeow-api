@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Chat\ChatRoom;
+use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -33,12 +35,18 @@ class WebSocketAuthTest extends TestCase
     public function test_private_channel_accepts_valid_token(): void
     {
         $user = User::factory()->create();
+        $room = ChatRoom::factory()->create();
+        ChatRoomUser::factory()->create([
+            'room_id' => $room->id,
+            'user_id' => $user->id,
+            'is_online' => true,
+        ]);
         $token = $user->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
         ])->postJson(self::AUTH_ENDPOINT, [
-            'channel_name' => 'private-chat.room.1',
+            'channel_name' => "private-chat.room.{$room->id}",
             'socket_id' => '123.456',
         ]);
 

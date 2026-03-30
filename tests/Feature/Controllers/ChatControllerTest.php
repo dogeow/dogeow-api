@@ -366,7 +366,7 @@ class ChatControllerTest extends TestCase
         $response = $this->actingAs($user)
             ->getJson('/api/chat/rooms/999999/messages');
 
-        $response->assertStatus(500)
+        $response->assertStatus(404)
             ->assertJson([
                 'message' => 'Failed to retrieve messages',
             ]);
@@ -384,7 +384,7 @@ class ChatControllerTest extends TestCase
         $response = $this->actingAs($user)
             ->deleteJson("/api/chat/rooms/{$room->id}/messages/999999");
 
-        $response->assertStatus(500)
+        $response->assertStatus(404)
             ->assertJson([
                 'message' => 'Failed to delete message',
             ]);

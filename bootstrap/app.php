@@ -1,8 +1,14 @@
 <?php
 
+use App\Http\Middleware\CombatRateLimit;
+use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\FormatApiResponse;
+use App\Http\Middleware\IdempotencyMiddleware;
+use App\Http\Middleware\WebSocketAuthMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Laravel\Sanctum\SanctumServiceProvider;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -13,19 +19,22 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withProviders([
-        Laravel\Sanctum\SanctumServiceProvider::class,
+        SanctumServiceProvider::class,
     ])
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->statefulApi();
+
         $middleware->alias([
-            'websocket.auth' => \App\Http\Middleware\WebSocketAuthMiddleware::class,
-            'combat.rate' => \App\Http\Middleware\CombatRateLimit::class,
-            'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
-            'format.api' => \App\Http\Middleware\FormatApiResponse::class,
-            'idempotency' => \App\Http\Middleware\IdempotencyMiddleware::class,
+            'websocket.auth' => WebSocketAuthMiddleware::class,
+            'combat.rate' => CombatRateLimit::class,
+            'admin' => EnsureUserIsAdmin::class,
+            'format.api' => FormatApiResponse::class,
+            'idempotency' => IdempotencyMiddleware::class,
         ]);
 
         // 排除 broadcasting/auth 端点的 CSRF 验证(使用 Sanctum Bearer token 认证)
         $middleware->validateCsrfTokens(except: [
+            'api/broadcasting/auth',
             'broadcasting/auth',
         ]);
     })

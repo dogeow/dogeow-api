@@ -6,6 +6,7 @@ use App\Http\Requests\Chat\GetModerationActionsRequest;
 use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -65,6 +66,10 @@ trait ChatControllerHelpers
      */
     protected function logAndError(string $logMessage, \Throwable $e, array $context, string $userMessage, int $statusCode = 500): JsonResponse
     {
+        if ($e instanceof ModelNotFoundException) {
+            $statusCode = 404;
+        }
+
         Log::error($logMessage, array_merge($context, [
             'error' => $e->getMessage(),
         ]));
