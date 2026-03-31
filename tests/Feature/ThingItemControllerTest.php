@@ -6,13 +6,13 @@ use App\Models\Thing\Item;
 use App\Models\Thing\ItemCategory;
 use App\Models\Thing\Tag;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class ThingItemControllerTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseMigrations;
 
     private User $user;
 
