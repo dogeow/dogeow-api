@@ -11,7 +11,7 @@
 ## 技术栈
 
 | 分类 | 技术 |
-|------|------|
+| ------ | ------ |
 | 核心 | Laravel 12、PHP 8.2+、MySQL 8、Redis 7 |
 | 认证 | Laravel Sanctum |
 | 搜索 | Laravel Scout |
@@ -27,7 +27,7 @@
 
 ## 项目结构
 
-```
+```plain
 app/
 ├── Http/
 │   ├── Controllers/Api/     # 按业务拆分：Game、Note、Word、Thing、Chat 等
@@ -50,33 +50,38 @@ routes/api/
 ## 开发规范
 
 ### 技术选择
+
 - 优先使用 Laravel 官方包
 - 认证用 Sanctum
 - **不使用数据库外键**，由应用层维护关联
 
 ### 代码组织
+
 - 单文件不超过 600 行，超出需拆分
 - Policy、Form Request 等单独文件
 - 按业务功能组织代码
 
 ### 代码质量
+
 - 可改进注释，但不删除现有注释
 - 使用 PHP 8 构造器属性提升、显式返回类型
 - 修改后运行 `vendor/bin/pint --dirty` 保持格式
 
 ### API 设计
+
 - RESTful
 - 统一响应格式（`ApiResponse`）
 - 适当的 HTTP 状态码和错误处理
 
 ### 测试
+
 - 新建/修改后运行相关测试
 - 使用工厂创建测试数据
 
 ## 常用命令
 
 | 用途 | 命令 |
-|------|------|
+| ------ | ------ |
 | 开发 | `composer run dev`（serve + queue + reverb） |
 | 测试 | `php artisan test` |
 | 单测 | `php artisan test --filter=testName` |
