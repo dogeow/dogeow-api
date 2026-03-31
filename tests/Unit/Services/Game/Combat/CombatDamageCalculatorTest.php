@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services\Game\Combat;
 
 use App\Services\Game\Combat\CombatDamageCalculator;
+use App\Services\Game\DTOs\DamageContext;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -27,18 +28,18 @@ class CombatDamageCalculatorTest extends TestCase
         $targetMonsters = [['position' => 0]];
 
         // Act
-        $result = $this->calculator->applyCharacterDamageToMonsters(
-            $monsters,
-            $targetMonsters,
+        $context = new DamageContext(
+            monsters: $monsters,
+            targetMonsters: $targetMonsters,
             charAttack: 50,
             skillDamage: 0,
             isCrit: false,
             charCritDamage: 1.5,
-            useAoe: false
+            useAoe: false,
         );
+        [$updatedMonsters, $totalDamage] = $this->calculator->applyCharacterDamageToMonsters($context);
 
         // Assert
-        [$updatedMonsters, $totalDamage] = $result;
         $this->assertIsArray($updatedMonsters);
         $this->assertIsInt($totalDamage);
         $this->assertGreaterThan(0, $totalDamage);
@@ -60,18 +61,18 @@ class CombatDamageCalculatorTest extends TestCase
         $targetMonsters = [['position' => 0], ['position' => 1]];
 
         // Act
-        $result = $this->calculator->applyCharacterDamageToMonsters(
-            $monsters,
-            $targetMonsters,
-            charAttack: 50,
+        $context = new DamageContext(
+            monsters: $monsters,
+            targetMonsters: $targetMonsters,
+            charAttack: 100,
             skillDamage: 0,
             isCrit: false,
             charCritDamage: 1.5,
-            useAoe: false
+            useAoe: true,
         );
+        [$updatedMonsters] = $this->calculator->applyCharacterDamageToMonsters($context);
 
         // Assert
-        [$updatedMonsters, $totalDamage] = $result;
         // New monster should keep original HP (not attacked)
         $this->assertEquals(100, $updatedMonsters[0]['hp']);
         // Old monster should have reduced HP
@@ -91,32 +92,36 @@ class CombatDamageCalculatorTest extends TestCase
         $targetMonsters = [['position' => 0], ['position' => 1]];
 
         // Act - with AOE (useAoe: true)
-        [$updatedMonstersAoe, $totalDamageAoe] = $this->calculator->applyCharacterDamageToMonsters(
-            $monsters,
-            $targetMonsters,
+        $contextAoe = new DamageContext(
+            monsters: $monsters,
+            targetMonsters: $targetMonsters,
             charAttack: 100,
             skillDamage: 0,
             isCrit: false,
             charCritDamage: 1.5,
-            useAoe: true
+            useAoe: true,
         );
+        [$updatedMonstersAoe, $totalDamageAoe] = $this->calculator->applyCharacterDamageToMonsters($contextAoe);
 
         // Act - without AOE (useAoe: false)
-        [$updatedMonstersNoAoe, $totalDamageNoAoe] = $this->calculator->applyCharacterDamageToMonsters(
-            $monsters,
-            $targetMonsters,
+        $contextNoAoe = new DamageContext(
+            monsters: $monsters,
+            targetMonsters: $targetMonsters,
             charAttack: 100,
             skillDamage: 0,
             isCrit: false,
             charCritDamage: 1.5,
-            useAoe: false
+            useAoe: false,
         );
+        [$updatedMonstersNoAoe, $totalDamageNoAoe] = $this->calculator->applyCharacterDamageToMonsters($contextNoAoe);
 
         // Assert - AOE damage should be less due to multiplier
         $this->assertLessThan($totalDamageNoAoe, $totalDamageAoe);
         // AOE multiplier is 0.7 from config
-        $this->assertEquals(70, $totalDamageAoe); // 100 * 0.7 = 70
-        $this->assertEquals(100, $totalDamageNoAoe); // 100 * 1.0 = 100
+        // 2 targets * 100 attack * 0.7 = 140
+        $this->assertEquals(140, $totalDamageAoe);
+        // 2 targets * 100 attack = 200
+        $this->assertEquals(200, $totalDamageNoAoe);
     }
 
     #[Test]
@@ -129,18 +134,18 @@ class CombatDamageCalculatorTest extends TestCase
         $targetMonsters = [['position' => 0]];
 
         // Act
-        $result = $this->calculator->applyCharacterDamageToMonsters(
-            $monsters,
-            $targetMonsters,
+        $context = new DamageContext(
+            monsters: $monsters,
+            targetMonsters: $targetMonsters,
             charAttack: 50,
             skillDamage: 0,
             isCrit: false,
             charCritDamage: 1.5,
-            useAoe: false
+            useAoe: false,
         );
+        [$updatedMonsters] = $this->calculator->applyCharacterDamageToMonsters($context);
 
         // Assert
-        [$updatedMonsters] = $result;
         $this->assertArrayNotHasKey('is_new', $updatedMonsters[0]);
     }
 
