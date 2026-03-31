@@ -1,6 +1,6 @@
 ## 技术栈
 
--   Laravel 12
+-   Laravel 13
     - 官方库
         -   Laravel Octane (性能优化)
         -   Laravel Horizon (队列监控)

@@ -1,17 +1,20 @@
 # Laravel API 项目规则
 
 ## 项目概述
-这是一个 Laravel 12 API 项目，为 dogeow (Next.js) 前端提供后端服务。
+
+这是一个 Laravel 13 API 项目，为 dogeow (Next.js) 前端提供后端服务。
 
 ## 技术栈
 
 ### 核心框架
-- Laravel 12
+
+- Laravel 13
 - PHP 8.4
 - MySQL 8
 - Redis 7
 
 ### Laravel 扩展包
+
 - **认证**: Laravel Sanctum (官方推荐)
 - **搜索**: Laravel Scout
 - **图片处理**: intervention/image
@@ -23,6 +26,7 @@
 - **媒体库**: spatie/laravel-medialibrary
 
 ### 性能 & 监控
+
 - Laravel Octane (性能优化)
 - Laravel Horizon (队列监控)
 - Laravel Telescope (调试工具)
@@ -31,27 +35,32 @@
 ## 开发规范
 
 ### 技术选择
+
 - **优先使用 Laravel 官方包** - 参考 https://laravel.com/docs
 - **认证方案**: 使用 Sanctum，避免第三方 JWT 包
 - **数据库设计**: 不使用外键关联，通过应用层维护数据关系
 
 ### 代码组织
+
 - **文件拆分**: 单个文件不超过 600 行，超过需拆分
 - **独立文件**: Policy、Request Validation 等单独文件
 - **功能模块**: 按业务功能组织代码结构
 
 ### 代码质量
+
 - **注释保护**: 可以改进注释，但不删除现有注释
 - **修改保护**: 不要恢复已修改的代码逻辑
 - **简洁原则**: 界面简洁，功能简单时避免冗余介绍
 
 ### API 设计
+
 - 遵循 RESTful 设计原则
 - 统一的响应格式
 - 适当的 HTTP 状态码
 - 完善的错误处理
 
 ### 安全规范
+
 - 使用 Laravel 内置安全特性
 - 数据验证和清理
 - 适当的权限控制

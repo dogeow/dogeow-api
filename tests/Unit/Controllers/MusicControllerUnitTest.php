@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Controllers;
 
-use App\Http\Controllers\Api\MusicController;
+use App\Http\Controllers\Api\Dashboard\MusicController;
 use App\Services\UpyunService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;

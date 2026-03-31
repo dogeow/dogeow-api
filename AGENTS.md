@@ -12,7 +12,7 @@
 
 | 分类 | 技术 |
 | ------ | ------ |
-| 核心 | Laravel 12、PHP 8.2+、MySQL 8、Redis 7 |
+| 核心 | Laravel 13、PHP 8.2+、MySQL 8、Redis 7 |
 | 认证 | Laravel Sanctum |
 | 搜索 | Laravel Scout |
 | 图片 | intervention/image |
