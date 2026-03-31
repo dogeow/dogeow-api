@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Events;
+namespace App\Events\Dashboard;
 
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -25,7 +25,7 @@ class UserNotificationCreated implements ShouldBroadcastNow
     ) {}
 
     /**
-     * @return array<int, \Illuminate\Broadcasting\PrivateChannel>
+     * @return array<int, PrivateChannel>
      */
     public function broadcastOn(): array
     {

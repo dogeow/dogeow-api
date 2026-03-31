@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Resources;
 
-use App\Http\Resources\ItemImageResource;
+use App\Http\Resources\Thing\ItemImageResource;
 use App\Models\Thing\ItemImage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;

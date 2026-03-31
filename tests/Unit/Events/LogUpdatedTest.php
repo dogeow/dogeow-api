@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Events;
 
-use App\Events\LogUpdated;
+use App\Events\Dashboard\LogUpdated;
 use Tests\TestCase;
 
 class LogUpdatedTest extends TestCase

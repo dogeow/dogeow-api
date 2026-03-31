@@ -1,15 +1,15 @@
 <?php
 
+use App\Http\Controllers\Api\Ai\MiniMaxController;
+use App\Http\Controllers\Api\Ai\VisionUploadController;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\ClientInfoController;
+use App\Http\Controllers\Api\Dashboard\ClientInfoController;
+use App\Http\Controllers\Api\Dashboard\MusicController;
+use App\Http\Controllers\Api\Dashboard\WebPushController;
 use App\Http\Controllers\Api\GithubController;
 use App\Http\Controllers\Api\GithubWebhookController;
-use App\Http\Controllers\Api\MiniMaxController;
-use App\Http\Controllers\Api\MusicController;
 use App\Http\Controllers\Api\Note\NoteController;
 use App\Http\Controllers\Api\SystemStatusController;
-use App\Http\Controllers\Api\VisionUploadController;
-use App\Http\Controllers\Api\WebPushController;
 use Illuminate\Support\Facades\Route;
 
 // Auth

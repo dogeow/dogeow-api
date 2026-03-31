@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Events;
 
-use App\Events\KnowledgeIndexUpdated;
+use App\Events\Ai\KnowledgeIndexUpdated;
 use Tests\TestCase;
 
 class KnowledgeIndexUpdatedTest extends TestCase

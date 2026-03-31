@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Api\NotificationController;
-use App\Http\Controllers\Api\WebPushController;
+use App\Http\Controllers\Api\Dashboard\NotificationController;
+use App\Http\Controllers\Api\Dashboard\WebPushController;
 use Illuminate\Support\Facades\Route;
 
 // Web Push：保存/删除当前用户的推送订阅

@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Events;
 
-use App\Events\UserNotificationCreated;
+use App\Events\Dashboard\UserNotificationCreated;
 use Tests\TestCase;
 
 class UserNotificationCreatedEventTest extends TestCase

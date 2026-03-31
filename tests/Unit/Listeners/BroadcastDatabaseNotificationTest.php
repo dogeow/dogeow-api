@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Listeners;
 
-use App\Events\UserNotificationCreated;
+use App\Events\Dashboard\UserNotificationCreated;
 use App\Listeners\Notifications\BroadcastDatabaseNotification;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;

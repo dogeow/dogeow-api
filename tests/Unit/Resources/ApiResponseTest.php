@@ -3,7 +3,6 @@
 namespace Tests\Unit\Resources;
 
 use App\Http\Resources\ApiResponse;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Tests\TestCase;
 
 class ApiResponseTest extends TestCase
@@ -138,27 +137,6 @@ class ApiResponseTest extends TestCase
 
         $data = json_decode($response->getContent(), true);
         $this->assertEquals(60, $data['meta']['retry_after']);
-    }
-
-    public function test_paginated_returns_pagination_data(): void
-    {
-        $paginator = new LengthAwarePaginator(
-            ['item1', 'item2'],
-            20,
-            10,
-            1
-        );
-
-        $response = ApiResponse::paginated($paginator);
-
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertTrue($data['success']);
-        $this->assertEquals(['item1', 'item2'], $data['data']);
-        $this->assertEquals(1, $data['pagination']['current_page']);
-        $this->assertEquals(2, $data['pagination']['last_page']);
-        $this->assertEquals(10, $data['pagination']['per_page']);
-        $this->assertEquals(20, $data['pagination']['total']);
     }
 
     public function test_collection_with_meta(): void

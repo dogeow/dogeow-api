@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Jobs;
 
-use App\Events\KnowledgeIndexUpdated;
+use App\Events\Ai\KnowledgeIndexUpdated;
 use App\Jobs\TriggerKnowledgeIndexBuildJob;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;

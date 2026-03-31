@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\MiniMaxController;
+use App\Http\Controllers\Api\Ai\MiniMaxController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', 'admin'])->group(function () {

@@ -3,7 +3,6 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Pagination\LengthAwarePaginator;
 
 class ApiResponse
 {
@@ -45,31 +44,6 @@ class ApiResponse
         }
 
         return response()->json($response, $status);
-    }
-
-    /**
-     * 分页响应
-     */
-    public static function paginated(
-        LengthAwarePaginator $paginator,
-        string $message = 'Data retrieved successfully'
-    ): JsonResponse {
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'data' => $paginator->items(),
-            'pagination' => [
-                'current_page' => $paginator->currentPage(),
-                'last_page' => $paginator->lastPage(),
-                'per_page' => $paginator->perPage(),
-                'total' => $paginator->total(),
-                'from' => $paginator->firstItem(),
-                'to' => $paginator->lastItem(),
-                'has_more_pages' => $paginator->hasMorePages(),
-                'prev_page_url' => $paginator->previousPageUrl(),
-                'next_page_url' => $paginator->nextPageUrl(),
-            ],
-        ]);
     }
 
     /**

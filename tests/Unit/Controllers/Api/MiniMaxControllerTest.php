@@ -2,8 +2,9 @@
 
 namespace Tests\Unit\Controllers\Api;
 
-use App\Http\Controllers\Api\MiniMaxController;
-use App\Http\Requests\MiniMax\RoleplayChatRequest;
+use App\Http\Controllers\Api\Ai\MiniMaxController;
+use App\Http\Requests\Ai\RoleplayChatRequest;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -573,7 +574,7 @@ class MiniMaxControllerTest extends TestCase
 
         Http::fake([
             'api.minimax.chat/*' => function () {
-                throw new \Illuminate\Http\Client\ConnectionException('Connection refused');
+                throw new ConnectionException('Connection refused');
             },
         ]);
 

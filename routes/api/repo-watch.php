@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\RepositoryWatchController;
+use App\Http\Controllers\Api\Tools\RepositoryWatchController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('repo-watch')->group(function () {

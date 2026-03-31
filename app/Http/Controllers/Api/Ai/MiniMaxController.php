@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Ai;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\MiniMax\RoleplayChatRequest;
+use App\Http\Requests\Ai\RoleplayChatRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;

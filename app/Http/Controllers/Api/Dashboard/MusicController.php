@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Services\UpyunService;
@@ -93,7 +93,7 @@ class MusicController extends Controller
     /**
      * 下载音乐文件，确保正确的 MIME 类型和响应头
      */
-    public function download(string $filename): Response|\Illuminate\Http\JsonResponse
+    public function download(string $filename): Response|JsonResponse
     {
         $filePath = public_path('musics/' . $filename);
 

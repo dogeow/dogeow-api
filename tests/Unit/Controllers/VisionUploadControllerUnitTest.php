@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Controllers;
 
-use App\Http\Controllers\Api\VisionUploadController;
+use App\Http\Controllers\Api\Ai\VisionUploadController;
 use App\Services\UpyunService;
 use Illuminate\Http\Request;
 use Mockery;

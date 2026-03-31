@@ -2,7 +2,7 @@
 
 namespace App\Listeners\Notifications;
 
-use App\Events\UserNotificationCreated;
+use App\Events\Dashboard\UserNotificationCreated;
 use App\Models\User;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\DatabaseNotification;

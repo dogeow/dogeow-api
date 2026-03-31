@@ -2,8 +2,9 @@
 
 namespace Tests\Unit\Controllers;
 
-use App\Http\Controllers\Api\ClientInfoController;
+use App\Http\Controllers\Api\Dashboard\ClientInfoController;
 use App\Services\Web\ClientInfoService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -20,7 +21,7 @@ class ClientInfoControllerTest extends TestCase
 
         $response = $controller->getBasicInfo($request);
 
-        $this->assertInstanceOf(\Illuminate\Http\JsonResponse::class, $response);
+        $this->assertInstanceOf(JsonResponse::class, $response);
         $data = json_decode($response->getContent(), true);
         $this->assertArrayHasKey('ip', $data);
     }
@@ -41,7 +42,7 @@ class ClientInfoControllerTest extends TestCase
 
         $response = $controller->getClientInfo($request);
 
-        $this->assertInstanceOf(\Illuminate\Http\JsonResponse::class, $response);
+        $this->assertInstanceOf(JsonResponse::class, $response);
         $data = json_decode($response->getContent(), true);
         $this->assertArrayHasKey('ip', $data);
         $this->assertArrayHasKey('user_agent', $data);

@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Controllers;
 
-use App\Http\Controllers\Api\TitleController;
+use App\Http\Controllers\Api\Tools\TitleController;
 use App\Services\Cache\CacheService;
 use App\Services\Web\WebPageService;
 use Illuminate\Http\Request;

@@ -2,8 +2,9 @@
 
 namespace Tests\Unit\Controllers;
 
-use App\Events\LogUpdated;
-use App\Http\Controllers\Api\LogController;
+use App\Events\Dashboard\LogUpdated;
+use App\Http\Controllers\Api\Dashboard\LogController;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\File;
@@ -23,7 +24,7 @@ class LogControllerTest extends TestCase
     {
         $response = $this->controller->index();
 
-        $this->assertInstanceOf(\Illuminate\Http\JsonResponse::class, $response);
+        $this->assertInstanceOf(JsonResponse::class, $response);
     }
 
     public function test_index_returns_array_of_logs(): void
