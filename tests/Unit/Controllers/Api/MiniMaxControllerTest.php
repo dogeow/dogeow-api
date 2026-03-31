@@ -19,13 +19,22 @@ class MiniMaxControllerTest extends TestCase
         $this->controller = new MiniMaxController;
     }
 
+    private function makeRoleplayRequest(array $data): RoleplayChatRequest
+    {
+        $request = new RoleplayChatRequest;
+        $request->setContainer($this->app);
+        $request->replace($data);
+        $request->validateResolved();
+
+        return $request;
+    }
+
     public function test_roleplay_chat_returns_error_when_api_key_not_configured(): void
     {
         config(['services.minimax.balance_api_key' => null]);
         config(['services.minimax.api_base_url' => 'https://api.minimax.chat']);
 
-        $request = new RoleplayChatRequest;
-        $request->merge([
+        $request = $this->makeRoleplayRequest([
             'character_name' => 'Test',
             'character_prompt' => 'You are a test character',
             'message' => 'Hello',
@@ -55,8 +64,7 @@ class MiniMaxControllerTest extends TestCase
             ], 200),
         ]);
 
-        $request = new RoleplayChatRequest;
-        $request->merge([
+        $request = $this->makeRoleplayRequest([
             'character_name' => 'Test',
             'character_prompt' => 'You are a test character',
             'message' => 'Hello',
@@ -83,8 +91,7 @@ class MiniMaxControllerTest extends TestCase
             ], 400),
         ]);
 
-        $request = new RoleplayChatRequest;
-        $request->merge([
+        $request = $this->makeRoleplayRequest([
             'character_name' => 'Test',
             'character_prompt' => 'You are a test character',
             'message' => 'Hello',
@@ -109,8 +116,7 @@ class MiniMaxControllerTest extends TestCase
             ], 200),
         ]);
 
-        $request = new RoleplayChatRequest;
-        $request->merge([
+        $request = $this->makeRoleplayRequest([
             'character_name' => 'Test',
             'character_prompt' => 'You are a test character',
             'message' => 'Hello',
@@ -146,8 +152,7 @@ class MiniMaxControllerTest extends TestCase
             },
         ]);
 
-        $request = new RoleplayChatRequest;
-        $request->merge([
+        $request = $this->makeRoleplayRequest([
             'character_name' => 'TestChar',
             'character_prompt' => 'You are a test',
             'message' => 'Hello',
@@ -178,8 +183,7 @@ class MiniMaxControllerTest extends TestCase
             },
         ]);
 
-        $request = new RoleplayChatRequest;
-        $request->merge([
+        $request = $this->makeRoleplayRequest([
             'character_name' => 'TestChar',
             'character_prompt' => 'You are a test',
             'message' => 'Hello',
@@ -319,8 +323,7 @@ class MiniMaxControllerTest extends TestCase
             ], 200),
         ]);
 
-        $request = new RoleplayChatRequest;
-        $request->merge([
+        $request = $this->makeRoleplayRequest([
             'character_name' => 'SysChar',
             'character_prompt' => 'System prompt content',
             'message' => 'User message',
@@ -351,8 +354,7 @@ class MiniMaxControllerTest extends TestCase
             },
         ]);
 
-        $request = new RoleplayChatRequest;
-        $request->merge([
+        $request = $this->makeRoleplayRequest([
             'character_name' => 'TestChar',
             'character_prompt' => 'You are a test',
             'user_persona' => 'I am a brave hero',
@@ -384,8 +386,7 @@ class MiniMaxControllerTest extends TestCase
             },
         ]);
 
-        $request = new RoleplayChatRequest;
-        $request->merge([
+        $request = $this->makeRoleplayRequest([
             'character_name' => 'TestChar',
             'character_prompt' => 'You are a test',
             'scene' => 'In a dark forest',
@@ -410,8 +411,7 @@ class MiniMaxControllerTest extends TestCase
             ], 200),
         ]);
 
-        $request = new RoleplayChatRequest;
-        $request->merge([
+        $request = $this->makeRoleplayRequest([
             'character_name' => 'TestChar',
             'character_prompt' => 'You are a test',
             'message' => 'Current message',
@@ -438,8 +438,7 @@ class MiniMaxControllerTest extends TestCase
             ], 200),
         ]);
 
-        $request = new RoleplayChatRequest;
-        $request->merge([
+        $request = $this->makeRoleplayRequest([
             'character_name' => 'TestChar',
             'character_prompt' => 'You are a test',
             'message' => 'Current user message',
@@ -462,8 +461,7 @@ class MiniMaxControllerTest extends TestCase
             ], 429),
         ]);
 
-        $request = new RoleplayChatRequest;
-        $request->merge([
+        $request = $this->makeRoleplayRequest([
             'character_name' => 'Test',
             'character_prompt' => 'You are a test',
             'message' => 'Hello',
@@ -487,8 +485,7 @@ class MiniMaxControllerTest extends TestCase
             ], 500),
         ]);
 
-        $request = new RoleplayChatRequest;
-        $request->merge([
+        $request = $this->makeRoleplayRequest([
             'character_name' => 'Test',
             'character_prompt' => 'You are a test',
             'message' => 'Hello',
@@ -512,8 +509,7 @@ class MiniMaxControllerTest extends TestCase
             ], 401),
         ]);
 
-        $request = new RoleplayChatRequest;
-        $request->merge([
+        $request = $this->makeRoleplayRequest([
             'character_name' => 'Test',
             'character_prompt' => 'You are a test',
             'message' => 'Hello',
@@ -535,8 +531,7 @@ class MiniMaxControllerTest extends TestCase
             'api.minimax.chat/*' => Http::response('Server Error Body', 500),
         ]);
 
-        $request = new RoleplayChatRequest;
-        $request->merge([
+        $request = $this->makeRoleplayRequest([
             'character_name' => 'Test',
             'character_prompt' => 'You are a test',
             'message' => 'Hello',
@@ -578,8 +573,7 @@ class MiniMaxControllerTest extends TestCase
             },
         ]);
 
-        $request = new RoleplayChatRequest;
-        $request->merge([
+        $request = $this->makeRoleplayRequest([
             'character_name' => 'Test',
             'character_prompt' => 'You are a test',
             'message' => 'Hello',

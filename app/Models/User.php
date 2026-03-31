@@ -3,10 +3,16 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Chat\ChatMessage;
+use App\Models\Chat\ChatRoom;
+use App\Models\Note\Note;
 use App\Models\Repo\WatchedPackage;
 use App\Models\Repo\WatchedRepository;
 use App\Models\Thing\Item;
+use App\Models\Todo\TodoList;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -22,7 +28,7 @@ use NotificationChannels\WebPush\HasPushSubscriptions;
  */
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasPushSubscriptions, Notifiable;
 
     /**
@@ -110,11 +116,19 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the entity's notifications.
+     */
+    public function notifications(): MorphMany
+    {
+        return $this->morphMany(Notification::class, 'notifiable')->latest();
+    }
+
+    /**
      * Get the notes that belong to the user.
      */
     public function notes()
     {
-        return $this->hasMany(\App\Models\Note\Note::class);
+        return $this->hasMany(Note::class);
     }
 
     /**
@@ -122,7 +136,7 @@ class User extends Authenticatable
      */
     public function createdRooms()
     {
-        return $this->hasMany(\App\Models\Chat\ChatRoom::class, 'created_by');
+        return $this->hasMany(ChatRoom::class, 'created_by');
     }
 
     /**
@@ -130,7 +144,7 @@ class User extends Authenticatable
      */
     public function joinedRooms()
     {
-        return $this->belongsToMany(\App\Models\Chat\ChatRoom::class, 'chat_room_users', 'user_id', 'room_id')
+        return $this->belongsToMany(ChatRoom::class, 'chat_room_users', 'user_id', 'room_id')
             ->withPivot(['joined_at', 'last_seen_at', 'is_online'])
             ->withTimestamps();
     }
@@ -140,7 +154,7 @@ class User extends Authenticatable
      */
     public function chatMessages()
     {
-        return $this->hasMany(\App\Models\Chat\ChatMessage::class);
+        return $this->hasMany(ChatMessage::class);
     }
 
     /**
@@ -148,7 +162,7 @@ class User extends Authenticatable
      */
     public function todoLists()
     {
-        return $this->hasMany(\App\Models\Todo\TodoList::class);
+        return $this->hasMany(TodoList::class);
     }
 
     /**

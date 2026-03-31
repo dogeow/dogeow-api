@@ -6,9 +6,12 @@ use App\Events\Chat\WebSocketDisconnected;
 use App\Listeners\Notifications\BroadcastDatabaseNotification;
 use App\Listeners\WebPush\LogWebPushResult;
 use App\Listeners\WebSocketDisconnectListener;
+use App\Models\Notification;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Notifications\Events\NotificationSent as LaravelNotificationSent;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Boost\BoostServiceProvider;
 use NotificationChannels\WebPush\Events\NotificationFailed as WebPushNotificationFailed;
 use NotificationChannels\WebPush\Events\NotificationSent as WebPushNotificationSent;
 
@@ -20,8 +23,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Laravel Boost 仅作为 dev 依赖，生产部署用 --no-dev 不会安装；避免生产从旧缓存加载导致 Class not found
-        if (class_exists(\Laravel\Boost\BoostServiceProvider::class)) {
-            $this->app->register(\Laravel\Boost\BoostServiceProvider::class);
+        if (class_exists(BoostServiceProvider::class)) {
+            $this->app->register(BoostServiceProvider::class);
         }
     }
 
@@ -39,5 +42,10 @@ class AppServiceProvider extends ServiceProvider
 
         // 数据库通知写入后，广播给用户私有频道，供前端实时刷新未读通知
         Event::listen(LaravelNotificationSent::class, BroadcastDatabaseNotification::class);
+
+        // 使用自定义通知模型(支持 UUID)
+        Relation::morphMap([
+            'notifications' => Notification::class,
+        ]);
     }
 }
