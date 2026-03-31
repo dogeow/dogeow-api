@@ -158,8 +158,8 @@ class LocationTreeServiceTest extends TestCase
     public function test_build_location_tree_orders_by_id(): void
     {
         $user = User::factory()->create();
-        $area2 = Area::create(['name' => 'Area B', 'user_id' => $user->id]);
         $area1 = Area::create(['name' => 'Area A', 'user_id' => $user->id]);
+        $area2 = Area::create(['name' => 'Area B', 'user_id' => $user->id]);
 
         $result = $this->service->buildLocationTree($user->id);
 

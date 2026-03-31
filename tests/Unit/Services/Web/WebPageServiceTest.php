@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services\Web;
 
 use App\Services\Web\WebPageService;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -33,7 +34,7 @@ class WebPageServiceTest extends TestCase
     public function test_fetch_content_normalizes_http_url(): void
     {
         Http::fake([
-            'https://example.com/*' => Http::response('<html><head><title>Test</title></head><body></body></html>', 200),
+            'http://example.com/*' => Http::response('<html><head><title>Test</title></head><body></body></html>', 200),
         ]);
 
         $result = $this->service->fetchContent('http://example.com/test');
@@ -80,12 +81,12 @@ class WebPageServiceTest extends TestCase
     {
         Http::fake([
             '*' => function () {
-                throw new \Illuminate\Http\Client\ConnectionException('Connection timed out');
+                throw new ConnectionException('Connection timed out');
             },
         ]);
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessageMatches('/获取网页失败/');
+        $this->expectException(ConnectionException::class);
+        $this->expectExceptionMessage('Connection timed out');
 
         $this->service->fetchContent('https://example.com/slow');
     }

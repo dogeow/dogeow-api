@@ -4,6 +4,9 @@ namespace Tests\Unit\Services\SystemStatus;
 
 use App\Services\SystemStatus\RedisStatusChecker;
 use Illuminate\Support\Facades\Redis;
+use Predis\Connection\ConnectionException;
+use Predis\Connection\Parameters;
+use Predis\Connection\StreamConnection;
 use Tests\TestCase;
 
 class RedisStatusCheckerTest extends TestCase
@@ -28,8 +31,8 @@ class RedisStatusCheckerTest extends TestCase
     {
         Redis::shouldReceive('ping')
             ->once()
-            ->andThrow(new \Predis\Connection\ConnectionException(
-                new \Predis\Connection\StreamConnection('tcp://127.0.0.1:6379'),
+            ->andThrow(new ConnectionException(
+                new StreamConnection(new Parameters(['host' => '127.0.0.1', 'port' => 6379])),
                 'Connection refused'
             ));
 

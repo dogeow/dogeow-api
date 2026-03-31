@@ -3,8 +3,9 @@
 namespace App\Services\Cache;
 
 use App\Services\BaseService;
+use Illuminate\Cache\RedisStore;
+use Illuminate\Redis\Connections\Connection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Redis;
 
 class CacheService extends BaseService
 {
@@ -59,9 +60,13 @@ class CacheService extends BaseService
      */
     public function forgetByPrefix(string $prefix): void
     {
-        $pattern = $this->buildCacheKey('*', $prefix);
-        /** @var \Illuminate\Redis\Connections\Connection $redis */
-        $redis = Redis::connection();
+        $prefix = $prefix ?: 'app';
+        /** @var RedisStore $store */
+        $store = Cache::getStore();
+        /** @var Connection $redis */
+        $redis = $store->getRedis();
+        $prefixStr = $store->getPrefix();
+        $pattern = "{$prefixStr}{$prefix}:*";
         $keys = $redis->keys($pattern);
 
         if (! empty($keys)) {

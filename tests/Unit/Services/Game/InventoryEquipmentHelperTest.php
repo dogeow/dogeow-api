@@ -107,12 +107,10 @@ class InventoryEquipmentHelperTest extends TestCase
     {
         // Arrange
         $character = $this->createCharacter();
-        // Ensure ring slot exists but is empty
-        GameEquipment::create([
-            'character_id' => $character->id,
-            'slot' => 'ring',
-            'item_id' => null,
-        ]);
+        // Ensure ring slot exists but is empty (createCharacter already creates ring slot)
+        GameEquipment::where('character_id', $character->id)
+            ->where('slot', 'ring')
+            ->update(['item_id' => null]);
 
         // Act
         $result = $this->helper->findAvailableRingSlot($character);
@@ -129,12 +127,10 @@ class InventoryEquipmentHelperTest extends TestCase
         $ringDefinition = $this->createItemDefinition(['type' => 'ring']);
         $existingRing = $this->createItem($character, $ringDefinition);
 
-        // Create ring slot with existing ring equipped
-        GameEquipment::create([
-            'character_id' => $character->id,
-            'slot' => 'ring',
-            'item_id' => $existingRing->id,
-        ]);
+        // Update ring slot to have existing ring equipped
+        GameEquipment::where('character_id', $character->id)
+            ->where('slot', 'ring')
+            ->update(['item_id' => $existingRing->id]);
 
         // Act
         $result = $this->helper->findAvailableRingSlot($character);
@@ -148,11 +144,9 @@ class InventoryEquipmentHelperTest extends TestCase
     {
         // Arrange
         $character = $this->createCharacter();
-        $existingSlot = GameEquipment::create([
-            'character_id' => $character->id,
-            'slot' => 'helmet',
-            'item_id' => null,
-        ]);
+        $existingSlot = GameEquipment::where('character_id', $character->id)
+            ->where('slot', 'helmet')
+            ->first();
 
         // Act
         $result = $this->helper->getOrCreateEquipmentSlot($character, 'helmet');
@@ -184,11 +178,12 @@ class InventoryEquipmentHelperTest extends TestCase
         $character = $this->createCharacter();
         $definition = $this->createItemDefinition(['type' => 'weapon']);
         $oldItem = $this->createItem($character, $definition, ['slot_index' => 1]);
-        $equipmentSlot = GameEquipment::create([
-            'character_id' => $character->id,
-            'slot' => 'weapon',
-            'item_id' => $oldItem->id,
-        ]);
+        GameEquipment::where('character_id', $character->id)
+            ->where('slot', 'weapon')
+            ->update(['item_id' => $oldItem->id]);
+        $equipmentSlot = GameEquipment::where('character_id', $character->id)
+            ->where('slot', 'weapon')
+            ->first();
 
         // Act
         $result = $this->helper->handleUnequipIfNeeded($character, $equipmentSlot);
@@ -204,11 +199,9 @@ class InventoryEquipmentHelperTest extends TestCase
     {
         // Arrange
         $character = $this->createCharacter();
-        $equipmentSlot = GameEquipment::create([
-            'character_id' => $character->id,
-            'slot' => 'weapon',
-            'item_id' => null,
-        ]);
+        $equipmentSlot = GameEquipment::where('character_id', $character->id)
+            ->where('slot', 'weapon')
+            ->first();
 
         // Act
         $result = $this->helper->handleUnequipIfNeeded($character, $equipmentSlot);
@@ -224,11 +217,9 @@ class InventoryEquipmentHelperTest extends TestCase
         $character = $this->createCharacter();
         $definition = $this->createItemDefinition(['type' => 'weapon']);
         $equippedItem = $this->createItem($character, $definition, ['is_equipped' => true]);
-        GameEquipment::create([
-            'character_id' => $character->id,
-            'slot' => 'weapon',
-            'item_id' => $equippedItem->id,
-        ]);
+        GameEquipment::where('character_id', $character->id)
+            ->where('slot', 'weapon')
+            ->update(['item_id' => $equippedItem->id]);
 
         // Act
         $result = $this->helper->isItemEquipped($character, $equippedItem->id);

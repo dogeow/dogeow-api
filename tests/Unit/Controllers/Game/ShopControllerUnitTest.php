@@ -14,6 +14,7 @@ use App\Services\Game\GameShopService;
 use Illuminate\Broadcasting\PendingBroadcast;
 use Illuminate\Contracts\Broadcasting\Factory as BroadcastFactory;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
 use Mockery;
 use Tests\TestCase;
@@ -119,7 +120,7 @@ class ShopControllerUnitTest extends TestCase
         $payload = ['item' => ['id' => 5]];
         $definition = $this->createItemDefinition();
 
-        $this->shopService->shouldReceive('buyItem')->once()->with($this->sameCharacter($character), $definition->id, 2)->andReturn($payload);
+        $this->shopService->shouldReceive('buyItem')->once()->with($this->sameCharacter($character), $definition->id, 2, Mockery::any())->andReturn($payload);
         $this->inventoryService->shouldReceive('getInventoryForBroadcast')->once()->with($this->sameCharacter($character))->andReturn(['items' => []]);
 
         $response = $this->controller->buy($this->makeFormRequest(BuyItemRequest::class, $user, $character, [
@@ -139,7 +140,7 @@ class ShopControllerUnitTest extends TestCase
         $character = $this->createCharacter($user);
         $definition = $this->createItemDefinition();
 
-        $this->shopService->shouldReceive('buyItem')->once()->with($this->sameCharacter($character), $definition->id, 1)->andThrow(new \RuntimeException('购买失败'));
+        $this->shopService->shouldReceive('buyItem')->once()->with($this->sameCharacter($character), $definition->id, 1, Mockery::any())->andThrow(new \RuntimeException('购买失败'));
 
         $response = $this->controller->buy($this->makeFormRequest(BuyItemRequest::class, $user, $character, [
             'item_id' => $definition->id,
@@ -157,7 +158,7 @@ class ShopControllerUnitTest extends TestCase
         $payload = ['sold' => 1];
         $item = $this->createInventoryItem($character);
 
-        $this->shopService->shouldReceive('sellItem')->once()->with($this->sameCharacter($character), $item->id, 3)->andReturn($payload);
+        $this->shopService->shouldReceive('sellItem')->once()->with($this->sameCharacter($character), $item->id, 3, Mockery::any())->andReturn($payload);
         $this->inventoryService->shouldReceive('getInventoryForBroadcast')->once()->with($this->sameCharacter($character))->andReturn(['items' => []]);
 
         $response = $this->controller->sell($this->makeFormRequest(SellItemRequest::class, $user, $character, [
@@ -177,7 +178,7 @@ class ShopControllerUnitTest extends TestCase
         $character = $this->createCharacter($user);
         $item = $this->createInventoryItem($character);
 
-        $this->shopService->shouldReceive('sellItem')->once()->with($this->sameCharacter($character), $item->id, 1)->andThrow(new \RuntimeException('出售失败'));
+        $this->shopService->shouldReceive('sellItem')->once()->with($this->sameCharacter($character), $item->id, 1, Mockery::any())->andThrow(new \RuntimeException('出售失败'));
 
         $response = $this->controller->sell($this->makeFormRequest(SellItemRequest::class, $user, $character, [
             'item_id' => $item->id,
@@ -266,7 +267,7 @@ class ShopControllerUnitTest extends TestCase
     }
 
     /**
-     * @param  class-string<\Illuminate\Foundation\Http\FormRequest>  $class
+     * @param  class-string<FormRequest>  $class
      */
     private function makeFormRequest(string $class, User $user, GameCharacter $character, array $payload = []): object
     {

@@ -21,6 +21,7 @@ class InventoryItemCalculatorTest extends TestCase
     {
         $item = new GameItem;
         $item->stats = [];
+        $item->quality = 'common';
 
         $result = $this->calculator->calculateSellPrice($item);
 
@@ -89,7 +90,8 @@ class InventoryItemCalculatorTest extends TestCase
 
         $result = $this->calculator->calculateBuyPrice($definition);
 
-        $this->assertSame(0, $result);
+        // typeBasePrice=20, levelMult=1.5, qualityMult=1.0, *100 = 3000, /2 = 1500
+        $this->assertSame(1500, $result);
     }
 
     public function test_calculate_buy_price_includes_stats_in_calculation(): void

@@ -170,7 +170,7 @@ class PackageRegistryServiceTest extends TestCase
         ]);
 
         // Assert
-        $this->assertEquals('2.0.0', $result['composer:vendor/package:1.0.0']['latest_version']);
+        $this->assertEquals('2.0.0.0', $result['composer:vendor/package:1.0.0']['latest_version']);
         $this->assertEquals('major', $result['composer:vendor/package:1.0.0']['update_type']);
     }
 

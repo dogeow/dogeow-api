@@ -71,7 +71,7 @@ class LocationService extends BaseService
                         'type' => 'spot',
                         'original_id' => $spot->id,
                         'parent_id' => $room->id,
-                        'items_count' => $spot->items_count,
+                        'items_count' => (int) ($spot->items_count ?? 0),
                     ];
 
                     $roomNode['children'][] = $spotNode;
@@ -103,6 +103,7 @@ class LocationService extends BaseService
             ->selectRaw('area_id, SUM(quantity) as items_count')
             ->groupBy('area_id')
             ->pluck('items_count', 'area_id')
+            ->map(fn ($v) => (int) $v)
             ->toArray();
     }
 
@@ -118,6 +119,7 @@ class LocationService extends BaseService
             ->selectRaw('room_id, SUM(quantity) as items_count')
             ->groupBy('room_id')
             ->pluck('items_count', 'room_id')
+            ->map(fn ($v) => (int) $v)
             ->toArray();
     }
 }

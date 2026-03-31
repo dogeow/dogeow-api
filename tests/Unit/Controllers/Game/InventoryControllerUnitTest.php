@@ -36,6 +36,8 @@ class InventoryControllerUnitTest extends TestCase
 
         $this->inventoryService = Mockery::mock(GameInventoryService::class);
         $this->redisLockService = Mockery::mock(RedisLockService::class);
+        $this->redisLockService->shouldReceive('lock')->andReturn('mock-lock-token')->byDefault();
+        $this->redisLockService->shouldReceive('release')->andReturn(true)->byDefault();
         $this->controller = new InventoryController($this->inventoryService, $this->redisLockService);
 
         $dispatcher = Mockery::mock(Dispatcher::class);

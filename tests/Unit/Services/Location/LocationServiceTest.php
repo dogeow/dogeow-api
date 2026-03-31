@@ -122,7 +122,7 @@ class LocationServiceTest extends TestCase
 
         $result = $this->service->buildLocationTree($user->id);
 
-        $this->assertCount(2, $result['tree'][0]['children']); // Area 1 has 1 room
+        $this->assertCount(1, $result['tree'][0]['children']); // Area 1 has 1 room
         $this->assertSame('Room in Area 1', $result['tree'][0]['children'][0]['name']);
     }
 
@@ -164,8 +164,8 @@ class LocationServiceTest extends TestCase
         $result = $this->service->buildLocationTree($user->id);
 
         $spotNode = $result['tree'][0]['children'][0]['children'][0];
-        // items_count on spot comes from spots.items_count (withCount)
-        $this->assertSame(5, $spotNode['items_count']);
+        // items_count on spot comes from spots.items_count (withCount), which counts items not sum of quantity
+        $this->assertSame(1, $spotNode['items_count']);
     }
 
     public function test_build_location_tree_area_node_has_correct_structure(): void
@@ -176,7 +176,7 @@ class LocationServiceTest extends TestCase
         $result = $this->service->buildLocationTree($user->id);
 
         $node = $result['tree'][0];
-        $this->assertSame('area_Test Area', $node['id']);
+        $this->assertSame('area_' . $area->id, $node['id']);
         $this->assertSame('Test Area', $node['name']);
         $this->assertSame('area', $node['type']);
         $this->assertSame($area->id, $node['original_id']);

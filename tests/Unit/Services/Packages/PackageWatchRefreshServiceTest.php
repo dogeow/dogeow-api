@@ -233,7 +233,7 @@ class PackageWatchRefreshServiceTest extends TestCase
             'current_version_constraint' => '^1.0.0',
             'normalized_current_version' => '1.0.0',
             'latest_version' => '1.0.0',
-            'last_checked_at' => now()->subHours(3),
+            'last_checked_at' => now()->subHours(10),
         ]);
 
         Http::fake([

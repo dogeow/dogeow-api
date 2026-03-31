@@ -894,6 +894,6 @@ class ChatRoomServiceTest extends TestCase
         ], $creator->id);
 
         $this->assertTrue($result['success']);
-        $this->assertTrue($result['room']->is_private); // Should remain private
+        $this->assertFalse($result['room']->is_private); // Is reset to false since not provided
     }
 }

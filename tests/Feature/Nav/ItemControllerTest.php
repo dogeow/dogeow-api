@@ -4,6 +4,7 @@ namespace Tests\Feature\Nav;
 
 use App\Models\Nav\Category;
 use App\Models\Nav\Item;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -15,9 +16,12 @@ class ItemControllerTest extends TestCase
 
     protected Item $item;
 
+    protected User $user;
+
     protected function setUp(): void
     {
         parent::setUp();
+        $this->user = User::factory()->create();
         $this->category = Category::factory()->create();
         $this->item = Item::factory()->visible()->create([
             'nav_category_id' => $this->category->id,
@@ -157,7 +161,7 @@ class ItemControllerTest extends TestCase
             'is_new_window' => false,
         ];
 
-        $response = $this->postJson('/api/nav/items', $itemData);
+        $response = $this->actingAs($this->user, 'sanctum')->postJson('/api/nav/items', $itemData);
 
         $response->assertStatus(201)
             ->assertJson([
@@ -183,7 +187,7 @@ class ItemControllerTest extends TestCase
 
     public function test_store_validates_required_fields(): void
     {
-        $response = $this->postJson('/api/nav/items', []);
+        $response = $this->actingAs($this->user, 'sanctum')->postJson('/api/nav/items', []);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['nav_category_id', 'name', 'url']);
@@ -197,7 +201,7 @@ class ItemControllerTest extends TestCase
             'url' => 'https://example.com',
         ];
 
-        $response = $this->postJson('/api/nav/items', $itemData);
+        $response = $this->actingAs($this->user, 'sanctum')->postJson('/api/nav/items', $itemData);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['nav_category_id']);
@@ -212,7 +216,7 @@ class ItemControllerTest extends TestCase
             'icon' => str_repeat('a', 101), // Exceeds max length
         ];
 
-        $response = $this->postJson('/api/nav/items', $itemData);
+        $response = $this->actingAs($this->user, 'sanctum')->postJson('/api/nav/items', $itemData);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['name', 'url', 'icon']);
@@ -255,7 +259,7 @@ class ItemControllerTest extends TestCase
             'is_new_window' => true,
         ];
 
-        $response = $this->putJson('/api/nav/items/' . $this->item->id, $updateData);
+        $response = $this->actingAs($this->user, 'sanctum')->putJson('/api/nav/items/' . $this->item->id, $updateData);
 
         $response->assertStatus(200)
             ->assertJson([
@@ -287,7 +291,7 @@ class ItemControllerTest extends TestCase
             'url' => 'https://partial-update.com',
         ];
 
-        $response = $this->putJson('/api/nav/items/' . $this->item->id, $updateData);
+        $response = $this->actingAs($this->user, 'sanctum')->putJson('/api/nav/items/' . $this->item->id, $updateData);
 
         $response->assertStatus(200)
             ->assertJson([
@@ -316,7 +320,7 @@ class ItemControllerTest extends TestCase
             'url' => str_repeat('a', 256), // Exceeds max length
         ];
 
-        $response = $this->putJson('/api/nav/items/' . $this->item->id, $updateData);
+        $response = $this->actingAs($this->user, 'sanctum')->putJson('/api/nav/items/' . $this->item->id, $updateData);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['name', 'url']);
@@ -329,14 +333,14 @@ class ItemControllerTest extends TestCase
             'url' => 'https://example.com',
         ];
 
-        $response = $this->putJson('/api/nav/items/99999', $updateData);
+        $response = $this->actingAs($this->user, 'sanctum')->putJson('/api/nav/items/99999', $updateData);
 
         $response->assertStatus(404);
     }
 
     public function test_destroy_deletes_item(): void
     {
-        $response = $this->deleteJson('/api/nav/items/' . $this->item->id);
+        $response = $this->actingAs($this->user, 'sanctum')->deleteJson('/api/nav/items/' . $this->item->id);
 
         $response->assertStatus(200)
             ->assertJson([
@@ -355,7 +359,7 @@ class ItemControllerTest extends TestCase
 
     public function test_destroy_returns_404_for_nonexistent_item(): void
     {
-        $response = $this->deleteJson('/api/nav/items/99999');
+        $response = $this->actingAs($this->user, 'sanctum')->deleteJson('/api/nav/items/99999');
 
         $response->assertStatus(404);
     }

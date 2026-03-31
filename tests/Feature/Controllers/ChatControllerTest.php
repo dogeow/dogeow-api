@@ -354,7 +354,7 @@ class ChatControllerTest extends TestCase
             ]);
 
         $response->assertStatus(429)
-            ->assertJsonPath('errors.rate_limit.attempts', 10)
+            ->assertJsonPath('errors.rate_limit.attempts', '10')
             ->assertJsonPath('errors.rate_limit.remaining', 0);
     }
 

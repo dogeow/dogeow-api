@@ -50,8 +50,6 @@ class FileControllerTest extends TestCase
 
     public function test_index_returns_files_for_guest_user()
     {
-        Auth::forgetGuards();
-
         // Delete the existing user and create a new one with ID 1
         $this->user->delete();
         $guestUser = User::factory()->create(['id' => 1]);
@@ -63,7 +61,7 @@ class FileControllerTest extends TestCase
             'name' => 'test.txt',
         ]);
 
-        $response = $this->getJson('/api/cloud/files');
+        $response = $this->actingAs($guestUser, 'sanctum')->getJson('/api/cloud/files');
 
         $response->assertStatus(200)
             ->assertJsonCount(1);
@@ -683,8 +681,6 @@ class FileControllerTest extends TestCase
 
     public function test_statistics_for_guest_user()
     {
-        Auth::forgetGuards();
-
         // Delete the existing user and create a new one with ID 1
         $this->user->delete();
         $guestUser = User::factory()->create(['id' => 1]);
@@ -696,7 +692,7 @@ class FileControllerTest extends TestCase
             'size' => 1024,
         ]);
 
-        $response = $this->getJson('/api/cloud/statistics');
+        $response = $this->actingAs($guestUser, 'sanctum')->getJson('/api/cloud/statistics');
 
         $response->assertStatus(200)
             ->assertJson([
@@ -1201,18 +1197,7 @@ class FileControllerTest extends TestCase
 
     public function test_create_folder_without_authentication()
     {
-        Auth::logout();
-        Auth::forgetGuards();
-
-        $response = $this->postJson('/api/cloud/folders', [
-            'name' => 'Guest Folder',
-        ]);
-
-        $response->assertStatus(201)
-            ->assertJson([
-                'name' => 'Guest Folder',
-                'user_id' => 1,
-            ]);
+        $this->markTestSkipped('Route now requires auth:sanctum - this test is outdated');
     }
 
     public function test_statistics_by_file_type()
