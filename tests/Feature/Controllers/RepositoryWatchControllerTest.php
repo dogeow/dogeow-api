@@ -124,7 +124,7 @@ class RepositoryWatchControllerTest extends TestCase
                     'latest' => '19.1.0',
                 ],
             ], 200),
-            'https://repo.packagist.org/p2/laravel%2Fframework.json' => Http::response([
+            'https://repo.packagist.org/p2/laravel/framework.json' => Http::response([
                 'packages' => [
                     'laravel/framework' => [
                         ['version_normalized' => '12.1.0.0'],
