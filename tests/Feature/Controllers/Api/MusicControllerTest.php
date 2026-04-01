@@ -32,6 +32,7 @@ class MusicControllerTest extends TestCase
                     ['name' => 'audio1.mp3', 'type' => 'audio/mp3', 'length' => 1024],
                     ['name' => 'audio2.ogg', 'type' => 'audio/ogg', 'length' => 2048],
                     ['name' => 'audio3.flac', 'type' => 'audio/flac', 'length' => 3072],
+                    ['name' => 'audio1.lrc', 'type' => 'text/plain', 'length' => 128],
                     ['name' => 'cover.jpg', 'type' => 'image/jpeg', 'length' => 256],
                     ['name' => 'nested', 'type' => 'folder', 'length' => 0],
                 ],
@@ -49,6 +50,7 @@ class MusicControllerTest extends TestCase
         $this->assertCount(3, $data);
         $this->assertSame(['audio1', 'audio2', 'audio3'], array_column($data, 'name'));
         $this->assertSame(['mp3', 'ogg', 'flac'], array_column($data, 'extension'));
+        $this->assertSame([true, false, false], array_column($data, 'hasLyrics'));
     }
 
     public function test_index_encodes_special_characters_in_upyun_paths()
@@ -64,6 +66,7 @@ class MusicControllerTest extends TestCase
                 'success' => true,
                 'files' => [
                     ['name' => 'test file 你好.mp3', 'type' => 'audio/mp3', 'length' => 1234],
+                    ['name' => 'test file 你好.lrc', 'type' => 'text/plain', 'length' => 321],
                 ],
             ]);
             $mock->shouldReceive('buildPublicUrl')->once()->with('/music/test%20file%20%E4%BD%A0%E5%A5%BD.mp3')->andReturn(
@@ -75,7 +78,8 @@ class MusicControllerTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('0.name', 'test file 你好')
-            ->assertJsonPath('0.path', 'https://cdn.example.com/music/test%20file%20%E4%BD%A0%E5%A5%BD.mp3');
+            ->assertJsonPath('0.path', 'https://cdn.example.com/music/test%20file%20%E4%BD%A0%E5%A5%BD.mp3')
+            ->assertJsonPath('0.hasLyrics', true);
     }
 
     public function test_index_returns_server_error_when_upyun_listing_fails()

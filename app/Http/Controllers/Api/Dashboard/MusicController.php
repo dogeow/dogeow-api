@@ -34,19 +34,29 @@ class MusicController extends Controller
                 throw new \RuntimeException($result['message'] ?? '又拍云目录读取失败');
             }
 
-            return collect($result['files'] ?? [])
+            $files = collect($result['files'] ?? []);
+            $lyricBasenames = $files
+                ->filter(function (array $file) {
+                    return strtolower(pathinfo($file['name'], PATHINFO_EXTENSION)) === 'lrc';
+                })
+                ->map(fn (array $file): string => (string) pathinfo($file['name'], PATHINFO_FILENAME))
+                ->all();
+
+            return $files
                 ->filter(function (array $file) {
                     return $this->isSupportedAudioExtension($file['name']);
                 })
-                ->map(function (array $file) use ($upyunService) {
+                ->map(function (array $file) use ($upyunService, $lyricBasenames) {
                     $filename = (string) $file['name'];
                     $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+                    $basename = (string) pathinfo($filename, PATHINFO_FILENAME);
 
                     return [
-                        'name' => pathinfo($filename, PATHINFO_FILENAME),
+                        'name' => $basename,
                         'path' => $upyunService->buildPublicUrl('/music/' . rawurlencode($filename)),
                         'size' => (int) $file['length'],
                         'extension' => $extension,
+                        'hasLyrics' => in_array($basename, $lyricBasenames, true),
                     ];
                 })
                 ->values()
