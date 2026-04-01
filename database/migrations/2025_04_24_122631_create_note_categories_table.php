@@ -23,11 +23,6 @@ return new class extends Migration
         if (DB::connection()->getDriverName() === 'mysql') {
             DB::statement("ALTER TABLE note_categories COMMENT = '笔记分类表'");
         }
-
-        // 给笔记表添加分类 ID 字段
-        Schema::table('notes', function (Blueprint $table) {
-            $table->unsignedBigInteger('note_category_id')->nullable()->after('user_id')->index()->comment('所属分类 ID');
-        });
     }
 
     /**
@@ -35,10 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('notes', function (Blueprint $table) {
-            $table->dropColumn('note_category_id');
-        });
-
         Schema::dropIfExists('note_categories');
     }
 };

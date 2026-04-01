@@ -123,8 +123,8 @@ return new class extends Migration
             $table->unsignedBigInteger('character_id')->index()->comment('所属角色 ID');
             $table->enum('slot', [
                 'weapon', 'helmet', 'armor', 'gloves', 'boots',
-                'belt', 'ring',
-            ])->comment('装备槽位：weapon 武器/helmet 头盔/armor 盔甲/gloves 手套/boots 靴子/belt 腰带/ring 戒指');
+                'belt', 'ring', 'amulet',
+            ])->comment('装备槽位：weapon 武器/helmet 头盔/armor 盔甲/gloves 手套/boots 靴子/belt 腰带/ring 戒指/amulet 护符');
             $table->unsignedBigInteger('item_id')->nullable()->index()->comment('装备的物品 ID');
             $table->timestamps();
 
