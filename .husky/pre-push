@@ -18,10 +18,10 @@ if ! echo "$changed_files" | grep -q '\.php$'; then
 fi
 
 # 查找修改的测试文件
-test_files=$(echo "$changed_files" | grep '^tests/.*\.php$' | tr '\n' ' ')
+test_files=$(echo "$changed_files" | grep '^tests/.*\.php$' | tr '\n' ' ' || true)
 
 # 查找修改的源文件对应的测试文件
-app_files=$(echo "$changed_files" | grep '^app/.*\.php$')
+app_files=$(echo "$changed_files" | grep '^app/.*\.php$' || true)
 if [ -n "$app_files" ]; then
     for file in $app_files; do
         base=$(basename "$file" .php)
