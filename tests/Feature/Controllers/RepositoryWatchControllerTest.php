@@ -162,6 +162,7 @@ class RepositoryWatchControllerTest extends TestCase
         ])->assertCreated();
 
         $this->assertCount(2, $createResponse->json('data'));
+        $this->assertSame('12.1.0', $createResponse->json('data.1.latest_version'));
         $firstId = $createResponse->json('data.0.id');
 
         $this->getJson('/api/repo-watch/packages')

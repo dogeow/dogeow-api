@@ -184,6 +184,13 @@ class RepositoryWatchController extends Controller
     private function transformPackage(WatchedPackage $package): array
     {
         $matchesPreference = $package->latest_update_type !== null && $package->watch_level === $package->latest_update_type;
+        $latestVersion = $package->latest_version;
+
+        if ($package->ecosystem === 'composer' && is_string($latestVersion)) {
+            if (preg_match('/(\d+\.\d+\.\d+)(?:\.\d+)?/', $latestVersion, $matches) === 1) {
+                $latestVersion = $matches[1];
+            }
+        }
 
         return [
             'id' => $package->id,
@@ -196,7 +203,7 @@ class RepositoryWatchController extends Controller
             'manifest_path' => $package->manifest_path,
             'current_version_constraint' => $package->current_version_constraint,
             'normalized_current_version' => $package->normalized_current_version,
-            'latest_version' => $package->latest_version,
+            'latest_version' => $latestVersion,
             'watch_level' => $package->watch_level,
             'latest_update_type' => $package->latest_update_type,
             'matches_preference' => $matchesPreference,

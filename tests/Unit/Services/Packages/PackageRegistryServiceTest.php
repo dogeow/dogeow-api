@@ -63,6 +63,31 @@ class PackageRegistryServiceTest extends TestCase
     }
 
     #[Test]
+    public function resolve_latest_many_normalizes_cached_composer_four_segment_version(): void
+    {
+        // Arrange
+        $cacheKey = 'repo-watch:registry:composer:symfony/dom-crawler';
+        Cache::put($cacheKey, [
+            'latest_version' => '8.0.8.0',
+            'registry_url' => 'https://packagist.org/packages/symfony/dom-crawler',
+        ], now()->addMinutes(30));
+
+        // Act
+        $result = $this->service->resolveLatestMany([
+            [
+                'ecosystem' => 'composer',
+                'package_name' => 'symfony/dom-crawler',
+                'current_version' => '8.0.0',
+            ],
+        ]);
+
+        // Assert
+        $this->assertEquals('8.0.8', $result['composer:symfony/dom-crawler:8.0.0']['latest_version']);
+        $this->assertEquals('patch', $result['composer:symfony/dom-crawler:8.0.0']['update_type']);
+        $this->assertEquals('8.0.8', Cache::get($cacheKey)['latest_version']);
+    }
+
+    #[Test]
     public function resolve_latest_many_makes_http_requests_for_uncached_packages(): void
     {
         // Arrange
@@ -152,7 +177,7 @@ class PackageRegistryServiceTest extends TestCase
             'repo.packagist.org/p2/*.json' => Http::response([
                 'packages' => [
                     'vendor/package' => [
-                        ['version' => '1.0.0', 'version_normalized' => '1.0.0.0'],
+                        ['version' => 'v1.0.0', 'version_normalized' => '1.0.0.0'],
                         ['version' => '1.1.0', 'version_normalized' => '1.1.0.0'],
                         ['version' => '2.0.0', 'version_normalized' => '2.0.0.0'],
                     ],
@@ -170,7 +195,7 @@ class PackageRegistryServiceTest extends TestCase
         ]);
 
         // Assert
-        $this->assertEquals('2.0.0.0', $result['composer:vendor/package:1.0.0']['latest_version']);
+        $this->assertEquals('2.0.0', $result['composer:vendor/package:1.0.0']['latest_version']);
         $this->assertEquals('major', $result['composer:vendor/package:1.0.0']['update_type']);
     }
 
@@ -194,6 +219,29 @@ class PackageRegistryServiceTest extends TestCase
         // Assert
         $this->assertNull($result['composer:fail/package:null']['latest_version']);
         $this->assertEquals('https://packagist.org/packages/fail/package', $result['composer:fail/package:null']['registry_url']);
+    }
+
+    #[Test]
+    public function map_composer_response_handles_non_array_payload_without_crashing(): void
+    {
+        // Arrange
+        Http::fake([
+            'repo.packagist.org/p2/*.json' => Http::response('invalid payload', 200),
+        ]);
+
+        // Act
+        $result = $this->service->resolveLatestMany([
+            [
+                'ecosystem' => 'composer',
+                'package_name' => 'vendor/package',
+                'current_version' => '1.0.0',
+            ],
+        ]);
+
+        // Assert
+        $this->assertNull($result['composer:vendor/package:1.0.0']['latest_version']);
+        $this->assertEquals('https://packagist.org/packages/vendor/package', $result['composer:vendor/package:1.0.0']['registry_url']);
+        $this->assertNull($result['composer:vendor/package:1.0.0']['update_type']);
     }
 
     #[Test]

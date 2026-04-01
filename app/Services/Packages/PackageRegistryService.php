@@ -44,10 +44,22 @@ class PackageRegistryService
 
             $cached = Cache::get($cacheKey);
             if (is_array($cached)) {
+                $cachedLatestVersion = $this->normalizeLatestVersionForDisplay(
+                    $ecosystem,
+                    is_string($cached['latest_version'] ?? null) ? $cached['latest_version'] : null
+                );
+
+                if (($cached['latest_version'] ?? null) !== $cachedLatestVersion) {
+                    Cache::put($cacheKey, [
+                        'latest_version' => $cachedLatestVersion,
+                        'registry_url' => $cached['registry_url'] ?? null,
+                    ], now()->addMinutes(30));
+                }
+
                 $results[$resultKey] = [
-                    'latest_version' => $cached['latest_version'] ?? null,
+                    'latest_version' => $cachedLatestVersion,
                     'registry_url' => $cached['registry_url'] ?? null,
-                    'update_type' => $this->detectUpdateType($currentVersion, $cached['latest_version'] ?? null),
+                    'update_type' => $this->detectUpdateType($currentVersion, $cachedLatestVersion),
                 ];
 
                 continue;
@@ -81,8 +93,9 @@ class PackageRegistryService
 
         foreach ($pending as $resultKey => $package) {
             $response = $responses[$resultKey] ?? null;
-            $payload = $response instanceof Response ? $response->json() : null;
-            $failed = ! ($response instanceof Response) || $response->failed();
+            $rawPayload = $response instanceof Response ? $response->json() : null;
+            $payload = is_array($rawPayload) ? $rawPayload : null;
+            $failed = ! ($response instanceof Response) || $response->failed() || ! is_array($rawPayload);
 
             $resolved = match ($package['ecosystem']) {
                 'npm' => $this->mapNpmResponse($package['package_name'], $package['current_version'], $payload, $failed),
@@ -132,17 +145,24 @@ class PackageRegistryService
 
         $packages = Arr::get($payload, "packages.{$packageName}", []);
         $latestVersion = null;
+        $latestComparable = null;
 
         foreach ((array) $packages as $package) {
-            $candidate = Arr::get($package, 'version_normalized') ?: Arr::get($package, 'version');
-            if (! is_string($candidate)) {
+            $rawVersion = Arr::get($package, 'version');
+            $normalizedVersion = Arr::get($package, 'version_normalized');
+
+            $comparable = $this->extractSemver(is_string($normalizedVersion) ? $normalizedVersion : null)
+                ?? $this->extractSemver(is_string($rawVersion) ? $rawVersion : null);
+
+            if (! is_string($comparable)) {
                 continue;
             }
 
-            $candidate = preg_replace('/\.0{5,}$/', '', $candidate) ?: $candidate;
+            $display = $this->extractSemver(is_string($rawVersion) ? $rawVersion : null) ?? $comparable;
 
-            if ($latestVersion === null || version_compare($candidate, $latestVersion, '>')) {
-                $latestVersion = $candidate;
+            if ($latestComparable === null || version_compare($comparable, $latestComparable, '>')) {
+                $latestComparable = $comparable;
+                $latestVersion = $display;
             }
         }
 
@@ -151,6 +171,32 @@ class PackageRegistryService
             'registry_url' => "https://packagist.org/packages/{$packageName}",
             'update_type' => $this->detectUpdateType($currentVersion, $latestVersion),
         ];
+    }
+
+    private function extractSemver(?string $value): ?string
+    {
+        if (! is_string($value) || $value === '') {
+            return null;
+        }
+
+        if (preg_match('/(\d+\.\d+\.\d+)(?:\.\d+)?/', $value, $matches) !== 1) {
+            return null;
+        }
+
+        return $matches[1];
+    }
+
+    private function normalizeLatestVersionForDisplay(string $ecosystem, ?string $latestVersion): ?string
+    {
+        if (! is_string($latestVersion) || $latestVersion === '') {
+            return null;
+        }
+
+        if ($ecosystem !== 'composer') {
+            return $latestVersion;
+        }
+
+        return $this->extractSemver($latestVersion) ?? $latestVersion;
     }
 
     private function cacheKey(string $ecosystem, string $packageName): string
