@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -21,12 +22,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('thing_rooms', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->unsignedBigInteger('area_id');
-            $table->unsignedBigInteger('user_id');
+            $table->id()->comment('房间 ID');
+            $table->string('name')->comment('房间名称');
+            $table->unsignedBigInteger('area_id')->comment('所属区域 ID');
+            $table->unsignedBigInteger('user_id')->comment('所属用户 ID');
             $table->timestamps();
         });
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE thing_rooms COMMENT = '物品管理：房间表'");
+        }
     }
 
     /**

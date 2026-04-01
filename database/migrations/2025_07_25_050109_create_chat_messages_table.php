@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -12,14 +13,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('chat_messages', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('room_id')->index();
-            $table->unsignedBigInteger('user_id')->index();
-            $table->text('message');
-            $table->enum('message_type', ['text', 'system'])->default('text');
+            $table->id()->comment('消息 ID');
+            $table->unsignedBigInteger('room_id')->index()->comment('所属房间 ID');
+            $table->unsignedBigInteger('user_id')->index()->comment('发送者用户 ID');
+            $table->text('message')->comment('消息内容');
+            $table->enum('message_type', ['text', 'system'])->default('text')->comment('消息类型：text 文本/system 系统消息');
             $table->timestamps();
+            $table->softDeletes();
 
-            // Performance indexes
             $table->index(['room_id', 'id', 'created_at'], 'idx_room_id_cursor');
             if (config('database.default') !== 'sqlite') {
                 $table->fullText('message', 'idx_message_fulltext');
@@ -27,6 +28,9 @@ return new class extends Migration
             $table->index(['user_id', 'created_at'], 'idx_user_messages');
             $table->index(['room_id', 'message_type', 'created_at'], 'idx_room_type_time');
         });
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE chat_messages COMMENT = '聊天消息表'");
+        }
     }
 
     /**

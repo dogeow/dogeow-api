@@ -13,18 +13,15 @@ return new class extends Migration
     {
         Schema::create('words', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('word_book_id')->comment('单词书 ID');
             $table->string('content')->comment('单词内容');
-            $table->string('phonetic_uk')->nullable()->comment('英式音标');
             $table->string('phonetic_us')->nullable()->comment('美式音标');
-            $table->json('explanation')->nullable()->comment('释义 JSON: {en: "", zh: ""}');
+            $table->text('explanation')->nullable()->comment('中文释义');
             $table->json('example_sentences')->nullable()->comment('例句 JSON: [{en: "", zh: ""}]');
             $table->integer('difficulty')->default(1)->comment('难度等级 1-5');
             $table->integer('frequency')->default(1)->comment('词频等级 1-5');
             $table->timestamps();
 
-            $table->index('word_book_id');
-            $table->index('content');
+            $table->unique('content');
             $table->index('difficulty');
             $table->index('frequency');
         });

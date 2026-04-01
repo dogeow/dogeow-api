@@ -1,12 +1,12 @@
 <?php
 
-namespace Database\Factories;
+namespace Database\Factories\Word;
 
 use App\Models\Word\Word;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Word\Word>
+ * @extends Factory<Word>
  */
 class WordFactory extends Factory
 {

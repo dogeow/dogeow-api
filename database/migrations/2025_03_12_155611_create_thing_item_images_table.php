@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -22,13 +23,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('thing_item_images', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('item_id');
-            $table->string('path');
-            $table->boolean('is_primary')->default(false);
-            $table->integer('sort_order')->default(0);
+            $table->id()->comment('图片 ID');
+            $table->unsignedBigInteger('item_id')->comment('所属物品 ID');
+            $table->string('path')->comment('图片存储路径');
+            $table->boolean('is_primary')->default(false)->comment('是否为主图');
+            $table->integer('sort_order')->default(0)->comment('排序顺序（越小越靠前）');
             $table->timestamps();
         });
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE thing_item_images COMMENT = '物品图片表'");
+        }
     }
 
     /**

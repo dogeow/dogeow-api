@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\Game;
 
 use App\Models\Game\GameItemDefinition;
 use App\Models\Game\GameMapDefinition;
@@ -26,7 +26,7 @@ class GameSeeder extends Seeder
     {
         DB::table('game_item_definitions')->truncate();
 
-        $items = require __DIR__ . '/GameSeederData/items.php';
+        $items = require __DIR__ . '/Data/items.php';
 
         foreach ($items as $item) {
             $assetKey = $item['asset_key'] ?? ('item_' . $item['id']);
@@ -41,7 +41,7 @@ class GameSeeder extends Seeder
 
     private function seedSkillDefinitions(): void
     {
-        $skillsDir = __DIR__ . '/GameSeederData/skills';
+        $skillsDir = __DIR__ . '/Data/skills';
         $skillFiles = [
             'skills_warrior.php',
             'skills_mage.php',
@@ -143,7 +143,7 @@ class GameSeeder extends Seeder
     {
         DB::table('game_monster_definitions')->truncate();
 
-        $monsters = require __DIR__ . '/GameSeederData/monsters.php';
+        $monsters = require __DIR__ . '/Data/monsters.php';
 
         foreach ($monsters as $monster) {
             $assetKey = $monster['asset_key'] ?? ('monster_' . strtolower(str_replace(' ', '_', $monster['name'])));
@@ -158,7 +158,7 @@ class GameSeeder extends Seeder
 
     private function seedMapDefinitions(): void
     {
-        $maps = require __DIR__ . '/GameSeederData/maps.php';
+        $maps = require __DIR__ . '/Data/maps.php';
 
         // 按 ID 顺序取当前库中怪物，用于把配置里的“序号”转成真实 ID(避免多次 seed 后 ID 错位)
         $monsterIdsByOrder = GameMonsterDefinition::query()

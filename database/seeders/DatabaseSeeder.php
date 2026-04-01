@@ -2,8 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Database\Seeders\Game\GameSeeder;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -13,16 +12,17 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 调用 AdminSeeder 创建管理员账户
         $this->call([
-            AdminSeeder::class,
+            User\AdminSeeder::class,
         ]);
-
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            User\TestUserSeeder::class,
+        ]);
+        $this->call([
+            Word\CET46WordSeeder::class,
+        ]);
+        $this->call([
+            GameSeeder::class,
         ]);
     }
 }

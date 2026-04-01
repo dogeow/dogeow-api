@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -12,24 +13,29 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('note_tags', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('user_id')->index();
-            $table->string('name');
-            $table->string('color')->default('#3b82f6'); // 默认蓝色
+            $table->id()->comment('标签 ID');
+            $table->unsignedBigInteger('user_id')->index()->comment('所属用户 ID');
+            $table->string('name')->comment('标签名称');
+            $table->string('color')->default('#3b82f6')->comment('标签颜色（默认蓝色）');
             $table->timestamps();
             $table->softDeletes();
         });
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE note_tags COMMENT = '笔记标签表'");
+        }
 
         // 创建笔记与标签的多对多关联表
         Schema::create('note_note_tag', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('note_id')->index();
-            $table->unsignedBigInteger('note_tag_id')->index();
+            $table->id()->comment('记录 ID');
+            $table->unsignedBigInteger('note_id')->index()->comment('笔记 ID');
+            $table->unsignedBigInteger('note_tag_id')->index()->comment('标签 ID');
             $table->timestamps();
 
-            // 确保一个笔记不会重复添加同一个标签
             $table->unique(['note_id', 'note_tag_id']);
         });
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE note_note_tag COMMENT = '笔记-标签关联表（多对多）'");
+        }
     }
 
     /**

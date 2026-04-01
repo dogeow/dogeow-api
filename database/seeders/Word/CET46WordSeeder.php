@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\Word;
 
 use App\Models\Word\Book;
 use App\Models\Word\Category;
@@ -112,35 +112,35 @@ class CET46WordSeeder extends Seeder
 
     private function getPrimaryWords(): array
     {
-        $path = __DIR__ . '/CET46WordData/primary.php';
+        $path = __DIR__ . '/Data/primary.php';
 
         return file_exists($path) ? require $path : [];
     }
 
     private function getJuniorWords(): array
     {
-        $path = __DIR__ . '/CET46WordData/junior.php';
+        $path = __DIR__ . '/Data/junior.php';
 
         return file_exists($path) ? require $path : [];
     }
 
     private function getSeniorWords(): array
     {
-        $path = __DIR__ . '/CET46WordData/senior.php';
+        $path = __DIR__ . '/Data/senior.php';
 
         return file_exists($path) ? require $path : [];
     }
 
     private function getCET4Words(): array
     {
-        $path = __DIR__ . '/CET46WordData/cet4.php';
+        $path = __DIR__ . '/Data/cet4.php';
 
         return file_exists($path) ? require $path : [];
     }
 
     private function getCET6Words(): array
     {
-        $path = __DIR__ . '/CET46WordData/cet6.php';
+        $path = __DIR__ . '/Data/cet6.php';
 
         return file_exists($path) ? require $path : [];
     }

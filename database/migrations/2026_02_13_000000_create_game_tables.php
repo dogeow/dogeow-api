@@ -33,6 +33,7 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id')->index()->comment('所属用户 ID');
             $table->string('name', 32)->comment('角色名称');
             $table->enum('class', ['warrior', 'mage', 'ranger'])->default('warrior')->comment('职业：warrior 战士/mage 法师/ranger 游侠');
+            $table->enum('gender', ['male', 'female'])->default('male')->comment('角色性别');
             $table->unsignedMediumInteger('level')->default(1)->comment('等级');
             $table->unsignedBigInteger('experience')->default(0)->comment('当前经验值');
             $table->unsignedBigInteger('copper')->default(0)->comment('铜币');
@@ -45,11 +46,16 @@ return new class extends Migration
             $table->unsignedSmallInteger('current_map_id')->nullable()->comment('当前所在地图 ID');
             $table->boolean('is_fighting')->default(false)->comment('是否正在战斗中');
             $table->timestamp('last_combat_at')->nullable()->comment('最后战斗时间');
+            $table->timestamp('last_online')->nullable()->comment('最后在线时间');
+            $table->timestamp('claimed_offline_at')->nullable()->comment('最后领取离线奖励时间');
             $table->unsignedTinyInteger('difficulty_tier')->default(0)->comment('0=普通 1=困难 2=高手 3=大师 4-9=痛苦 1-6');
             $table->unsignedInteger('current_hp')->nullable()->comment('当前生命值');
             $table->unsignedInteger('current_mana')->nullable()->comment('当前法力值');
             $table->unsignedBigInteger('combat_monster_id')->nullable()->comment('战斗中的怪物 ID');
             $table->json('combat_monsters')->nullable()->comment('战斗中的怪物列表(JSON)');
+            $table->timestamp('combat_monsters_refreshed_at')->nullable()->comment('怪物刷新时间，用于定期刷新怪物属性');
+            $table->json('discovered_items')->nullable()->comment('已发现的物品 ID 数组');
+            $table->json('discovered_monsters')->nullable()->comment('已发现的怪物 ID 数组');
             $table->unsignedInteger('combat_monster_hp')->nullable()->comment('战斗中怪物总血量');
             $table->unsignedInteger('combat_monster_max_hp')->nullable()->comment('战斗中怪物总最大血量');
             $table->unsignedInteger('combat_total_damage_dealt')->default(0)->comment('战斗总伤害输出');
@@ -85,7 +91,9 @@ return new class extends Migration
             $table->json('base_stats')->nullable()->comment('基础属性(JSON)');
             $table->unsignedMediumInteger('required_level')->default(1)->comment('需求等级');
             $table->string('icon', 64)->nullable()->comment('图标');
+            $table->text('icon_prompt')->nullable()->comment('AI 生成物品图标提示词');
             $table->text('description')->nullable()->comment('描述');
+            $table->integer('buy_price')->nullable()->default(null)->comment('购买价格');
             $table->boolean('is_active')->default(true)->comment('是否启用');
             $table->timestamps();
         });
@@ -100,6 +108,7 @@ return new class extends Migration
             $table->json('stats')->nullable()->comment('物品属性(JSON)');
             $table->json('affixes')->nullable()->comment('词缀(JSON)');
             $table->boolean('is_in_storage')->default(false)->comment('是否在仓库中');
+            $table->boolean('is_equipped')->default(false)->comment('是否已装备');
             $table->unsignedSmallInteger('quantity')->default(1)->comment('堆叠数量');
             $table->unsignedTinyInteger('slot_index')->nullable()->comment('背包格子索引');
             $table->unsignedInteger('sockets')->default(0)->comment('宝石插槽数量');
@@ -114,8 +123,8 @@ return new class extends Migration
             $table->unsignedBigInteger('character_id')->index()->comment('所属角色 ID');
             $table->enum('slot', [
                 'weapon', 'helmet', 'armor', 'gloves', 'boots',
-                'belt', 'ring', 'amulet',
-            ])->comment('装备槽位');
+                'belt', 'ring',
+            ])->comment('装备槽位：weapon 武器/helmet 头盔/armor 盔甲/gloves 手套/boots 靴子/belt 腰带/ring 戒指');
             $table->unsignedBigInteger('item_id')->nullable()->index()->comment('装备的物品 ID');
             $table->timestamps();
 
@@ -142,6 +151,10 @@ return new class extends Migration
             $table->text('description')->nullable()->comment('技能描述');
             $table->enum('type', ['active', 'passive'])->default('active')->comment('技能类型：active 主动/passive 被动');
             $table->enum('class_restriction', ['warrior', 'mage', 'ranger', 'all'])->default('all')->comment('职业限制');
+            $table->string('branch', 32)->nullable()->comment('技能分支/流派：fire/ice/lightning/warrior/ranger/passive');
+            $table->unsignedTinyInteger('tier')->default(1)->comment('技能层级：1 基础/2 中级/3 高级');
+            $table->unsignedBigInteger('prerequisite_skill_id')->nullable()->comment('前置技能 ID');
+            $table->string('prerequisite_effect_key', 64)->nullable()->comment('前置技能效果键');
             $table->unsignedSmallInteger('mana_cost')->default(0)->comment('法力消耗');
             $table->unsignedTinyInteger('cooldown')->default(0)->comment('冷却时间(秒)');
             $table->unsignedTinyInteger('skill_points_cost')->default(1)->comment('学习消耗技能点数');
@@ -150,6 +163,8 @@ return new class extends Migration
             $table->unsignedSmallInteger('damage_per_level')->default(5)->comment('每级伤害加成');
             $table->unsignedSmallInteger('mana_cost_per_level')->default(0)->comment('每级法力消耗加成');
             $table->string('icon', 64)->nullable()->comment('图标');
+            $table->string('effect_key', 32)->nullable()->comment('前端技能特效标识');
+            $table->text('icon_prompt')->nullable()->comment('AI生成技能图标提示词');
             $table->json('effects')->nullable()->comment('效果(JSON)');
             $table->string('target_type', 16)->default('single')->comment('目标类型：single 单体/all 全体');
             $table->boolean('is_active')->default(true)->comment('是否启用');
@@ -179,6 +194,7 @@ return new class extends Migration
             $table->unsignedMediumInteger('max_level')->default(100)->comment('最高等级');
             $table->json('monster_ids')->nullable()->comment('怪物 ID 列表(JSON)');
             $table->string('background', 128)->nullable()->comment('背景图');
+            $table->text('icon_prompt')->nullable()->comment('AI生成地图背景提示词');
             $table->text('description')->nullable()->comment('地图描述');
             $table->boolean('is_active')->default(true)->comment('是否启用');
             $table->timestamps();
@@ -203,6 +219,7 @@ return new class extends Migration
             $table->unsignedInteger('experience_per_level')->default(5)->comment('每级经验值加成');
             $table->json('drop_table')->nullable()->comment('掉落表(JSON)');
             $table->string('icon', 64)->nullable()->comment('图标');
+            $table->text('icon_prompt')->nullable()->comment('AI生成怪物图标提示词');
             $table->boolean('is_active')->default(true)->comment('是否启用');
             $table->timestamps();
         });
@@ -222,6 +239,37 @@ return new class extends Migration
             $table->unsignedBigInteger('copper_gained')->default(0)->comment('获得铜币');
             $table->unsignedMediumInteger('duration_seconds')->default(0)->comment('战斗时长(秒)');
             $table->json('skills_used')->nullable()->comment('使用的技能(JSON)');
+            $table->json('potion_used')->nullable()->comment('使用的药水(JSON)');
+
+            $table->unsignedTinyInteger('character_level')->nullable()->comment('角色等级');
+            $table->string('character_class', 20)->nullable()->comment('角色职业');
+            $table->unsignedInteger('character_attack')->nullable()->comment('角色攻击力');
+            $table->unsignedInteger('character_defense')->nullable()->comment('角色防御力');
+            $table->decimal('character_crit_rate', 5, 2)->nullable()->comment('角色暴击率(%)');
+            $table->decimal('character_crit_damage', 5, 2)->nullable()->comment('角色暴击伤害(倍数)');
+
+            $table->unsignedTinyInteger('monster_level')->nullable()->comment('怪物等级');
+            $table->unsignedInteger('monster_hp')->nullable()->comment('怪物当前血量');
+            $table->unsignedInteger('monster_max_hp')->nullable()->comment('怪物最大血量');
+            $table->unsignedInteger('monster_attack')->nullable()->comment('怪物攻击力');
+            $table->unsignedInteger('monster_defense')->nullable()->comment('怪物防御力');
+            $table->unsignedInteger('monster_experience')->nullable()->comment('怪物经验值');
+            $table->unsignedInteger('monster_copper')->nullable()->comment('怪物铜币掉落');
+
+            $table->unsignedInteger('base_attack_damage')->nullable()->comment('基础/技能伤害');
+            $table->unsignedInteger('skill_damage')->nullable()->comment('技能额外伤害');
+            $table->unsignedInteger('crit_damage')->nullable()->comment('暴击额外伤害');
+            $table->unsignedInteger('aoe_damage')->nullable()->comment('AOE 伤害减免');
+            $table->unsignedInteger('total_damage_to_monsters')->nullable()->comment('本回合总伤害');
+            $table->decimal('monster_defense_reduction', 5, 2)->nullable()->comment('怪物防御减伤(%)');
+            $table->unsignedInteger('monster_counter_damage')->nullable()->comment('怪物反击伤害');
+
+            $table->unsignedSmallInteger('round_number')->nullable()->comment('回合数');
+            $table->unsignedTinyInteger('monsters_alive_count')->nullable()->comment('存活怪物数');
+            $table->unsignedTinyInteger('monsters_killed_count')->nullable()->comment('杀死怪物数');
+
+            $table->unsignedTinyInteger('difficulty_tier')->nullable()->comment('难度等级');
+            $table->decimal('difficulty_multiplier', 5, 2)->nullable()->comment('难度系数');
             $table->timestamps();
 
             $table->index(['character_id', 'created_at']);

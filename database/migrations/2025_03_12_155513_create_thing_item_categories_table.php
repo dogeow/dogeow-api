@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -21,14 +22,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('thing_item_categories', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->unsignedBigInteger('parent_id')->nullable();
-            $table->unsignedBigInteger('user_id');
+            $table->id()->comment('分类 ID');
+            $table->string('name')->comment('分类名称');
+            $table->unsignedBigInteger('parent_id')->nullable()->comment('父分类 ID（null 为一级分类）');
+            $table->unsignedBigInteger('user_id')->comment('所属用户 ID');
             $table->timestamps();
 
             $table->index('parent_id');
         });
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE thing_item_categories COMMENT = '物品分类表（支持两级分类）'");
+        }
     }
 
     /**

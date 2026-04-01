@@ -17,6 +17,8 @@ return new class extends Migration
             $table->unsignedBigInteger('word_id')->comment('单词 ID');
             $table->unsignedBigInteger('word_book_id')->comment('单词书 ID');
             $table->integer('status')->default(0)->comment('学习状态: 0=未学习, 1=学习中, 2=已掌握, 3=困难词');
+            $table->integer('stage')->default(0)->comment('复习阶段 0-7 (艾宾浩斯)');
+            $table->decimal('ease_factor', 3, 2)->default(2.50)->comment('难度因子 (SM-2 算法)');
             $table->integer('review_count')->default(0)->comment('复习次数');
             $table->integer('correct_count')->default(0)->comment('正确次数');
             $table->integer('wrong_count')->default(0)->comment('错误次数');

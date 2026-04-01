@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -12,13 +13,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('notifications', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->string('type');
+            $table->uuid('id')->primary()->comment('通知 UUID');
+            $table->string('type')->comment('通知类型（全限定类名）');
             $table->morphs('notifiable');
-            $table->text('data');
-            $table->timestamp('read_at')->nullable();
+            $table->text('data')->comment('通知数据（JSON）');
+            $table->timestamp('read_at')->nullable()->comment('读取时间（null 表示未读）');
             $table->timestamps();
         });
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE notifications COMMENT = 'Laravel 数据库通知表'");
+        }
     }
 
     /**
