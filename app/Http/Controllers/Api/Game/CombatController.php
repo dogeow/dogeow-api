@@ -2,19 +2,23 @@
 
 namespace App\Http\Controllers\Api\Game;
 
+use App\Exceptions\GameException;
+use App\Http\Controllers\Concerns\CharacterConcern;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Game\UpdatePotionSettingsRequest;
 use App\Http\Requests\Game\UsePotionRequest;
 use App\Jobs\Game\AutoCombatRoundJob;
 use App\Services\Game\GameCombatService;
+use App\Services\Game\GameInventoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 use Throwable;
 
 class CombatController extends Controller
 {
-    use \App\Http\Controllers\Concerns\CharacterConcern;
+    use CharacterConcern;
 
     public function __construct(
         private readonly GameCombatService $combatService,
@@ -27,22 +31,17 @@ class CombatController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
-            $autoCombatRunning = Redis::get(AutoCombatRoundJob::redisKey($character->id)) !== null;
-
-            // 自动战斗状态以 Redis key 为准，数据库里的 is_fighting 只作为持久化镜像。
-            // 双向纠正可以避免：
-            // 1. DB=true 但 Redis key 已失效，前端误以为正在战斗
-            // 2. Redis key/job 仍在运行，但 DB=false，前端误以为没有战斗
-            if ($character->is_fighting !== $autoCombatRunning) {
-                $character->update(['is_fighting' => $autoCombatRunning]);
-                $character->refresh();
-            }
+            $this->combatService->syncCombatStatusWithRedis($character);
 
             $result = $this->combatService->getCombatStatus($character);
 
             return $this->success($result);
+        } catch (GameException $e) {
+            return $this->error($e->getMessage());
         } catch (Throwable $e) {
-            return $this->error('获取战斗状态失败', ['error' => $e->getMessage()]);
+            Log::error('获取战斗状态失败', ['exception' => $e]);
+
+            return $this->error('获取战斗状态失败，请稍后重试');
         }
     }
 
@@ -53,11 +52,17 @@ class CombatController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
+            $this->authorize('combat', $character);
+
             $character = $this->combatService->updatePotionSettings($character, $request->validated());
 
             return $this->success(['character' => $character->toArray()], '药水设置已更新');
+        } catch (GameException $e) {
+            return $this->error($e->getMessage());
         } catch (Throwable $e) {
-            return $this->error('更新药水自动使用设置失败', ['error' => $e->getMessage()]);
+            Log::error('更新药水自动使用设置失败', ['exception' => $e]);
+
+            return $this->error('更新药水自动使用设置失败，请稍后重试');
         }
     }
 
@@ -68,6 +73,7 @@ class CombatController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
+            $this->authorize('combat', $character);
 
             // 检测角色是否死亡，复活并传送到地图一
             if ($character->current_hp <= 0) {
@@ -105,8 +111,12 @@ class CombatController extends Controller
             AutoCombatRoundJob::dispatch($character->id, $skillIds);
 
             return $this->success(['message' => '自动战斗已开始，结果将通过 WebSocket 推送']);
+        } catch (GameException $e) {
+            return $this->error($e->getMessage());
         } catch (Throwable $e) {
-            return $this->error($e->getMessage() ?: '开始战斗失败', ['error' => $e->getMessage()]);
+            Log::error('开始战斗失败', ['exception' => $e]);
+
+            return $this->error('开始战斗失败，请稍后重试');
         }
     }
 
@@ -117,6 +127,7 @@ class CombatController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
+            $this->authorize('combat', $character);
 
             $key = AutoCombatRoundJob::redisKey($character->id);
             Redis::del($key);
@@ -126,8 +137,12 @@ class CombatController extends Controller
             }
 
             return $this->success(['message' => '自动战斗已停止']);
+        } catch (GameException $e) {
+            return $this->error($e->getMessage());
         } catch (Throwable $e) {
-            return $this->error($e->getMessage() ?: '停止战斗失败', ['error' => $e->getMessage()]);
+            Log::error('停止战斗失败', ['exception' => $e]);
+
+            return $this->error('停止战斗失败，请稍后重试');
         }
     }
 
@@ -141,8 +156,12 @@ class CombatController extends Controller
             $result = $this->combatService->getCombatLogs($character);
 
             return $this->success($result);
+        } catch (GameException $e) {
+            return $this->error($e->getMessage());
         } catch (Throwable $e) {
-            return $this->error('获取战斗日志失败', ['error' => $e->getMessage()]);
+            Log::error('获取战斗日志失败', ['exception' => $e]);
+
+            return $this->error('获取战斗日志失败，请稍后重试');
         }
     }
 
@@ -156,8 +175,12 @@ class CombatController extends Controller
             $result = $this->combatService->getCombatLogDetail($character, $log);
 
             return $this->success($result);
+        } catch (GameException $e) {
+            return $this->error($e->getMessage());
         } catch (Throwable $e) {
-            return $this->error('获取战斗日志详情失败', ['error' => $e->getMessage()]);
+            Log::error('获取战斗日志详情失败', ['exception' => $e]);
+
+            return $this->error('获取战斗日志详情失败，请稍后重试');
         }
     }
 
@@ -171,8 +194,12 @@ class CombatController extends Controller
             $result = $this->combatService->getCombatStats($character);
 
             return $this->success($result);
+        } catch (GameException $e) {
+            return $this->error($e->getMessage());
         } catch (Throwable $e) {
-            return $this->error('获取战斗统计失败', ['error' => $e->getMessage()]);
+            Log::error('获取战斗统计失败', ['exception' => $e]);
+
+            return $this->error('获取战斗统计失败，请稍后重试');
         }
     }
 
@@ -183,6 +210,7 @@ class CombatController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
+            $this->authorize('useSkill', $character);
 
             $skillIds = $request->input('skill_ids') ?? [];
             $skillIds = is_array($skillIds) ? array_map('intval', array_values($skillIds)) : [];
@@ -205,8 +233,12 @@ class CombatController extends Controller
             Redis::setex($key, AutoCombatRoundJob::ttl(), json_encode($data));
 
             return $this->success(['skill_ids' => $data['skill_ids']], '技能配置已更新');
+        } catch (GameException $e) {
+            return $this->error($e->getMessage());
         } catch (Throwable $e) {
-            return $this->error('更新技能配置失败', ['error' => $e->getMessage()]);
+            Log::error('更新技能配置失败', ['exception' => $e]);
+
+            return $this->error('更新技能配置失败，请稍后重试');
         }
     }
 
@@ -217,7 +249,9 @@ class CombatController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
-            $inventoryService = new \App\Services\Game\GameInventoryService;
+            $this->authorize('manageInventory', $character);
+
+            $inventoryService = new GameInventoryService;
             $result = $inventoryService->usePotion($character, $request->input('item_id'));
 
             return $this->success([
@@ -227,8 +261,12 @@ class CombatController extends Controller
                 'max_mana' => $character->getMaxMana(),
                 'message' => $result['message'],
             ], '药品使用成功');
+        } catch (GameException $e) {
+            return $this->error($e->getMessage());
         } catch (Throwable $e) {
-            return $this->error('使用药品失败', ['error' => $e->getMessage()]);
+            Log::error('使用药品失败', ['exception' => $e]);
+
+            return $this->error('使用药品失败，请稍后重试');
         }
     }
 }

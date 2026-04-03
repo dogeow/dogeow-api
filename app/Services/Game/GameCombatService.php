@@ -6,7 +6,9 @@ use App\Models\Game\GameCharacter;
 use App\Models\Game\GameMapDefinition;
 use App\Models\Game\GameMonsterDefinition;
 use App\Services\Game\DTOs\DefeatContext;
+use App\Jobs\Game\AutoCombatRoundJob;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 
 /**
  * 战斗服务类
@@ -64,6 +66,24 @@ class GameCombatService
     }
 
     /**
+     * Synchronize combat status between Redis and database
+     *
+     * Auto-combat state is the source of truth from Redis key.
+     * DB is_fighting field is synced bidirectionally to prevent:
+     * 1. DB=true but Redis key expired → frontend thinks fighting
+     * 2. Redis key/job still running but DB=false → frontend thinks not fighting
+     */
+    public function syncCombatStatusWithRedis(GameCharacter $character): void
+    {
+        $autoCombatRunning = Redis::get(AutoCombatRoundJob::redisKey($character->id)) !== null;
+
+        if ($character->is_fighting !== $autoCombatRunning) {
+            $character->update(['is_fighting' => $autoCombatRunning]);
+            $character->refresh();
+        }
+    }
+
+    /**
      * 获取战斗状态
      *
      * @param  GameCharacter  $character  角色实例
@@ -105,19 +125,17 @@ class GameCombatService
                     'hp' => (int) ($firstAliveOrAny['hp'] ?? 0),
                     'max_hp' => (int) ($firstAliveOrAny['max_hp'] ?? 0),
                 ];
-            } elseif ($character->combat_monster_id !== null) {
-                $def = GameMonsterDefinition::query()->find($character->combat_monster_id);
-                if ($def) {
-                    $result['current_combat_monster'] = [
-                        'id' => $def->id,
-                        'name' => $def->name,
-                        'icon' => $def->icon,
-                        'type' => $def->type ?? 'normal',
-                        'level' => (int) $def->level,
-                        'hp' => (int) ($character->combat_monster_hp ?? 0),
-                        'max_hp' => (int) ($character->combat_monster_max_hp ?? 0),
-                    ];
-                }
+            } elseif ($character->currentCombatMonster !== null) {
+                $def = $character->currentCombatMonster;
+                $result['current_combat_monster'] = [
+                    'id' => $def->id,
+                    'name' => $def->name,
+                    'icon' => $def->icon,
+                    'type' => $def->type ?? 'normal',
+                    'level' => (int) $def->level,
+                    'hp' => (int) ($character->combat_monster_hp ?? 0),
+                    'max_hp' => (int) ($character->combat_monster_max_hp ?? 0),
+                ];
             }
         }
 

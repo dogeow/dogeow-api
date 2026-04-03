@@ -141,6 +141,14 @@ class GameCharacter extends Model
     }
 
     /**
+     * 获取当前战斗的怪物
+     */
+    public function currentCombatMonster(): BelongsTo
+    {
+        return $this->belongsTo(GameMonsterDefinition::class, 'combat_monster_id');
+    }
+
+    /**
      * 获取战斗日志
      */
     public function combatLogs(): HasMany

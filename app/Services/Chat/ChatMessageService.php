@@ -96,7 +96,7 @@ class ChatMessageService
 
             // Find users by name (case-insensitive where supported) and map back to mention order.
             $users = User::whereIn(DB::raw('LOWER(name)'), $orderedUsernames->all())
-                ->get(['id', 'name', 'email']);
+                ->get(['id', 'name']);
 
             $usersByNormalizedName = $users->keyBy(
                 fn (User $user) => $this->normalizeUsername($user->name)
@@ -112,7 +112,6 @@ class ChatMessageService
                 $mentions[] = [
                     'user_id' => $user->id,
                     'username' => $user->name,
-                    'email' => $user->email,
                 ];
             }
 

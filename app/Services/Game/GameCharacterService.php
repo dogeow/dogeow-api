@@ -276,6 +276,17 @@ class GameCharacterService
     }
 
     /**
+     * Mark character as online and update last_online timestamp
+     */
+    public function markOnline(GameCharacter $character): GameCharacter
+    {
+        $character->last_online = now();
+        $character->save();
+
+        return $character;
+    }
+
+    /**
      * Clear character cache
      */
     private function clearCharacterCache(int $userId): void

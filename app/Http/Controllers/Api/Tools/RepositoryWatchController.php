@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api\Tools;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tools\DestroyWatchedPackagesBatchRequest;
+use App\Http\Requests\Tools\PreviewDependenciesRequest;
+use App\Http\Requests\Tools\StoreWatchedPackagesRequest;
 use App\Models\Repo\WatchedPackage;
 use App\Services\Github\GithubDependencyScannerService;
 use App\Services\Github\GithubRepositoryWatcherService;
@@ -24,11 +27,9 @@ class RepositoryWatchController extends Controller
         private readonly PackageWatchRefreshService $refreshService,
     ) {}
 
-    public function preview(Request $request): JsonResponse
+    public function preview(PreviewDependenciesRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'url' => ['required', 'url'],
-        ]);
+        $validated = $request->validated();
 
         try {
             $result = $this->scannerService->previewDependencies($validated['url']);
@@ -45,6 +46,12 @@ class RepositoryWatchController extends Controller
     {
         $packages = $request->user()
             ->watchedPackages()
+            ->select([
+                'id', 'user_id', 'source_provider', 'source_owner', 'source_repo', 'source_url',
+                'ecosystem', 'package_name', 'manifest_path', 'current_version_constraint',
+                'normalized_current_version', 'latest_version', 'watch_level', 'latest_update_type',
+                'registry_url', 'last_checked_at', 'last_error', 'metadata', 'updated_at',
+            ])
             ->orderByRaw("CASE latest_update_type WHEN 'major' THEN 1 WHEN 'minor' THEN 2 WHEN 'patch' THEN 3 ELSE 4 END")
             ->orderByDesc('updated_at')
             ->get()
@@ -53,22 +60,9 @@ class RepositoryWatchController extends Controller
         return $this->success($packages);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreWatchedPackagesRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'source_url' => ['required', 'url'],
-            'source_owner' => ['required', 'string'],
-            'source_repo' => ['required', 'string'],
-            'packages' => ['required', 'array', 'min:1'],
-            'packages.*.ecosystem' => ['required', 'in:npm,composer'],
-            'packages.*.package_name' => ['required', 'string'],
-            'packages.*.manifest_path' => ['nullable', 'string'],
-            'packages.*.current_version_constraint' => ['nullable', 'string'],
-            'packages.*.normalized_current_version' => ['nullable', 'string'],
-            'packages.*.current_version_source' => ['nullable', 'in:lock,manifest'],
-            'packages.*.watch_level' => ['required', 'in:major,minor,patch'],
-            'packages.*.dependency_group' => ['nullable', 'string'],
-        ]);
+        $validated = $request->validated();
 
         try {
             [$parsedOwner, $parsedRepo] = $this->repositoryWatcherService->parseGithubUrl($validated['source_url']);
@@ -144,12 +138,9 @@ class RepositoryWatchController extends Controller
         return $this->success($createdPackages, '依赖关注已保存', 201);
     }
 
-    public function destroyBatch(Request $request): JsonResponse
+    public function destroyBatch(DestroyWatchedPackagesBatchRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'ids' => ['required', 'array', 'min:1'],
-            'ids.*' => ['required', 'integer'],
-        ]);
+        $validated = $request->validated();
 
         $deleted = $request->user()
             ->watchedPackages()

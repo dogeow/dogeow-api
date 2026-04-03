@@ -20,7 +20,7 @@ Route::prefix('chat')->middleware('auth:sanctum')->group(function () {
 
     // Message handling endpoints
     Route::get('/rooms/{roomId}/messages', [ChatMessageController::class, 'index']);
-    Route::post('/rooms/{roomId}/messages', [ChatMessageController::class, 'store'])->middleware('idempotency');
+    Route::post('/rooms/{roomId}/messages', [ChatMessageController::class, 'store'])->middleware('idempotency', 'throttle:10,1');
     Route::delete('/rooms/{roomId}/messages/{messageId}', [ChatMessageController::class, 'destroy']);
 
     // User presence management endpoints

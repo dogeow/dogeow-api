@@ -25,10 +25,6 @@ class ChatMessageController extends Controller
 
     protected ChatCacheService $cacheService;
 
-    private const RATE_LIMIT_MESSAGES_PER_MINUTE = 10;
-
-    private const RATE_LIMIT_WINDOW_SECONDS = 60;
-
     public function __construct(ChatService $chatService, ChatCacheService $cacheService)
     {
         $this->chatService = $chatService;
@@ -85,11 +81,6 @@ class ChatMessageController extends Controller
             $perm = $this->checkUserPermission($roomUser, $room);
             if (! $perm['allowed']) {
                 return $this->error($perm['message'], [], 403);
-            }
-
-            $rate = $this->checkRate($userId, $resolvedRoomId);
-            if (! $rate['allowed']) {
-                return $this->error($rate['message'], $rate['data'] ?? [], 429);
             }
 
             $result = $this->chatService->processMessage(
@@ -217,36 +208,6 @@ class ChatMessageController extends Controller
 
                 return ['allowed' => false, 'message' => $msg];
             }
-        }
-
-        return ['allowed' => true];
-    }
-
-    /**
-     * Check rate limit
-     */
-    private function checkRate(int $userId, int $roomId): array
-    {
-        $key = "send_message:{$userId}:{$roomId}";
-        $res = $this->cacheService->checkRateLimit(
-            $key,
-            self::RATE_LIMIT_MESSAGES_PER_MINUTE,
-            self::RATE_LIMIT_WINDOW_SECONDS
-        );
-        if (empty($res['allowed'])) {
-            $reset = $res['reset_time']->diffInSeconds(now());
-
-            return [
-                'allowed' => false,
-                'message' => "Too many messages. Please wait {$reset} seconds before sending another message.",
-                'data' => [
-                    'rate_limit' => [
-                        'attempts' => $res['attempts'],
-                        'remaining' => $res['remaining'],
-                        'reset_time' => $res['reset_time']->toISOString(),
-                    ],
-                ],
-            ];
         }
 
         return ['allowed' => true];

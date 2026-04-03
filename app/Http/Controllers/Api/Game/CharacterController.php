@@ -82,6 +82,9 @@ class CharacterController extends Controller
     public function destroy(DeleteCharacterRequest $request): JsonResponse
     {
         try {
+            $character = $this->getCharacter($request);
+            $this->authorize('delete', $character);
+
             $this->characterService->deleteCharacter(
                 $request->user()->id,
                 $request->input('character_id')
@@ -99,6 +102,9 @@ class CharacterController extends Controller
     public function allocateStats(AllocateStatsRequest $request): JsonResponse
     {
         try {
+            $character = $this->getCharacter($request);
+            $this->authorize('update', $character);
+
             $result = $this->characterService->allocateStats(
                 $request->user()->id,
                 $request->input('character_id'),
@@ -122,6 +128,9 @@ class CharacterController extends Controller
     public function updateDifficulty(UpdateDifficultyRequest $request): JsonResponse
     {
         try {
+            $character = $this->getCharacter($request);
+            $this->authorize('update', $character);
+
             $character = $this->characterService->updateDifficulty(
                 $request->user()->id,
                 $request->input('difficulty_tier'),
@@ -153,8 +162,9 @@ class CharacterController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
-            $character->last_online = now();
-            $character->save();
+            $this->authorize('update', $character);
+
+            $character = $this->characterService->markOnline($character);
 
             return $this->success(['last_online' => $character->last_online]);
         } catch (Throwable $e) {
@@ -169,6 +179,8 @@ class CharacterController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
+            $this->authorize('view', $character);
+
             $result = $this->characterService->checkOfflineRewards($character);
 
             return $this->success($result);
@@ -184,6 +196,8 @@ class CharacterController extends Controller
     {
         try {
             $character = $this->getCharacter($request);
+            $this->authorize('update', $character);
+
             $result = $this->characterService->claimOfflineRewards($character);
 
             return $this->success($result, $result['level_up'] ? "升级到了 {$result['new_level']} 级！" : '离线奖励已领取');

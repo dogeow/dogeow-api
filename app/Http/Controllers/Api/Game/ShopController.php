@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\Game;
 
 use App\Events\Game\GameInventoryUpdate;
+use App\Exceptions\GameException;
+use App\Http\Controllers\Concerns\CharacterConcern;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Game\BuyItemRequest;
 use App\Http\Requests\Game\SellItemRequest;
@@ -10,11 +12,12 @@ use App\Services\Game\GameInventoryService;
 use App\Services\Game\GameShopService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class ShopController extends Controller
 {
-    use \App\Http\Controllers\Concerns\CharacterConcern;
+    use CharacterConcern;
 
     public function __construct(
         private readonly GameShopService $shopService,
@@ -31,8 +34,12 @@ class ShopController extends Controller
             $result = $this->shopService->getShopItems($character);
 
             return $this->success($result);
+        } catch (GameException $e) {
+            return $this->error($e->getMessage());
         } catch (Throwable $e) {
-            return $this->error('获取商店物品失败', ['error' => $e->getMessage()]);
+            Log::error('获取商店物品失败', ['exception' => $e]);
+
+            return $this->error('获取商店物品失败，请稍后重试');
         }
     }
 
@@ -46,8 +53,12 @@ class ShopController extends Controller
             $result = $this->shopService->refreshShop($character);
 
             return $this->success($result, '刷新成功');
-        } catch (Throwable $e) {
+        } catch (GameException $e) {
             return $this->error($e->getMessage());
+        } catch (Throwable $e) {
+            Log::error('刷新商店失败', ['exception' => $e]);
+
+            return $this->error('刷新商店失败，请稍后重试');
         }
     }
 
@@ -67,8 +78,12 @@ class ShopController extends Controller
             broadcast(new GameInventoryUpdate($character->id, $this->inventoryService->getInventoryForBroadcast($character)));
 
             return $this->success($result, '购买成功');
-        } catch (Throwable $e) {
+        } catch (GameException $e) {
             return $this->error($e->getMessage());
+        } catch (Throwable $e) {
+            Log::error('购买物品失败', ['exception' => $e]);
+
+            return $this->error('购买失败，请稍后重试');
         }
     }
 
@@ -88,8 +103,12 @@ class ShopController extends Controller
             broadcast(new GameInventoryUpdate($character->id, $this->inventoryService->getInventoryForBroadcast($character)));
 
             return $this->success($result, '出售成功');
-        } catch (Throwable $e) {
+        } catch (GameException $e) {
             return $this->error($e->getMessage());
+        } catch (Throwable $e) {
+            Log::error('出售物品失败', ['exception' => $e]);
+
+            return $this->error('出售失败，请稍后重试');
         }
     }
 }

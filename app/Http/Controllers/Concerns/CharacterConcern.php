@@ -15,7 +15,8 @@ trait CharacterConcern
         $characterId = $request->query('character_id') ?: $request->input('character_id');
 
         $query = GameCharacter::query()
-            ->where('user_id', $request->user()->id);
+            ->where('user_id', $request->user()->id)
+            ->with('currentCombatMonster');
 
         if ($characterId) {
             $query->where('id', $characterId);
