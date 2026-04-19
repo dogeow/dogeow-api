@@ -28,6 +28,10 @@ set('application', 'dogeow-api');
 set('keep_releases', 5);
 set('git_tty', false); // CI 环境没有 TTY
 set('workspace_root', __DIR__);
+// ECS 镜像默认没有 ACL 工具，改用 chmod 处理 writable 目录。
+set('writable_mode', 'chmod');
+set('writable_recursive', true);
+set('writable_chmod_mode', '0775');
 
 // 跨版本共享文件 / 目录（升级不会丢）
 add('shared_files', ['.env']);
