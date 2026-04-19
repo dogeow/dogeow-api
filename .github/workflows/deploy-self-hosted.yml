@@ -16,7 +16,7 @@ jobs:
   deploy:
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Ensure Deployer phar present
         # 第一次部署时下载并缓存到 ~/.deployer/dep.phar，后续直接复用。
