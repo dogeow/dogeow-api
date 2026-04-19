@@ -5,6 +5,7 @@
  *
  * 设计要点：
  * - self-hosted runner 就在目标服务器上，host 用 localhost() 走本地 shell，无需 SSH。
+ * - 代码来源直接使用当前 Actions checkout 工作区，避免在部署阶段再次 clone 私有仓库。
  * - deploy_path / supervisor_group 通过环境变量注入，避免把机器路径写死进仓库。
  * - Laravel recipe 已覆盖 shared/writable/symlink/migrate/optimize，本文件只补 Supervisor 重启。
  *
@@ -24,9 +25,9 @@ require 'recipe/laravel.php';
 // 基本配置
 // =====================
 set('application', 'dogeow-api');
-set('repository', 'git@github.com:react-laravel/dogeow-api.git');
 set('keep_releases', 5);
 set('git_tty', false); // CI 环境没有 TTY
+set('workspace_root', __DIR__);
 
 // 跨版本共享文件 / 目录（升级不会丢）
 add('shared_files', ['.env']);
@@ -59,6 +60,26 @@ desc('重启 Supervisor 下的 queue worker / Horizon');
 task('supervisor:restart', function () {
     run('sudo supervisorctl restart {{supervisor_group}}:*');
     run('sudo supervisorctl status {{supervisor_group}}:*');
+});
+
+desc('从当前工作区同步代码到 release 目录');
+task('deploy:update_code', function () {
+    $workspaceRoot = rtrim(get('workspace_root'), '/');
+    $releasePath = '{{release_path}}';
+
+    run("mkdir -p $releasePath");
+    run(
+        'rsync -a '
+        . "--exclude='.git' "
+        . "--exclude='vendor' "
+        . "--exclude='storage' "
+        . "--exclude='bootstrap/cache' "
+        . "--exclude='.env' "
+        . "--exclude='releases' "
+        . "--exclude='current' "
+        . "--exclude='shared' "
+        . "$workspaceRoot/ $releasePath/"
+    );
 });
 
 // =====================

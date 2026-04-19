@@ -48,19 +48,20 @@
 
 ### 3.2 Git 访问
 
-Deployer 默认会在每个 release 里 `git clone`。
+当前 Deployer 配置不会在 `deploy:update_code` 阶段重新 `git clone` 仓库。
 
-- 公开仓库：无需额外配置
-- 私有仓库：给 runner 用户配置 GitHub Deploy Key：
+实际取码方式是：
 
-  ```bash
-  ssh-keygen -t ed25519 -C "deploy@$(hostname)" -f ~/.ssh/github_deploy -N ""
-  cat ~/.ssh/github_deploy.pub   # 粘贴到 GitHub 仓库 Settings -> Deploy keys
-  # ~/.ssh/config
-  # Host github.com
-  #   IdentityFile ~/.ssh/github_deploy
-  ssh -T git@github.com        # 首次连接需要 yes 写入 known_hosts
-  ```
+1. GitHub Actions 先用 `actions/checkout` 拉取当前提交
+2. Deployer 再把当前工作区内容同步到新的 `release` 目录
+
+这样和旧版 `deploy-zero-downtime.sh` 的思路一致，避免部署阶段因为 runner 用户缺少 GitHub SSH key 而失败。
+
+注意：
+
+- 自动部署仍然依赖 `actions/checkout` 能正常拉仓库
+- 手动执行 `dep deploy production` 时，需要先确保当前目录就是已经更新到目标提交的项目工作树
+- 如果后续要改回 “Deployer 自己 clone 仓库”，再单独为 runner 用户配置 GitHub Deploy Key
 
 ### 3.3 sudo 免密
 
@@ -119,6 +120,11 @@ server {
 | `DEPLOY_PATH` | `/example/dogeow-api` | 部署根目录（可选，不设用默认） |
 | `SUPERVISOR_GROUP` | `laravel-horizon` | Supervisor 里 queue/horizon 所在 group |
 
+说明：
+
+- 当前工作流不需要额外配置仓库地址 Secret
+- 如果 `composer install` 还要读取其他私有 GitHub 仓库，再单独配置 `COMPOSER_AUTH` 或细粒度 PAT
+
 ---
 
 ## 5. 自动部署流程
@@ -129,7 +135,7 @@ server {
 2. Runner checkout 仓库（拿 `deploy.php` 和工作流定义）
 3. 下载 / 复用 `~/.deployer/dep.phar`
 4. 执行 `dep deploy production -v`
-5. Deployer 依次：clone → composer install → shared link → migrate → optimize → 切换 `current` → `queue:restart` → `supervisorctl restart`
+5. Deployer 依次：同步当前工作区到 release → composer install → shared link → migrate → optimize → 切换 `current` → `queue:restart` → `supervisorctl restart`
 
 全程 `current` 直到最后一刻才切换，因此 HTTP 请求不中断。
 
@@ -177,7 +183,7 @@ dep rollback production
 | `Permission denied` on shared | `shared/` 目录所有者不是 runner 用户；`chown -R` 修好 |
 | Queue worker 加载旧代码 | 确认 Supervisor 的 `directory=current`；`sudo supervisorctl restart <group>:*` |
 | Nginx 返回 404 | `current` 软链失效或指向错，`ls -l /example/dogeow-api/current` 确认 |
-| `git clone` 失败 | 检查 Deploy Key、`ssh -T git@github.com` |
+| 发布目录代码不是最新 | 确认 `actions/checkout` 是否拉到了目标提交；手动部署时确认当前工作树已先 `git pull` |
 | 503 / 500 | `tail -f shared/storage/logs/laravel.log` |
 
 查看本次部署做了什么：

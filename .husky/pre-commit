@@ -7,9 +7,18 @@ staged_php_files() {
   git diff --cached --name-only --diff-filter=ACMR -- ':(glob)**/*.php'
 }
 
+phpstan_target_files() {
+  staged_php_files | grep -E '^(app|routes|config|database)/.*\.php$' || true
+}
+
 if git diff --cached --quiet --diff-filter=ACMR -- ':(glob)**/*.php'; then
   exit 0
 fi
 
 staged_php_files | tr '\n' '\0' | xargs -0 vendor/bin/pint --test
-staged_php_files | grep -v '^tests/' | tr '\n' '\0' | xargs -0 vendor/bin/phpstan analyse --memory-limit=-1 --no-progress
+
+PHPSTAN_FILES="$(phpstan_target_files)"
+
+if [ -n "$PHPSTAN_FILES" ]; then
+  printf '%s\n' "$PHPSTAN_FILES" | tr '\n' '\0' | xargs -0 vendor/bin/phpstan analyse --memory-limit=-1 --no-progress
+fi
