@@ -7,6 +7,9 @@ parameters:
         - routes
         - config
         - database
+    excludePaths:
+        # Deployer 配置脚本，Deployer DSL 未安装为项目依赖，交给 Deployer 自身校验
+        - deploy.php
     level: 5
     checkModelProperties: false
     reportUnmatchedIgnoredErrors: false

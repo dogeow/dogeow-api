@@ -1,5 +1,6 @@
-# 在国内服务器上的自托管 Runner 执行，推送 main 后自动部署（本机 git pull + 零停机脚本）
-# 前提：在仓库 Settings -> Secrets and variables -> Actions 添加 APP_ROOT、SUPERVISOR_GROUP
+# 推送 main 后在国内自托管 Runner 上通过 Deployer 执行零停机部署。
+# 前提：目标服务器配好 PHP/Composer/Supervisor/Nginx，runner 用户有 sudo supervisorctl 免密。
+# 详情见 docs/DEPLOYMENT.md。
 name: Deploy (Self-hosted)
 
 on:
@@ -7,16 +8,32 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: self-hosted
     steps:
-      - name: Deploy
+      - uses: actions/checkout@v4
+
+      - name: Ensure Deployer phar present
+        # 第一次部署时下载并缓存到 ~/.deployer/dep.phar，后续直接复用。
+        # 用固定版本避免上游变更突然破坏构建。
         run: |
-          cd "$APP_ROOT"
-          git pull
-          chmod +x scripts/deploy-zero-downtime.sh
-          ./scripts/deploy-zero-downtime.sh
+          set -euo pipefail
+          DEP_BIN="$HOME/.deployer/dep.phar"
+          DEP_VERSION="7.5.7"
+          if [ ! -f "$DEP_BIN" ]; then
+            mkdir -p "$(dirname "$DEP_BIN")"
+            curl -fsSL "https://deployer.org/releases/v${DEP_VERSION}/deployer.phar" -o "$DEP_BIN"
+            chmod +x "$DEP_BIN"
+          fi
+          php "$DEP_BIN" --version
+
+      - name: Deploy production
         env:
-          APP_ROOT: ${{ secrets.APP_ROOT }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           SUPERVISOR_GROUP: ${{ secrets.SUPERVISOR_GROUP }}
+        run: php "$HOME/.deployer/dep.phar" deploy production -v
