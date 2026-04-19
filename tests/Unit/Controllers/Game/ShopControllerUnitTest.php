@@ -79,8 +79,7 @@ class ShopControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(422, $response->getStatusCode());
-        $this->assertSame('获取商店物品失败', $data['message']);
-        $this->assertSame('boom', $data['errors']['error']);
+        $this->assertSame('获取商店物品失败，请稍后重试', $data['message']);
     }
 
     public function test_refresh_returns_success_payload(): void
@@ -110,7 +109,7 @@ class ShopControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(422, $response->getStatusCode());
-        $this->assertSame('货币不足', $data['message']);
+        $this->assertSame('刷新商店失败，请稍后重试', $data['message']);
     }
 
     public function test_buy_returns_success_and_broadcasts_inventory(): void
@@ -148,7 +147,7 @@ class ShopControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(422, $response->getStatusCode());
-        $this->assertSame('购买失败', $data['message']);
+        $this->assertSame('购买失败，请稍后重试', $data['message']);
     }
 
     public function test_sell_returns_success_and_broadcasts_inventory(): void
@@ -186,7 +185,7 @@ class ShopControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(422, $response->getStatusCode());
-        $this->assertSame('出售失败', $data['message']);
+        $this->assertSame('出售失败，请稍后重试', $data['message']);
     }
 
     private function createCharacter(User $user, array $attributes = []): GameCharacter

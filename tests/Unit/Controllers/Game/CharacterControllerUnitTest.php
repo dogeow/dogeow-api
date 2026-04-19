@@ -295,14 +295,19 @@ class CharacterControllerUnitTest extends TestCase
     {
         $user = User::factory()->create();
         $character = $this->createCharacter($user, ['last_online' => null]);
+        $onlineAt = now();
+        $character->last_online = $onlineAt;
+
+        $this->characterService->shouldReceive('markOnline')
+            ->once()
+            ->with(Mockery::on(fn ($candidate) => $candidate instanceof GameCharacter && $candidate->is($character)))
+            ->andReturn($character);
 
         $response = $this->controller->online($this->makeRequest($user, ['character_id' => $character->id]));
         $data = json_decode($response->getContent(), true);
-        $character->refresh();
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertNotNull($data['data']['last_online']);
-        $this->assertNotNull($character->last_online);
     }
 
     public function test_online_returns_error_when_character_cannot_be_resolved(): void
@@ -427,6 +432,8 @@ class CharacterControllerUnitTest extends TestCase
 
     private function makeRequest(User $user, array $payload = []): Request
     {
+        $this->actingAs($user);
+
         $request = Request::create('/api/rpg/character', 'GET', $payload);
         $request->setUserResolver(fn () => $user);
 
@@ -438,6 +445,8 @@ class CharacterControllerUnitTest extends TestCase
      */
     private function makeFormRequest(string $class, User $user, array $payload = []): FormRequest
     {
+        $this->actingAs($user);
+
         /** @var FormRequest $request */
         $request = $class::create('/api/rpg/character', 'POST', $payload);
         $request->setContainer($this->app);

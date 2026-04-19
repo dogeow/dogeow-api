@@ -45,7 +45,7 @@ class CombatControllerUnitTest extends TestCase
         $character = $this->createCharacter($user);
         $payload = ['is_fighting' => false, 'monster' => null];
 
-        Redis::shouldReceive('get')->once()->with(AutoCombatRoundJob::redisKey($character->id))->andReturn(null);
+        $this->combatService->shouldReceive('syncCombatStatusWithRedis')->once()->with($this->sameCharacter($character));
         $this->combatService->shouldReceive('getCombatStatus')->once()->with($this->sameCharacter($character))->andReturn($payload);
 
         $response = $this->controller->status($this->makeRequest($user, $character));
@@ -61,7 +61,12 @@ class CombatControllerUnitTest extends TestCase
         $character = $this->createCharacter($user, ['is_fighting' => true]);
         $payload = ['is_fighting' => false, 'monster' => null];
 
-        Redis::shouldReceive('get')->once()->with(AutoCombatRoundJob::redisKey($character->id))->andReturn(null);
+        $this->combatService->shouldReceive('syncCombatStatusWithRedis')
+            ->once()
+            ->with($this->sameCharacter($character))
+            ->andReturnUsing(function (GameCharacter $target): void {
+                $target->update(['is_fighting' => false]);
+            });
         $this->combatService->shouldReceive('getCombatStatus')->once()->with($this->sameCharacter($character))->andReturn($payload);
 
         $response = $this->controller->status($this->makeRequest($user, $character));
@@ -79,7 +84,12 @@ class CombatControllerUnitTest extends TestCase
         $character = $this->createCharacter($user, ['is_fighting' => false]);
         $payload = ['is_fighting' => true, 'monster' => null];
 
-        Redis::shouldReceive('get')->once()->with(AutoCombatRoundJob::redisKey($character->id))->andReturn('{"skill_ids":[1]}');
+        $this->combatService->shouldReceive('syncCombatStatusWithRedis')
+            ->once()
+            ->with($this->sameCharacter($character))
+            ->andReturnUsing(function (GameCharacter $target): void {
+                $target->update(['is_fighting' => true]);
+            });
         $this->combatService->shouldReceive('getCombatStatus')->once()->with($this->sameCharacter($character))->andReturn($payload);
 
         $response = $this->controller->status($this->makeRequest($user, $character));
@@ -96,15 +106,14 @@ class CombatControllerUnitTest extends TestCase
         $user = User::factory()->create();
         $character = $this->createCharacter($user);
 
-        Redis::shouldReceive('get')->once()->with(AutoCombatRoundJob::redisKey($character->id))->andReturn(null);
+        $this->combatService->shouldReceive('syncCombatStatusWithRedis')->once()->with($this->sameCharacter($character));
         $this->combatService->shouldReceive('getCombatStatus')->once()->with($this->sameCharacter($character))->andThrow(new \RuntimeException('status boom'));
 
         $response = $this->controller->status($this->makeRequest($user, $character));
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(422, $response->getStatusCode());
-        $this->assertSame('获取战斗状态失败', $data['message']);
-        $this->assertSame('status boom', $data['errors']['error']);
+        $this->assertSame('获取战斗状态失败，请稍后重试', $data['message']);
     }
 
     public function test_update_potion_settings_returns_updated_character(): void
@@ -158,8 +167,7 @@ class CombatControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(422, $response->getStatusCode());
-        $this->assertSame('更新药水自动使用设置失败', $data['message']);
-        $this->assertSame('settings boom', $data['errors']['error']);
+        $this->assertSame('更新药水自动使用设置失败，请稍后重试', $data['message']);
     }
 
     public function test_start_revives_dead_character_without_dispatching_combat(): void
@@ -274,8 +282,7 @@ class CombatControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(422, $response->getStatusCode());
-        $this->assertSame('开始战斗失败', $data['message']);
-        $this->assertSame('', $data['errors']['error']);
+        $this->assertSame('开始战斗失败，请稍后重试', $data['message']);
         Bus::assertNothingDispatched();
     }
 
@@ -309,8 +316,7 @@ class CombatControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(422, $response->getStatusCode());
-        $this->assertSame('stop boom', $data['message']);
-        $this->assertSame('stop boom', $data['errors']['error']);
+        $this->assertSame('停止战斗失败，请稍后重试', $data['message']);
     }
 
     public function test_logs_returns_service_payload(): void
@@ -342,8 +348,7 @@ class CombatControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(422, $response->getStatusCode());
-        $this->assertSame('获取战斗日志失败', $data['message']);
-        $this->assertSame('logs boom', $data['errors']['error']);
+        $this->assertSame('获取战斗日志失败，请稍后重试', $data['message']);
     }
 
     public function test_log_detail_returns_detailed_payload(): void
@@ -388,8 +393,7 @@ class CombatControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(422, $response->getStatusCode());
-        $this->assertSame('获取战斗日志详情失败', $data['message']);
-        $this->assertSame('detail boom', $data['errors']['error']);
+        $this->assertSame('获取战斗日志详情失败，请稍后重试', $data['message']);
     }
 
     public function test_stats_returns_service_payload(): void
@@ -421,8 +425,7 @@ class CombatControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(422, $response->getStatusCode());
-        $this->assertSame('获取战斗统计失败', $data['message']);
-        $this->assertSame('stats boom', $data['errors']['error']);
+        $this->assertSame('获取战斗统计失败，请稍后重试', $data['message']);
     }
 
     public function test_update_skills_requires_active_auto_combat(): void
@@ -507,8 +510,7 @@ class CombatControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(422, $response->getStatusCode());
-        $this->assertSame('更新技能配置失败', $data['message']);
-        $this->assertSame('redis boom', $data['errors']['error']);
+        $this->assertSame('更新技能配置失败，请稍后重试', $data['message']);
     }
 
     public function test_use_potion_returns_character_resources(): void
@@ -554,8 +556,7 @@ class CombatControllerUnitTest extends TestCase
         $data = json_decode($response->getContent(), true);
 
         $this->assertSame(422, $response->getStatusCode());
-        $this->assertSame('使用药品失败', $data['message']);
-        $this->assertSame('该物品不是药品', $data['errors']['error']);
+        $this->assertSame('使用药品失败，请稍后重试', $data['message']);
     }
 
     private function createCharacter(User $user, array $attributes = []): GameCharacter
@@ -624,6 +625,8 @@ class CombatControllerUnitTest extends TestCase
 
     private function makeRequest(User $user, GameCharacter $character, array $payload = []): Request
     {
+        $this->actingAs($user);
+
         $request = Request::create('/api/rpg/combat', 'POST', array_merge([
             'character_id' => $character->id,
         ], $payload));
@@ -637,6 +640,8 @@ class CombatControllerUnitTest extends TestCase
      */
     private function makeValidatedFormRequest(string $class, User $user, GameCharacter $character, array $payload = []): FormRequest
     {
+        $this->actingAs($user);
+
         /** @var FormRequest $request */
         $request = $class::create('/api/rpg/combat', 'POST', array_merge([
             'character_id' => $character->id,

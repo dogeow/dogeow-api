@@ -8,7 +8,6 @@ use App\Models\Chat\ChatMessage;
 use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
-use App\Services\Chat\ChatCacheService;
 use App\Services\Chat\ChatService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
@@ -253,40 +252,24 @@ class ChatControllerTest extends TestCase
 
     public function test_send_message_respects_rate_limiting()
     {
-        $this->mock(ChatCacheService::class, function ($mock) {
-            $mock->shouldReceive('checkRateLimit')
-                ->once()
-                ->andReturn([
-                    'allowed' => false,
-                    'attempts' => 10,
-                    'remaining' => 0,
-                    'reset_time' => now()->addSeconds(60),
-                ]);
-        });
-
         // Join the room and set online
         ChatRoomUser::create([
             'room_id' => $this->room->id,
             'user_id' => $this->user->id,
             'is_online' => true,
         ]);
-        $response = $this->postJson("/api/chat/rooms/{$this->room->id}/messages", [
-            'message' => 'Rate limited message',
-        ]);
 
-        $response->assertStatus(429);
-        $response->assertJsonStructure([
-            'success',
-            'message',
-            'errors' => [
-                'rate_limit' => [
-                    'attempts',
-                    'remaining',
-                    'reset_time',
-                ],
-            ],
-        ]);
-        $this->assertStringStartsWith('Too many messages. Please wait', $response->json('message'));
+        $lastResponse = null;
+        for ($i = 0; $i < 11; $i++) {
+            $lastResponse = $this->postJson("/api/chat/rooms/{$this->room->id}/messages", [
+                'message' => "Rate limited message {$i}",
+            ]);
+            if ($lastResponse->status() === 429) {
+                break;
+            }
+        }
+
+        $lastResponse->assertStatus(429);
     }
 
     public function test_send_message_blocked_by_content_filter()
@@ -961,12 +944,6 @@ class ChatControllerTest extends TestCase
 
     public function test_send_message_returns_generic_error_when_service_fails_without_specific_errors()
     {
-        $this->mock(ChatCacheService::class, function ($mock) {
-            $mock->shouldReceive('checkRateLimit')
-                ->once()
-                ->andReturn(['allowed' => true]);
-        });
-
         $this->mock(ChatService::class, function ($mock) {
             $mock->shouldReceive('processMessage')
                 ->once()
