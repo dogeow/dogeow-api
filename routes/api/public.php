@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\Ai\MiniMaxController;
 use App\Http\Controllers\Api\Ai\VisionUploadController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Dashboard\ClientInfoController;
@@ -53,8 +52,3 @@ Route::post('/vision/upload', [VisionUploadController::class, 'upload']);
 // Public nav/tools
 require base_path('routes/api/nav.php');
 require base_path('routes/api/tools.php');
-
-// MiniMax
-Route::post('/minimax/roleplay', [MiniMaxController::class, 'roleplayChat'])->middleware(
-    'throttle:12,1'
-);
