@@ -40,7 +40,7 @@ add('shared_dirs', ['storage']);
 // 仅在每次部署时处理 release 内部目录的 writable 权限。
 // shared/storage 是跨版本共享目录，权限应在服务器初始化时一次性配置，
 // 避免 deploy:writable 递归 chmod 软链目标时因属主不一致而失败。
-add('writable_dirs', [
+set('writable_dirs', [
     'bootstrap/cache',
 ]);
 
