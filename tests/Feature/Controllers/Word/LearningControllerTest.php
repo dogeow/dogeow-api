@@ -428,6 +428,55 @@ class LearningControllerTest extends TestCase
         $this->assertArrayHasKey('example_sentences', $data[0]);
     }
 
+    public function test_can_estimate_vocabulary_size(): void
+    {
+        $user = User::factory()->create();
+        $alpha = $this->createWord([
+            'content' => 'Alpha',
+            'explanation' => 'Alpha explanation',
+        ]);
+        $beta = $this->createWord([
+            'content' => 'beta',
+            'explanation' => 'Beta explanation',
+        ]);
+        $gamma = $this->createWord([
+            'content' => 'Gamma',
+            'explanation' => 'Gamma explanation',
+        ]);
+        $this->createWord([
+            'content' => 'ignored',
+            'explanation' => '',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/word/quiz/estimate', [
+                'answers' => [
+                    ['word_id' => $alpha->id, 'correct' => true],
+                    ['word_id' => $beta->id, 'correct' => true],
+                    ['word_id' => $gamma->id, 'correct' => false],
+                ],
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.tested_count', 3)
+            ->assertJsonPath('data.correct_count', 2)
+            ->assertJsonPath('data.accuracy', 0.5385)
+            ->assertJsonPath('data.estimated_vocabulary_size', 2)
+            ->assertJsonPath('data.confidence', 'low');
+    }
+
+    public function test_estimate_vocabulary_validates_answers_payload(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/word/quiz/estimate', [
+                'answers' => [],
+            ]);
+
+        $response->assertStatus(422);
+    }
+
     public function test_requires_authentication_for_daily_words(): void
     {
         $response = $this->getJson('/api/word/daily');

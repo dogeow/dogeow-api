@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Word;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Word\CreateWordRequest;
+use App\Http\Requests\Word\EstimateVocabularyRequest;
 use App\Http\Requests\Word\MarkWordRequest;
 use App\Http\Resources\Word\WordResource;
 use App\Models\Word\Book;
@@ -12,6 +13,8 @@ use App\Models\Word\UserSetting;
 use App\Models\Word\UserWord;
 use App\Models\Word\Word;
 use App\Services\Word\EbbinghausService;
+use App\Services\Word\VocabularyEstimateService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Auth;
@@ -20,7 +23,8 @@ use Illuminate\Support\Facades\DB;
 class LearningController extends Controller
 {
     public function __construct(
-        private readonly EbbinghausService $ebbinghausService
+        private readonly EbbinghausService $ebbinghausService,
+        private readonly VocabularyEstimateService $vocabularyEstimateService,
     ) {}
 
     /**
@@ -52,7 +56,7 @@ class LearningController extends Controller
             ->limit($reviewCount)
             ->get();
 
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Word> $reviewWords */
+        /** @var Collection<int, Word> $reviewWords */
         // property 'word' on UserWord is non-nullable, so return type can be Word
         $reviewWords = $reviewUserWords->map(fn (UserWord $userWord): Word => $userWord->word)->filter();
 
@@ -63,7 +67,7 @@ class LearningController extends Controller
             ->unique();
 
         // 3. 获取未学习的新单词(排除已学习的，包括复习词)
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Word> $newWords */
+        /** @var Collection<int, Word> $newWords */
         $newWords = $book->words()
             ->with('educationLevels')
             ->whereNotIn('words.id', $learnedWordIds)
@@ -362,6 +366,16 @@ class LearningController extends Controller
             ->map(fn ($userWord) => $userWord->word);
 
         return WordResource::collection($selectedWords);
+    }
+
+    /**
+     * 估算用户词汇量
+     */
+    public function estimateVocabulary(EstimateVocabularyRequest $request): JsonResponse
+    {
+        $result = $this->vocabularyEstimateService->estimate($request->validated()['answers']);
+
+        return $this->success($result);
     }
 
     /**
