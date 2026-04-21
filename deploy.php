@@ -37,17 +37,11 @@ set('writable_chmod_mode', '0775');
 add('shared_files', ['.env']);
 add('shared_dirs', ['storage']);
 
-// Web server / worker 需要可写的目录
+// 仅在每次部署时处理 release 内部目录的 writable 权限。
+// shared/storage 是跨版本共享目录，权限应在服务器初始化时一次性配置，
+// 避免 deploy:writable 递归 chmod 软链目标时因属主不一致而失败。
 add('writable_dirs', [
     'bootstrap/cache',
-    'storage',
-    'storage/app',
-    'storage/app/public',
-    'storage/framework',
-    'storage/framework/cache',
-    'storage/framework/sessions',
-    'storage/framework/views',
-    'storage/logs',
 ]);
 
 // =====================
