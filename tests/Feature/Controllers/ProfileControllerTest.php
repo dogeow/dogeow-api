@@ -9,6 +9,7 @@ use App\Models\Thing\Spot;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -156,6 +157,44 @@ class ProfileControllerTest extends TestCase
 
         // Check that related data is cleaned up
         $this->assertDatabaseMissing('thing_items', ['user_id' => $user->id]);
+    }
+
+    #[Test]
+    public function it_deletes_user_item_image_files_from_storage_when_deleting_account(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create([
+            'password' => Hash::make('password123'),
+        ]);
+
+        $item = Item::factory()->create(['user_id' => $user->id]);
+        $image = ItemImage::factory()->create([
+            'item_id' => $item->id,
+            'path' => 'items/' . $item->id . '/profile-image.jpg',
+        ]);
+
+        Storage::disk('public')->put($image->path, 'image-content');
+        Storage::disk('public')->put('items/' . $item->id . '/profile-image-thumb.jpg', 'thumb-content');
+        Storage::disk('public')->put('items/' . $item->id . '/profile-image-origin.jpg', 'origin-content');
+
+        $this->assertTrue(Storage::disk('public')->exists($image->path));
+        $this->assertTrue(Storage::disk('public')->exists('items/' . $item->id . '/profile-image-thumb.jpg'));
+        $this->assertTrue(Storage::disk('public')->exists('items/' . $item->id . '/profile-image-origin.jpg'));
+
+        Sanctum::actingAs($user);
+
+        $response = $this->deleteJson('/api/profile', [
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(200);
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+        $this->assertDatabaseMissing('thing_items', ['id' => $item->id]);
+        $this->assertDatabaseMissing('thing_item_images', ['id' => $image->id]);
+        $this->assertFalse(Storage::disk('public')->exists($image->path));
+        $this->assertFalse(Storage::disk('public')->exists('items/' . $item->id . '/profile-image-thumb.jpg'));
+        $this->assertFalse(Storage::disk('public')->exists('items/' . $item->id . '/profile-image-origin.jpg'));
     }
 
     #[Test]

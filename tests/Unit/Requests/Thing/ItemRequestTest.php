@@ -3,7 +3,9 @@
 namespace Tests\Unit\Requests\Thing;
 
 use App\Http\Requests\Thing\ItemRequest;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\Rules\Exists;
 use Tests\TestCase;
 
 class ItemRequestTest extends TestCase
@@ -40,8 +42,13 @@ class ItemRequestTest extends TestCase
         $this->assertArrayHasKey('spot_id', $rules);
         $this->assertArrayHasKey('is_public', $rules);
         $this->assertArrayHasKey('images', $rules);
+        $this->assertArrayHasKey('image_paths', $rules);
         $this->assertArrayHasKey('tags', $rules);
+        $this->assertArrayHasKey('tag_ids', $rules);
         $this->assertArrayHasKey('image_ids', $rules);
+        $this->assertArrayHasKey('image_order', $rules);
+        $this->assertArrayHasKey('primary_image_id', $rules);
+        $this->assertArrayHasKey('delete_images', $rules);
     }
 
     public function test_name_validation_rules()
@@ -99,17 +106,17 @@ class ItemRequestTest extends TestCase
     {
         $rules = $this->request->rules();
 
-        $this->assertStringContainsString('nullable', $rules['category_id']);
-        $this->assertStringContainsString('exists:thing_item_categories,id', $rules['category_id']);
+        $this->assertContainsRuleString($rules['category_id'], 'nullable');
+        $this->assertContainsExistsRule($rules['category_id']);
 
-        $this->assertStringContainsString('nullable', $rules['area_id']);
-        $this->assertStringContainsString('exists:thing_areas,id', $rules['area_id']);
+        $this->assertContainsRuleString($rules['area_id'], 'nullable');
+        $this->assertContainsExistsRule($rules['area_id']);
 
-        $this->assertStringContainsString('nullable', $rules['room_id']);
-        $this->assertStringContainsString('exists:thing_rooms,id', $rules['room_id']);
+        $this->assertContainsRuleString($rules['room_id'], 'nullable');
+        $this->assertContainsExistsRule($rules['room_id']);
 
-        $this->assertStringContainsString('nullable', $rules['spot_id']);
-        $this->assertStringContainsString('exists:thing_spots,id', $rules['spot_id']);
+        $this->assertContainsRuleString($rules['spot_id'], 'nullable');
+        $this->assertContainsExistsRule($rules['spot_id']);
     }
 
     public function test_is_public_validation_rules()
@@ -131,6 +138,82 @@ class ItemRequestTest extends TestCase
         $this->assertStringContainsString('max:2048', $rules['images.*']);
     }
 
+    public function test_image_paths_validation_rules(): void
+    {
+        $rules = $this->request->rules();
+
+        $this->assertStringContainsString('nullable', $rules['image_paths']);
+        $this->assertStringContainsString('array', $rules['image_paths']);
+        $this->assertContainsRuleString($rules['image_paths.*'], 'string');
+
+        $ruleList = is_array($rules['image_paths.*']) ? $rules['image_paths.*'] : [$rules['image_paths.*']];
+        $this->assertTrue(
+            collect($ruleList)->contains(static fn ($rule) => $rule instanceof \Closure),
+            'Failed asserting that the image_paths rules contain a Closure rule.'
+        );
+    }
+
+    public function test_image_paths_must_belong_to_authenticated_user_upload_directory(): void
+    {
+        $user = User::factory()->make(['id' => 123]);
+        $request = new ItemRequest;
+        $request->setUserResolver(static fn () => $user);
+
+        $validator = validator([
+            'name' => 'Test Item',
+            'image_paths' => ['uploads/999/foreign.jpg'],
+        ], $request->rules(), $request->messages());
+
+        $this->assertTrue($validator->fails());
+        $this->assertSame(['只能使用当前用户上传目录中的图片'], $validator->errors()->get('image_paths.0'));
+    }
+
+    public function test_image_paths_accept_current_user_upload_directory(): void
+    {
+        $user = User::factory()->make(['id' => 123]);
+        $request = new ItemRequest;
+        $request->setUserResolver(static fn () => $user);
+
+        $validator = validator([
+            'name' => 'Test Item',
+            'image_paths' => ['uploads/123/owned.jpg'],
+        ], $request->rules(), $request->messages());
+
+        $this->assertFalse($validator->fails());
+    }
+
+    public function test_image_paths_reject_directory_traversal_segments(): void
+    {
+        $user = User::factory()->make(['id' => 123]);
+        $request = new ItemRequest;
+        $request->setUserResolver(static fn () => $user);
+
+        $validator = validator([
+            'name' => 'Test Item',
+            'image_paths' => ['uploads/123/../999/foreign.jpg'],
+        ], $request->rules(), $request->messages());
+
+        $this->assertTrue($validator->fails());
+        $this->assertSame(['只能使用当前用户上传目录中的图片'], $validator->errors()->get('image_paths.0'));
+    }
+
+    public function test_image_paths_reject_origin_and_thumbnail_companion_paths(): void
+    {
+        $user = User::factory()->make(['id' => 123]);
+        $request = new ItemRequest;
+        $request->setUserResolver(static fn () => $user);
+
+        foreach (['uploads/123/photo-origin.jpg', 'uploads/123/photo-thumb.jpg'] as $imagePath) {
+            $validator = validator([
+                'name' => 'Test Item',
+                'image_paths' => [$imagePath],
+            ], $request->rules(), $request->messages());
+
+            $this->assertTrue($validator->fails());
+            $this->assertSame(['只能使用上传返回的图片路径'], $validator->errors()->get('image_paths.0'));
+        }
+    }
+
     public function test_tags_validation_rules()
     {
         $rules = $this->request->rules();
@@ -138,8 +221,8 @@ class ItemRequestTest extends TestCase
         $this->assertStringContainsString('nullable', $rules['tags']);
         $this->assertStringContainsString('array', $rules['tags']);
 
-        $this->assertStringContainsString('string', $rules['tags.*']);
-        $this->assertStringContainsString('max:255', $rules['tags.*']);
+        $this->assertContainsRuleString($rules['tags.*'], 'integer');
+        $this->assertContainsExistsRule($rules['tags.*']);
     }
 
     public function test_image_ids_validation_rules()
@@ -149,8 +232,27 @@ class ItemRequestTest extends TestCase
         $this->assertStringContainsString('nullable', $rules['image_ids']);
         $this->assertStringContainsString('array', $rules['image_ids']);
 
-        $this->assertStringContainsString('integer', $rules['image_ids.*']);
-        $this->assertStringContainsString('exists:thing_item_images,id', $rules['image_ids.*']);
+        $this->assertContainsRuleString($rules['image_ids.*'], 'integer');
+        $this->assertContainsExistsRule($rules['image_ids.*']);
+    }
+
+    public function test_image_management_validation_rules(): void
+    {
+        $rules = $this->request->rules();
+
+        $this->assertStringContainsString('nullable', $rules['image_order']);
+        $this->assertStringContainsString('array', $rules['image_order']);
+        $this->assertContainsRuleString($rules['image_order.*'], 'integer');
+        $this->assertContainsExistsRule($rules['image_order.*']);
+
+        $this->assertContainsRuleString($rules['primary_image_id'], 'nullable');
+        $this->assertContainsRuleString($rules['primary_image_id'], 'integer');
+        $this->assertContainsExistsRule($rules['primary_image_id']);
+
+        $this->assertStringContainsString('nullable', $rules['delete_images']);
+        $this->assertStringContainsString('array', $rules['delete_images']);
+        $this->assertContainsRuleString($rules['delete_images.*'], 'integer');
+        $this->assertContainsExistsRule($rules['delete_images.*']);
     }
 
     public function test_validation_messages_contain_custom_messages()
@@ -165,12 +267,19 @@ class ItemRequestTest extends TestCase
         $this->assertArrayHasKey('purchase_price.numeric', $messages);
         $this->assertArrayHasKey('purchase_price.min', $messages);
         $this->assertArrayHasKey('category_id.exists', $messages);
+        $this->assertArrayHasKey('area_id.exists', $messages);
+        $this->assertArrayHasKey('room_id.exists', $messages);
         $this->assertArrayHasKey('spot_id.exists', $messages);
+        $this->assertArrayHasKey('tag_ids.*.exists', $messages);
+        $this->assertArrayHasKey('image_ids.*.exists', $messages);
+        $this->assertArrayHasKey('image_order.*.exists', $messages);
+        $this->assertArrayHasKey('primary_image_id.exists', $messages);
+        $this->assertArrayHasKey('delete_images.*.exists', $messages);
         $this->assertArrayHasKey('images.*.image', $messages);
         $this->assertArrayHasKey('images.*.mimes', $messages);
         $this->assertArrayHasKey('images.*.max', $messages);
-        $this->assertArrayHasKey('tags.*.string', $messages);
-        $this->assertArrayHasKey('tags.*.max', $messages);
+        $this->assertArrayHasKey('image_paths.*.string', $messages);
+        $this->assertArrayHasKey('tags.*.exists', $messages);
     }
 
     public function test_name_required_message()
@@ -257,17 +366,37 @@ class ItemRequestTest extends TestCase
         $this->assertEquals('图片大小不能超过 2MB', $messages['images.*.max']);
     }
 
-    public function test_tags_string_message()
+    public function test_image_paths_string_message(): void
     {
         $messages = $this->request->messages();
 
-        $this->assertEquals('标签必须是字符串', $messages['tags.*.string']);
+        $this->assertEquals('图片路径必须是字符串', $messages['image_paths.*.string']);
     }
 
-    public function test_tags_max_message()
+    public function test_tags_exists_message()
     {
         $messages = $this->request->messages();
 
-        $this->assertEquals('标签长度不能超过 255 个字符', $messages['tags.*.max']);
+        $this->assertEquals('所选标签不存在', $messages['tags.*.exists']);
+    }
+
+    private function assertContainsRuleString(array|string $rules, string $expected): void
+    {
+        $ruleList = is_array($rules) ? $rules : [$rules];
+
+        $this->assertTrue(
+            collect($ruleList)->contains(static fn ($rule) => is_string($rule) && str_contains($rule, $expected)),
+            "Failed asserting that the rules contain string [{$expected}]."
+        );
+    }
+
+    private function assertContainsExistsRule(array|string $rules): void
+    {
+        $ruleList = is_array($rules) ? $rules : [$rules];
+
+        $this->assertTrue(
+            collect($ruleList)->contains(static fn ($rule) => $rule instanceof Exists),
+            'Failed asserting that the rules contain an Exists rule.'
+        );
     }
 }

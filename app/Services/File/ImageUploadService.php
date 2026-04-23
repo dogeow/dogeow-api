@@ -88,17 +88,25 @@ class ImageUploadService
             }
 
             $filename = substr($originPath, strrpos($originPath, '/') + 1);
+            $companionFilenames = $this->companionFilenames($filename);
             $itemPath = 'items/' . $item->id . '/' . $filename;
             $absItemPath = $dirPath . '/' . $filename;
 
-            $thumbFilename = pathinfo($filename, PATHINFO_FILENAME) . '-thumb.' . pathinfo($filename, PATHINFO_EXTENSION);
+            $thumbFilename = $companionFilenames['thumb'];
             $thumbOriginPath = dirname($originAbsPath) . '/' . $thumbFilename;
             $thumbItemPath = 'items/' . $item->id . '/' . $thumbFilename;
             $absThumbPath = $dirPath . '/' . $thumbFilename;
 
+            $originFilename = $companionFilenames['origin'];
+            $originCompanionPath = dirname($originAbsPath) . '/' . $originFilename;
+            $absOriginCompanionPath = $dirPath . '/' . $originFilename;
+
             if (rename($originAbsPath, $absItemPath)) {
-                if (file_exists($thumbOriginPath)) {
+                if ($thumbFilename !== $filename && file_exists($thumbOriginPath)) {
                     rename($thumbOriginPath, $absThumbPath);
+                }
+                if ($originFilename !== $filename && file_exists($originCompanionPath)) {
+                    rename($originCompanionPath, $absOriginCompanionPath);
                 }
 
                 $currentMaxSortOrder++;
@@ -163,7 +171,7 @@ class ImageUploadService
             ->get();
 
         foreach ($imagesToDelete as $image) {
-            Storage::disk('public')->delete($image->path);
+            Storage::disk('public')->delete($this->imagePathsForDeletion($image));
             $image->delete();
         }
     }
@@ -178,8 +186,41 @@ class ImageUploadService
     {
         $images = $item->images;
         foreach ($images as $image) {
-            Storage::disk('public')->delete($image->path);
+            /** @var ItemImage $image */
+            Storage::disk('public')->delete($this->imagePathsForDeletion($image));
         }
         ItemImage::where('item_id', $item->id)->delete();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function imagePathsForDeletion(ItemImage $image): array
+    {
+        $path = $image->path;
+        $dirname = pathinfo($path, PATHINFO_DIRNAME);
+        $filename = pathinfo($path, PATHINFO_BASENAME);
+        $companionFilenames = $this->companionFilenames($filename);
+        $extension = pathinfo($path, PATHINFO_EXTENSION);
+
+        return array_values(array_unique([
+            $path,
+            $dirname . '/' . $companionFilenames['thumb'],
+            $dirname . '/' . $companionFilenames['origin'],
+        ]));
+    }
+
+    /**
+     * @return array{thumb: string, origin: string}
+     */
+    private function companionFilenames(string $filename): array
+    {
+        $extension = pathinfo($filename, PATHINFO_EXTENSION);
+        $baseName = pathinfo($filename, PATHINFO_FILENAME);
+
+        return [
+            'thumb' => $baseName . '-thumb.' . $extension,
+            'origin' => $baseName . '-origin.' . $extension,
+        ];
     }
 }

@@ -107,4 +107,9 @@ class ItemService
             $item->tags()->sync($request->tag_ids ?? []);
         }
     }
+
+    public function deleteItemImages(Item $item): void
+    {
+        $this->imageUploadService->deleteAllItemImages($item);
+    }
 }

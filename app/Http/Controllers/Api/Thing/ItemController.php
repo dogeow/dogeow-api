@@ -9,7 +9,6 @@ use App\Http\Requests\Thing\ItemRequest;
 use App\Jobs\TriggerKnowledgeIndexBuildJob;
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemCategory;
-use App\Services\Thing\ItemSearchService;
 use App\Services\Thing\ItemService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
@@ -26,8 +25,7 @@ class ItemController extends Controller
     private const ITEM_RELATIONS = ['user', 'primaryImage', 'images', 'category', 'spot.room.area', 'tags'];
 
     public function __construct(
-        private readonly ItemService $itemService,
-        private readonly ItemSearchService $itemSearchService
+        private readonly ItemService $itemService
     ) {}
 
     /**
@@ -44,14 +42,6 @@ class ItemController extends Controller
             ->defaultSort('-created_at');
 
         return $query->jsonPaginate();
-    }
-
-    /**
-     * 获取请求限制
-     */
-    private function getRequestLimit(Request $request): int
-    {
-        return (int) $request->input('limit', 10);
     }
 
     /**
@@ -172,7 +162,7 @@ class ItemController extends Controller
         $this->authorize('delete', $item);
 
         return DB::transaction(function () use ($item) {
-            $item->images()->delete();
+            $this->itemService->deleteItemImages($item);
             $item->delete();
 
             // return 204 No Content for successful deletion

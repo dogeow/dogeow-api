@@ -4,12 +4,17 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\Thing\ItemService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ProfileController extends Controller
 {
+    public function __construct(
+        private readonly ItemService $itemService
+    ) {}
+
     /**
      * Display the user's profile information.
      */
@@ -51,8 +56,8 @@ class ProfileController extends Controller
 
         DB::transaction(function () use ($user) {
             // 删除相关的 Item 及其图片
-            $user->items()->each(function ($item) {
-                $item->images()->delete();
+            $user->items()->each(function ($item): void {
+                $this->itemService->deleteItemImages($item);
                 $item->delete();
             });
 

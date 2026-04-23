@@ -4,6 +4,8 @@ namespace Tests\Feature\Controllers\Thing;
 
 use App\Models\Thing\Item;
 use App\Models\Thing\ItemCategory;
+use App\Models\Thing\ItemImage;
+use App\Models\Thing\Spot;
 use App\Models\Thing\Tag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -27,7 +29,7 @@ class ItemControllerTest extends TestCase
         Storage::fake('public');
 
         $this->user = User::factory()->create();
-        $this->category = ItemCategory::factory()->create();
+        $this->category = ItemCategory::factory()->create(['user_id' => $this->user->id]);
 
         Sanctum::actingAs($this->user);
     }
@@ -133,7 +135,7 @@ class ItemControllerTest extends TestCase
 
     public function test_store_with_tags()
     {
-        $tags = Tag::factory()->count(3)->create();
+        $tags = Tag::factory()->count(3)->create(['user_id' => $this->user->id]);
         $tagIds = $tags->pluck('id')->toArray();
 
         $itemData = [
@@ -151,6 +153,258 @@ class ItemControllerTest extends TestCase
         $item = Item::where('name', 'Test Item with Tags')->first();
         $this->assertNotNull($item);
         $this->assertCount(3, $item->tags);
+    }
+
+    public function test_store_with_tags_field_accepts_owned_tag_ids(): void
+    {
+        $tags = Tag::factory()->count(2)->create(['user_id' => $this->user->id]);
+
+        $response = $this->postJson('/api/things/items', [
+            'name' => 'Item With Tags Field',
+            'description' => 'Test Description',
+            'status' => 'active',
+            'category_id' => $this->category->id,
+            'tags' => $tags->pluck('id')->all(),
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('item.name', 'Item With Tags Field');
+
+        $item = Item::where('name', 'Item With Tags Field')->firstOrFail();
+        $this->assertEqualsCanonicalizing(
+            $tags->pluck('id')->all(),
+            $item->tags()->pluck('thing_tags.id')->all()
+        );
+    }
+
+    public function test_store_rejects_tag_ids_owned_by_another_user(): void
+    {
+        $otherUser = User::factory()->create();
+        $foreignTag = Tag::factory()->create(['user_id' => $otherUser->id]);
+
+        $itemData = [
+            'name' => 'Item With Foreign Tag',
+            'description' => 'Test Description',
+            'status' => 'active',
+            'category_id' => $this->category->id,
+            'tag_ids' => [$foreignTag->id],
+        ];
+
+        $response = $this->postJson('/api/things/items', $itemData);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['tag_ids.0']);
+
+        $this->assertDatabaseMissing('thing_items', [
+            'name' => 'Item With Foreign Tag',
+            'user_id' => $this->user->id,
+        ]);
+    }
+
+    public function test_store_rejects_category_id_owned_by_another_user(): void
+    {
+        $otherUser = User::factory()->create();
+        $foreignCategory = ItemCategory::factory()->create(['user_id' => $otherUser->id]);
+
+        $response = $this->postJson('/api/things/items', [
+            'name' => 'Item With Foreign Category',
+            'description' => 'Test Description',
+            'status' => 'active',
+            'category_id' => $foreignCategory->id,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['category_id']);
+
+        $this->assertDatabaseMissing('thing_items', [
+            'name' => 'Item With Foreign Category',
+            'user_id' => $this->user->id,
+        ]);
+    }
+
+    public function test_store_rejects_spot_id_owned_by_another_user(): void
+    {
+        $otherUser = User::factory()->create();
+        $foreignSpot = Spot::factory()->create(['user_id' => $otherUser->id]);
+
+        $response = $this->postJson('/api/things/items', [
+            'name' => 'Item With Foreign Spot',
+            'description' => 'Test Description',
+            'status' => 'active',
+            'spot_id' => $foreignSpot->id,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['spot_id']);
+
+        $this->assertDatabaseMissing('thing_items', [
+            'name' => 'Item With Foreign Spot',
+            'user_id' => $this->user->id,
+        ]);
+    }
+
+    public function test_store_rejects_image_paths_outside_authenticated_user_upload_directory(): void
+    {
+        $otherUser = User::factory()->create();
+
+        $response = $this->postJson('/api/things/items', [
+            'name' => 'Item With Foreign Upload',
+            'description' => 'Test Description',
+            'status' => 'active',
+            'category_id' => $this->category->id,
+            'image_paths' => ["uploads/{$otherUser->id}/foreign.jpg"],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['image_paths.0']);
+
+        $this->assertDatabaseMissing('thing_items', [
+            'name' => 'Item With Foreign Upload',
+            'user_id' => $this->user->id,
+        ]);
+    }
+
+    public function test_store_rejects_image_paths_with_directory_traversal_segments(): void
+    {
+        $otherUser = User::factory()->create();
+
+        $response = $this->postJson('/api/things/items', [
+            'name' => 'Item With Traversal Upload',
+            'description' => 'Test Description',
+            'status' => 'active',
+            'category_id' => $this->category->id,
+            'image_paths' => ["uploads/{$this->user->id}/../{$otherUser->id}/foreign.jpg"],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['image_paths.0']);
+
+        $this->assertDatabaseMissing('thing_items', [
+            'name' => 'Item With Traversal Upload',
+            'user_id' => $this->user->id,
+        ]);
+    }
+
+    public function test_store_rejects_origin_image_paths_from_upload_response(): void
+    {
+        $response = $this->postJson('/api/things/items', [
+            'name' => 'Item With Origin Upload Path',
+            'description' => 'Test Description',
+            'status' => 'active',
+            'category_id' => $this->category->id,
+            'image_paths' => ["uploads/{$this->user->id}/photo-origin.jpg"],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['image_paths.0']);
+
+        $this->assertDatabaseMissing('thing_items', [
+            'name' => 'Item With Origin Upload Path',
+            'user_id' => $this->user->id,
+        ]);
+    }
+
+    public function test_update_rejects_primary_image_id_from_another_item(): void
+    {
+        $item = Item::factory()->create(['user_id' => $this->user->id]);
+        $ownedPrimaryImage = ItemImage::factory()->primary()->create(['item_id' => $item->id]);
+
+        $foreignItem = Item::factory()->create(['user_id' => $this->user->id]);
+        $foreignImage = ItemImage::factory()->create(['item_id' => $foreignItem->id, 'is_primary' => false]);
+
+        $response = $this->putJson("/api/things/items/{$item->id}", [
+            'name' => 'Updated Name',
+            'primary_image_id' => $foreignImage->id,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['primary_image_id']);
+
+        $this->assertDatabaseHas('thing_item_images', [
+            'id' => $ownedPrimaryImage->id,
+            'item_id' => $item->id,
+            'is_primary' => true,
+        ]);
+    }
+
+    public function test_update_rejects_image_ids_from_another_item(): void
+    {
+        $item = Item::factory()->create(['user_id' => $this->user->id]);
+        $ownedImage = ItemImage::factory()->create(['item_id' => $item->id]);
+
+        $foreignItem = Item::factory()->create(['user_id' => $this->user->id]);
+        $foreignImage = ItemImage::factory()->create(['item_id' => $foreignItem->id]);
+
+        $response = $this->putJson("/api/things/items/{$item->id}", [
+            'name' => 'Updated Name',
+            'image_ids' => [$ownedImage->id, $foreignImage->id],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['image_ids.1']);
+
+        $this->assertDatabaseHas('thing_item_images', [
+            'id' => $ownedImage->id,
+            'item_id' => $item->id,
+        ]);
+        $this->assertDatabaseHas('thing_item_images', [
+            'id' => $foreignImage->id,
+            'item_id' => $foreignItem->id,
+        ]);
+    }
+
+    public function test_update_rejects_image_order_ids_from_another_item(): void
+    {
+        $item = Item::factory()->create(['user_id' => $this->user->id]);
+        $ownedImage = ItemImage::factory()->create(['item_id' => $item->id, 'sort_order' => 1]);
+
+        $foreignItem = Item::factory()->create(['user_id' => $this->user->id]);
+        $foreignImage = ItemImage::factory()->create(['item_id' => $foreignItem->id, 'sort_order' => 1]);
+
+        $response = $this->putJson("/api/things/items/{$item->id}", [
+            'name' => 'Updated Name',
+            'image_order' => [$ownedImage->id, $foreignImage->id],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['image_order.1']);
+
+        $this->assertDatabaseHas('thing_item_images', [
+            'id' => $ownedImage->id,
+            'item_id' => $item->id,
+            'sort_order' => 1,
+        ]);
+        $this->assertDatabaseHas('thing_item_images', [
+            'id' => $foreignImage->id,
+            'item_id' => $foreignItem->id,
+            'sort_order' => 1,
+        ]);
+    }
+
+    public function test_update_rejects_delete_images_from_another_item(): void
+    {
+        $item = Item::factory()->create(['user_id' => $this->user->id]);
+        $ownedImage = ItemImage::factory()->create(['item_id' => $item->id]);
+
+        $foreignItem = Item::factory()->create(['user_id' => $this->user->id]);
+        $foreignImage = ItemImage::factory()->create(['item_id' => $foreignItem->id]);
+
+        $response = $this->putJson("/api/things/items/{$item->id}", [
+            'name' => 'Updated Name',
+            'delete_images' => [$ownedImage->id, $foreignImage->id],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['delete_images.1']);
+
+        $this->assertDatabaseHas('thing_item_images', [
+            'id' => $ownedImage->id,
+            'item_id' => $item->id,
+        ]);
+        $this->assertDatabaseHas('thing_item_images', [
+            'id' => $foreignImage->id,
+            'item_id' => $foreignItem->id,
+        ]);
     }
 
     public function test_show_returns_item_details()
@@ -233,6 +487,35 @@ class ItemControllerTest extends TestCase
 
         $response->assertStatus(204);
         $this->assertDatabaseMissing('thing_items', ['id' => $item->id]);
+    }
+
+    public function test_destroy_deletes_item_image_files_from_storage(): void
+    {
+        $item = Item::factory()->create([
+            'user_id' => $this->user->id,
+        ]);
+
+        $image = ItemImage::factory()->create([
+            'item_id' => $item->id,
+            'path' => 'items/' . $item->id . '/image.jpg',
+        ]);
+
+        Storage::disk('public')->put($image->path, 'image-content');
+        Storage::disk('public')->put('items/' . $item->id . '/image-thumb.jpg', 'thumb-content');
+        Storage::disk('public')->put('items/' . $item->id . '/image-origin.jpg', 'origin-content');
+
+        $this->assertTrue(Storage::disk('public')->exists($image->path));
+        $this->assertTrue(Storage::disk('public')->exists('items/' . $item->id . '/image-thumb.jpg'));
+        $this->assertTrue(Storage::disk('public')->exists('items/' . $item->id . '/image-origin.jpg'));
+
+        $response = $this->deleteJson("/api/things/items/{$item->id}");
+
+        $response->assertStatus(204);
+        $this->assertDatabaseMissing('thing_items', ['id' => $item->id]);
+        $this->assertDatabaseMissing('thing_item_images', ['id' => $image->id]);
+        $this->assertFalse(Storage::disk('public')->exists($image->path));
+        $this->assertFalse(Storage::disk('public')->exists('items/' . $item->id . '/image-thumb.jpg'));
+        $this->assertFalse(Storage::disk('public')->exists('items/' . $item->id . '/image-origin.jpg'));
     }
 
     public function test_destroy_returns_403_for_unauthorized_user()

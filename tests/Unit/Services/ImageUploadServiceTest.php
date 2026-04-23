@@ -158,6 +158,24 @@ class ImageUploadServiceTest extends TestCase
         }
     }
 
+    public function test_process_image_paths_moves_origin_companion_file()
+    {
+        $tempDir = storage_path('app/public/uploads');
+        if (! file_exists($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+
+        $tempFile = $tempDir . '/temp.jpg';
+        $originFile = $tempDir . '/temp-origin.jpg';
+        file_put_contents($tempFile, 'fake image content');
+        file_put_contents($originFile, 'fake origin content');
+
+        $this->imageUploadService->processImagePaths(['uploads/temp.jpg'], $this->item);
+
+        $this->assertFileDoesNotExist($originFile);
+        $this->assertFileExists(storage_path('app/public/items/' . $this->item->id . '/temp-origin.jpg'));
+    }
+
     public function test_process_image_paths_ignores_invalid_paths()
     {
         $imagePaths = ['invalid/path.jpg', 'uploads/temp.jpg'];
@@ -230,6 +248,29 @@ class ImageUploadServiceTest extends TestCase
 
         $this->assertDatabaseMissing('thing_item_images', ['id' => $image1->id]);
         $this->assertDatabaseHas('thing_item_images', ['id' => $image2->id]);
+    }
+
+    public function test_delete_images_by_ids_removes_thumbnail_files()
+    {
+        $image = ItemImage::create([
+            'item_id' => $this->item->id,
+            'path' => 'items/' . $this->item->id . '/image-with-thumb.jpg',
+        ]);
+
+        Storage::disk('public')->put($image->path, 'image-content');
+        Storage::disk('public')->put('items/' . $this->item->id . '/image-with-thumb-thumb.jpg', 'thumb-content');
+        Storage::disk('public')->put('items/' . $this->item->id . '/image-with-thumb-origin.jpg', 'origin-content');
+
+        $this->assertTrue(Storage::disk('public')->exists($image->path));
+        $this->assertTrue(Storage::disk('public')->exists('items/' . $this->item->id . '/image-with-thumb-thumb.jpg'));
+        $this->assertTrue(Storage::disk('public')->exists('items/' . $this->item->id . '/image-with-thumb-origin.jpg'));
+
+        $this->imageUploadService->deleteImagesByIds([$image->id], $this->item);
+
+        $this->assertDatabaseMissing('thing_item_images', ['id' => $image->id]);
+        $this->assertFalse(Storage::disk('public')->exists($image->path));
+        $this->assertFalse(Storage::disk('public')->exists('items/' . $this->item->id . '/image-with-thumb-thumb.jpg'));
+        $this->assertFalse(Storage::disk('public')->exists('items/' . $this->item->id . '/image-with-thumb-origin.jpg'));
     }
 
     public function test_delete_all_item_images()
