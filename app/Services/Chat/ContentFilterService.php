@@ -3,6 +3,7 @@
 namespace App\Services\Chat;
 
 use App\Models\Chat\ChatModerationAction;
+use App\Models\Chat\ChatRoomUser;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -51,7 +52,7 @@ class ContentFilterService
         if ($contentCheck['has_violations']) {
             $result['violations']['content'] = $contentCheck;
             $result['filtered_message'] = $contentCheck['filtered_message'];
-            $result['severity'] = $contentCheck['severity'];
+            $result['severity'] = $this->mergeSeverity($result['severity'], $contentCheck['severity']);
 
             if ($contentCheck['action_required']) {
                 $result['allowed'] = false;
@@ -86,9 +87,7 @@ class ContentFilterService
                 }
             }
 
-            if ($spamCheck['severity'] === 'high' || ($spamCheck['severity'] === 'medium' && $result['severity'] === 'low')) {
-                $result['severity'] = $spamCheck['severity'];
-            }
+            $result['severity'] = $this->mergeSeverity($result['severity'], $spamCheck['severity']);
         }
 
         return $result;
@@ -100,7 +99,7 @@ class ContentFilterService
     private function autoMuteUser(int $userId, int $roomId, string $reason, int $durationMinutes = 10): bool
     {
         try {
-            $roomUser = \App\Models\Chat\ChatRoomUser::inRoom($roomId)->forUser($userId)->first();
+            $roomUser = ChatRoomUser::inRoom($roomId)->forUser($userId)->first();
 
             if ($roomUser) {
                 $roomUser->update([
@@ -204,5 +203,22 @@ class ContentFilterService
         $stats['top_violations'] = array_slice($violationTypes, 0, 10, true);
 
         return $stats;
+    }
+
+    private function mergeSeverity(string $currentSeverity, string $nextSeverity): string
+    {
+        return $this->severityRank($nextSeverity) > $this->severityRank($currentSeverity)
+            ? $nextSeverity
+            : $currentSeverity;
+    }
+
+    private function severityRank(string $severity): int
+    {
+        return match ($severity) {
+            'high' => 3,
+            'medium' => 2,
+            'low' => 1,
+            default => 0,
+        };
     }
 }

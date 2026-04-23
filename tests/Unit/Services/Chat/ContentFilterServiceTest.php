@@ -5,6 +5,8 @@ namespace Tests\Unit\Services\Chat;
 use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Services\Chat\ContentFilterService;
+use App\Services\Chat\InappropriateWordFilter;
+use App\Services\Chat\SpamDetector;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
@@ -89,6 +91,44 @@ class ContentFilterServiceTest extends TestCase
         $result = $this->service->processMessage('I hate violence', 1, 1);
 
         $this->assertFalse($result['allowed']);
+    }
+
+    public function test_process_message_uses_medium_severity_when_spam_is_medium_and_content_is_clean(): void
+    {
+        $service = new ContentFilterService(
+            new class extends SpamDetector
+            {
+                public function detect(string $message, int $userId, int $roomId): array
+                {
+                    return [
+                        'is_spam' => true,
+                        'violations' => [
+                            ['type' => 'url_spam', 'severity' => 'medium'],
+                        ],
+                        'severity' => 'medium',
+                        'action_required' => false,
+                    ];
+                }
+            },
+            new class extends InappropriateWordFilter
+            {
+                public function check(string $message): array
+                {
+                    return [
+                        'has_violations' => false,
+                        'violations' => [],
+                        'severity' => 'low',
+                        'filtered_message' => $message,
+                        'action_required' => false,
+                    ];
+                }
+            }
+        );
+
+        $result = $service->processMessage('Hello world', 1, 1);
+
+        $this->assertSame('medium', $result['severity']);
+        $this->assertTrue($result['allowed']);
     }
 
     /**

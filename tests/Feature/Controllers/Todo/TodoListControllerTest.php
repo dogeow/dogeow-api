@@ -91,6 +91,34 @@ class TodoListControllerTest extends TestCase
             ->assertJsonValidationErrors(['task_ids.1']);
     }
 
+    public function test_reorder_tasks_requires_all_task_ids_for_the_list(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $list = TodoList::query()->create([
+            'user_id' => $user->id,
+            'name' => 'Household',
+            'description' => null,
+            'position' => 0,
+        ]);
+
+        $taskA = $this->createTask($list, 'Task A', 0);
+        $taskB = $this->createTask($list, 'Task B', 1);
+        $taskC = $this->createTask($list, 'Task C', 2);
+
+        $response = $this->putJson("/api/todos/{$list->id}/tasks/reorder", [
+            'task_ids' => [$taskC->id, $taskA->id],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['task_ids']);
+
+        $this->assertDatabaseHas('todo_tasks', ['id' => $taskA->id, 'position' => 0]);
+        $this->assertDatabaseHas('todo_tasks', ['id' => $taskB->id, 'position' => 1]);
+        $this->assertDatabaseHas('todo_tasks', ['id' => $taskC->id, 'position' => 2]);
+    }
+
     private function createTask(TodoList $list, string $title, int $position): TodoTask
     {
         return TodoTask::query()->create([

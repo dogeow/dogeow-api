@@ -229,6 +229,67 @@ class UpyunServiceTest extends TestCase
         }
     }
 
+    public function test_upload_encodes_request_url_when_remote_path_contains_spaces_and_chinese_characters(): void
+    {
+        config(['services.upyun.bucket' => 'test-bucket']);
+        config(['services.upyun.operator' => 'test-operator']);
+        config(['services.upyun.password' => 'test-password']);
+        config(['services.upyun.api_host' => 'api.test.com']);
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'upyun_');
+        file_put_contents($tempFile, 'content');
+
+        try {
+            Http::fake([
+                'https://api.test.com/*' => Http::response('', 200),
+            ]);
+
+            $service = new UpyunService;
+            $result = $service->upload($tempFile, '/assets/中文 file.png');
+
+            $this->assertTrue($result['success']);
+            $this->assertSame('/assets/中文 file.png', $result['path']);
+
+            Http::assertSent(function ($request): bool {
+                return $request->method() === 'PUT'
+                    && $request->url() === 'https://api.test.com/test-bucket/assets/%E4%B8%AD%E6%96%87%20file.png';
+            });
+        } finally {
+            if (is_file($tempFile)) {
+                unlink($tempFile);
+            }
+        }
+    }
+
+    public function test_upload_returns_encoded_public_url_when_remote_path_contains_spaces_and_chinese_characters(): void
+    {
+        config(['services.upyun.bucket' => 'test-bucket']);
+        config(['services.upyun.operator' => 'test-operator']);
+        config(['services.upyun.password' => 'test-password']);
+        config(['services.upyun.api_host' => 'api.test.com']);
+        config(['services.upyun.domain' => 'https://cdn.example.com']);
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'upyun_');
+        file_put_contents($tempFile, 'content');
+
+        try {
+            Http::fake([
+                'https://api.test.com/*' => Http::response('', 200),
+            ]);
+
+            $service = new UpyunService;
+            $result = $service->upload($tempFile, '/assets/中文 file.png');
+
+            $this->assertTrue($result['success']);
+            $this->assertSame('/assets/中文 file.png', $result['path']);
+            $this->assertSame('https://cdn.example.com/assets/%E4%B8%AD%E6%96%87%20file.png', $result['url']);
+        } finally {
+            if (is_file($tempFile)) {
+                unlink($tempFile);
+            }
+        }
+    }
+
     public function test_guess_mime_type_returns_png_for_png_extension(): void
     {
         config(['services.upyun.bucket' => 'test']);

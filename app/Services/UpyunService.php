@@ -62,6 +62,8 @@ class UpyunService
             return ['success' => false, 'message' => 'remotePath 不能为空'];
         }
 
+        $normalizedRemotePath = $this->normalizeRemotePath($remotePath);
+
         if (! is_file($localPath) || ! is_readable($localPath)) {
             return ['success' => false, 'message' => "本地文件不存在或不可读: {$localPath}"];
         }
@@ -94,14 +96,10 @@ class UpyunService
             ];
         }
 
-        $publicUrl = $this->domain
-            ? rtrim($this->domain, '/') . '/' . $remotePath
-            : null;
-
         return [
             'success' => true,
-            'url' => $publicUrl,
-            'path' => '/' . $remotePath,
+            'url' => $this->buildEncodedUploadPublicUrl($normalizedRemotePath),
+            'path' => $normalizedRemotePath,
         ];
     }
 
@@ -285,5 +283,14 @@ class UpyunService
         }
 
         return '/' . implode('/', array_map('rawurlencode', $segments));
+    }
+
+    private function buildEncodedUploadPublicUrl(string $remotePath): ?string
+    {
+        if ($this->domain === null || $this->domain === '') {
+            return null;
+        }
+
+        return rtrim($this->domain, '/') . $this->encodeRemotePath($remotePath);
     }
 }
