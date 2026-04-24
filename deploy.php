@@ -49,15 +49,35 @@ set('writable_dirs', [
 // =====================
 localhost('production')
     ->set('deploy_path', getenv('DEPLOY_PATH') ?: '/example/dogeow-api')
-    ->set('supervisor_group', getenv('SUPERVISOR_GROUP') ?: 'laravel-horizon');
+    ->set('supervisor_group', getenv('SUPERVISOR_GROUP') ?: 'laravel-horizon')
+    ->set('supervisorctl_bin', getenv('SUPERVISORCTL_BIN') ?: 'supervisorctl')
+    ->set('remote_user', getenv('DEPLOY_REMOTE_USER') ?: (getenv('USER') ?: (getenv('LOGNAME') ?: 'localhost')));
 
 // =====================
 // 自定义任务
 // =====================
 desc('重启 Supervisor 下的 queue worker / Horizon');
 task('supervisor:restart', function () {
-    run('sudo supervisorctl restart {{supervisor_group}}:*');
-    run('sudo supervisorctl status {{supervisor_group}}:*');
+    $supervisorctlBin = escapeshellarg((string) get('supervisorctl_bin'));
+
+    run(<<<BASH
+SUPERVISORCTL_BIN=$supervisorctlBin
+
+if [ -x "$SUPERVISORCTL_BIN" ]; then
+    SUPERVISORCTL_PATH="$SUPERVISORCTL_BIN"
+else
+    SUPERVISORCTL_PATH="$(command -v "$SUPERVISORCTL_BIN" || true)"
+fi
+
+if [ -z "$SUPERVISORCTL_PATH" ]; then
+    echo "未找到 supervisorctl，请安装 Supervisor 或设置 SUPERVISORCTL_BIN" >&2
+    exit 1
+fi
+
+sudo -n "$SUPERVISORCTL_PATH" restart {{supervisor_group}}:*
+sudo -n "$SUPERVISORCTL_PATH" status {{supervisor_group}}:*
+BASH
+    );
 });
 
 desc('从当前工作区同步代码到 release 目录');
