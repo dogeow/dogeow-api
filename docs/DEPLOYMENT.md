@@ -60,14 +60,14 @@
 注意：
 
 - 自动部署仍然依赖 `actions/checkout` 能正常拉仓库
-- 手动执行 `dep deploy production` 时，需要先确保当前目录就是已经更新到目标提交的项目工作树
+- 手动执行 `scripts/ensure-deployer.sh deploy production` 时，需要先确保当前目录就是已经更新到目标提交的项目工作树
 - 如果后续要改回 “Deployer 自己 clone 仓库”，再单独为 runner 用户配置 GitHub Deploy Key
 
 ### 3.3 sudo 免密
 
 Deployer 在部署最后会重启 Supervisor，runner 用户需要无交互执行 `supervisorctl`：
 
-```
+```bash
 # sudo visudo -f /etc/sudoers.d/deploy-runner
 <runner-user> ALL=(root) NOPASSWD: /usr/bin/supervisorctl
 ```
@@ -125,7 +125,7 @@ scripts/first-deploy.sh
 - 创建 `shared/storage` 所需目录树
 - 在 `shared/.env` 不存在时，默认把工作树根目录的 `.env` 复制过去
 - 如果传了 `LOCAL_ENV_FILE`，则改为复制那个文件
-- 调用现有 `deploy.php` 执行第一次 `dep deploy production`
+- 自动下载或复用 Deployer，再调用现有 `deploy.php` 执行第一次 `deploy production`
 
 约束：
 
@@ -188,9 +188,8 @@ server {
 
 1. 推送 `main` 或手动点 "Run workflow" 触发
 2. Runner checkout 仓库（拿 `deploy.php` 和工作流定义）
-3. 下载 / 复用 `~/.deployer/dep.phar`
-4. 执行 `dep deploy production -v`
-5. Deployer 依次：同步当前工作区到 release → composer install → shared link → migrate → optimize → 切换 `current` → `queue:restart` → `supervisorctl restart`
+3. 执行 `scripts/ensure-deployer.sh deploy production -v`，自动下载或复用 Deployer
+4. Deployer 依次：同步当前工作区到 release → composer install → shared link → migrate → optimize → 切换 `current` → `queue:restart` → `supervisorctl restart`
 
 全程 `current` 直到最后一刻才切换，因此 HTTP 请求不中断。
 
@@ -201,16 +200,13 @@ server {
 Runner 机器上或任何能 SSH 到它的地方都能执行（需要 `deploy.php` 在当前目录）：
 
 ```bash
-# 下载 Deployer（只需一次）
-curl -LO https://deployer.org/releases/v7.5.7/deployer.phar
-chmod +x deployer.phar && sudo mv deployer.phar /usr/local/bin/dep
-
 # 常用命令
-dep deploy production          # 部署
-dep rollback production        # 回滚到上一个 release
-dep deploy:unlock production   # 解锁（上一次非正常中断时）
-dep releases production        # 列出历史 release
-dep config:current production  # 查看 current 指向
+scripts/ensure-deployer.sh --version           # 自动下载 / 复用 Deployer
+scripts/ensure-deployer.sh deploy production   # 部署
+scripts/ensure-deployer.sh rollback production # 回滚到上一个 release
+scripts/ensure-deployer.sh deploy:unlock production  # 解锁（上一次非正常中断时）
+scripts/ensure-deployer.sh releases production       # 列出历史 release
+scripts/ensure-deployer.sh config:current production # 查看 current 指向
 ```
 
 ---
@@ -218,7 +214,7 @@ dep config:current production  # 查看 current 指向
 ## 7. 回滚
 
 ```bash
-dep rollback production
+scripts/ensure-deployer.sh rollback production
 ```
 
 这会：
@@ -234,7 +230,7 @@ dep rollback production
 
 | 现象 | 排查 |
 | --- | --- |
-| `Deploy is locked` | 上次跑挂了，执行 `dep deploy:unlock production` |
+| `Deploy is locked` | 上次跑挂了，执行 `scripts/ensure-deployer.sh deploy:unlock production` |
 | `Permission denied` on shared | `shared/` 目录所有者不是 runner 用户；`chown -R` 修好 |
 | Queue worker 加载旧代码 | 确认 Supervisor 的 `directory=current`；`sudo supervisorctl restart <group>:*` |
 | Nginx 返回 404 | `current` 软链失效或指向错，`ls -l /example/dogeow-api/current` 确认 |
@@ -244,7 +240,7 @@ dep rollback production
 查看本次部署做了什么：
 
 ```bash
-dep deploy production -vvv
+scripts/ensure-deployer.sh deploy production -vvv
 ```
 
 ---

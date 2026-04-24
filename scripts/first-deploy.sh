@@ -15,8 +15,8 @@ SHARED_ENV_FILE="${SHARED_DIR}/.env"
 RELEASES_DIR="${DEPLOY_PATH}/releases"
 CURRENT_LINK="${DEPLOY_PATH}/current"
 WORKSPACE_ENV_FILE="${WORKSPACE_ROOT}/.env"
+DEPLOYER_RUNNER="${WORKSPACE_ROOT}/scripts/ensure-deployer.sh"
 LOCAL_ENV_FILE="${LOCAL_ENV_FILE:-}"
-DEPLOYER_COMMAND=()
 
 log() {
   echo "[first-deploy] $*"
@@ -73,40 +73,6 @@ prepare_shared_directories() {
   ensure_directory "$SHARED_DIR/storage/logs"
 }
 
-resolve_deployer_command() {
-  local dep_bin="${DEP_BIN:-}"
-
-  if [ -n "$dep_bin" ]; then
-    if [ -f "$dep_bin" ]; then
-      if [[ "$dep_bin" == *.phar ]]; then
-        DEPLOYER_COMMAND=(php "$dep_bin")
-      else
-        DEPLOYER_COMMAND=("$dep_bin")
-      fi
-      return
-    fi
-
-    if command -v "$dep_bin" >/dev/null 2>&1; then
-      DEPLOYER_COMMAND=("$dep_bin")
-      return
-    fi
-
-    die "DEP_BIN 不可用：$dep_bin"
-  fi
-
-  if [ -f "$HOME/.deployer/dep.phar" ]; then
-    DEPLOYER_COMMAND=(php "$HOME/.deployer/dep.phar")
-    return
-  fi
-
-  if command -v dep >/dev/null 2>&1; then
-    DEPLOYER_COMMAND=(dep)
-    return
-  fi
-
-  die "未找到 Deployer。请先安装 dep，或通过 DEP_BIN 指定可执行文件 / phar 路径"
-}
-
 run_first_deploy() {
   export DEPLOY_PATH
 
@@ -115,7 +81,7 @@ run_first_deploy() {
   fi
 
   cd "$WORKSPACE_ROOT"
-  "${DEPLOYER_COMMAND[@]}" deploy production -v
+  "$DEPLOYER_RUNNER" deploy production -v
 }
 
 require_command php
@@ -131,8 +97,12 @@ if [ ! -f "$WORKSPACE_ROOT/deploy.php" ]; then
   die "WORKSPACE_ROOT 下未找到 deploy.php：$WORKSPACE_ROOT"
 fi
 
+if [ ! -f "$DEPLOYER_RUNNER" ]; then
+  die "缺少 Deployer 启动脚本：$DEPLOYER_RUNNER"
+fi
+
 if [ -e "$CURRENT_LINK" ] || [ -L "$CURRENT_LINK" ]; then
-  die "检测到 current 已存在，首次部署似乎已经完成；后续更新请直接使用 dep deploy production"
+  die "检测到 current 已存在，首次部署似乎已经完成；后续更新请直接使用 $DEPLOYER_RUNNER deploy production"
 fi
 
 if [ -d "$RELEASES_DIR" ] && find "$RELEASES_DIR" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | grep -Eq '^[0-9]{14}$'; then
@@ -146,12 +116,10 @@ if [ ! -f "$SHARED_ENV_FILE" ]; then
   die "缺少共享配置文件：$SHARED_ENV_FILE；请确认工作树根目录存在 .env，或设置 LOCAL_ENV_FILE=/path/to/.env"
 fi
 
-resolve_deployer_command
-
 log "部署根目录：$DEPLOY_PATH"
 log "共享配置文件：$SHARED_ENV_FILE"
-log "使用 Deployer 执行首次发布"
+log "自动准备 Deployer 并执行首次发布"
 run_first_deploy
 
 log "首次部署完成"
-log "后续更新请直接执行：dep deploy production"
+log "后续更新请直接执行：$DEPLOYER_RUNNER deploy production"

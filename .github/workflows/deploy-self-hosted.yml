@@ -18,22 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Ensure Deployer phar present
-        # 第一次部署时下载并缓存到 ~/.deployer/dep.phar，后续直接复用。
-        # 用固定版本避免上游变更突然破坏构建。
-        run: |
-          set -euo pipefail
-          DEP_BIN="$HOME/.deployer/dep.phar"
-          DEP_VERSION="7.5.7"
-          if [ ! -f "$DEP_BIN" ]; then
-            mkdir -p "$(dirname "$DEP_BIN")"
-            curl -fsSL "https://deployer.org/releases/v${DEP_VERSION}/deployer.phar" -o "$DEP_BIN"
-            chmod +x "$DEP_BIN"
-          fi
-          php "$DEP_BIN" --version
-
       - name: Deploy production
         env:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           SUPERVISOR_GROUP: ${{ secrets.SUPERVISOR_GROUP }}
-        run: php "$HOME/.deployer/dep.phar" deploy production -v
+        run: scripts/ensure-deployer.sh deploy production -v
