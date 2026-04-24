@@ -41,7 +41,7 @@ class ItemController extends Controller
             ->allowedFilters($this->getAllowedFilters())
             ->defaultSort('-created_at');
 
-        return $query->jsonPaginate();
+        return $query->jsonPaginate(null, $this->getRequestLimit($request));
     }
 
     /**
@@ -373,6 +373,14 @@ class ItemController extends Controller
         }
 
         return $query->whereIn('category_id', $categoryIds);
+    }
+
+    /**
+     * 获取请求中的分页限制数量
+     */
+    private function getRequestLimit(Request $request, int $default = 10): int
+    {
+        return (int) $request->input('limit', $default);
     }
 
     private function isDuplicateRelationException(\Throwable $exception): bool
