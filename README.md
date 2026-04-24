@@ -28,6 +28,26 @@
 
 - php8.2-imagick
 
+## 部署
+
+- 生产环境部署使用 Deployer，完整步骤见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- 当前仓库的部署入口是 [deploy.php](deploy.php)，支持 GitHub Actions self-hosted runner 和手动执行 `scripts/ensure-deployer.sh deploy production`
+- 首次部署前请先准备好服务器上的 `shared/.env`、`shared/storage`、Nginx `root`、Supervisor/Horizon 配置，细节按 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) 执行
+
+## 数据初始化
+
+### 固定基础数据
+
+- 首次初始化数据库：`php artisan migrate:fresh --seed`
+- 仅填充 RPG 基础定义数据：`php artisan db:seed --class=Database\\Seeders\\Game\\GameSeeder`
+- `DatabaseSeeder` 默认会写入管理员、测试用户、词库，以及 RPG 的技能、物品、怪物、地图基础定义
+
+### Factory 随机数据
+
+- 本地联调或测试环境可选执行：`php artisan db:seed --class=Database\\Seeders\\Game\\GameFactorySeeder`
+- 该 Seeder 会通过 Factory 生成随机 RPG 技能、物品、怪物、地图定义，不会默认加入 `DatabaseSeeder`
+- 测试里也可以直接使用地图工厂自动挂载怪物：`GameMapDefinition::factory()->withMonsters(3)->create()`
+
 ---
 
 ## Web Push 推送：如何给用户发消息

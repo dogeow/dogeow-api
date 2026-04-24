@@ -1,0 +1,76 @@
+<?php
+
+namespace Tests\Feature\Database;
+
+use App\Models\Game\GameItemDefinition;
+use App\Models\Game\GameMapDefinition;
+use App\Models\Game\GameMonsterDefinition;
+use App\Models\Game\GameSkillDefinition;
+use Database\Seeders\Game\GameFactorySeeder;
+use Database\Seeders\Game\GameSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class GameDefinitionDataTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_game_seeder_populates_canonical_rpg_definition_data(): void
+    {
+        $this->seed(GameSeeder::class);
+
+        $expectedItems = count(require base_path('database/seeders/Game/Data/items.php'));
+        $expectedMaps = count(require base_path('database/seeders/Game/Data/maps.php'));
+        $expectedMonsters = count(require base_path('database/seeders/Game/Data/monsters.php'));
+
+        $this->assertSame($expectedItems, GameItemDefinition::query()->count());
+        $this->assertSame($expectedMaps, GameMapDefinition::query()->count());
+        $this->assertSame($expectedMonsters, GameMonsterDefinition::query()->count());
+        $this->assertGreaterThan(0, GameSkillDefinition::query()->count());
+
+        $map = GameMapDefinition::query()
+            ->where('name', '新手营地')
+            ->where('act', 1)
+            ->firstOrFail();
+
+        $monsterIds = $map->monster_ids ?? [];
+
+        $this->assertNotEmpty($monsterIds);
+        $this->assertSame(
+            count($monsterIds),
+            GameMonsterDefinition::query()->whereIn('id', $monsterIds)->where('is_active', true)->count()
+        );
+    }
+
+    public function test_game_definition_factories_create_valid_related_records(): void
+    {
+        $item = GameItemDefinition::factory()->potion()->create();
+        $monster = GameMonsterDefinition::factory()->boss()->create();
+        $map = GameMapDefinition::factory()->withMonsters(3)->create();
+
+        $this->assertSame('potion', $item->type);
+        $this->assertContains($item->sub_type, ['hp', 'mp']);
+        $this->assertSame('boss', $monster->type);
+        $this->assertCount(3, $map->monster_ids ?? []);
+        $this->assertSame(
+            3,
+            GameMonsterDefinition::query()->whereIn('id', $map->monster_ids ?? [])->count()
+        );
+    }
+
+    public function test_game_factory_seeder_populates_random_rpg_definitions(): void
+    {
+        $this->seed(GameFactorySeeder::class);
+
+        $this->assertSame(24, GameItemDefinition::query()->count());
+        $this->assertSame(12, GameSkillDefinition::query()->count());
+        $this->assertSame(18, GameMonsterDefinition::query()->count());
+        $this->assertSame(8, GameMapDefinition::query()->count());
+        $this->assertTrue(
+            GameMapDefinition::query()->get()->every(
+                fn (GameMapDefinition $map): bool => is_array($map->monster_ids)
+                    && count($map->monster_ids) >= 2
+            )
+        );
+    }
+}

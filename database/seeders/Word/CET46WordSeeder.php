@@ -6,45 +6,45 @@ use App\Models\Word\Book;
 use App\Models\Word\Category;
 use App\Models\Word\Word;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class CET46WordSeeder extends Seeder
 {
     public function run(): void
     {
         $this->command->info('开始导入单词数据 ...');
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
-        // 创建分类和单词书
-        $categories = [
-            ['name' => '小学英语', 'description' => '小学英语核心词汇', 'sort_order' => 1],
-            ['name' => '初中英语', 'description' => '初中英语核心词汇', 'sort_order' => 2],
-            ['name' => '高中英语', 'description' => '高中英语核心词汇', 'sort_order' => 3],
-            ['name' => '英语四级', 'description' => '大学英语四级词汇', 'sort_order' => 4],
-            ['name' => '英语六级', 'description' => '大学英语六级词汇', 'sort_order' => 5],
-        ];
+        Schema::withoutForeignKeyConstraints(function (): void {
+            // 创建分类和单词书
+            $categories = [
+                ['name' => '小学英语', 'description' => '小学英语核心词汇', 'sort_order' => 1],
+                ['name' => '初中英语', 'description' => '初中英语核心词汇', 'sort_order' => 2],
+                ['name' => '高中英语', 'description' => '高中英语核心词汇', 'sort_order' => 3],
+                ['name' => '英语四级', 'description' => '大学英语四级词汇', 'sort_order' => 4],
+                ['name' => '英语六级', 'description' => '大学英语六级词汇', 'sort_order' => 5],
+            ];
 
-        foreach ($categories as $catData) {
-            $category = Category::firstOrCreate(['name' => $catData['name']], $catData);
+            foreach ($categories as $catData) {
+                $category = Category::firstOrCreate(['name' => $catData['name']], $catData);
 
-            $bookName = $catData['name'] . '词汇';
-            $difficulty = $catData['sort_order'];
+                $bookName = $catData['name'] . '词汇';
+                $difficulty = $catData['sort_order'];
 
-            $book = Book::firstOrCreate(
-                ['name' => $bookName],
-                [
-                    'word_category_id' => $category->id,
-                    'description' => $catData['description'],
-                    'difficulty' => $difficulty,
-                    'sort_order' => $catData['sort_order'],
-                ]
-            );
+                $book = Book::firstOrCreate(
+                    ['name' => $bookName],
+                    [
+                        'word_category_id' => $category->id,
+                        'description' => $catData['description'],
+                        'difficulty' => $difficulty,
+                        'sort_order' => $catData['sort_order'],
+                    ]
+                );
 
-            $words = $this->getWordsForLevel($catData['name']);
-            $this->importWords($book, $words, $catData['name']);
-        }
+                $words = $this->getWordsForLevel($catData['name']);
+                $this->importWords($book, $words, $catData['name']);
+            }
+        });
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
         $this->command->info('单词数据导入完成！');
     }
 
