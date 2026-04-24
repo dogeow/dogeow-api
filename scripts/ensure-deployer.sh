@@ -28,10 +28,23 @@ download_deployer() {
   require_command chmod
   require_command php
 
-  log "未找到 Deployer，下载 v${DEP_VERSION} 到 ${dep_bin}"
+  log "下载 Deployer v${DEP_VERSION} 到 ${dep_bin}"
   mkdir -p "$(dirname "$dep_bin")"
   curl -fsSL "https://deployer.org/releases/v${DEP_VERSION}/deployer.phar" -o "$dep_bin"
   chmod +x "$dep_bin"
+}
+
+phar_version_matches() {
+  local dep_bin="$1"
+  local version_output
+
+  require_command php
+
+  if ! version_output="$(php "$dep_bin" --version 2>/dev/null)"; then
+    return 1
+  fi
+
+  [[ "$version_output" == *"${DEP_VERSION}"* ]]
 }
 
 resolve_deployer_path() {
@@ -51,14 +64,13 @@ resolve_deployer_path() {
     die "DEP_BIN 不可用：$dep_bin"
   fi
 
-  if command -v dep >/dev/null 2>&1; then
-    command -v dep
-    return
-  fi
-
   if [ -f "$DEFAULT_DEP_BIN" ]; then
-    printf '%s\n' "$DEFAULT_DEP_BIN"
-    return
+    if phar_version_matches "$DEFAULT_DEP_BIN"; then
+      printf '%s\n' "$DEFAULT_DEP_BIN"
+      return
+    fi
+
+    log "已缓存的 Deployer 版本不匹配，重新下载 v${DEP_VERSION}"
   fi
 
   download_deployer

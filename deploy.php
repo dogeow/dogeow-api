@@ -11,10 +11,10 @@
  *
  * 本地使用：
  *   DEPLOY_PATH=/example/dogeow-api SUPERVISOR_GROUP=laravel-horizon \
- *     vendor/bin/dep deploy production
+ *     scripts/ensure-deployer.sh deploy production
  *
  * 回滚：
- *   vendor/bin/dep rollback production
+ *   scripts/ensure-deployer.sh rollback production
  */
 
 namespace Deployer;
