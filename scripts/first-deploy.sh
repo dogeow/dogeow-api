@@ -3,13 +3,18 @@
 set -euo pipefail
 
 AUTO_DETECTED_WORKSPACE_ROOT=0
+AUTO_DETECTED_DEPLOY_PATH=0
 
 if [ -z "${WORKSPACE_ROOT:-}" ]; then
   WORKSPACE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
   AUTO_DETECTED_WORKSPACE_ROOT=1
 fi
 
-DEPLOY_PATH="${DEPLOY_PATH:-/example/dogeow-api}"
+if [ -z "${DEPLOY_PATH:-}" ]; then
+  DEPLOY_PATH="$WORKSPACE_ROOT"
+  AUTO_DETECTED_DEPLOY_PATH=1
+fi
+
 SHARED_DIR="${DEPLOY_PATH}/shared"
 SHARED_ENV_FILE="${SHARED_DIR}/.env"
 RELEASES_DIR="${DEPLOY_PATH}/releases"
@@ -93,8 +98,12 @@ if [ "$AUTO_DETECTED_WORKSPACE_ROOT" -eq 1 ]; then
   log "自动识别 WORKSPACE_ROOT：$WORKSPACE_ROOT"
 fi
 
+if [ "$AUTO_DETECTED_DEPLOY_PATH" -eq 1 ]; then
+  log "自动识别 DEPLOY_PATH：$DEPLOY_PATH"
+fi
+
 if [ ! -f "$WORKSPACE_ROOT/deploy.php" ]; then
-  die "WORKSPACE_ROOT 下未找到 deploy.php：$WORKSPACE_ROOT"
+  die "未找到部署配置文件：$WORKSPACE_ROOT/deploy.php"
 fi
 
 if [ ! -f "$DEPLOYER_RUNNER" ]; then
@@ -102,11 +111,11 @@ if [ ! -f "$DEPLOYER_RUNNER" ]; then
 fi
 
 if [ -e "$CURRENT_LINK" ] || [ -L "$CURRENT_LINK" ]; then
-  die "检测到 current 已存在，首次部署似乎已经完成；后续更新请直接使用 $DEPLOYER_RUNNER deploy production"
+  die "检测到 $CURRENT_LINK 已存在，首次部署似乎已经完成；后续更新请直接使用 $DEPLOYER_RUNNER deploy production"
 fi
 
 if [ -d "$RELEASES_DIR" ] && find "$RELEASES_DIR" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | grep -Eq '^[0-9]{14}$'; then
-  die "检测到已有 release 目录，首次部署脚本只适用于未创建过 release 的部署根目录"
+  die "检测到 $RELEASES_DIR 下已有 release 目录，首次部署脚本只适用于未创建过 release 的部署根目录"
 fi
 
 prepare_shared_directories

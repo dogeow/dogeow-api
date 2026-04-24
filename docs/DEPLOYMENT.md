@@ -106,6 +106,14 @@ chmod 640 /example/dogeow-api/shared/.env
 如果你已经在 runner 机器上的工作树里，可以直接运行首发脚本完成这一步初始化并触发第一次发布：
 
 ```bash
+SUPERVISOR_GROUP=laravel-horizon \
+scripts/first-deploy.sh
+```
+
+默认情况下，`scripts/first-deploy.sh` 会把当前工作树根目录当作 `DEPLOY_PATH`。
+如果你的部署根目录不是当前仓库目录，再显式传入：
+
+```bash
 DEPLOY_PATH=/example/dogeow-api \
 SUPERVISOR_GROUP=laravel-horizon \
 scripts/first-deploy.sh
@@ -130,6 +138,7 @@ scripts/first-deploy.sh
 约束：
 
 - 只适用于还没有 `current` 且还没有时间戳 release 的部署根目录
+- 不传 `DEPLOY_PATH` 时，默认使用当前工作树根目录
 - 如果 `shared/.env` 已提前放好，且你不想覆盖它，可以不传 `LOCAL_ENV_FILE`
 - 脚本不会执行 `sudo chown` 或重写既有 `shared/storage` 权限；如果传了 `LOCAL_ENV_FILE`，会刷新 `shared/.env`
 - 部署根目录仍需先由运维保证 runner 用户可写
