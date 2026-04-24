@@ -14,6 +14,7 @@ SHARED_DIR="${DEPLOY_PATH}/shared"
 SHARED_ENV_FILE="${SHARED_DIR}/.env"
 RELEASES_DIR="${DEPLOY_PATH}/releases"
 CURRENT_LINK="${DEPLOY_PATH}/current"
+WORKSPACE_ENV_FILE="${WORKSPACE_ROOT}/.env"
 LOCAL_ENV_FILE="${LOCAL_ENV_FILE:-}"
 DEPLOYER_COMMAND=()
 
@@ -41,15 +42,21 @@ ensure_directory() {
 }
 
 copy_shared_env_file() {
-  if [ -z "$LOCAL_ENV_FILE" ]; then
+  local source_env_file="$LOCAL_ENV_FILE"
+
+  if [ -z "$source_env_file" ] && [ -f "$SHARED_ENV_FILE" ]; then
     return
   fi
 
-  if [ ! -f "$LOCAL_ENV_FILE" ]; then
-    die "LOCAL_ENV_FILE 不存在：$LOCAL_ENV_FILE"
+  if [ -z "$source_env_file" ]; then
+    source_env_file="$WORKSPACE_ENV_FILE"
   fi
 
-  cp -f "$LOCAL_ENV_FILE" "$SHARED_ENV_FILE"
+  if [ ! -f "$source_env_file" ]; then
+    die "共享配置不存在，且未找到可复制的源文件：$source_env_file"
+  fi
+
+  cp -f "$source_env_file" "$SHARED_ENV_FILE"
   chmod 640 "$SHARED_ENV_FILE"
 }
 
@@ -112,6 +119,7 @@ run_first_deploy() {
 }
 
 require_command php
+require_command chmod
 require_command cp
 require_command mkdir
 
@@ -135,7 +143,7 @@ prepare_shared_directories
 copy_shared_env_file
 
 if [ ! -f "$SHARED_ENV_FILE" ]; then
-  die "缺少共享配置文件：$SHARED_ENV_FILE；请先手动放置，或设置 LOCAL_ENV_FILE=/path/to/.env"
+  die "缺少共享配置文件：$SHARED_ENV_FILE；请确认工作树根目录存在 .env，或设置 LOCAL_ENV_FILE=/path/to/.env"
 fi
 
 resolve_deployer_command
