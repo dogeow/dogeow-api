@@ -22,6 +22,6 @@ class SystemStatusController extends Controller
     {
         $data = $this->systemStatusService->getAggregatedStatus();
 
-        return response()->json($data);
+        return $this->success($data, 'System status retrieved successfully');
     }
 }

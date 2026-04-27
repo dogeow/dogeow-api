@@ -2,7 +2,10 @@
 
 namespace App\Services\Chat;
 
+use App\Events\Chat\UserJoined;
 use App\Events\Chat\UserJoinedRoom;
+use App\Events\Chat\UserLeft;
+use App\Events\Chat\UserLeftRoom;
 use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
@@ -132,7 +135,7 @@ class ChatPresenceService
             $onlineCount = ChatRoomUser::inRoom($roomId)->online()->count();
 
             // Broadcast user join event
-            broadcast(new \App\Events\Chat\UserJoined($user, $roomId));
+            broadcast(new UserJoined($user, $roomId));
 
             // Broadcast online count change event
             broadcast(new UserJoinedRoom($roomId, $userId, $user->name, $onlineCount));
@@ -190,10 +193,10 @@ class ChatPresenceService
             $onlineCount = ChatRoomUser::inRoom($roomId)->online()->count();
 
             // Broadcast user leave event
-            broadcast(new \App\Events\Chat\UserLeft($user, $roomId));
+            broadcast(new UserLeft($user, $roomId));
 
             // Broadcast online count change event
-            broadcast(new UserJoinedRoom($roomId, $userId, $user->name, $onlineCount));
+            broadcast(new UserLeftRoom($roomId, $userId, $user->name, $onlineCount));
 
             DB::commit();
 

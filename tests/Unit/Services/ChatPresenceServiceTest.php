@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\Services;
 
+use App\Events\Chat\UserJoinedRoom;
+use App\Events\Chat\UserLeftRoom;
 use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
@@ -126,6 +128,8 @@ class ChatPresenceServiceTest extends TestCase
             'message_type' => 'system',
             'message' => "{$user->name} left the room",
         ]);
+        Event::assertDispatched(UserLeftRoom::class);
+        Event::assertNotDispatched(UserJoinedRoom::class);
     }
 
     public function test_process_heartbeat_updates_last_seen_and_online_status(): void

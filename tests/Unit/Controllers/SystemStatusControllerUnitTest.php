@@ -16,7 +16,7 @@ class SystemStatusControllerUnitTest extends TestCase
         $this->assertInstanceOf(SystemStatusController::class, $controller);
     }
 
-    public function test_index_returns_aggregated_status_payload(): void
+    public function test_index_returns_standardized_success_response(): void
     {
         $payload = [
             'openclaw' => ['online' => true, 'status' => 'online', 'details' => 'healthy'],
@@ -29,8 +29,10 @@ class SystemStatusControllerUnitTest extends TestCase
 
         $controller = new SystemStatusController($service);
         $response = $controller->index();
+        $decoded = json_decode($response->getContent(), true);
 
         $this->assertEquals(200, $response->getStatusCode());
-        $this->assertSame($payload, json_decode($response->getContent(), true));
+        $this->assertTrue($decoded['success']);
+        $this->assertSame($payload, $decoded['data']);
     }
 }
