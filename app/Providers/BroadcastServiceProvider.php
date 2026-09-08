@@ -9,11 +9,7 @@ class BroadcastServiceProvider extends LaravelBroadcastServiceProvider
 {
     public function boot(): void
     {
-        // Skip channel registration in testing environment to avoid NullBroadcaster issues
-        if ($this->app->environment('testing')) {
-            return;
-        }
-
+        // 所有环境都注册权限规则，测试环境的 NullBroadcaster 也支持频道注册。
         require base_path('routes/channels.php');
 
         // 不使用默认的 Broadcast::routes()，因为它会强制要求认证

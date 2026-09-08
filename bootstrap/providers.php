@@ -1,7 +1,11 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use App\Providers\BroadcastServiceProvider;
+use App\Providers\PolicyServiceProvider;
+
 return [
-    App\Providers\AppServiceProvider::class,
-    App\Providers\PolicyServiceProvider::class,
-    Illuminate\Broadcasting\BroadcastServiceProvider::class,
+    AppServiceProvider::class,
+    PolicyServiceProvider::class,
+    BroadcastServiceProvider::class,
 ];

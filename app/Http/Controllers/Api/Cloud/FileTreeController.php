@@ -29,23 +29,22 @@ class FileTreeController extends Controller
             ')
             ->first();
 
-        // 文件类型统计
+        // 标签和扩展名通过绑定参数传入，兼容 PostgreSQL / MySQL / SQLite。
+        $labels = ['image' => '图片', 'pdf' => 'PDF', 'document' => '文档', 'spreadsheet' => '表格',
+            'archive' => '压缩包', 'audio' => '音频', 'video' => '视频'];
+        $cases = [];
+        $bindings = [];
+        foreach ($labels as $type => $label) {
+            $extensions = File::getExtensionsByType($type);
+            $placeholders = implode(', ', array_fill(0, count($extensions), '?'));
+            $cases[] = "WHEN LOWER(extension) IN ({$placeholders}) THEN ?";
+            $bindings = array_merge($bindings, $extensions, [$label]);
+        }
+        $bindings[] = '其他';
+        $expression = 'CASE ' . implode(' ', $cases) . ' ELSE ? END';
         $filesByType = File::where('user_id', $userId)
             ->where('is_folder', false)
-            ->selectRaw('
-                CASE
-                    WHEN extension IN ("jpg", "jpeg", "png", "gif", "bmp", "svg", "webp") THEN "图片"
-                    WHEN extension IN ("pdf") THEN "PDF"
-                    WHEN extension IN ("doc", "docx", "txt", "rtf", "md") THEN "文档"
-                    WHEN extension IN ("xls", "xlsx", "csv") THEN "表格"
-                    WHEN extension IN ("zip", "rar", "7z", "tar", "gz") THEN "压缩包"
-                    WHEN extension IN ("mp3", "wav", "ogg", "flac") THEN "音频"
-                    WHEN extension IN ("mp4", "avi", "mov", "wmv", "mkv") THEN "视频"
-                    ELSE "其他"
-                END as file_type,
-                COUNT(*) as count,
-                COALESCE(SUM(size), 0) as total_size
-            ')
+            ->selectRaw($expression . ' as file_type, COUNT(*) as count, COALESCE(SUM(size), 0) as total_size', $bindings)
             ->groupBy('file_type')
             ->get();
 

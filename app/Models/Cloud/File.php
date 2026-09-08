@@ -68,7 +68,7 @@ class File extends Model
         }
 
         return $query->where('is_folder', false)
-            ->whereIn('extension', $extensions);
+            ->whereRaw('LOWER(extension) IN (' . implode(', ', array_fill(0, count($extensions), '?')) . ')', $extensions);
     }
 
     /**
@@ -79,7 +79,7 @@ class File extends Model
         return match ($type) {
             'image' => ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'],
             'pdf' => ['pdf'],
-            'document' => ['doc', 'docx', 'txt', 'rtf', 'md'],
+            'document' => ['doc', 'docx', 'txt', 'rtf', 'md', 'pages', 'key', 'numbers'],
             'spreadsheet' => ['xls', 'xlsx', 'csv'],
             'archive' => ['zip', 'rar', '7z', 'tar', 'gz'],
             'audio' => ['mp3', 'wav', 'ogg', 'flac'],

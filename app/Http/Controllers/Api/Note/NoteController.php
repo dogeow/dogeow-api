@@ -49,7 +49,7 @@ class NoteController extends Controller
                 'updated_at',
             ])
             // 列表仅返回正文预览，完整内容走 show
-            ->selectRaw("LEFT(COALESCE(content_markdown, ''), 240) as content_markdown")
+            ->selectRaw("SUBSTR(COALESCE(content_markdown, ''), 1, 240) as content_markdown")
             ->orderBy('updated_at', 'desc')
             ->get();
 
@@ -138,7 +138,7 @@ class NoteController extends Controller
 
         // 处理标签
         if ($request->has('tags')) {
-            $this->noteContentService->handleTags($note, $request->input('tags'));
+            $this->noteContentService->handleTags($note, $request->validated('tags'));
         }
 
         $note->load('tags');
@@ -173,13 +173,13 @@ class NoteController extends Controller
         // wiki 节点对所有认证用户可读，但写操作仍需所有者或管理员权限
         $this->authorizeNoteWrite($note);
 
-        $validatedData = $this->prepareUpdateData($request->validated(), $request, $note);
+        $validatedData = $this->prepareUpdateData($request->safe()->except('tags'), $request, $note);
 
         $note->update($validatedData);
 
         // 处理标签
         if ($request->has('tags')) {
-            $this->noteContentService->handleTags($note, $request->input('tags'));
+            $this->noteContentService->handleTags($note, $request->validated('tags'));
         }
 
         $note->load('tags');
@@ -272,6 +272,7 @@ class NoteController extends Controller
                 $query->where('is_wiki', true)
                     ->orWhere('user_id', $this->getCurrentUserId());
             })
+            ->orderBy('id')
             ->limit(5000)
             ->get()
             ->map(function (Note $node) {
@@ -299,6 +300,7 @@ class NoteController extends Controller
                     $q->where('user_id', $userId)->orWhere('is_wiki', true);
                 });
             })
+            ->orderBy('id')
             ->limit(5000)
             ->get()
             ->map(function (NoteLink $link) {

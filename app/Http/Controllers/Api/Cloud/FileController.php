@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\Cloud;
 
 use App\Http\Controllers\Concerns\GetCurrentUserId;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Cloud\ListFilesRequest;
+use App\Http\Requests\Cloud\MoveFilesRequest;
 use App\Models\Cloud\File;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\JsonResponse;
@@ -73,7 +75,7 @@ class FileController extends Controller
     /**
      * 获取所有文件列表
      */
-    public function index(Request $request): JsonResponse
+    public function index(ListFilesRequest $request): JsonResponse
     {
         $userId = $this->getCurrentUserId();
 
@@ -91,7 +93,7 @@ class FileController extends Controller
         }
 
         // 类型过滤
-        if ($request->has('type')) {
+        if ($request->filled('type')) {
             $query->whereHasFileType($request->type);
         }
 
@@ -374,7 +376,9 @@ class FileController extends Controller
 
         $file = File::where('user_id', $userId)->findOrFail($id);
         $file->name = $request->name;
-        $file->description = $request->description;
+        if ($request->has('description')) {
+            $file->description = $request->description;
+        }
         $file->save();
 
         return response()->json($this->transformFile($file));
@@ -383,17 +387,12 @@ class FileController extends Controller
     /**
      * 移动文件
      */
-    public function move(Request $request): JsonResponse
+    public function move(MoveFilesRequest $request): JsonResponse
     {
-        $request->validate([
-            'file_ids' => 'required|array',
-            'file_ids.*' => 'exists:cloud_files,id',
-            'target_folder_id' => 'nullable|exists:cloud_files,id',
-        ]);
 
         $userId = $this->getCurrentUserId();
 
-        $targetFolderId = $request->target_folder_id;
+        $targetFolderId = $request->validated('target_folder_id');
 
         // 如果目标文件夹 ID 存在，验证它是否是文件夹
         if ($targetFolderId) {

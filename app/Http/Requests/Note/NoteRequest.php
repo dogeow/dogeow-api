@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Note;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class NoteRequest extends FormRequest
@@ -17,11 +18,13 @@ class NoteRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
+            'tags' => ['sometimes', 'array', 'max:50'],
+            'tags.*' => ['required', 'string', 'max:255'],
             'title' => 'required|string|max:255',
             'content' => 'nullable|string',
             'content_markdown' => 'nullable|string',
@@ -40,6 +43,8 @@ class NoteRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'tags' => '标签',
+            'tags.*' => '标签名称',
             'title' => '笔记标题',
             'content' => '笔记内容',
             'content_markdown' => '笔记 Markdown 内容',
