@@ -4,6 +4,7 @@ namespace Tests\Unit\Models\Cloud;
 
 use App\Models\Cloud\File;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -196,7 +197,7 @@ class FileTest extends TestCase
     {
         $this->assertSame(['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'], File::getExtensionsByType('image'));
         $this->assertSame(['pdf'], File::getExtensionsByType('pdf'));
-        $this->assertSame(['doc', 'docx', 'txt', 'rtf', 'md'], File::getExtensionsByType('document'));
+        $this->assertSame(['doc', 'docx', 'txt', 'rtf', 'md', 'pages', 'key', 'numbers'], File::getExtensionsByType('document'));
         $this->assertSame(['xls', 'xlsx', 'csv'], File::getExtensionsByType('spreadsheet'));
         $this->assertSame(['zip', 'rar', '7z', 'tar', 'gz'], File::getExtensionsByType('archive'));
         $this->assertSame(['mp3', 'wav', 'ogg', 'flac'], File::getExtensionsByType('audio'));
@@ -271,8 +272,8 @@ class FileTest extends TestCase
     {
         $file = File::factory()->create();
 
-        $this->assertInstanceOf(\Carbon\Carbon::class, $file->created_at);
-        $this->assertInstanceOf(\Carbon\Carbon::class, $file->updated_at);
+        $this->assertInstanceOf(Carbon::class, $file->created_at);
+        $this->assertInstanceOf(Carbon::class, $file->updated_at);
     }
 
     public function test_file_fillable_attributes()
