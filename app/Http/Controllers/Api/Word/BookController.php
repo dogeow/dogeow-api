@@ -16,7 +16,7 @@ class BookController extends Controller
      */
     public function index(): AnonymousResourceCollection
     {
-        $books = Book::with('category')
+        $books = Book::with('category')->withCount(['words as total_words'])
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();
@@ -29,7 +29,7 @@ class BookController extends Controller
      */
     public function show(int $id): BookResource
     {
-        $book = Book::with('category')->findOrFail($id);
+        $book = Book::with('category')->withCount(['words as total_words'])->findOrFail($id);
 
         return new BookResource($book);
     }

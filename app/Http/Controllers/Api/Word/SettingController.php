@@ -25,7 +25,7 @@ class SettingController extends Controller
             ]
         );
 
-        $setting->load('currentBook');
+        $setting->load(['currentBook' => fn ($query) => $query->withCount(['words as total_words'])]);
 
         return response()->json($setting);
     }
@@ -46,7 +46,7 @@ class SettingController extends Controller
         );
 
         $setting->update($request->validated());
-        $setting->load('currentBook');
+        $setting->load(['currentBook' => fn ($query) => $query->withCount(['words as total_words'])]);
 
         return response()->json([
             'message' => '设置更新成功',
