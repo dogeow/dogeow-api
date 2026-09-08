@@ -245,14 +245,14 @@ class LearningControllerTest extends TestCase
             'status' => 1,
             'stage' => 0,
             'ease_factor' => 2.50,
-            'wrong_count' => 1,
+            'wrong_count' => 0,
             'review_count' => 1,
             'last_review_at' => now(),
-            'next_review_at' => now()->addDay(),
+            'next_review_at' => now()->subDay(),
         ]);
 
-        $response = $this->actingAs($user)
-            ->getJson('/api/word/daily');
+        $this->actingAs($user)->postJson('/api/word/mark/' . $word->id, ['remembered' => false])->assertOk();
+        $response = $this->getJson('/api/word/daily');
 
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -670,5 +670,122 @@ class LearningControllerTest extends TestCase
         $response = $this->getJson('/api/word/progress');
 
         $response->assertStatus(401);
+    }
+
+    public function test_daily_words_uses_saved_limits_and_includes_pending_new_words(): void
+    {
+        $user = User::factory()->create();
+        $book = $this->createBook(['total_words' => 24]);
+        $this->createUserSetting($user, ['current_book_id' => $book->id, 'daily_new_words' => 4]);
+
+        for ($index = 1; $index <= 24; $index++) {
+            $word = $this->createWord(['content' => 'new-' . $index]);
+            $book->words()->attach($word->id, ['sort_order' => $index]);
+            if ($index <= 20) {
+                UserWord::create([
+                    'user_id' => $user->id, 'word_id' => $word->id,
+                    'word_book_id' => $book->id, 'status' => 0, 'stage' => 0,
+                ]);
+            }
+        }
+
+        $this->actingAs($user)->putJson('/api/word/settings', [
+            'daily_new_words' => 10, 'review_multiplier' => 3,
+        ])->assertOk()->assertJsonPath('setting.daily_new_words', 10);
+
+        $first = $this->getJson('/api/word/daily')->assertOk()->assertJsonCount(10, 'data')->json('data');
+        foreach ($first as $word) {
+            $this->assertFalse($word['is_review_word']);
+            $this->postJson('/api/word/mark/' . $word['id'], ['remembered' => true])->assertOk();
+        }
+        $second = $this->getJson('/api/word/daily')->assertOk()->assertJsonCount(10, 'data')->json('data');
+        $this->assertSame([], array_values(array_intersect(array_column($first, 'id'), array_column($second, 'id'))));
+    }
+
+    public function test_four_completed_review_words_do_not_repeat_despite_historical_mistakes(): void
+    {
+        $user = User::factory()->create();
+        $book = $this->createBook(['total_words' => 4]);
+        $this->createUserSetting($user, ['current_book_id' => $book->id]);
+        for ($index = 1; $index <= 4; $index++) {
+            $word = $this->createWord(['content' => 'review-' . $index]);
+            $book->words()->attach($word->id, ['sort_order' => $index]);
+            UserWord::create([
+                'user_id' => $user->id, 'word_id' => $word->id, 'word_book_id' => $book->id,
+                'status' => 1, 'stage' => 1, 'wrong_count' => 1, 'review_count' => 2,
+                'last_review_at' => now()->subDays(2), 'next_review_at' => now()->subDay(),
+            ]);
+        }
+        $first = $this->actingAs($user)->getJson('/api/word/daily')
+            ->assertOk()->assertJsonCount(4, 'data')->json('data');
+        foreach ($first as $word) {
+            $this->postJson('/api/word/mark/' . $word['id'], ['remembered' => true])->assertOk();
+        }
+        $this->getJson('/api/word/daily')->assertOk()->assertJsonPath('data', []);
+    }
+
+    public function test_daily_words_applies_new_word_and_due_review_limits_independently(): void
+    {
+        $user = User::factory()->create();
+        $book = $this->createBook(['total_words' => 45]);
+        $this->createUserSetting($user, ['current_book_id' => $book->id]);
+        for ($index = 1; $index <= 45; $index++) {
+            $word = $this->createWord(['content' => 'quota-' . $index]);
+            $book->words()->attach($word->id, ['sort_order' => $index]);
+            if ($index <= 30) {
+                UserWord::create([
+                    'user_id' => $user->id, 'word_id' => $word->id, 'word_book_id' => $book->id,
+                    'status' => 1, 'stage' => 1, 'next_review_at' => now()->subDay(),
+                ]);
+            }
+        }
+        $this->actingAs($user);
+        foreach ([[4, 1], [10, 2], [5, 3]] as [$newCount, $multiplier]) {
+            $this->putJson('/api/word/settings', [
+                'daily_new_words' => $newCount, 'review_multiplier' => $multiplier,
+            ])->assertOk();
+            $words = $this->getJson('/api/word/daily')->assertOk()->json('data');
+            $this->assertCount($newCount, array_filter($words, fn ($word) => ! $word['is_review_word']));
+            $this->assertCount($newCount * $multiplier, array_filter($words, fn ($word) => $word['is_review_word']));
+        }
+    }
+
+    public function test_forgotten_review_stays_due_until_remembered(): void
+    {
+        $user = User::factory()->create();
+        $book = $this->createBook();
+        $word = $this->createWord(['content' => 'unfinished']);
+        $book->words()->attach($word->id);
+        $this->createUserSetting($user, ['current_book_id' => $book->id]);
+        $record = UserWord::create([
+            'user_id' => $user->id, 'word_id' => $word->id, 'word_book_id' => $book->id,
+            'status' => 1, 'stage' => 4, 'wrong_count' => 0, 'next_review_at' => now()->subDay(),
+        ]);
+        $this->actingAs($user)->postJson('/api/word/mark/' . $word->id, ['remembered' => false])->assertOk();
+        $this->assertTrue($record->fresh()->next_review_at->lte(now()));
+        $this->getJson('/api/word/daily')->assertOk()->assertJsonPath('data.0.id', $word->id);
+        $this->postJson('/api/word/mark/' . $word->id, ['remembered' => true])->assertOk();
+        $this->assertTrue($record->fresh()->next_review_at->gt(now()));
+        $this->getJson('/api/word/daily')->assertOk()->assertJsonPath('data', []);
+    }
+
+    public function test_review_words_only_include_the_selected_book_and_are_marked_as_reviews(): void
+    {
+        $user = User::factory()->create();
+        $book = $this->createBook();
+        $otherBook = $this->createBook();
+        $this->createUserSetting($user, ['current_book_id' => $book->id]);
+        foreach ([$book, $otherBook] as $currentBook) {
+            $word = $this->createWord(['content' => 'book-' . $currentBook->id]);
+            $currentBook->words()->attach($word->id);
+            UserWord::create([
+                'user_id' => $user->id, 'word_id' => $word->id, 'word_book_id' => $currentBook->id,
+                'status' => 1, 'stage' => 1, 'next_review_at' => now()->subDay(),
+            ]);
+        }
+        $this->actingAs($user)->getJson('/api/word/review')
+            ->assertOk()->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.content', 'book-' . $book->id)
+            ->assertJsonPath('data.0.is_review_word', true);
     }
 }

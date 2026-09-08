@@ -102,7 +102,7 @@ class EbbinghausServiceTest extends TestCase
         $this->assertEquals(3, $userWord->wrong_count);
         $this->assertEquals(2, $userWord->stage);
         $this->assertEquals(3, $userWord->status);
-        $this->assertEquals('2026-03-05 12:00:00', $userWord->next_review_at->format('Y-m-d H:i:s'));
+        $this->assertEquals('2026-03-01 12:00:00', $userWord->next_review_at->format('Y-m-d H:i:s'));
     }
 
     public function test_process_review_marks_word_as_mastered_at_high_stage(): void

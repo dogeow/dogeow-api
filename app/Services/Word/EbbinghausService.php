@@ -34,6 +34,12 @@ class EbbinghausService
         // 更新阶段
         $userWord->stage = $newStage;
 
+        // 未记住的词保持到期，直到答对后再进入间隔复习；
+        // 不能用累计 wrong_count 判断本次是否仍需重练。
+        if (! $remembered) {
+            return now();
+        }
+
         // 计算下次复习时间
         $days = self::INTERVALS[$newStage];
 

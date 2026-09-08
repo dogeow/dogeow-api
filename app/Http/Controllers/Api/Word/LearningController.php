@@ -50,6 +50,7 @@ class LearningController extends Controller
         // 1. 到期复习词（限制在当前单词书）
         $reviewUserWords = UserWord::where('user_id', $user->id)
             ->where('word_book_id', $book->id)
+            ->whereHas('word')
             ->whereNotIn('status', [0, 4]) // 已学习且非简单词
             ->where('next_review_at', '<=', now())
             ->with(['word.educationLevels'])
@@ -57,25 +58,10 @@ class LearningController extends Controller
             ->limit($reviewCount)
             ->get();
 
-        // 2. 今日刚标记「记不住」、尚未到复习时间的词（允许当天继续练）
-        $sameDayRetryUserWords = UserWord::where('user_id', $user->id)
-            ->where('word_book_id', $book->id)
-            ->whereNotIn('status', [0, 4])
-            ->where('wrong_count', '>', 0)
-            ->where('next_review_at', '>', now())
-            ->whereDate('last_review_at', today())
-            ->with(['word.educationLevels'])
-            ->orderBy('last_review_at')
-            ->limit($reviewCount)
-            ->get();
-
-        $reviewWordIds = $reviewUserWords->pluck('word_id')
-            ->merge($sameDayRetryUserWords->pluck('word_id'))
-            ->unique();
+        $reviewWordIds = $reviewUserWords->pluck('word_id');
 
         /** @var Collection<int, Word> $reviewWords */
         $reviewWords = $reviewUserWords
-            ->merge($sameDayRetryUserWords)
             ->unique('word_id')
             ->map(function (UserWord $userWord): Word {
                 $word = $userWord->word;
@@ -87,7 +73,7 @@ class LearningController extends Controller
             ->take($reviewCount)
             ->values();
 
-        // 3. 获取未学习的新单词（anti-join，避免全量 pluck + whereNotIn）
+        // 2. 获取未学习的新单词（anti-join，避免全量 pluck + whereNotIn）
         /** @var Collection<int, Word> $newWords */
         $newWords = $book->words()
             ->with('educationLevels')
@@ -96,13 +82,15 @@ class LearningController extends Controller
                     ->from('user_words')
                     ->whereColumn('user_words.word_id', 'words.id')
                     ->where('user_words.user_id', $user->id)
-                    ->where('user_words.word_book_id', $book->id);
+                    ->where('user_words.word_book_id', $book->id)
+                    ->where('user_words.status', '!=', 0);
             })
             ->when(
                 $reviewWordIds->isNotEmpty(),
                 fn ($query) => $query->whereNotIn('words.id', $reviewWordIds->all())
             )
             ->orderBy('word_book_word.sort_order')
+            ->orderBy('words.id')
             ->limit($dailyCount)
             ->get();
 
@@ -110,7 +98,7 @@ class LearningController extends Controller
             $newWord->setAttribute('is_review_word', false);
         }
 
-        // 5. 合并：复习词在前，新词在后
+        // 3. 合并：复习词在前，新词在后
         $allWords = $reviewWords->merge($newWords);
 
         return WordResource::collection($allWords);
@@ -124,10 +112,16 @@ class LearningController extends Controller
         $user = Auth::user();
         $setting = $this->getUserSetting($user->id);
 
+        if (! $setting->current_book_id) {
+            return WordResource::collection(collect());
+        }
+
         $reviewCount = $setting->daily_new_words * $setting->review_multiplier;
 
         // 获取需要复习的单词(下次复习时间已到，排除简单词 status=4)
         $userWords = UserWord::where('user_id', $user->id)
+            ->where('word_book_id', $setting->current_book_id)
+            ->whereHas('word')
             ->whereNotIn('status', [0, 4]) // 已学习且非简单词
             ->where('next_review_at', '<=', now())
             ->with(['word.educationLevels'])
@@ -135,7 +129,12 @@ class LearningController extends Controller
             ->limit($reviewCount)
             ->get();
 
-        $words = $userWords->map(fn ($userWord) => $userWord->word);
+        $words = $userWords->map(function (UserWord $userWord): Word {
+            $word = $userWord->word;
+            $word->setAttribute('is_review_word', true);
+
+            return $word;
+        });
 
         return WordResource::collection($words);
     }
