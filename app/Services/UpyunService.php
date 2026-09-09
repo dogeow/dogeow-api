@@ -262,6 +262,8 @@ class UpyunService
             'webp' => 'image/webp',
             'json' => 'application/json',
             'txt' => 'text/plain; charset=utf-8',
+            'mp3' => 'audio/mpeg',
+            'wav' => 'audio/wav',
         ];
 
         return $map[$ext] ?? 'application/octet-stream';

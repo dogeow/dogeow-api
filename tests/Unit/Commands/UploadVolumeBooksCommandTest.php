@@ -109,6 +109,41 @@ class UploadVolumeBooksCommandTest extends TestCase
         $this->assertSame(UploadVolumeBooksCommand::SUCCESS, $exitCode);
     }
 
+    public function test_uploads_mp3_and_manifest_when_audio_flag_is_set(): void
+    {
+        $audioDir = $this->sourceDir . '/audio/serena/0-0';
+        mkdir($audioDir, 0777, true);
+        file_put_contents($audioDir . '/000.mp3', 'mp3');
+        file_put_contents($audioDir . '/000.generating.wav', 'wav');
+        file_put_contents($audioDir . '/manifest.json', '{"pairs":[0]}');
+
+        $upyun = $this->mock(UpyunService::class);
+        $upyun->shouldReceive('isConfigured')->once()->andReturn(true);
+        $sourceDir = realpath($this->sourceDir . '/audio') ?: $this->sourceDir . '/audio';
+        $upyun->shouldReceive('upload')
+            ->once()
+            ->with($sourceDir . '/serena/0-0/000.mp3', 'books/biancheng/audio/serena/0-0/000.mp3', 'audio/mpeg')
+            ->andReturn(['success' => true, 'path' => 'books/biancheng/audio/serena/0-0/000.mp3']);
+        $upyun->shouldReceive('upload')
+            ->once()
+            ->with($sourceDir . '/serena/0-0/manifest.json', 'books/biancheng/audio/serena/0-0/manifest.json', 'application/json')
+            ->andReturn(['success' => true, 'path' => 'books/biancheng/audio/serena/0-0/manifest.json']);
+        $upyun->shouldReceive('buildPublicUrl')
+            ->once()
+            ->with('/books/biancheng/audio/serena/0-0/manifest.json')
+            ->andReturn('https://upyun.dogeow.com/books/biancheng/audio/serena/0-0/manifest.json');
+        $this->app->instance(UpyunService::class, $upyun);
+
+        $command = $this->app->make(UploadVolumeBooksCommand::class);
+        $exitCode = $this->runCommand($command, [
+            'id' => 'biancheng',
+            '--source' => $this->sourceDir . '/audio',
+            '--audio' => true,
+        ]);
+
+        $this->assertSame(UploadVolumeBooksCommand::SUCCESS, $exitCode);
+    }
+
     public function test_returns_failure_when_any_upload_fails(): void
     {
         $upyun = $this->mock(UpyunService::class);

@@ -375,4 +375,21 @@ class UpyunServiceTest extends TestCase
 
         $this->assertEquals('image/png', $result);
     }
+
+    public function test_guess_mime_type_returns_mpeg_for_mp3_extension(): void
+    {
+        config(['services.upyun.bucket' => 'test']);
+        config(['services.upyun.operator' => 'test']);
+        config(['services.upyun.password' => 'test']);
+
+        $service = new UpyunService;
+
+        $reflection = new \ReflectionClass($service);
+        $method = $reflection->getMethod('guessMimeType');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($service, '/path/to/audio.mp3');
+
+        $this->assertEquals('audio/mpeg', $result);
+    }
 }

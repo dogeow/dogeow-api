@@ -13,9 +13,10 @@ class UploadVolumeBooksCommand extends Command
     protected $signature = 'books:upload
                             {id : 书籍 id，对应 dogeow/public/books/{id}}
                             {--source= : 本地书籍目录}
-                            {--prefix= : 又拍云上的路径前缀}';
+                            {--prefix= : 又拍云上的路径前缀}
+                            {--audio : 只上传 audio 目录下的 MP3 与 manifest}';
 
-    protected $description = '将分卷 TXT 与索引上传到又拍云';
+    protected $description = '将分卷 TXT、索引或 AI 朗读音频上传到又拍云';
 
     public function handle(UpyunService $upyun): int
     {
@@ -32,25 +33,36 @@ class UploadVolumeBooksCommand extends Command
             return self::FAILURE;
         }
 
-        $source = (string) ($this->option('source') ?: base_path("../dogeow/public/books/{$id}"));
+        $audioOnly = (bool) $this->option('audio');
+        $source = (string) ($this->option('source') ?: base_path(
+            $audioOnly ? "../dogeow/public/books/{$id}/audio" : "../dogeow/public/books/{$id}"
+        ));
         $source = realpath($source) ?: $source;
-        $prefix = trim((string) ($this->option('prefix') ?: "books/{$id}"), '/');
+        $prefix = trim((string) ($this->option('prefix') ?: ($audioOnly ? "books/{$id}/audio" : "books/{$id}")), '/');
 
         if (! is_dir($source)) {
             $this->error("源目录不存在: {$source}");
-            $this->comment("请先在 dogeow 目录运行: npm run preprocess:volume -- {$id}");
+            $this->comment(
+                $audioOnly
+                    ? "请先在 dogeow 目录运行: npm run narration:generate -- --book {$id} --chapter 0-0"
+                    : "请先在 dogeow 目录运行: npm run preprocess:volume -- {$id}"
+            );
 
             return self::FAILURE;
         }
 
-        $files = $this->collectFiles($source);
+        $files = $this->collectFiles($source, $audioOnly);
         if ($files === []) {
-            $this->error("目录内没有可上传的 TXT/JSON 文件: {$source}");
+            $this->error(
+                $audioOnly
+                    ? "目录内没有可上传的 MP3/manifest: {$source}"
+                    : "目录内没有可上传的 TXT/JSON/MP3 文件: {$source}"
+            );
 
             return self::FAILURE;
         }
 
-        $this->info('上传 ' . count($files) . " 个文件到又拍云 /{$prefix}/ ...");
+        $this->info('上传 ' . count($files) . ' 个' . ($audioOnly ? '音频' : '') . "文件到又拍云 /{$prefix}/ ...");
 
         $uploaded = 0;
         foreach ($files as $absolutePath => $relativePath) {
@@ -67,9 +79,17 @@ class UploadVolumeBooksCommand extends Command
             $uploaded++;
         }
 
-        $sampleUrl = $upyun->buildPublicUrl('/' . $prefix . '/index.json');
+        $sampleRelative = 'index.json';
+        if ($audioOnly) {
+            $manifests = array_values(array_filter(
+                $files,
+                static fn (string $path): bool => str_ends_with(strtolower($path), 'manifest.json')
+            ));
+            $sampleRelative = $manifests[0] ?? (array_values($files)[0] ?? 'manifest.json');
+        }
+        $sampleUrl = $upyun->buildPublicUrl('/' . $prefix . '/' . str_replace('\\', '/', $sampleRelative));
         $this->info("上传完成，共 {$uploaded} 个文件。");
-        $this->line('索引 URL: ' . $sampleUrl);
+        $this->line(($audioOnly ? '音频清单 URL: ' : '索引 URL: ') . $sampleUrl);
 
         return self::SUCCESS;
     }
@@ -77,7 +97,7 @@ class UploadVolumeBooksCommand extends Command
     /**
      * @return array<string, string> absolute path => relative path
      */
-    private function collectFiles(string $source): array
+    private function collectFiles(string $source, bool $audioOnly = false): array
     {
         $source = rtrim($source, DIRECTORY_SEPARATOR);
         $files = [];
@@ -92,13 +112,12 @@ class UploadVolumeBooksCommand extends Command
                 continue;
             }
 
-            $extension = strtolower($file->getExtension());
-            if (! in_array($extension, ['txt', 'json'], true)) {
+            $relativePath = ltrim(str_replace($source, '', $file->getRealPath() ?: $file->getPathname()), DIRECTORY_SEPARATOR);
+            if (! $this->shouldCollect($relativePath, $audioOnly)) {
                 continue;
             }
 
             $absolutePath = $file->getRealPath() ?: $file->getPathname();
-            $relativePath = ltrim(str_replace($source, '', $absolutePath), DIRECTORY_SEPARATOR);
             $files[$absolutePath] = $relativePath;
         }
 
@@ -107,10 +126,29 @@ class UploadVolumeBooksCommand extends Command
         return $files;
     }
 
+    private function shouldCollect(string $relativePath, bool $audioOnly): bool
+    {
+        $basename = strtolower(basename($relativePath));
+        $extension = strtolower(pathinfo($relativePath, PATHINFO_EXTENSION));
+        if (str_contains($basename, '.generating.')) {
+            return false;
+        }
+
+        if ($audioOnly) {
+            return $extension === 'mp3' || $basename === 'manifest.json';
+        }
+
+        return in_array($extension, ['txt', 'json', 'mp3'], true);
+    }
+
     private function mimeType(string $relativePath): string
     {
-        return str_ends_with(strtolower($relativePath), '.json')
-            ? 'application/json'
-            : 'text/plain; charset=utf-8';
+        $extension = strtolower(pathinfo($relativePath, PATHINFO_EXTENSION));
+
+        return match ($extension) {
+            'json' => 'application/json',
+            'mp3' => 'audio/mpeg',
+            default => 'text/plain; charset=utf-8',
+        };
     }
 }
