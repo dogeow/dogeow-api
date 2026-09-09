@@ -113,6 +113,25 @@ class BookMarkControllerTest extends TestCase
             ->assertJsonPath('0.chapterId', '0-0');
     }
 
+    public function test_user_can_store_annakarenina_book_mark_with_string_chapter_id(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/books/annakarenina/marks', $this->bookmarkPayload([
+            'id' => 'anna-mark-1',
+            'chapterId' => '0-0',
+            'chapterTitle' => '第一部 · 第1章',
+            'pairIndex' => null,
+            'excerpt' => '幸福的家庭家家相似',
+        ]))
+            ->assertCreated()
+            ->assertJsonPath('created', true)
+            ->assertJsonPath('mark.id', 'anna-mark-1')
+            ->assertJsonPath('mark.bookId', 'annakarenina')
+            ->assertJsonPath('mark.chapterId', '0-0');
+    }
+
     public function test_numeric_chapter_id_is_accepted_as_string(): void
     {
         $user = User::factory()->create();
